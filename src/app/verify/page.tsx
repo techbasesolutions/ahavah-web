@@ -4,10 +4,10 @@ import Link from "next/link";
 import { motion } from "motion/react";
 import { ArrowLeft, Check, IdCard, Scan, Smartphone } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { IconBadge } from "@/components/ui/icon-badge";
+import { Pill } from "@/components/kibo-ui/pill";
 
 import { cn } from "@/lib/utils";
 
@@ -96,16 +96,29 @@ export default function VerifyPage() {
                 style={{ "--tier-color": tier.color } as React.CSSProperties}
               >
                 <CardHeader className="flex-row items-center gap-3 px-0">
-                  <IconBadge tone="tier" size="xl">
-                    <tier.Icon />
-                  </IconBadge>
+                  {/* Inactive tiers get a lavender ring around the IconBadge
+                      so they read as 'alive next step' instead of a grey-
+                      on-dark dead tile (the silver/gold disabled-look
+                      pattern flagged on /verify/silver). The active tier
+                      keeps its bare tile because the lime 'Active' pill
+                      already celebrates it. */}
+                  <div
+                    className={cn(
+                      "rounded-full",
+                      !isCurrent && "ring-2 ring-lavender/30",
+                    )}
+                  >
+                    <IconBadge tone="tier" size="xl">
+                      <tier.Icon />
+                    </IconBadge>
+                  </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <h2 className="text-h3 text-white">{tier.label}</h2>
                       {isCurrent && (
-                        <Badge variant="tier" className="text-overline">
-                          <Check size={10} className="mr-1" /> Active
-                        </Badge>
+                        <Pill variant="lime">
+                          <Check size={11} /> Active
+                        </Pill>
                       )}
                     </div>
                     <p className="text-meta text-text-secondary">{tier.sub}</p>
