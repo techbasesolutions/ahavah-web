@@ -7,43 +7,26 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 import { cn } from "@/lib/utils";
-
-import { OnboardingShell } from "@/components/app/onboarding-shell";
+import { ASSEMBLIES, type Assembly } from "@/lib/profile-schema";
 import { useProfile } from "@/lib/use-profile";
 
-const OPTIONS = [
-  { key: "woman", label: "Woman" },
-  { key: "man",   label: "Man" },
-];
+import { OnboardingShell } from "@/components/app/onboarding-shell";
 
 const fadeUp = {
   initial: { opacity: 0, y: 12 },
   animate: { opacity: 1, y: 0 },
 };
 
-export default function GenderStep() {
+export default function AssemblyStep() {
   const { profile, update } = useProfile();
-  // Map profile.sex ("female" | "male") to screen display values ("woman" | "man")
-  const sexToDisplay = (sex?: string) => {
-    if (sex === "female") return "woman";
-    if (sex === "male") return "man";
-    return "";
-  };
-  // Map screen selection ("woman" | "man") back to profile.sex ("female" | "male")
-  const displayToSex = (display: string) => {
-    if (display === "woman") return "female";
-    if (display === "man") return "male";
-    return undefined;
-  };
-  const selected = sexToDisplay(profile.sex);
 
   return (
     <OnboardingShell
-      step={5}
+      step={12}
       totalSteps={14}
-      back="/onboarding/dob"
-      next="/onboarding/looking-for"
-      ctaDisabled={!selected}
+      back="/onboarding/polygyny"
+      next="/onboarding/relocation"
+      ctaDisabled={!profile.assembly}
     >
       <motion.div
         {...fadeUp}
@@ -51,9 +34,12 @@ export default function GenderStep() {
         className="flex flex-col gap-2"
       >
         <h1 className="text-display text-white">
-          Which best describes you<span className="text-lime">?</span>
+          Which assembly do you identify with<span className="text-lime">?</span>
         </h1>
-        <p className="text-body text-text-secondary">You can change this anytime.</p>
+        <p className="text-body text-text-secondary">
+          Used to surface matches who share your faith background. Pick the
+          closest fit — you can refine later.
+        </p>
       </motion.div>
 
       <motion.div
@@ -62,23 +48,20 @@ export default function GenderStep() {
         className="mt-8"
       >
         <RadioGroup
-          value={selected}
-          onValueChange={(v) => {
-            const sex = displayToSex(v);
-            if (sex) update({ sex });
-          }}
+          value={profile.assembly ?? ""}
+          onValueChange={(v) => update({ assembly: v as Assembly })}
           className="grid gap-3"
         >
-          {OPTIONS.map((opt, i) => {
-            const active = opt.key === selected;
+          {ASSEMBLIES.map((opt, i) => {
+            const active = opt.value === profile.assembly;
             return (
               <motion.div
-                key={opt.key}
+                key={opt.value}
                 {...fadeUp}
                 transition={{ duration: 0.35, delay: 0.2 + i * 0.05 }}
               >
                 <Label
-                  htmlFor={`gender-${opt.key}`}
+                  htmlFor={`assembly-${opt.value}`}
                   className="block w-full cursor-pointer"
                 >
                   <Card
@@ -99,8 +82,8 @@ export default function GenderStep() {
                       {opt.label}
                     </span>
                     <RadioGroupItem
-                      id={`gender-${opt.key}`}
-                      value={opt.key}
+                      id={`assembly-${opt.value}`}
+                      value={opt.value}
                       variant="brand"
                       className={
                         active

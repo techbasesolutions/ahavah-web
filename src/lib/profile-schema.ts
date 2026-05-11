@@ -632,14 +632,21 @@ export type Profile = {
  * these, then complete the rest in /profile/edit. `computeCompleteness`
  * checks profile completion against this list for the "discover-eligible"
  * gate; the full ~30-field completion drives the visual "X% complete" badge.
+ *
+ * Sourced from the 2026-05-11 product spec — asterisked fields in the
+ * Torah-observant matchmaker profile structure. `verificationTags` being
+ * present in this list means at least ONE verification tag must be set
+ * (isFilled treats empty arrays as not-filled).
  */
 export const MINIMUM_COMPLETE_FIELDS: ReadonlyArray<keyof Profile> = [
   "firstName",
   "age",
   "sex",
   "country",
+  "intent",
   "assembly",
-  "torahLevel",
+  "relocation",
+  "verificationTags",
 ];
 
 export function emptyProfile(): Profile {

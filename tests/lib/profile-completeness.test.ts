@@ -10,7 +10,7 @@ describe("computeCompleteness", () => {
     const r = computeCompleteness(emptyProfile());
     expect(r.percent).toBe(0);
     expect(r.requiredFilled).toBe(0);
-    expect(r.requiredTotal).toBe(6);
+    expect(r.requiredTotal).toBe(8);
     expect(r.discoverEligible).toBe(false);
   });
 
@@ -21,21 +21,23 @@ describe("computeCompleteness", () => {
       sex: "male",
     });
     expect(r.requiredFilled).toBe(3);
-    expect(r.requiredTotal).toBe(6);
+    expect(r.requiredTotal).toBe(8);
     expect(r.discoverEligible).toBe(false);
   });
 
-  it("flips discoverEligible to true once all 6 required fields are filled", () => {
+  it("flips discoverEligible to true once all 8 required fields are filled", () => {
     const r = computeCompleteness({
       firstName: "Daniel",
       age: 32,
       sex: "male",
       country: "BB",
+      intent: "first-wife",
       assembly: "torah-observant",
-      torahLevel: "intermediate",
+      relocation: "wants-partner-willing",
+      verificationTags: ["government-id"],
     });
-    expect(r.requiredFilled).toBe(6);
-    expect(r.requiredTotal).toBe(6);
+    expect(r.requiredFilled).toBe(8);
+    expect(r.requiredTotal).toBe(8);
     expect(r.discoverEligible).toBe(true);
   });
 
@@ -48,18 +50,35 @@ describe("computeCompleteness", () => {
     expect(r.requiredFilled).toBe(1);
   });
 
-  it("treats empty array as not-filled", () => {
+  it("treats empty verificationTags array as not-filled (one tag required)", () => {
     const r = computeCompleteness({
       firstName: "Daniel",
       age: 32,
       sex: "male",
       country: "BB",
+      intent: "first-wife",
       assembly: "torah-observant",
-      torahLevel: "intermediate",
+      relocation: "local-only",
+      verificationTags: [],
+    });
+    expect(r.requiredFilled).toBe(7);
+    expect(r.discoverEligible).toBe(false);
+  });
+
+  it("treats empty optional arrays as not-filled (no percent contribution)", () => {
+    const r = computeCompleteness({
+      firstName: "Daniel",
+      age: 32,
+      sex: "male",
+      country: "BB",
+      intent: "first-wife",
+      assembly: "torah-observant",
+      relocation: "local-only",
+      verificationTags: ["government-id"],
       feastDays: [],
       interests: [],
     });
-    expect(r.requiredFilled).toBe(6);
+    expect(r.requiredFilled).toBe(8);
     expect(r.percent).toBeLessThan(100);
   });
 
@@ -105,15 +124,17 @@ describe("computeCompleteness", () => {
 });
 
 describe("isDiscoverEligible", () => {
-  it("is true when all 6 minimum-required fields are filled", () => {
+  it("is true when all 8 minimum-required fields are filled", () => {
     expect(
       isDiscoverEligible({
         firstName: "Daniel",
         age: 32,
         sex: "male",
         country: "BB",
+        intent: "first-wife",
         assembly: "torah-observant",
-        torahLevel: "intermediate",
+        relocation: "local-only",
+        verificationTags: ["government-id"],
       }),
     ).toBe(true);
   });
@@ -125,7 +146,10 @@ describe("isDiscoverEligible", () => {
         age: 32,
         sex: "male",
         country: "BB",
+        intent: "first-wife",
         assembly: "torah-observant",
+        relocation: "local-only",
+        // verificationTags missing
       }),
     ).toBe(false);
   });

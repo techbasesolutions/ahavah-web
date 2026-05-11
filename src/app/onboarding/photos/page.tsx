@@ -54,7 +54,7 @@ export default function PhotosStep() {
   return (
     <OnboardingShell
       step={7}
-      totalSteps={10}
+      totalSteps={14}
       back="/onboarding/looking-for"
       next="/onboarding/country"
       ctaDisabled={!hasMain}

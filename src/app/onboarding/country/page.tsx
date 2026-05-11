@@ -19,6 +19,7 @@ import {
 
 import { EmptyState } from "@/components/app/empty-state";
 import { OnboardingShell } from "@/components/app/onboarding-shell";
+import { useProfile } from "@/lib/use-profile";
 
 const fadeUp = {
   initial: { opacity: 0, y: 12 },
@@ -26,9 +27,8 @@ const fadeUp = {
 };
 
 export default function CountryStep() {
-  // Controlled-from-first-render with a default selection so RadioGroup
-  // doesn't flip from uncontrolled→controlled (Base UI warning).
-  const [selected, setSelected] = useState<string>("BB");
+  const { profile, update } = useProfile();
+  const selected = profile.country ?? "";
   const [query, setQuery] = useState("");
 
   const q = query.trim().toLowerCase();
@@ -56,7 +56,7 @@ export default function CountryStep() {
   return (
     <OnboardingShell
       step={8}
-      totalSteps={10}
+      totalSteps={14}
       back="/onboarding/photos"
       next="/onboarding/languages"
       ctaDisabled={!selected}
@@ -130,7 +130,7 @@ export default function CountryStep() {
         ) : (
           <RadioGroup
             value={selected}
-            onValueChange={(v) => setSelected(v as string)}
+            onValueChange={(v) => update({ country: v as string })}
             aria-label="Select your country"
             className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto pb-2"
           >

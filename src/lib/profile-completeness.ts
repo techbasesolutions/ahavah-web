@@ -69,3 +69,55 @@ export function computeCompleteness(profile: Profile): CompletenessResult {
 export function isDiscoverEligible(profile: Profile): boolean {
   return computeCompleteness(profile).discoverEligible;
 }
+
+/**
+ * Maps MINIMUM_COMPLETE_FIELDS to their onboarding routes. Returns the route
+ * path for the first unfilled required field, or null if all are filled.
+ * Used by /discover gate to redirect incomplete profiles to the targeted step.
+ */
+const FIELD_TO_ROUTE: Readonly<Record<keyof Profile, string>> = {
+  firstName: "/onboarding/name",
+  age: "/onboarding/dob",
+  sex: "/onboarding/gender",
+  country: "/onboarding/country",
+  intent: "/onboarding/looking-for",
+  assembly: "/onboarding/assembly",
+  relocation: "/onboarding/relocation",
+  verificationTags: "/onboarding/verification",
+  // All other fields (not in MINIMUM_COMPLETE_FIELDS) are not routed.
+  displayName: "/onboarding/name",
+  stateOrProvince: "",
+  city: "",
+  nationality: "",
+  ethnicities: "",
+  languages: "",
+  occupation: "",
+  education: "",
+  bio: "",
+  torahLevel: "",
+  shabbat: "",
+  feastDays: "",
+  calendar: "",
+  polygyny: "",
+  headCovering: "",
+  tzitzit: "",
+  familyViews: "",
+  livingPreferences: "",
+  healthTags: "",
+  interests: "",
+  personalityTraits: "",
+  communicationPrefs: "",
+  boundaryTags: "",
+  voiceIntroUrl: "",
+  promptCards: "",
+};
+
+export function firstMissingStepFor(profile: Profile): string | null {
+  for (const field of MINIMUM_COMPLETE_FIELDS) {
+    if (!isFilled(profile[field])) {
+      const route = FIELD_TO_ROUTE[field];
+      return route || null;
+    }
+  }
+  return null;
+}

@@ -10,39 +10,23 @@ import { cn } from "@/lib/utils";
 
 import { OnboardingShell } from "@/components/app/onboarding-shell";
 import { useProfile } from "@/lib/use-profile";
-
-const OPTIONS = [
-  { key: "woman", label: "Woman" },
-  { key: "man",   label: "Man" },
-];
+import { RELOCATIONS, type Relocation } from "@/lib/profile-schema";
 
 const fadeUp = {
   initial: { opacity: 0, y: 12 },
   animate: { opacity: 1, y: 0 },
 };
 
-export default function GenderStep() {
+export default function RelocationStep() {
   const { profile, update } = useProfile();
-  // Map profile.sex ("female" | "male") to screen display values ("woman" | "man")
-  const sexToDisplay = (sex?: string) => {
-    if (sex === "female") return "woman";
-    if (sex === "male") return "man";
-    return "";
-  };
-  // Map screen selection ("woman" | "man") back to profile.sex ("female" | "male")
-  const displayToSex = (display: string) => {
-    if (display === "woman") return "female";
-    if (display === "man") return "male";
-    return undefined;
-  };
-  const selected = sexToDisplay(profile.sex);
+  const selected = profile.relocation ?? "";
 
   return (
     <OnboardingShell
-      step={5}
+      step={13}
       totalSteps={14}
-      back="/onboarding/dob"
-      next="/onboarding/looking-for"
+      back="/onboarding/assembly"
+      next="/onboarding/verification"
       ctaDisabled={!selected}
     >
       <motion.div
@@ -51,9 +35,11 @@ export default function GenderStep() {
         className="flex flex-col gap-2"
       >
         <h1 className="text-display text-white">
-          Which best describes you<span className="text-lime">?</span>
+          How do you feel about relocation<span className="text-lime">?</span>
         </h1>
-        <p className="text-body text-text-secondary">You can change this anytime.</p>
+        <p className="text-body text-text-secondary">
+          Helps us match you with people whose openness to moving lines up with yours.
+        </p>
       </motion.div>
 
       <motion.div
@@ -63,22 +49,19 @@ export default function GenderStep() {
       >
         <RadioGroup
           value={selected}
-          onValueChange={(v) => {
-            const sex = displayToSex(v);
-            if (sex) update({ sex });
-          }}
+          onValueChange={(v) => update({ relocation: v as Relocation })}
           className="grid gap-3"
         >
-          {OPTIONS.map((opt, i) => {
-            const active = opt.key === selected;
+          {RELOCATIONS.map((opt, i) => {
+            const active = opt.value === selected;
             return (
               <motion.div
-                key={opt.key}
+                key={opt.value}
                 {...fadeUp}
                 transition={{ duration: 0.35, delay: 0.2 + i * 0.05 }}
               >
                 <Label
-                  htmlFor={`gender-${opt.key}`}
+                  htmlFor={`relocation-${opt.value}`}
                   className="block w-full cursor-pointer"
                 >
                   <Card
@@ -99,8 +82,8 @@ export default function GenderStep() {
                       {opt.label}
                     </span>
                     <RadioGroupItem
-                      id={`gender-${opt.key}`}
-                      value={opt.key}
+                      id={`relocation-${opt.value}`}
+                      value={opt.value}
                       variant="brand"
                       className={
                         active

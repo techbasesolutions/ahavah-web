@@ -610,16 +610,19 @@ describe("Profile aggregate", () => {
     expect(p.interests).toBeUndefined();
   });
 
-  it("MINIMUM_COMPLETE_FIELDS lists the soft-required fields", () => {
-    // Per 2026-05-11 soft-completeness decision: only these are required to
-    // browse /discover. Everything else can be filled in /profile/edit.
+  it("MINIMUM_COMPLETE_FIELDS lists the 8 soft-required fields", () => {
+    // Sourced from 2026-05-11 product spec — asterisked fields in the
+    // Torah-observant matchmaker profile structure. verificationTags
+    // requires AT LEAST ONE tag (empty arrays are not-filled).
     expect(MINIMUM_COMPLETE_FIELDS).toEqual([
       "firstName",
       "age",
       "sex",
       "country",
+      "intent",
       "assembly",
-      "torahLevel",
+      "relocation",
+      "verificationTags",
     ]);
   });
 
