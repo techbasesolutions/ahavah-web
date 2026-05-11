@@ -95,26 +95,6 @@ export function FiltersSheet({
     value: DiscoverFiltersState[K],
   ) => setFilters((prev) => ({ ...prev, [key]: value }));
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const toggleArrayItem = <K extends keyof DiscoverFiltersState>(
-    key: K,
-    item: unknown,
-  ) => {
-    setFilters((prev) => {
-      const current = prev[key] as readonly unknown[] | undefined;
-      const arr = current ? Array.from(current) : [];
-      const idx = arr.indexOf(item);
-      if (idx >= 0) {
-        arr.splice(idx, 1);
-      } else {
-        arr.push(item);
-      }
-      return {
-        ...prev,
-        [key]: arr.length > 0 ? arr : undefined,
-      };
-    });
-  };
 
   const handleReset = () => {
     setFilters(DEFAULT_FILTERS);
@@ -499,5 +479,3 @@ export function FiltersSheet({
     </Sheet>
   );
 }
-
-export type { DiscoverFiltersState };
