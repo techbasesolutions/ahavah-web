@@ -225,22 +225,14 @@ export default function DiscoverPage() {
                 />
               </div>
 
-              {/* Tap zones for photo nav — single image mode, so both zones
-                  advance to next user (skip pattern) */}
-              <Button
-                variant="ghost"
-                size="block"
-                aria-label="Previous candidate"
-                onClick={() => advanceUser("skip")}
-                className="absolute inset-y-0 left-0 z-10 h-full w-1/3 rounded-none p-0 hover:bg-transparent"
-              />
-              <Button
-                variant="ghost"
-                size="block"
-                aria-label="Next candidate"
-                onClick={() => advanceUser("skip")}
-                className="absolute inset-y-0 right-0 z-10 h-full w-2/3 rounded-none p-0 hover:bg-transparent"
-              />
+              {/* Photo-nav tap zones removed: SAMPLE_PROFILES have one
+                  gradient placeholder each (no photo carousel), so the
+                  asymmetric 1/3 + 2/3 invisible buttons just split the
+                  card into uneven hover halves without actually navigating
+                  anything. The Skip / Like buttons at the bottom of the
+                  card are the real swipe affordance. When photo carousels
+                  land (future sub-plan), restore symmetric 50/50 tap zones
+                  that walk profile.photos[]. */}
 
               <PhotoCaption className="px-6 pb-20">
                 <h2 className="text-h2 leading-tight text-white">
