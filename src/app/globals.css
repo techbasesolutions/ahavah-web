@@ -1,26 +1,528 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+ * Ahavah brand theme — locked dark-only (Phase D Task D.1).
+ * Palette per docs/specs/look-and-feel/a393f0… (font + colors kit) +
+ * ahavah-design-tokens/colors.ts.
+ *
+ *   #5524F5 (Persian Indigo) → oklch(0.46 0.30 270)
+ *   #D7FF81 (Mindaro lime)   → oklch(0.95 0.18 119)
+ *   #BC96FF (Lavender)       → oklch(0.71 0.16 295)
+ *   #FF4566 (Pinkish Red)    → oklch(0.65 0.24 17)
+ *   #1A1340 (bg-indigo)      → oklch(0.18 0.11 280)
+ *   #0F0B1F (bg-elevated)    → oklch(0.13 0.06 280)
+ *   #FFFFFF (text-primary)   → oklch(1 0 0)
+ *   #B5B0CC (text-secondary) → oklch(0.75 0.04 280)
+ *   #7A7596 (text-muted)     → oklch(0.53 0.05 280)
+ */
+
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+
+  /* Brand semantic tokens */
+  --color-indigo:        oklch(0.46 0.30 270);
+  --color-lime:          oklch(0.95 0.18 119);
+  --color-lavender:      oklch(0.71 0.16 295);
+  --color-pink:          oklch(0.65 0.24 17);
+  --color-bg-canvas:     #000000;
+  --color-bg-indigo:     oklch(0.18 0.11 280);
+  --color-bg-elevated:   oklch(0.13 0.06 280);
+  --color-text-secondary: oklch(0.75 0.04 280);
+  /* Bumped from 0.53 → 0.66 to clear WCAG AA 4.5:1 on bg-indigo / bg-elevated
+     for body-min (12px caption) text. Verified via Playwright contrast audit. */
+  --color-text-muted:    oklch(0.66 0.05 280);
+
+  /* Semantic state colors */
+  --color-success:       oklch(0.85 0.21 138);  /* #9FE870 — online dot */
+  --color-warning:       oklch(0.83 0.18 90);   /* amber */
+  --color-danger:        oklch(0.65 0.24 17);   /* same as pink — semantic alias */
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* ------------------------------------------------------------------ */
+  /* Typography pairings — every text style ships size + leading +      */
+  /* tracking + weight as one named token. Use `text-display`, `text-h1` */
+  /* etc. — never raw text-[Npx]. Body min 16px to prevent iOS zoom.    */
+  /* ------------------------------------------------------------------ */
+  --text-display: 30px;
+  --text-display--line-height: 1.1;
+  --text-display--letter-spacing: -0.02em;
+  --text-display--font-weight: 800;
+
+  --text-h1: 24px;
+  --text-h1--line-height: 1.2;
+  --text-h1--letter-spacing: -0.015em;
+  --text-h1--font-weight: 800;
+
+  --text-h2: 20px;
+  --text-h2--line-height: 1.25;
+  --text-h2--letter-spacing: -0.01em;
+  --text-h2--font-weight: 700;
+
+  --text-h3: 18px;
+  --text-h3--line-height: 1.3;
+  --text-h3--font-weight: 700;
+
+  --text-body: 16px;
+  --text-body--line-height: 1.5;
+
+  --text-body-strong: 16px;
+  --text-body-strong--line-height: 1.5;
+  --text-body-strong--font-weight: 600;
+
+  --text-meta: 14px;
+  --text-meta--line-height: 1.45;
+
+  --text-caption: 12px;
+  --text-caption--line-height: 1.4;
+
+  --text-overline: 11px;
+  --text-overline--line-height: 1.3;
+  --text-overline--letter-spacing: 0.08em;
+  --text-overline--font-weight: 700;
+
+  /* ------------------------------------------------------------------ */
+  /* Touch-target heights — minimum 44px per iOS HIG / Material 48dp.   */
+  /* All interactive primitive sizes resolve to these tokens; no h-7 / */
+  /* h-8 / size-8 inline overrides on Buttons.                          */
+  /* ------------------------------------------------------------------ */
+  --spacing-tap: 44px;        /* Apple minimum tap target */
+  --spacing-tap-lg: 48px;     /* Material comfortable */
+  --spacing-tap-xl: 56px;     /* Primary CTA */
+  --spacing-tap-2xl: 64px;    /* Hero / match-action */
+
+  /* Component-specific sizing (consumed by cva variants only) */
+  --spacing-input: 56px;      /* Single-line text input height */
+  --spacing-cta: 56px;        /* Primary action button height */
+  --spacing-row: 56px;        /* Settings list-row min-height */
+
+  /* ------------------------------------------------------------------ */
+  /* Container caps — one-off relative widths exposed as named tokens.  */
+  /* `bubble` = chat-message max width ratio (was previously the only   */
+  /* arbitrary `max-w-[80%]` in the codebase, now `max-w-bubble`).      */
+  /* ------------------------------------------------------------------ */
+  --container-bubble: 80%;
+
+  /* ------------------------------------------------------------------ */
+  /* Shadow tokens — every box-shadow used in product code resolves to  */
+  /* one of these. No inline `style={{ boxShadow: ... }}`.              */
+  /* ------------------------------------------------------------------ */
+  --shadow-card-overlap:  0 -8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-card-floating: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-tier-active:   inset 0 0 0 1.5px var(--tier-color, oklch(0.95 0.18 119));
+  --shadow-tier-inactive: inset 0 0 0 1.5px rgba(255, 255, 255, 0.06);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root {
+  --background:           oklch(0.18 0.11 280);
+  --foreground:           oklch(1 0 0);
+  --card:                 oklch(0.18 0.11 280);
+  --card-foreground:      oklch(1 0 0);
+  --popover:              oklch(0.13 0.06 280);
+  --popover-foreground:   oklch(1 0 0);
+  --primary:              oklch(0.95 0.18 119);
+  --primary-foreground:   oklch(0.10 0 0);
+  --secondary:            oklch(0.71 0.16 295);
+  --secondary-foreground: oklch(0.10 0 0);
+  --muted:                oklch(0.13 0.06 280);
+  --muted-foreground:     oklch(0.75 0.04 280);
+  --accent:               oklch(0.71 0.16 295);
+  --accent-foreground:    oklch(0.10 0 0);
+  --destructive:          oklch(0.65 0.24 17);
+  --border:               oklch(1 0 0 / 0.08);
+  --input:                oklch(0.18 0.11 280);
+  /* Focus ring — universal high-contrast white. Changed from lime
+     (oklch 0.95 0.18 119) which became invisible on the lime CTA bg.
+     Now meets WCAG 1.4.11 (3:1) on every brand surface (lime/lavender/
+     pink/indigo/elevated). */
+  --ring:                 oklch(1 0 0);
+  --chart-1:              oklch(0.95 0.18 119);
+  --chart-2:              oklch(0.71 0.16 295);
+  --chart-3:              oklch(0.46 0.30 270);
+  --chart-4:              oklch(0.65 0.24 17);
+  --chart-5:              oklch(1 0 0);
+  --radius:               1rem;
+  --sidebar:              oklch(0.13 0.06 280);
+  --sidebar-foreground:   oklch(1 0 0);
+  --sidebar-primary:      oklch(0.95 0.18 119);
+  --sidebar-primary-foreground: oklch(0.10 0 0);
+  --sidebar-accent:       oklch(0.18 0.11 280);
+  --sidebar-accent-foreground: oklch(1 0 0);
+  --sidebar-border:       oklch(1 0 0 / 0.08);
+  --sidebar-ring:         oklch(0.95 0.18 119);
+}
+
+.dark {
+  /* same — dark-only ship */
+  --background:           oklch(0.18 0.11 280);
+  --foreground:           oklch(1 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
   }
-}
+  html, body {
+    margin: 0;
+    padding: 0;
+    /* `min-height` (not `height: 100%`) so body can grow when content
+       overflows. With `height: 100%`, body is locked to exactly the
+       viewport size — document never grows past 100vh, no scroll happens
+       even when .ahavah-app has overflow content. With min-height, body
+       grows with content, document grows, browser scrolls. */
+    min-height: 100%;
+  }
+  body {
+    background-color: #000000;
+    color: #FFFFFF;
+    -webkit-font-smoothing: antialiased;
+  }
+  .ahavah-app {
+    width: 100%;
+    max-width: 414px;
+    margin-left: auto;
+    margin-right: auto;
+    min-height: 100vh;
+    background-color: oklch(0.18 0.11 280);
+    /* `overflow-x: hidden` only — horizontal scroll blocked (mobile column
+       fixed at 414px), vertical scroll allowed so pages with content taller
+       than the viewport (long profile bio, long settings list, scrollable
+       chat lists) can scroll the whole page. Was previously `overflow:
+       hidden` which clipped vertical overflow too. */
+    overflow-x: hidden;
+  }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  /* WCAG 2.3.3 — honor user's reduced-motion preference.
+     Animations + transitions collapse to ~0ms, scroll behaviour resets to
+     `auto`. Applied site-wide; individual components don't need to opt in. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* WCAG 1.4.11 + 2.4.7 — focus indicator must be visible (≥2px width,
+     ≥3:1 contrast). shadcn's baseline applies a 50%-alpha outline-color
+     and the browser default outline-style="auto" at sub-2px width — both
+     fail on bright brand surfaces (lime CTA, lime tier toggle).
+     Force opaque white, solid 2px outline with 2px offset globally for
+     every keyboard-focused element. The offset moves the ring out of the
+     element's own bg into the page canvas where contrast is highest. */
+  *:focus-visible {
+    outline: 2px solid white !important;
+    outline-offset: 2px !important;
+  }
+  .typography {
+    max-width: 65ch;
+    color: var(--color-foreground);
+  }
+  .typography h1:not(.not-typography h1) {
+    scroll-margin: calc(var(--spacing) * 20);
+    font-size: var(--text-4xl);
+    line-height: var(--text-4xl--line-height);
+    font-weight: 800;
+    letter-spacing: var(--tracking-tight);
+  }
+  .typography h2:not(.not-typography h2) {
+    scroll-margin: calc(var(--spacing) * 20);
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: calc(var(--spacing) * 2);
+    font-size: var(--text-3xl);
+    line-height: var(--text-3xl--line-height);
+    font-weight: 600;
+    letter-spacing: var(--tracking-tight);
+    margin-top: calc(var(--spacing) * 12);
+  }
+  .typography h2:not(.not-typography h2):first-child {
+    margin-top: 0;
+  }
+  .typography h3:not(.not-typography h3) {
+    scroll-margin: calc(var(--spacing) * 20);
+    font-size: var(--text-2xl);
+    line-height: var(--text-2xl--line-height);
+    font-weight: 600;
+    letter-spacing: var(--tracking-tight);
+    margin-top: calc(var(--spacing) * 12);
+  }
+  .typography h3:not(.not-typography h3):first-child {
+    margin-top: 0;
+  }
+  .typography h4:not(.not-typography h4) {
+    scroll-margin: calc(var(--spacing) * 20);
+    font-size: var(--text-xl);
+    line-height: var(--text-xl--line-height);
+    font-weight: 600;
+    letter-spacing: var(--tracking-tight);
+    margin-top: calc(var(--spacing) * 12);
+  }
+  .typography h4:not(.not-typography h4):first-child {
+    margin-top: 0;
+  }
+  .typography h5:not(.not-typography h5) {
+    scroll-margin: calc(var(--spacing) * 20);
+    font-size: var(--text-lg);
+    line-height: var(--text-lg--line-height);
+    font-weight: 600;
+    letter-spacing: var(--tracking-tight);
+    margin-top: calc(var(--spacing) * 12);
+  }
+  .typography h5:not(.not-typography h5):first-child {
+    margin-top: 0;
+  }
+  .typography h6:not(.not-typography h6) {
+    scroll-margin: calc(var(--spacing) * 20);
+    font-size: var(--text-base);
+    line-height: var(--text-base--line-height);
+    font-weight: 600;
+    letter-spacing: var(--tracking-tight);
+    margin-top: calc(var(--spacing) * 12);
+  }
+  .typography h6:not(.not-typography h6):first-child {
+    margin-top: 0;
+  }
+  .typography h1:not(.not-typography h1) + p, .typography h2:not(.not-typography h2) + p, .typography h3:not(.not-typography h3) + p, .typography h4:not(.not-typography h4) + p, .typography h5:not(.not-typography h5) + p, .typography h6:not(.not-typography h6) + p {
+    margin-top: 0;
+  }
+  .typography p:not(.not-typography p) {
+    line-height: 1.75;
+  }
+  .typography p:not(.not-typography p):not(:first-child) {
+    margin-top: calc(var(--spacing) * 6);
+  }
+  .typography li:not(.not-typography li) {
+    line-height: 1.75;
+  }
+  .typography a:not(.not-typography a) {
+    font-weight: 500;
+    color: var(--color-primary);
+    text-decoration: underline;
+    text-underline-offset: var(--spacing);
+  }
+  .typography blockquote:not(.not-typography blockquote) {
+    margin-top: calc(var(--spacing) * 6);
+    border-left: 2px solid var(--color-border);
+    padding-left: calc(var(--spacing) * 6);
+    font-style: italic;
+  }
+  .typography table:not(.not-typography table) {
+    margin-top: calc(var(--spacing) * 6);
+    margin-bottom: calc(var(--spacing) * 6);
+    width: 100%;
+    overflow-y: auto;
+  }
+  .typography table:not(.not-typography table) thead tr {
+    margin: 0;
+    border-top: 1px solid var(--color-border);
+    padding: 0;
+  }
+  .typography table:not(.not-typography table) thead tr:nth-child(even) {
+    background-color: var(--color-muted);
+  }
+  .typography table:not(.not-typography table) th {
+    border: 1px solid var(--color-border);
+    padding: calc(var(--spacing) * 2) calc(var(--spacing) * 4);
+    text-align: left;
+    font-weight: 700;
+  }
+  .typography table:not(.not-typography table) th[align="center"] {
+    text-align: center;
+  }
+  .typography table:not(.not-typography table) th[align="right"] {
+    text-align: right;
+  }
+  .typography table:not(.not-typography table) tbody tr {
+    margin: 0;
+    border-top: 1px solid var(--color-border);
+    padding: 0;
+  }
+  .typography table:not(.not-typography table) tbody tr:nth-child(even) {
+    background-color: var(--color-muted);
+  }
+  .typography table:not(.not-typography table) td {
+    border: 1px solid var(--color-border);
+    padding: calc(var(--spacing) * 2) calc(var(--spacing) * 4);
+    text-align: left;
+  }
+  .typography table:not(.not-typography table) td[align="center"] {
+    text-align: center;
+  }
+  .typography table:not(.not-typography table) td[align="right"] {
+    text-align: right;
+  }
+  .typography ul:not(.not-typography ul) {
+    margin-top: calc(var(--spacing) * 6);
+    margin-left: calc(var(--spacing) * 6);
+    list-style: disc;
+  }
+  .typography ul:not(.not-typography ul) > li {
+    margin-top: calc(var(--spacing) * 2);
+  }
+  .typography ul:not(.not-typography ul) p {
+    margin-top: 0;
+    margin-bottom: 0;
+    display: inline;
+  }
+  .typography ol:not(.not-typography ol) {
+    margin-top: calc(var(--spacing) * 6);
+    margin-left: calc(var(--spacing) * 6);
+    list-style: decimal;
+  }
+  .typography ol:not(.not-typography ol) > li {
+    margin-top: calc(var(--spacing) * 2);
+  }
+  .typography ol:not(.not-typography ol) p {
+    margin-top: 0;
+    margin-bottom: 0;
+    display: inline;
+  }
+  .typography pre:not(.not-typography pre) {
+    background-color: var(--color-muted);
+    border-radius: calc(var(--radius) - 2px);
+    padding: calc(var(--spacing) * 4);
+    margin-top: calc(var(--spacing) * 6);
+    margin-bottom: calc(var(--spacing) * 6);
+    font-size: var(--text-sm);
+    line-height: var(--text-sm--line-height);
+    overflow-y: auto;
+  }
+  .typography code:not(pre code):not(.not-typography code) {
+    position: relative;
+    border-radius: var(--radius);
+    background-color: var(--color-muted);
+    padding: calc(var(--spacing) * 0.2) calc(var(--spacing) * 0.3);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    line-height: var(--text-sm--line-height);
+    font-weight: 600;
+  }
+  .typography .lead:not(.not-typography .lead) {
+    font-size: var(--text-xl);
+    line-height: var(--text-xl--line-height);
+    color: var(--color-muted-foreground);
+  }
+  .typography .large:not(.not-typography .large) {
+    font-size: var(--text-lg);
+    line-height: var(--text-lg--line-height);
+    font-weight: 600;
+  }
+  .typography .small:not(.not-typography .small) {
+    font-size: var(--text-sm);
+    line-height: 1;
+    font-weight: 500;
+  }
+  .typography .muted:not(.not-typography .muted) {
+    font-size: var(--text-sm);
+    line-height: var(--text-sm--line-height);
+    color: var(--color-muted-foreground);
+  }
+  .typography img:not(.not-typography img),
+    .typography picture:not(.not-typography picture),
+    .typography video:not(.not-typography video) {
+    margin-top: calc(var(--spacing) * 6);
+    margin-bottom: calc(var(--spacing) * 6);
+  }
+  .typography picture > img:not(.not-typography picture > img) {
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+  .typography kbd:not(.not-typography kbd) {
+    border-radius: calc(var(--radius) - 2px);
+    background-color: var(--color-muted);
+    padding: calc(var(--spacing) * 0.5) calc(var(--spacing) * 1.5);
+    font-size: var(--text-xs);
+    line-height: var(--text-xs--line-height);
+    font-weight: 600;
+  }
+  .typography hr {
+    margin-top: calc(var(--spacing) * 10);
+    margin-bottom: calc(var(--spacing) * 10);
+  }
+  .typography dl:not(.not-typography dl) {
+    margin-top: calc(var(--spacing) * 6);
+    margin-bottom: calc(var(--spacing) * 6);
+  }
+  .typography dl:not(.not-typography dl) dt {
+    font-weight: 600;
+    margin-top: calc(var(--spacing) * 6);
+    letter-spacing: var(--tracking-tight);
+  }
+  .typography dl:not(.not-typography dl) dt:first-child {
+    margin-top: 0;
+  }
+  .typography details:not(.not-typography details) {
+    margin-top: calc(var(--spacing) * 6);
+  }
+  .typography details:not(.not-typography details) summary {
+    cursor: pointer;
+    font-weight: 600;
+    margin-top: calc(var(--spacing) * 6);
+    letter-spacing: var(--tracking-tight);
+  }
+  .typography details:not(.not-typography details) p:first-of-type {
+    margin-top: calc(var(--spacing) * 2);
+  }
+  .typography mark:not(.not-typography mark) {
+    background-color: var(--color-yellow-300);
+  }
+  .typography small:not(.not-typography small) {
+    font-size: var(--text-xs);
+    line-height: 1;
+  }
+/*
+ ---break---
+ */
+@media (min-width: 1024px) {
+  .typography h1:not(.not-typography h1) {
+    font-size: var(--text-5xl);
+    line-height: var(--text-5xl--line-height);
+    }
+  }
 }

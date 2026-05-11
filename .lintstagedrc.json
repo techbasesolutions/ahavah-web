@@ -1,0 +1,5 @@
+{
+  "src/**/*.{ts,tsx}": [
+    "pnpm exec eslint --max-warnings=0 --no-warn-ignored"
+  ]
+}

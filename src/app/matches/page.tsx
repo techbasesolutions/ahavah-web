@@ -1,0 +1,171 @@
+"use client";
+
+import { Suspense } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { motion } from "motion/react";
+import { MapPin, MessageCircle, Search } from "lucide-react";
+
+import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Pill } from "@/components/kibo-ui/pill";
+
+import { cn } from "@/lib/utils";
+
+import { BottomNav } from "@/components/app/bottom-nav";
+import { EmptyState, ErrorState } from "@/components/app/empty-state";
+import {
+  PageHeader,
+  PageHeaderTitle,
+  PageShell,
+} from "@/components/app/page-shell";
+import { PhotoTile } from "@/components/app/photo-tile";
+
+const fadeUp = {
+  initial: { opacity: 0, y: 12 },
+  animate: { opacity: 1, y: 0 },
+};
+
+// Cap stagger after the first 6 cells so a long match list doesn't slow-
+// cascade for seconds.
+const staggerDelay = (i: number) => 0.05 + Math.min(i, 5) * 0.06;
+
+const MATCHES = [
+  { id: "lucy",      name: "Theresa Webb",     age: 20, dist: "2 km away",   compat: 94, gradient: "linear-gradient(135deg,#FFB088,#7A4A4A)" },
+  { id: "jessica",   name: "Dianne Russell",   age: 25, dist: "1 km away",   compat: 92, gradient: "linear-gradient(135deg,#9F76EA,#3A1F4F)" },
+  { id: "margareth", name: "Kristin Watson",   age: 24, dist: "1.5 km away", compat: 97, gradient: "linear-gradient(135deg,#F9D976,#A87E1E)" },
+  { id: "emily",     name: "Eleanor Pena",     age: 27, dist: "3 km away",   compat: 90, gradient: "linear-gradient(135deg,#6CB7FF,#1A1340)" },
+];
+
+type State = "happy" | "loading" | "empty" | "error";
+
+function MatchesContent() {
+  const params = useSearchParams();
+  const state = (params.get("state") as State | null) ?? "happy";
+  const matches = state === "empty" ? [] : MATCHES;
+
+  const body =
+    state === "loading" ? (
+      <MatchesLoadingSkeleton />
+    ) : state === "error" ? (
+      <MatchesErrorState />
+    ) : matches.length === 0 ? (
+      <MatchesEmptyState />
+    ) : (
+      <MatchesGrid matches={matches} />
+    );
+
+  return (
+    <PageShell bottomPad="nav">
+      <PageHeader className="flex items-center justify-between">
+        <PageHeaderTitle>Liked you</PageHeaderTitle>
+        <Button size="circle" tone="elevated" aria-label="Search likes">
+          <Search className="text-white" />
+        </Button>
+      </PageHeader>
+
+      {body}
+
+      <BottomNav />
+    </PageShell>
+  );
+}
+
+export default function MatchesPage() {
+  // Suspense wraps useSearchParams per Next 16 client-component pattern.
+  return (
+    <Suspense fallback={null}>
+      <MatchesContent />
+    </Suspense>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// State branches
+// ---------------------------------------------------------------------------
+
+function MatchesGrid({ matches }: { matches: typeof MATCHES }) {
+  return (
+    <div className="grid grid-cols-2 gap-4 px-5 pt-6">
+      {matches.map((m, i) => (
+        <motion.div
+          key={m.id}
+          {...fadeUp}
+          transition={{ duration: 0.3, delay: staggerDelay(i) }}
+        >
+          <Link
+            href={`/chat/${m.id}`}
+            prefetch={false}
+            className={cn(
+              buttonVariants({ variant: "ghost", size: "block" }),
+              "h-auto",
+            )}
+          >
+            <Card tone="flat" size="sm" className="w-full gap-2 p-0">
+              <PhotoTile aspect="4/5" radius="lg" surface="none" bg={m.gradient}>
+                <Pill
+                  variant="lime"
+                  className="absolute bottom-4 left-4 font-bold tabular-nums"
+                >
+                  <MessageCircle className="size-3" />
+                  {m.compat}%
+                </Pill>
+              </PhotoTile>
+              <CardHeader className="px-0">
+                <CardTitle className="text-body font-semibold leading-tight text-white">
+                  {m.name}, {m.age}
+                </CardTitle>
+                <CardDescription className="flex items-center gap-1 text-caption text-text-secondary">
+                  <MapPin className="size-3" />
+                  {m.dist}
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </Link>
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
+// Loading skeleton — mirrors the 4-cell grid layout so the transition from
+// loading → loaded doesn't shift any element. Each cell: aspect-4/5 photo
+// skeleton + 2 text-row skeletons. shadcn Skeleton primitive only.
+function MatchesLoadingSkeleton() {
+  return (
+    <div className="grid grid-cols-2 gap-4 px-5 pt-6">
+      {[0, 1, 2, 3].map((i) => (
+        <div key={i} className="flex w-full flex-col gap-2">
+          <Skeleton className="aspect-4/5 w-full rounded-2xl" />
+          <Skeleton className="h-4 w-3/4 rounded-md" />
+          <Skeleton className="h-3 w-1/2 rounded-md" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function MatchesEmptyState() {
+  return (
+    <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.1 }}>
+      <EmptyState variant="no-matches" />
+    </motion.div>
+  );
+}
+
+function MatchesErrorState() {
+  return (
+    <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.1 }}>
+      <ErrorState
+        description="We couldn't load your matches. Check your connection and try again."
+        retry={{ label: "Try again" }}
+      />
+    </motion.div>
+  );
+}

@@ -1,65 +1,160 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState } from "react";
+import Link from "next/link";
+import { motion } from "motion/react";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
+import { BrandMark } from "@/components/brand/sparkle-mark";
+import { PageShell } from "@/components/app/page-shell";
+
+const EMAIL_SUFFIXES = ["@gmail.com", "@proton.me", "@yahoo.com", "@hotmail.com", "@outlook.com"];
+
+// Common entrance: fade up, GPU-only (transform + opacity), reduce-motion
+// inherits from globals.css. Stagger via per-block `delay`.
+const fadeUp = {
+  initial: { opacity: 0, y: 12 },
+  animate: { opacity: 1, y: 0 },
+};
+
+export default function WelcomePage() {
+  const [email, setEmail] = useState("");
+
+  // Suffix chip handler — append the suffix when input is empty / has no
+  // @, replace the existing suffix when one is already present. Keeps
+  // local-part typing intact.
+  const applySuffix = (suffix: string) => {
+    setEmail((prev) => {
+      if (!prev || !prev.includes("@")) return prev + suffix;
+      const local = prev.split("@")[0];
+      return local + suffix;
+    });
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <PageShell bottomPad="default" className="px-5 pt-6">
+      {/* Brand */}
+      <motion.div
+        {...fadeUp}
+        transition={{ duration: 0.4 }}
+        className="flex justify-center pt-2"
+      >
+        <BrandMark size="md" />
+      </motion.div>
+
+      {/* Hero — display headline + supporting line, vertically centered.
+          The lime period on the headline gives the brand promise a sharp
+          typographic accent. No decorative stickers per established
+          "no stickers on welcome / from the design kit" rule. */}
+      <motion.div
+        {...fadeUp}
+        transition={{ duration: 0.4, delay: 0.1 }}
+        className="flex flex-1 flex-col items-center justify-center gap-4 px-2 text-center"
+      >
+        <h1 className="text-display text-white">
+          Find love
+          <br />
+          across borders<span className="text-lime">.</span>
+        </h1>
+        <p className="max-w-xs text-body leading-relaxed text-text-secondary">
+          Connect with people from anywhere, in any language.
+        </p>
+      </motion.div>
+
+      {/* Email composer + provider chips */}
+      <motion.div
+        {...fadeUp}
+        transition={{ duration: 0.4, delay: 0.2 }}
+        className="flex flex-col gap-3"
+      >
+        <Input
+          type="email"
+          size="lg"
+          tone="elevated"
+          placeholder="Enter your email to begin"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+        {/* Suffix chips — interactive Buttons (44px tap target), not Badges.
+            Click appends/replaces the suffix in the email input. Grid (3 cols)
+            avoids the 2/2/1 orphan that flex-wrap produces with 5 chips at
+            44px height. Last row has 2 chips spanning naturally. */}
+        <div className="grid grid-cols-3 gap-2">
+          {EMAIL_SUFFIXES.map((suffix) => (
+            <Button
+              key={suffix}
+              type="button"
+              variant="outlineSubtle"
+              size="tap"
+              aria-label={`Use ${suffix}`}
+              onClick={() => applySuffix(suffix)}
+              className="border-lavender/40 px-2 text-meta text-lavender hover:bg-lavender/10"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+              {suffix}
+            </Button>
+          ))}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+      </motion.div>
+
+      {/* CTA + footer — Primary "Create account" (clear sign-up intent) +
+          secondary "Sign in" link below. Splitting the prior "Sign Up or
+          Sign In" CTA into two distinct affordances disambiguates the two
+          flows for new vs returning users. */}
+      <motion.div
+        {...fadeUp}
+        transition={{ duration: 0.4, delay: 0.3 }}
+        className="mt-8 flex flex-col gap-3"
+      >
+        <Button
+          nativeButton={false}
+          size="cta"
+          lift="float"
+          render={<Link href="/auth/sign-up" prefetch={false} />}
+        >
+          Create account
+        </Button>
+        <div className="flex items-center justify-center gap-2 text-meta text-text-secondary">
+          <span>Already have an account?</span>
+          <Button
+            nativeButton={false}
+            variant="link"
+            size="tap"
+            className="text-lavender"
+            render={<Link href="/auth/sign-up" prefetch={false} />}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            Sign in
+          </Button>
         </div>
-      </main>
-    </div>
+        <p className="text-center text-caption leading-relaxed text-text-muted">
+          By signing up you agree to our{" "}
+          <Link
+            href="/legal/terms"
+            prefetch={false}
+            className="font-semibold text-text-secondary underline"
+          >
+            Terms
+          </Link>
+          ,{" "}
+          <Link
+            href="/legal/privacy"
+            prefetch={false}
+            className="font-semibold text-text-secondary underline"
+          >
+            Privacy Policy
+          </Link>{" "}
+          and{" "}
+          <Link
+            href="/legal/community-guidelines"
+            prefetch={false}
+            className="font-semibold text-text-secondary underline"
+          >
+            Community Guidelines
+          </Link>
+          .
+        </p>
+      </motion.div>
+    </PageShell>
   );
 }
