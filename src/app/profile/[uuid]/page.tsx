@@ -22,6 +22,9 @@ import { cn } from "@/lib/utils";
 import { PageShell } from "@/components/app/page-shell";
 import { PhotoTile } from "@/components/app/photo-tile";
 import { ProgressDots } from "@/components/app/progress-dots";
+import { CompatPill } from "@/components/app/compat-pill";
+import { useProfile } from "@/lib/use-profile";
+import { computeCompatibility } from "@/lib/scoring/compute-compatibility";
 
 import {
   ASSEMBLIES,
@@ -54,6 +57,12 @@ function labelOf<T extends string>(
 export default function ProfileDetailPage({ params }: Props) {
   const { uuid } = use(params);
   const profile = sampleByName(uuid);
+  const { profile: userProfile } = useProfile();
+
+  // Compute compatibility between viewer and sample profile
+  const compatResult = userProfile && profile
+    ? computeCompatibility(userProfile, profile)
+    : null;
 
   if (!profile) {
     return (
@@ -158,6 +167,17 @@ export default function ProfileDetailPage({ params }: Props) {
                 </p>
               )}
             </div>
+
+            {/* Compatibility pill (if viewer profile is loaded) */}
+            {compatResult && (
+              <div className="mt-2">
+                <CompatPill
+                  score={compatResult.score}
+                  breakdown={compatResult.breakdown}
+                  size="md"
+                />
+              </div>
+            )}
 
             {/* Bio paragraph (conditional) */}
             {profile.bio && (
