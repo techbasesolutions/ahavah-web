@@ -37,6 +37,8 @@ import {
   INTERESTS,
   PERSONALITY_TRAITS,
   VERIFICATION_TAGS,
+  RELOCATIONS,
+  intentOptionsForSex,
 } from "@/lib/profile-schema";
 import { sampleByName } from "@/lib/profile-sample";
 
@@ -216,7 +218,9 @@ export default function ProfileDetailPage({ params }: Props) {
                     <div className="flex gap-2">
                       <dt className="text-meta text-text-secondary">Intent:</dt>
                       <dd className="text-meta text-white">
-                        {profile.intent}
+                        {profile.sex
+                          ? labelOf(profile.intent, intentOptionsForSex(profile.sex))
+                          : profile.intent}
                       </dd>
                     </div>
                   )}
@@ -282,11 +286,14 @@ export default function ProfileDetailPage({ params }: Props) {
                   </div>
                 )}
                 {profile.relocation && (
-                  <div className="flex flex-wrap gap-2">
-                    <Pill variant="lavender" className="text-xs font-medium">
-                      {profile.relocation}
-                    </Pill>
-                  </div>
+                  <dl className="space-y-2">
+                    <div className="flex gap-2">
+                      <dt className="text-meta text-text-secondary">Relocation:</dt>
+                      <dd className="text-meta text-white">
+                        {labelOf(profile.relocation, RELOCATIONS)}
+                      </dd>
+                    </div>
+                  </dl>
                 )}
               </div>
             )}
