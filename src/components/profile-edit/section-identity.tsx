@@ -14,6 +14,7 @@ import { useProfile } from "@/lib/use-profile";
 import {
   MultiSelectField,
   ProfileSection,
+  SelectField,
   SingleSelectField,
   TextField,
 } from "@/components/app/profile-field";
@@ -113,10 +114,12 @@ export default function IdentitySection() {
         maxLength={50}
       />
 
-      {/* 8. nationality */}
-      <SingleSelectField
+      {/* 8. nationality — SelectField (dropdown) because the list is 20
+          options long; a RadioGroup+Card grid would force a long scroll. */}
+      <SelectField
         id="nationality"
         label="Nationality"
+        placeholder="Pick your nationality"
         options={NATIONALITIES}
         value={profile.nationality}
         onValueChange={(v: Nationality) => update({ nationality: v })}

@@ -6,6 +6,13 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
   ToggleGroup,
@@ -173,6 +180,61 @@ export function SingleSelectField<T extends string>({
           );
         })}
       </RadioGroup>
+    </div>
+  );
+}
+
+// --- SelectField (dropdown for single-select with many options) -------------
+
+/**
+ * Use SelectField when the option list is too long for a RadioGroup+Card
+ * grid (rule of thumb: ≥8 options). Renders a tap-friendly dropdown that
+ * opens a scrollable popover. Keeps single-value semantics — for multi-
+ * select with many options, use MultiSelectField (the pill grid wraps).
+ */
+export function SelectField<T extends string>({
+  id,
+  label,
+  description,
+  placeholder = "Select…",
+  options,
+  value,
+  onValueChange,
+}: {
+  id: string;
+  label: string;
+  description?: string;
+  placeholder?: string;
+  options: ReadonlyArray<Option<T>>;
+  value: T | undefined;
+  onValueChange: (next: T) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor={id} className="text-meta text-white">
+        {label}
+      </Label>
+      <Select
+        value={value ?? ""}
+        onValueChange={(v) => onValueChange(v as T)}
+      >
+        <SelectTrigger
+          id={id}
+          className="h-tap w-full justify-between rounded-xl border-white/10 bg-bg-elevated px-4 text-body text-white"
+        >
+          <SelectValue placeholder={placeholder} />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((opt) => (
+            <SelectItem key={opt.value} value={opt.value}>
+              {opt.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {description ? (
+        <span className="text-caption text-text-muted">{description}</span>
+      ) : null}
     </div>
   );
 }
