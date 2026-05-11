@@ -53,6 +53,13 @@ export default function CountryStep() {
 
   const showEmpty = isSearching && searchResults.length === 0;
 
+  // Resolve the selected country to its full record so the summary row can
+  // show flag + name without scrolling. Cheap O(n) lookup against the full
+  // list — negligible at ~250 rows.
+  const selectedCountry = selected
+    ? ALL_COUNTRIES.find((c) => c.cc === selected)
+    : undefined;
+
   return (
     <OnboardingShell
       step={8}
@@ -73,6 +80,37 @@ export default function CountryStep() {
           We&apos;ll show people closer to you first.
         </p>
       </motion.div>
+
+      {/* Selection summary — renders only when a country is picked so the
+          user can confirm their choice without scrolling 250 rows. Sticky
+          near the top, above the search; tap the X to clear and re-pick. */}
+      {selectedCountry ? (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25 }}
+          className="mt-4 flex items-center gap-3 rounded-2xl border border-lime/40 bg-lime/10 px-4 py-3"
+          aria-live="polite"
+        >
+          <span className="text-h2" aria-hidden>
+            {selectedCountry.flag}
+          </span>
+          <div className="flex flex-1 flex-col">
+            <span className="text-overline text-lime">Selected</span>
+            <span className="text-body font-semibold text-white">
+              {selectedCountry.name}
+            </span>
+          </div>
+          <Button
+            size="circle"
+            tone="overlay"
+            aria-label={`Clear ${selectedCountry.name}`}
+            onClick={() => update({ country: undefined })}
+          >
+            <X className="size-4" />
+          </Button>
+        </motion.div>
+      ) : null}
 
       {/* Search row — leading magnifier + trailing clear-X (44px tap)
           when there's a query. With ~250 countries the search becomes the
