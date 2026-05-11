@@ -43,6 +43,7 @@ export default function ChatThreadPage({ params }: Props) {
       <h1 className="sr-only">Chat with {subject.name}</h1>
 
       <ChatHeader
+        profileHref={`/profile/${id}`}
         name={subject.name}
         age={subject.age}
         online={subject.online}
