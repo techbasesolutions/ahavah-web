@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
 import { motion } from "motion/react";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import { OnboardingShell } from "@/components/app/onboarding-shell";
+import { useProfile } from "@/lib/use-profile";
 
 const MIN_NAME = 2;
 const MAX_NAME = 30;
@@ -17,7 +17,8 @@ const fadeUp = {
 };
 
 export default function NameStep() {
-  const [name, setName] = useState("");
+  const { profile, update } = useProfile();
+  const name = profile.firstName ?? "";
   const trimmed = name.trim();
   const isValid = trimmed.length >= MIN_NAME && trimmed.length <= MAX_NAME;
 
@@ -56,7 +57,7 @@ export default function NameStep() {
           size="lg"
           tone="elevated"
           value={name}
-          onChange={(e) => setName(e.target.value.slice(0, MAX_NAME))}
+          onChange={(e) => update({ firstName: e.target.value.slice(0, MAX_NAME) })}
           placeholder="e.g. Jessica"
           aria-describedby="name-help"
           maxLength={MAX_NAME}

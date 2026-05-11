@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 
 import { Card } from "@/components/ui/card";
@@ -10,15 +11,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 
 import { OnboardingShell } from "@/components/app/onboarding-shell";
-
-// Per duolicious-audit Q4: dating-app intent funnels into 4 buckets. Drives
-// match weighting + (eventually) "show only people seeking the same thing".
-const OPTIONS = [
-  { key: "relationship", title: "Long-term relationship", body: "Looking for something serious" },
-  { key: "dating",       title: "Casual dating",          body: "See where things go" },
-  { key: "friendship",   title: "Friendship",             body: "Meet new people, no pressure" },
-  { key: "open",         title: "Open to anything",       body: "Whatever feels right" },
-];
+import { useProfile } from "@/lib/use-profile";
+import { intentOptionsForSex, type Intent } from "@/lib/profile-schema";
 
 const fadeUp = {
   initial: { opacity: 0, y: 12 },
@@ -26,10 +20,35 @@ const fadeUp = {
 };
 
 export default function LookingForStep() {
-  // Controlled-from-first-render to avoid the Base UI "uncontrolled →
-  // controlled" warning that fires when value flips from undefined → string
-  // on first selection (matches Task 8 fix in /onboarding/gender).
-  const [selected, setSelected] = useState<string>("");
+  const router = useRouter();
+  const { profile, update, loaded } = useProfile();
+
+  // Intent options are gender-conditional. If sex isn't set yet, bounce
+  // back to the gender step — users shouldn't reach this screen first.
+  useEffect(() => {
+    if (loaded && !profile.sex) {
+      router.replace("/onboarding/gender");
+    }
+  }, [loaded, profile.sex, router]);
+
+  if (!profile.sex) {
+    return (
+      <OnboardingShell
+        step={6}
+        totalSteps={14}
+        back="/onboarding/gender"
+        next="/onboarding/photos"
+        ctaDisabled
+      >
+        <p className="text-body text-text-muted" aria-live="polite">
+          Loading…
+        </p>
+      </OnboardingShell>
+    );
+  }
+
+  const options = intentOptionsForSex(profile.sex);
+  const selected = profile.intent ?? "";
 
   return (
     <OnboardingShell
@@ -59,19 +78,19 @@ export default function LookingForStep() {
       >
         <RadioGroup
           value={selected}
-          onValueChange={(v) => setSelected(v as string)}
+          onValueChange={(v) => update({ intent: v as Intent })}
           className="grid gap-3"
         >
-          {OPTIONS.map((opt, i) => {
-            const active = opt.key === selected;
+          {options.map((opt, i) => {
+            const active = opt.value === selected;
             return (
               <motion.div
-                key={opt.key}
+                key={opt.value}
                 {...fadeUp}
                 transition={{ duration: 0.35, delay: 0.2 + i * 0.05 }}
               >
                 <Label
-                  htmlFor={`looking-${opt.key}`}
+                  htmlFor={`looking-${opt.value}`}
                   className="block w-full cursor-pointer"
                 >
                   <Card
@@ -83,27 +102,17 @@ export default function LookingForStep() {
                         : "hover:bg-bg-elevated/80 hover:ring-1 hover:ring-inset hover:ring-white/10",
                     )}
                   >
-                    <div className="flex flex-1 flex-col gap-0.5">
-                      <span
-                        className={cn(
-                          "text-body font-semibold",
-                          active ? "text-black" : "text-white",
-                        )}
-                      >
-                        {opt.title}
-                      </span>
-                      <span
-                        className={cn(
-                          "text-meta",
-                          active ? "text-black/70" : "text-text-secondary",
-                        )}
-                      >
-                        {opt.body}
-                      </span>
-                    </div>
+                    <span
+                      className={cn(
+                        "flex-1 text-body font-semibold",
+                        active ? "text-black" : "text-white",
+                      )}
+                    >
+                      {opt.label}
+                    </span>
                     <RadioGroupItem
-                      id={`looking-${opt.key}`}
-                      value={opt.key}
+                      id={`looking-${opt.value}`}
+                      value={opt.value}
                       variant="brand"
                       className={
                         active

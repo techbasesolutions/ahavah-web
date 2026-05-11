@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { motion } from "motion/react";
 
 import { Card } from "@/components/ui/card";
@@ -10,6 +9,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 
 import { OnboardingShell } from "@/components/app/onboarding-shell";
+import { useProfile } from "@/lib/use-profile";
 
 const OPTIONS = [
   { key: "woman", label: "Woman" },
@@ -22,10 +22,20 @@ const fadeUp = {
 };
 
 export default function GenderStep() {
-  // RadioGroup must be controlled-from-first-render to avoid the Base UI
-  // "uncontrolled → controlled" warning; using "" keeps the binding consistent
-  // while still meaning "no selection" for the CTA-disabled gate.
-  const [selected, setSelected] = useState<string>("");
+  const { profile, update } = useProfile();
+  // Map profile.sex ("female" | "male") to screen display values ("woman" | "man")
+  const sexToDisplay = (sex?: string) => {
+    if (sex === "female") return "woman";
+    if (sex === "male") return "man";
+    return "";
+  };
+  // Map screen selection ("woman" | "man") back to profile.sex ("female" | "male")
+  const displayToSex = (display: string) => {
+    if (display === "woman") return "female";
+    if (display === "man") return "male";
+    return undefined;
+  };
+  const selected = sexToDisplay(profile.sex);
 
   return (
     <OnboardingShell
@@ -53,7 +63,10 @@ export default function GenderStep() {
       >
         <RadioGroup
           value={selected}
-          onValueChange={(v) => setSelected(v as string)}
+          onValueChange={(v) => {
+            const sex = displayToSex(v);
+            if (sex) update({ sex });
+          }}
           className="grid gap-3"
         >
           {OPTIONS.map((opt, i) => {

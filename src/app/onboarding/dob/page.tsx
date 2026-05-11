@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import { OnboardingShell } from "@/components/app/onboarding-shell";
+import { useProfile } from "@/lib/use-profile";
 
 const MIN_AGE = 18;
 
@@ -44,6 +45,7 @@ function computeAge(d: string, m: string, y: string): number | null {
 }
 
 export default function DOBStep() {
+  const { update } = useProfile();
   const [day, setDay] = useState("");
   const [month, setMonth] = useState("");
   const [year, setYear] = useState("");
@@ -69,6 +71,11 @@ export default function DOBStep() {
   const handleYearChange = (v: string) => {
     const digits = v.replace(/\D/g, "").slice(0, 4);
     setYear(digits);
+    // When all three fields are filled, compute and persist age
+    const computedAge = computeAge(day, month, digits);
+    if (computedAge !== null && computedAge >= MIN_AGE) {
+      update({ age: computedAge });
+    }
   };
 
   return (

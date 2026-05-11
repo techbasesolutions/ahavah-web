@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { motion } from "motion/react";
 
 import { Label } from "@/components/ui/label";
@@ -9,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
 import { OnboardingShell } from "@/components/app/onboarding-shell";
+import { useProfile } from "@/lib/use-profile";
 
 const MAX = 500;
 const SOFT_MIN = 30;
@@ -21,7 +21,8 @@ const fadeUp = {
 };
 
 export default function BioStep() {
-  const [value, setValue] = useState("");
+  const { profile, update } = useProfile();
+  const value = profile.bio ?? "";
 
   // Counter color tone — neutral until the user starts; lime when there's
   // a meaningful answer; lavender as they approach the cap; pink as they
@@ -44,8 +45,7 @@ export default function BioStep() {
       totalSteps={14}
       back="/onboarding/languages"
       next="/onboarding/polygyny"
-      ctaLabel="Finish"
-      skipHref="/onboarding/complete"
+      skipHref="/onboarding/polygyny"
     >
       <motion.div
         {...fadeUp}
@@ -74,7 +74,7 @@ export default function BioStep() {
           size="lg"
           tone="elevated"
           value={value}
-          onChange={(e) => setValue(e.target.value.slice(0, MAX))}
+          onChange={(e) => update({ bio: e.target.value.slice(0, MAX) })}
           placeholder="I love cycling, board games, and exploring new neighborhoods…"
           aria-describedby="bio-counter bio-tip"
           className="flex-1 resize-none"
