@@ -4,18 +4,17 @@ import Link from "next/link";
 import { use } from "react";
 import { motion } from "motion/react";
 import {
-  Check,
   ChevronLeft,
   Heart,
   MapPin,
   MessageCircle,
   MoreHorizontal,
+  ShieldCheck,
   X,
 } from "lucide-react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { IconBadge } from "@/components/ui/icon-badge";
 import { Pill } from "@/components/kibo-ui/pill";
 
 import { cn } from "@/lib/utils";
@@ -24,23 +23,65 @@ import { PageShell } from "@/components/app/page-shell";
 import { PhotoTile } from "@/components/app/photo-tile";
 import { ProgressDots } from "@/components/app/progress-dots";
 
+import {
+  ASSEMBLIES,
+  TORAH_LEVELS,
+  SHABBATS,
+  CALENDARS,
+  POLYGYNY_VIEWS,
+  HEAD_COVERINGS,
+  TZITZIT_OPTIONS,
+  FAMILY_VIEWS,
+  LIVING_PREFERENCES,
+  HEALTH_TAGS,
+  INTERESTS,
+  PERSONALITY_TRAITS,
+  VERIFICATION_TAGS,
+} from "@/lib/profile-schema";
+import { sampleByName } from "@/lib/profile-sample";
+
 type Props = { params: Promise<{ uuid: string }> };
 
-const FAKE = {
-  name: "Theresa Webb",
-  age: 21,
-  distance: "2.5 km away",
-  compat: 92,
-  bio: "I am an active and ambitious person. I love to sing and play guitar. If you love spending time in nature and you are creative too, swipe right.",
-  interests: ["Extravert", "Music", "Capricorn"],
-  badges: ["Bronze verified"],
-  bg: "linear-gradient(160deg,#FFB088 0%,#FF7A53 60%,#3D1A45 100%)",
-  photoCount: 4,
-  photoIndex: 0,
-};
+function labelOf<T extends string>(
+  value: T,
+  options: ReadonlyArray<{ value: T; label: string }>
+): string | undefined {
+  return options.find((opt) => opt.value === value)?.label;
+}
 
 export default function ProfileDetailPage({ params }: Props) {
-  use(params);
+  const { uuid } = use(params);
+  const profile = sampleByName(uuid);
+
+  if (!profile) {
+    return (
+      <PageShell bottomPad="none">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4 }}
+        >
+          <Card
+            tone="overlap"
+            className="relative z-20 rounded-2xl px-5 py-8 text-center"
+          >
+            <CardContent className="flex flex-col gap-4 px-0">
+              <h2 className="text-h2 text-white">Profile not found</h2>
+              <p className="text-body text-text-secondary">
+                The profile you&apos;re looking for doesn&apos;t exist or has been removed.
+              </p>
+              <Link
+                href="/discover"
+                className={cn(buttonVariants({ tone: "action" }))}
+              >
+                Back to discover
+              </Link>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell bottomPad="none">
@@ -52,9 +93,8 @@ export default function ProfileDetailPage({ params }: Props) {
           `radius="none"` for full-bleed (the overlap-card curves over the
           bottom — no rounded corners on the photo itself). Back + More
           are overlay-tone circles top corners; photo paginator dots are
-          top-center (Stories-style); compat Pill sits bottom-left over the
-          photo, just above where the bio card overlaps. Photo fades in on
-          mount as the visual establishing shot. */}
+          top-center (Stories-style). Photo fades in on mount as the visual
+          establishing shot. */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -64,7 +104,7 @@ export default function ProfileDetailPage({ params }: Props) {
           aspect="4/5"
           radius="none"
           surface="none"
-          bg={FAKE.bg}
+          bg="linear-gradient(135deg, #c99fc9 0%, #f0a0e4 100%)"
           className="w-full"
         >
           <div className="absolute top-3 right-3 left-3 z-10 flex items-center justify-between">
@@ -82,23 +122,12 @@ export default function ProfileDetailPage({ params }: Props) {
           </div>
 
           <ProgressDots
-            count={FAKE.photoCount}
-            active={FAKE.photoIndex}
+            count={1}
+            active={0}
             size="sm"
             tone="white"
             className="absolute top-3 left-1/2 z-10 -translate-x-1/2"
           />
-
-          {/* Pill bottom-12 (48px from photo bottom) clears the card's
-              -mt-8 (32px) overlap so the pill stays fully visible above the
-              bio card. */}
-          <Pill
-            variant="lime"
-            className="absolute bottom-12 left-5 z-10 font-bold tabular-nums"
-          >
-            <MessageCircle className="size-3" />
-            {FAKE.compat}%
-          </Pill>
         </PhotoTile>
       </motion.div>
 
@@ -116,43 +145,203 @@ export default function ProfileDetailPage({ params }: Props) {
           className="relative z-20 -mt-8 gap-4 rounded-t-3xl px-5 pt-6 pb-6"
         >
           <CardContent className="flex flex-col gap-4 px-0">
+            {/* Header: name, age, location */}
             <div>
               <h1 className="text-h1 text-white">
-                {FAKE.name}, {FAKE.age}
+                {profile.firstName}, {profile.age}
               </h1>
-              <p className="mt-1 flex items-center gap-1.5 text-meta text-text-secondary">
-                <MapPin className="size-3" /> {FAKE.distance}
-              </p>
+              {profile.country && (
+                <p className="mt-1 flex items-center gap-1.5 text-meta text-text-secondary">
+                  <MapPin className="size-3" /> {profile.country}
+                </p>
+              )}
             </div>
 
-            {/* Interest pills — all lime per Dateasy reference (not the
-                alternating lime/lavenderOutline pattern that was here before). */}
-            <div className="flex flex-wrap gap-2">
-              {FAKE.interests.map((interest) => (
-                <Pill key={interest} variant="lime" className="font-medium">
-                  {interest}
-                </Pill>
-              ))}
-            </div>
+            {/* Bio paragraph (conditional) */}
+            {profile.bio && (
+              <p className="text-body leading-relaxed text-white/85">{profile.bio}</p>
+            )}
 
-            <p className="text-body leading-relaxed text-white/85">{FAKE.bio}</p>
+            {/* Faith cluster — dl/dt/dd fact rows */}
+            {(profile.assembly || profile.torahLevel || profile.shabbat || profile.calendar) && (
+              <div className="flex flex-col gap-2 border-t border-white/10 pt-4">
+                <h3 className="text-meta font-semibold uppercase text-text-secondary">
+                  Faith
+                </h3>
+                <dl className="space-y-2">
+                  {profile.assembly && (
+                    <div className="flex gap-2">
+                      <dt className="text-meta text-text-secondary">Assembly:</dt>
+                      <dd className="text-meta text-white">
+                        {labelOf(profile.assembly, ASSEMBLIES)}
+                      </dd>
+                    </div>
+                  )}
+                  {profile.torahLevel && (
+                    <div className="flex gap-2">
+                      <dt className="text-meta text-text-secondary">Torah level:</dt>
+                      <dd className="text-meta text-white">
+                        {labelOf(profile.torahLevel, TORAH_LEVELS)}
+                      </dd>
+                    </div>
+                  )}
+                  {profile.shabbat && (
+                    <div className="flex gap-2">
+                      <dt className="text-meta text-text-secondary">Shabbat:</dt>
+                      <dd className="text-meta text-white">
+                        {labelOf(profile.shabbat, SHABBATS)}
+                      </dd>
+                    </div>
+                  )}
+                  {profile.calendar && (
+                    <div className="flex gap-2">
+                      <dt className="text-meta text-text-secondary">Calendar:</dt>
+                      <dd className="text-meta text-white">
+                        {labelOf(profile.calendar, CALENDARS)}
+                      </dd>
+                    </div>
+                  )}
+                </dl>
+              </div>
+            )}
 
-            {/* Verified badge row — IconBadge (kit) + label, replacing the
-                prior Avatar+text-fallback freestyle. */}
-            <div className="flex items-center gap-2">
-              <IconBadge tone="success" shape="circle" size="xs">
-                <Check />
-              </IconBadge>
-              {FAKE.badges.map((b) => (
-                <span key={b} className="text-meta font-medium text-text-secondary">
-                  {b}
-                </span>
-              ))}
-            </div>
+            {/* Doctrine cluster — fact rows */}
+            {(profile.intent || profile.polygyny || profile.headCovering || profile.tzitzit) && (
+              <div className="flex flex-col gap-2 border-t border-white/10 pt-4">
+                <h3 className="text-meta font-semibold uppercase text-text-secondary">
+                  Doctrine
+                </h3>
+                <dl className="space-y-2">
+                  {profile.intent && (
+                    <div className="flex gap-2">
+                      <dt className="text-meta text-text-secondary">Intent:</dt>
+                      <dd className="text-meta text-white">
+                        {profile.intent}
+                      </dd>
+                    </div>
+                  )}
+                  {profile.polygyny && (
+                    <div className="flex gap-2">
+                      <dt className="text-meta text-text-secondary">Polygyny:</dt>
+                      <dd className="text-meta text-white">
+                        {labelOf(profile.polygyny, POLYGYNY_VIEWS)}
+                      </dd>
+                    </div>
+                  )}
+                  {profile.headCovering && (
+                    <div className="flex gap-2">
+                      <dt className="text-meta text-text-secondary">Head covering:</dt>
+                      <dd className="text-meta text-white">
+                        {labelOf(profile.headCovering, HEAD_COVERINGS)}
+                      </dd>
+                    </div>
+                  )}
+                  {profile.tzitzit && (
+                    <div className="flex gap-2">
+                      <dt className="text-meta text-text-secondary">Tzitzit:</dt>
+                      <dd className="text-meta text-white">
+                        {labelOf(profile.tzitzit, TZITZIT_OPTIONS)}
+                      </dd>
+                    </div>
+                  )}
+                </dl>
+              </div>
+            )}
+
+            {/* Lifestyle cluster — Pill rows (lavender) */}
+            {(profile.familyViews?.length || profile.livingPreferences?.length || profile.healthTags?.length || profile.relocation) && (
+              <div className="flex flex-col gap-2 border-t border-white/10 pt-4">
+                <h3 className="text-meta font-semibold uppercase text-text-secondary">
+                  Lifestyle
+                </h3>
+                {profile.familyViews?.length && (
+                  <div className="flex flex-wrap gap-2">
+                    {profile.familyViews.map((view) => (
+                      <Pill key={view} variant="lavender" className="text-xs font-medium">
+                        {labelOf(view, FAMILY_VIEWS)}
+                      </Pill>
+                    ))}
+                  </div>
+                )}
+                {profile.livingPreferences?.length && (
+                  <div className="flex flex-wrap gap-2">
+                    {profile.livingPreferences.map((pref) => (
+                      <Pill key={pref} variant="lavender" className="text-xs font-medium">
+                        {labelOf(pref, LIVING_PREFERENCES)}
+                      </Pill>
+                    ))}
+                  </div>
+                )}
+                {profile.healthTags?.length && (
+                  <div className="flex flex-wrap gap-2">
+                    {profile.healthTags.map((tag) => (
+                      <Pill key={tag} variant="lavender" className="text-xs font-medium">
+                        {labelOf(tag, HEALTH_TAGS)}
+                      </Pill>
+                    ))}
+                  </div>
+                )}
+                {profile.relocation && (
+                  <div className="flex flex-wrap gap-2">
+                    <Pill variant="lavender" className="text-xs font-medium">
+                      {profile.relocation}
+                    </Pill>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Interests cluster — Pill rows (lime) */}
+            {profile.interests?.length && (
+              <div className="flex flex-col gap-2 border-t border-white/10 pt-4">
+                <h3 className="text-meta font-semibold uppercase text-text-secondary">
+                  Interests
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {profile.interests.map((interest) => (
+                    <Pill key={interest} variant="lime" className="text-xs font-medium">
+                      {labelOf(interest, INTERESTS)}
+                    </Pill>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Personality cluster — Pill rows (lavender) */}
+            {profile.personalityTraits?.length && (
+              <div className="flex flex-col gap-2 border-t border-white/10 pt-4">
+                <h3 className="text-meta font-semibold uppercase text-text-secondary">
+                  Personality
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {profile.personalityTraits.map((trait) => (
+                    <Pill key={trait} variant="lavender" className="text-xs font-medium">
+                      {labelOf(trait, PERSONALITY_TRAITS)}
+                    </Pill>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Verification cluster — Pill rows (lime) with ShieldCheck icon */}
+            {profile.verificationTags?.length && (
+              <div className="flex flex-col gap-2 border-t border-white/10 pt-4">
+                <h3 className="flex items-center gap-1.5 text-meta font-semibold uppercase text-text-secondary">
+                  <ShieldCheck className="size-4" /> Verified
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {profile.verificationTags.map((tag) => (
+                    <Pill key={tag} variant="lime" className="text-xs font-medium">
+                      {labelOf(tag, VERIFICATION_TAGS)}
+                    </Pill>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Action row — X (skip) + Heart (like, primary, larger) + Message
-                (chat). Per Dateasy reference: side buttons lavender brand,
-                center heart pink action + larger. All circular with float
+                (chat). Per Dateasy reference: side buttons brand,
+                center heart action + larger. All circular with float
                 shadow. Fades up after the card settles. */}
             <motion.div
               initial={{ opacity: 0, y: 12 }}
