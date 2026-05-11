@@ -190,3 +190,43 @@ export const CALENDARS: ReadonlyArray<{ value: Calendar; label: string }> = [
 export function isCalendar(value: unknown): value is Calendar {
   return typeof value === "string" && CALENDARS.some((opt) => opt.value === value);
 }
+
+// Doctrine cluster --------------------------------------------------------
+
+export type Polygyny = "supports" | "open" | "monogamy-only" | "undecided";
+
+export const POLYGYNY_VIEWS: ReadonlyArray<{ value: Polygyny; label: string }> = [
+  { value: "supports",       label: "Supports biblical polygyny" },
+  { value: "open",           label: "Open to it" },
+  { value: "monogamy-only",  label: "Monogamy only" },
+  { value: "undecided",      label: "Undecided" },
+];
+
+export function isPolygyny(value: unknown): value is Polygyny {
+  return typeof value === "string" && POLYGYNY_VIEWS.some((opt) => opt.value === value);
+}
+
+export type HeadCovering = "required" | "encouraged" | "optional" | "not-practiced";
+
+export const HEAD_COVERINGS: ReadonlyArray<{ value: HeadCovering; label: string }> = [
+  { value: "required",      label: "Required" },
+  { value: "encouraged",    label: "Encouraged" },
+  { value: "optional",      label: "Optional" },
+  { value: "not-practiced", label: "Not practiced" },
+];
+
+export function isHeadCovering(value: unknown): value is HeadCovering {
+  return typeof value === "string" && HEAD_COVERINGS.some((opt) => opt.value === value);
+}
+
+export type Tzitzit = "regularly" | "occasionally" | "not-currently";
+
+export const TZITZIT_OPTIONS: ReadonlyArray<{ value: Tzitzit; label: string }> = [
+  { value: "regularly",     label: "Wears tzitzit regularly" },
+  { value: "occasionally",  label: "Occasionally" },
+  { value: "not-currently", label: "Not currently" },
+];
+
+export function isTzitzit(value: unknown): value is Tzitzit {
+  return typeof value === "string" && TZITZIT_OPTIONS.some((opt) => opt.value === value);
+}

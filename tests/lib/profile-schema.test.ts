@@ -22,6 +22,15 @@ import {
   SHABBATS,
   FEAST_DAYS,
   CALENDARS,
+  type Polygyny,
+  type HeadCovering,
+  type Tzitzit,
+  isPolygyny,
+  isHeadCovering,
+  isTzitzit,
+  POLYGYNY_VIEWS,
+  HEAD_COVERINGS,
+  TZITZIT_OPTIONS,
 } from "@/lib/profile-schema";
 
 describe("Sex", () => {
@@ -208,5 +217,84 @@ describe("Faith cluster", () => {
     expect(isCalendar(undefined)).toBe(false);
     expect(isCalendar(123)).toBe(false);
     expect(isCalendar({})).toBe(false);
+  });
+});
+
+describe("Doctrine cluster", () => {
+  it("POLYGYNY_VIEWS has 4 options", () => {
+    expect(POLYGYNY_VIEWS.map((p) => p.value)).toEqual([
+      "supports",
+      "open",
+      "monogamy-only",
+      "undecided",
+    ]);
+  });
+
+  it("HEAD_COVERINGS has 4 options", () => {
+    expect(HEAD_COVERINGS.map((h) => h.value)).toEqual([
+      "required",
+      "encouraged",
+      "optional",
+      "not-practiced",
+    ]);
+  });
+
+  it("TZITZIT_OPTIONS has 3 options", () => {
+    expect(TZITZIT_OPTIONS.map((t) => t.value)).toEqual([
+      "regularly",
+      "occasionally",
+      "not-currently",
+    ]);
+  });
+
+  it("Doctrine types are narrowed correctly", () => {
+    const p: Polygyny = "supports";
+    const h: HeadCovering = "required";
+    const t: Tzitzit = "regularly";
+    expect(p).toBe("supports");
+    expect(h).toBe("required");
+    expect(t).toBe("regularly");
+  });
+
+  it("isPolygyny accepts all POLYGYNY_VIEWS values", () => {
+    for (const opt of POLYGYNY_VIEWS) {
+      expect(isPolygyny(opt.value)).toBe(true);
+    }
+  });
+
+  it("isPolygyny rejects invalid values", () => {
+    expect(isPolygyny("not-a-polygyny-view")).toBe(false);
+    expect(isPolygyny(null)).toBe(false);
+    expect(isPolygyny(undefined)).toBe(false);
+    expect(isPolygyny(123)).toBe(false);
+    expect(isPolygyny({})).toBe(false);
+  });
+
+  it("isHeadCovering accepts all HEAD_COVERINGS values", () => {
+    for (const opt of HEAD_COVERINGS) {
+      expect(isHeadCovering(opt.value)).toBe(true);
+    }
+  });
+
+  it("isHeadCovering rejects invalid values", () => {
+    expect(isHeadCovering("not-a-covering")).toBe(false);
+    expect(isHeadCovering(null)).toBe(false);
+    expect(isHeadCovering(undefined)).toBe(false);
+    expect(isHeadCovering(123)).toBe(false);
+    expect(isHeadCovering({})).toBe(false);
+  });
+
+  it("isTzitzit accepts all TZITZIT_OPTIONS values", () => {
+    for (const opt of TZITZIT_OPTIONS) {
+      expect(isTzitzit(opt.value)).toBe(true);
+    }
+  });
+
+  it("isTzitzit rejects invalid values", () => {
+    expect(isTzitzit("not-a-tzitzit")).toBe(false);
+    expect(isTzitzit(null)).toBe(false);
+    expect(isTzitzit(undefined)).toBe(false);
+    expect(isTzitzit(123)).toBe(false);
+    expect(isTzitzit({})).toBe(false);
   });
 });
