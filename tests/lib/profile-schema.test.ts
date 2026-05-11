@@ -640,3 +640,47 @@ describe("Profile aggregate", () => {
     expect(female.intent).toBe("unmarried-man");
   });
 });
+
+import {
+  SAMPLE_PROFILES,
+  sampleByName,
+} from "@/lib/profile-sample";
+import { computeCompleteness } from "@/lib/profile-completeness";
+
+describe("Sample profiles", () => {
+  it("SAMPLE_PROFILES has exactly 8 entries", () => {
+    expect(SAMPLE_PROFILES).toHaveLength(8);
+  });
+
+  it("all 8 samples are discoverEligible (minimum 6 fields filled)", () => {
+    for (const p of SAMPLE_PROFILES) {
+      expect(computeCompleteness(p).discoverEligible).toBe(true);
+    }
+  });
+
+  it("samples cover both sexes (4 male, 4 female)", () => {
+    const males = SAMPLE_PROFILES.filter((p) => p.sex === "male");
+    const females = SAMPLE_PROFILES.filter((p) => p.sex === "female");
+    expect(males).toHaveLength(4);
+    expect(females).toHaveLength(4);
+  });
+
+  it("samples cover all 4 Torah levels at least once", () => {
+    const levels = new Set(SAMPLE_PROFILES.map((p) => p.torahLevel));
+    expect(levels.size).toBe(4);
+  });
+
+  it("samples cover both polygyny stances (supports + monogamy-only)", () => {
+    const polygyny = new Set(
+      SAMPLE_PROFILES.map((p) => p.polygyny).filter(Boolean),
+    );
+    expect(polygyny.has("supports")).toBe(true);
+    expect(polygyny.has("monogamy-only")).toBe(true);
+  });
+
+  it("sampleByName looks up by firstName (case-insensitive)", () => {
+    expect(sampleByName("Daniel")).toBeDefined();
+    expect(sampleByName("daniel")).toBeDefined();
+    expect(sampleByName("Nonexistent")).toBeUndefined();
+  });
+});
