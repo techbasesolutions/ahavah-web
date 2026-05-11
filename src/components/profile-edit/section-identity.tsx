@@ -1,8 +1,10 @@
 "use client";
 
 import {
+  EDUCATIONS,
   ETHNICITIES,
   NATIONALITIES,
+  type EducationLevel,
   type Ethnicity,
   type Nationality,
   type Sex,
@@ -14,6 +16,7 @@ import {
   ComboboxField,
   MultiSelectField,
   ProfileSection,
+  SelectField,
   SingleSelectField,
   TextField,
 } from "@/components/app/profile-field";
@@ -159,13 +162,15 @@ export default function IdentitySection() {
         maxLength={80}
       />
 
-      {/* 12. education */}
-      <TextField
+      {/* 12. education — SelectField (dropdown). Short list (8 options),
+          single-select; matches the same elevated form-row pattern. */}
+      <SelectField
         id="education"
         label="Education"
-        value={profile.education ?? ""}
-        onChange={(v) => update({ education: v || undefined })}
-        maxLength={80}
+        placeholder="Pick the closest level"
+        options={EDUCATIONS}
+        value={profile.education}
+        onValueChange={(v: EducationLevel) => update({ education: v })}
       />
 
       {/* 13. bio */}

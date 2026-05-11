@@ -577,6 +577,33 @@ export function isBoundaryTag(value: unknown): value is BoundaryTag {
   return typeof value === "string" && BOUNDARY_TAGS.some((opt) => opt.value === value);
 }
 
+// Education level ---------------------------------------------------------
+
+export type EducationLevel =
+  | "primary"
+  | "secondary"
+  | "vocational"
+  | "associates"
+  | "bachelors"
+  | "masters"
+  | "doctorate"
+  | "other";
+
+export const EDUCATIONS: ReadonlyArray<{ value: EducationLevel; label: string }> = [
+  { value: "primary",     label: "Primary school" },
+  { value: "secondary",   label: "Secondary / high school" },
+  { value: "vocational",  label: "Vocational / trade" },
+  { value: "associates",  label: "Associate's degree" },
+  { value: "bachelors",   label: "Bachelor's degree" },
+  { value: "masters",     label: "Master's degree" },
+  { value: "doctorate",   label: "Doctorate" },
+  { value: "other",       label: "Other" },
+];
+
+export function isEducationLevel(value: unknown): value is EducationLevel {
+  return typeof value === "string" && EDUCATIONS.some((opt) => opt.value === value);
+}
+
 // Profile aggregate -------------------------------------------------------
 // Every field optional per 2026-05-11 soft-completeness model.
 // `MINIMUM_COMPLETE_FIELDS` is the soft-required set users must fill before
@@ -595,7 +622,7 @@ export type Profile = {
   ethnicities?: Ethnicity[];
   languages?: string[];    // language codes from /onboarding/languages
   occupation?: string;
-  education?: string;
+  education?: EducationLevel;
   bio?: string;            // also called "Testimony" in copy for this audience
   // Relationship intent (gender-conditional)
   intent?: Intent;

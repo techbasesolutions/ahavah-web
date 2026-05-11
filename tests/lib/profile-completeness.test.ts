@@ -95,7 +95,7 @@ describe("computeCompleteness", () => {
       ethnicities: ["afro-caribbean"],
       languages: ["en"],
       occupation: "Carpenter",
-      education: "Trade school",
+      education: "vocational",
       bio: "Testimony…",
       intent: "first-wife",
       assembly: "torah-observant",

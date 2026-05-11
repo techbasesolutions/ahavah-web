@@ -6,6 +6,7 @@ import type {
   Calendar,
   Intent,
   HealthTag,
+  EducationLevel,
 } from "@/lib/profile-schema";
 import { computeCompatibility } from "@/lib/scoring/compute-compatibility";
 import type { Weights } from "@/lib/scoring/weights";
@@ -41,6 +42,7 @@ export interface DiscoverFilters {
   intents?: readonly Intent[];
   calendars?: readonly Calendar[];
   healthTags?: readonly HealthTag[];
+  educations?: readonly EducationLevel[];
   verifiedOnly?: boolean;
 }
 
@@ -119,6 +121,13 @@ function passesAllFilters(candidate: DiscoverCandidate, filters: DiscoverFilters
     const candidateTags = candidate.healthTags;
     const allPresent = filters.healthTags.every((tag) => candidateTags.includes(tag));
     if (!allPresent) return false;
+  }
+
+  // Educations
+  if (filters.educations && filters.educations.length > 0) {
+    if (!candidate.education || !filters.educations.includes(candidate.education)) {
+      return false;
+    }
   }
 
   // Verified only

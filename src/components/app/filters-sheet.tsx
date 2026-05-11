@@ -20,15 +20,17 @@ import { cn } from "@/lib/utils";
 
 import {
   ASSEMBLIES,
-  TORAH_LEVELS,
-  POLYGYNY_VIEWS,
   CALENDARS,
+  EDUCATIONS,
+  POLYGYNY_VIEWS,
+  TORAH_LEVELS,
   type Assembly,
-  type TorahLevel,
-  type Polygyny,
   type Calendar,
-  type Intent,
+  type EducationLevel,
   type HealthTag,
+  type Intent,
+  type Polygyny,
+  type TorahLevel,
 } from "@/lib/profile-schema";
 
 /**
@@ -79,6 +81,7 @@ export type DiscoverFiltersState = {
   intents?: ReadonlyArray<Intent>;
   calendars?: ReadonlyArray<Calendar>;
   healthTags?: ReadonlyArray<HealthTag>;
+  educations?: ReadonlyArray<EducationLevel>;
   verifiedOnly?: boolean;
 };
 
@@ -316,6 +319,17 @@ export function FiltersSheet({ trigger, initialFilters, onApply }: FiltersSheetP
               value={filters.calendars ?? []}
               onValueChange={(v) =>
                 update("calendars", v.length > 0 ? (v as Calendar[]) : undefined)
+              }
+            />
+          </FilterSection>
+
+          <FilterSection label="Education">
+            <PillGrid
+              ariaLabel="Filter by education level"
+              options={EDUCATIONS}
+              value={filters.educations ?? []}
+              onValueChange={(v) =>
+                update("educations", v.length > 0 ? (v as EducationLevel[]) : undefined)
               }
             />
           </FilterSection>
