@@ -21,14 +21,13 @@ describe("profile storage adapter", () => {
   });
 
   it("saveProfile + loadProfile round-trips a Profile", () => {
-    const p = {
+    saveProfile({
       firstName: "Daniel",
       age: 32,
-      sex: "male" as const,
-      assembly: "torah-observant" as const,
-      feastDays: ["passover", "shavuot"] as const,
-    };
-    saveProfile(p);
+      sex: "male",
+      assembly: "torah-observant",
+      feastDays: ["passover", "shavuot"],
+    });
     const loaded = loadProfile();
     expect(loaded.firstName).toBe("Daniel");
     expect(loaded.feastDays).toEqual(["passover", "shavuot"]);
