@@ -378,6 +378,170 @@ export function ComboboxField<T extends string>({
   );
 }
 
+// --- MultiComboboxField (multi-select combobox with removable chips) -------
+
+/**
+ * Input-reactive multi-select. Selected values render as removable chips
+ * above the input; typing filters the dropdown; clicking an option ADDS
+ * to the selection (already-selected options are dimmed in the list but
+ * still tappable to remove). Use for fields where the option count is
+ * large (e.g. Languages at ~70) and a static pill grid would be unwieldy.
+ */
+export function MultiComboboxField<T extends string>({
+  id,
+  label,
+  description,
+  placeholder = "Type to search…",
+  options,
+  value,
+  onValueChange,
+  /**
+   * Render-label override per stored value — useful when a stored value
+   * is custom (e.g. CUSTOM_LANGUAGE_PREFIX) and doesn't match any option.
+   */
+  labelForValue,
+}: {
+  id: string;
+  label: string;
+  description?: string;
+  placeholder?: string;
+  options: ReadonlyArray<Option<T>>;
+  value: ReadonlyArray<T>;
+  onValueChange: (next: T[]) => void;
+  labelForValue?: (v: T) => string;
+}) {
+  const listboxId = useId();
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const filtered = useMemo(() => {
+    if (!query) return options;
+    const q = query.toLowerCase();
+    return options.filter((opt) => opt.label.toLowerCase().includes(q));
+  }, [query, options]);
+
+  const close = () => {
+    setOpen(false);
+    setQuery("");
+  };
+
+  const toggle = (next: T) => {
+    if (value.includes(next)) {
+      onValueChange(value.filter((v) => v !== next));
+    } else {
+      onValueChange([...value, next]);
+    }
+    setQuery("");
+  };
+
+  const labelFor = (v: T): string =>
+    labelForValue?.(v) ??
+    options.find((o) => o.value === v)?.label ??
+    v;
+
+  return (
+    <div className="flex flex-col gap-2" ref={containerRef}>
+      <div className="flex flex-col gap-1">
+        <Label htmlFor={id} className="text-meta text-white">
+          {label}
+        </Label>
+        {description ? (
+          <p className="text-caption text-text-muted">{description}</p>
+        ) : null}
+      </div>
+
+      {/* Selected chips — clicking a chip removes it. */}
+      {value.length > 0 ? (
+        <div
+          className="flex flex-wrap gap-2"
+          aria-label={`Selected ${label.toLowerCase()}`}
+        >
+          {value.map((v) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => toggle(v)}
+              className="inline-flex items-center gap-1.5 rounded-full bg-lime px-3 py-1.5 text-meta font-medium text-black hover:bg-lime/90"
+              aria-label={`Remove ${labelFor(v)}`}
+            >
+              {labelFor(v)}
+              <span aria-hidden>×</span>
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      <div className="relative">
+        <Input
+          id={id}
+          size="lg"
+          tone="elevated"
+          role="combobox"
+          autoComplete="off"
+          aria-expanded={open}
+          aria-controls={open ? listboxId : undefined}
+          aria-autocomplete="list"
+          placeholder={placeholder}
+          value={query}
+          onFocus={() => setOpen(true)}
+          onChange={(e) => {
+            setOpen(true);
+            setQuery(e.target.value);
+          }}
+          onBlur={(e) => {
+            const next = e.relatedTarget as Node | null;
+            if (!next || !containerRef.current?.contains(next)) {
+              close();
+            }
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") close();
+          }}
+        />
+
+        {open ? (
+          <div
+            id={listboxId}
+            role="listbox"
+            aria-label={label}
+            aria-multiselectable="true"
+            className="absolute top-full right-0 left-0 z-20 mt-1 max-h-64 overflow-y-auto rounded-2xl border border-white/10 bg-bg-elevated py-1 shadow-lg"
+          >
+            {filtered.length === 0 ? (
+              <p className="px-4 py-3 text-meta text-text-muted">
+                No matches
+              </p>
+            ) : (
+              filtered.map((opt) => {
+                const active = value.includes(opt.value);
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    role="option"
+                    aria-selected={active ? "true" : "false"}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => toggle(opt.value)}
+                    className={
+                      active
+                        ? "flex w-full items-center justify-between px-4 py-3 text-left text-body font-medium text-lime hover:bg-white/5"
+                        : "flex w-full items-center justify-between px-4 py-3 text-left text-body text-white hover:bg-white/5"
+                    }
+                  >
+                    <span>{opt.label}</span>
+                    {active ? <span aria-hidden>✓</span> : null}
+                  </button>
+                );
+              })
+            )}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 // --- MultiSelectField (ToggleGroup pill+tap with lime-ring selected) --------
 
 export function MultiSelectField<T extends string>({

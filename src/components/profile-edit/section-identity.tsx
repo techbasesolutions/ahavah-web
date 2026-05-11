@@ -9,11 +9,13 @@ import {
   type Nationality,
   type Sex,
 } from "@/lib/profile-schema";
-import { LANGUAGES } from "@/lib/languages";
+import { ALL_COUNTRIES } from "@/lib/countries";
+import { LANGUAGES, labelForLanguage } from "@/lib/languages";
 import { useProfile } from "@/lib/use-profile";
 
 import {
   ComboboxField,
+  MultiComboboxField,
   MultiSelectField,
   ProfileSection,
   SelectField,
@@ -87,14 +89,19 @@ export default function IdentitySection() {
         onValueChange={(v) => update({ sex: v })}
       />
 
-      {/* 5. country */}
-      <TextField
+      {/* 5. country — ComboboxField (search-as-you-type) drawing from the
+          full ALL_COUNTRIES list. No more 2-letter text input + drill-out
+          to /onboarding/country to find the picker. */}
+      <ComboboxField
         id="country"
         label="Country"
-        value={profile.country ?? ""}
-        onChange={(v) => update({ country: v || undefined })}
-        maxLength={2}
-        helper="2-letter ISO code (e.g. BB, US) — see /onboarding/country for full picker"
+        placeholder="Type or pick your country"
+        options={ALL_COUNTRIES.map((c) => ({
+          value: c.cc,
+          label: `${c.flag} ${c.name}`,
+        }))}
+        value={profile.country}
+        onValueChange={(v: string) => update({ country: v })}
       />
 
       {/* 6. stateOrProvince */}
@@ -137,20 +144,23 @@ export default function IdentitySection() {
         onValueChange={(v: Ethnicity[]) => update({ ethnicities: v })}
       />
 
-      {/* 10. languages — inline multi-select. Custom-added languages
-          (the "Add another language" pattern with primary-star UX) live on
-          /onboarding/languages; from /profile/edit users can pick from the
-          14 built-in shortlist and any custom entries already on their
-          profile pass through unchanged. */}
-      <MultiSelectField
+      {/* 10. languages — MultiComboboxField (search-as-you-type, ~70-
+          language curated list, removable chips for selected items).
+          Custom-added languages from /onboarding/languages (prefixed
+          with CUSTOM_LANGUAGE_PREFIX) pass through unchanged because
+          labelForLanguage resolves them by stripping the prefix. */}
+      <MultiComboboxField
+        id="languages"
         label="Languages"
-        description="Pick all you speak."
+        description="Type to search, then tap to add. Tap a chip to remove."
+        placeholder="Type a language…"
         options={LANGUAGES.map((l) => ({
           value: l.code,
           label: `${l.flag} ${l.label}`,
         }))}
         value={profile.languages ?? []}
         onValueChange={(v: string[]) => update({ languages: v })}
+        labelForValue={labelForLanguage}
       />
 
       {/* 11. occupation */}
