@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Globe, Heart, MapPin, MessageCircle, Pause, X } from "lucide-react";
@@ -15,6 +17,9 @@ import { EmptyState } from "@/components/app/empty-state";
 import { FiltersSheet } from "@/components/app/filters-sheet";
 import { PageHeader, PageShell } from "@/components/app/page-shell";
 import { PhotoCaption } from "@/components/app/photo-caption";
+import { useProfile } from "@/lib/use-profile";
+import { isDiscoverEligible } from "@/lib/profile-completeness";
+import { firstMissingStepFor } from "@/lib/profile-completeness";
 
 // Stories-style discover: each user has multiple photos; user navigates
 // through them via left/right tap zones on the card (same idiom as
@@ -74,11 +79,24 @@ const PROFILES = [
 ];
 
 export default function DiscoverPage() {
+  const router = useRouter();
+  const { profile: userProfile, loaded } = useProfile();
   const [userIndex, setUserIndex] = useState(0);
   const [photoIndex, setPhotoIndex] = useState(0);
   // Track last action so AnimatePresence can pick a direction (skip → left,
   // like → right). Reset on user advance.
   const [exitDirection, setExitDirection] = useState<"left" | "right">("left");
+
+  // Soft-completeness gate: redirect incomplete profiles to first missing step.
+  // Check only after profile is loaded from localStorage.
+  useEffect(() => {
+    if (loaded && !isDiscoverEligible(userProfile)) {
+      const missingStep = firstMissingStepFor(userProfile);
+      if (missingStep) {
+        router.replace(missingStep);
+      }
+    }
+  }, [loaded, userProfile, router]);
 
   const profile = PROFILES[userIndex];
 
@@ -103,6 +121,51 @@ export default function DiscoverPage() {
   const prevPhoto = () => {
     if (photoIndex > 0) setPhotoIndex((i) => i - 1);
   };
+
+  // During hydration or redirect, render minimal state to avoid swipe deck flash.
+  if (!loaded || (loaded && !isDiscoverEligible(userProfile))) {
+    return (
+      <PageShell bottomPad="nav">
+        <h1 className="sr-only">Discover</h1>
+        <PageHeader pad="default" className="flex items-center justify-between">
+          <BrandMark size="sm" />
+          <div className="flex items-center gap-3">
+            <Button
+              size="circle"
+              tone="elevated"
+              aria-label="Discovery filters"
+              disabled
+            >
+              <Globe className="text-lavender" />
+            </Button>
+            <Button
+              size="circle"
+              variant="ghost"
+              aria-label="My profile"
+              className="p-0"
+              disabled
+            >
+              <Avatar size="tap-lg">
+                <AvatarFallback variant="brand">E</AvatarFallback>
+                <AvatarBadge className="top-0 right-0 bottom-auto bg-lime ring-bg-indigo" />
+              </Avatar>
+            </Button>
+          </div>
+        </PageHeader>
+        <div
+          className="relative mt-3 flex flex-1 flex-col items-center justify-center px-5"
+          aria-live="polite"
+        >
+          <div className="text-center">
+            <p className="text-body text-text-secondary">
+              Redirecting to complete your profile…
+            </p>
+          </div>
+        </div>
+        <BottomNav />
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell bottomPad="nav">
