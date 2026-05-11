@@ -68,7 +68,13 @@ export function OnboardingShell({
   const ctaDisabledOrLoading = ctaDisabled || ctaLoading;
 
   return (
-    <PageShell bottomPad="default" className="px-5 pt-5">
+    // h-screen + overflow-hidden on the shell so the children area scrolls
+    // INSIDE the viewport rather than growing the page taller than the
+    // viewport. Without this, screens with long lists (e.g. /onboarding/
+    // country's 250 rows) push the CTA way below the fold and users have
+    // to scroll to advance. The mt-6 + flex-1 children + fixed-height
+    // CTA naturally pins the CTA at the viewport bottom.
+    <PageShell bottomPad="default" className="h-screen overflow-hidden px-5 pt-5">
       <header className="mb-6 flex items-center justify-between gap-3">
         {back ? (
           <Link
@@ -110,56 +116,64 @@ export function OnboardingShell({
         )}
       </header>
 
-      <div className="flex flex-1 flex-col">{children}</div>
+      {/* min-h-0 unlocks flex-1's overflow behavior so the children area
+          scrolls inside the shell rather than growing it. Combined with
+          h-screen + overflow-hidden on the shell, this keeps long lists
+          (country picker, etc.) inside the viewport while the CTA stays
+          pinned below. */}
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+        {children}
+      </div>
 
-      {/* CTA — when disabled, render as outlineSubtle (clearly "not yet
-          ready" rather than "broken"). When enabled, lime CTA with float
-          lift. Avoids the disabled-opacity-50 olive-grey that previously
-          read as a UI bug across all 11 onboarding steps. */}
-      {onNext ? (
-        ctaDisabledOrLoading && !ctaLoading ? (
-          <Button
-            variant="outlineSubtle"
-            size="cta"
-            className="mt-8"
-            disabled
-            onClick={onNext}
+      {/* CTA — sits below the scrollable area, naturally at viewport bottom.
+          -mx-5 px-5 reclaims the shell's gutters so the backdrop spans the
+          full width and a subtle gradient masks the scroll-edge above. */}
+      <div className="-mx-5 mt-4 bg-linear-to-t from-bg-canvas via-bg-canvas/95 to-transparent px-5 pb-2 pt-4">
+        {onNext ? (
+          ctaDisabledOrLoading && !ctaLoading ? (
+            <Button
+              variant="outlineSubtle"
+              size="cta"
+              className="w-full"
+              disabled
+              onClick={onNext}
+            >
+              {renderCtaContent()}
+            </Button>
+          ) : (
+            <Button
+              size="cta"
+              lift="float"
+              className="w-full"
+              disabled={ctaLoading}
+              onClick={onNext}
+            >
+              {renderCtaContent()}
+            </Button>
+          )
+        ) : ctaDisabledOrLoading ? (
+          // Disabled-link variant: render as a non-interactive outlineSubtle
+          // "button" (a real Link tag with pointer-events-none, but visually
+          // matches the outlineSubtle CTA so the disabled state is consistent).
+          <span
+            aria-disabled
+            className={cn(
+              buttonVariants({ variant: "outlineSubtle", size: "cta" }),
+              "w-full cursor-not-allowed opacity-90",
+            )}
           >
             {renderCtaContent()}
-          </Button>
+          </span>
         ) : (
-          <Button
-            size="cta"
-            lift="float"
-            className="mt-8"
-            disabled={ctaLoading}
-            onClick={onNext}
+          <Link
+            href={next}
+            prefetch={false}
+            className={cn(buttonVariants({ size: "cta" }), "w-full")}
           >
             {renderCtaContent()}
-          </Button>
-        )
-      ) : ctaDisabledOrLoading ? (
-        // Disabled-link variant: render as a non-interactive outlineSubtle
-        // "button" (a real Link tag with pointer-events-none, but visually
-        // matches the outlineSubtle CTA so the disabled state is consistent).
-        <span
-          aria-disabled
-          className={cn(
-            buttonVariants({ variant: "outlineSubtle", size: "cta" }),
-            "mt-8 cursor-not-allowed opacity-90",
-          )}
-        >
-          {renderCtaContent()}
-        </span>
-      ) : (
-        <Link
-          href={next}
-          prefetch={false}
-          className={cn(buttonVariants({ size: "cta" }), "mt-8")}
-        >
-          {renderCtaContent()}
-        </Link>
-      )}
+          </Link>
+        )}
+      </div>
     </PageShell>
   );
 }
