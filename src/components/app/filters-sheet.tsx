@@ -218,18 +218,13 @@ export function FiltersSheet({ trigger, initialFilters, onApply }: FiltersSheetP
         side="bottom"
         className="flex max-h-dvh flex-col gap-0 rounded-t-3xl border-white/10 bg-bg-indigo p-0"
       >
-        {/* Header — Reset link on the right; title centered. */}
-        <SheetHeader className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-5 pt-6 pb-3">
-          <span />
+        {/* Header — title only. The SheetContent kit primitive auto-renders
+            a close X at absolute top-3 right-3; placing 'Reset all' here
+            collided visually with that X. Reset moved to the footer
+            (secondary action next to Apply filters) to keep the top
+            chrome clean. */}
+        <SheetHeader className="items-center px-5 pt-6 pb-3">
           <SheetTitle className="text-h2 text-white">Filters</SheetTitle>
-          <button
-            type="button"
-            onClick={handleReset}
-            className="justify-self-end text-meta font-medium text-text-secondary transition-colors hover:text-white"
-            aria-label="Reset all filters"
-          >
-            Reset all
-          </button>
         </SheetHeader>
 
         {/* Scrollable body — every group on its own 8px-grid section. */}
@@ -366,13 +361,25 @@ export function FiltersSheet({ trigger, initialFilters, onApply }: FiltersSheetP
           </section>
         </div>
 
-        {/* Sticky footer — Apply button always reachable. */}
-        <div className="border-t border-white/5 bg-bg-indigo px-5 pb-6 pt-3">
+        {/* Sticky footer — Apply (primary CTA) + Reset all (secondary
+            text-link), thumb-reach pair. Aligns with the standard mobile
+            form pattern: primary action right, secondary action left.
+            Reset is full text-meta height so the 44×44 tap target rule
+            is met. */}
+        <div className="flex items-center gap-4 border-t border-white/5 bg-bg-indigo px-5 pb-6 pt-3">
+          <button
+            type="button"
+            onClick={handleReset}
+            className="min-h-tap shrink-0 px-2 text-meta font-medium text-text-secondary transition-colors hover:text-white"
+            aria-label="Reset all filters"
+          >
+            Reset all
+          </button>
           <Button
             size="cta"
             tone="cta"
             lift="float"
-            className="w-full"
+            className="flex-1"
             onClick={handleApply}
           >
             Apply filters
