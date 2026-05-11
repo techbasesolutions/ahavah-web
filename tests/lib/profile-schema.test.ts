@@ -40,6 +40,24 @@ import {
   FAMILY_VIEWS,
   LIVING_PREFERENCES,
   HEALTH_TAGS,
+  type Ethnicity,
+  type Nationality,
+  type Interest,
+  type PersonalityTrait,
+  type Relocation,
+  type CommunicationPref,
+  isEthnicity,
+  isNationality,
+  isInterest,
+  isPersonalityTrait,
+  isRelocation,
+  isCommunicationPref,
+  ETHNICITIES,
+  NATIONALITIES,
+  INTERESTS,
+  PERSONALITY_TRAITS,
+  RELOCATIONS,
+  COMMUNICATION_PREFS,
 } from "@/lib/profile-schema";
 
 describe("Sex", () => {
@@ -379,5 +397,139 @@ describe("Lifestyle cluster", () => {
     expect(isHealthTag(undefined)).toBe(false);
     expect(isHealthTag(123)).toBe(false);
     expect(isHealthTag({})).toBe(false);
+  });
+});
+
+describe("Ethnicity/Nationality/Interests/Personality cluster", () => {
+  it("ETHNICITIES has 17 options including 'other'", () => {
+    expect(ETHNICITIES).toHaveLength(17);
+    expect(ETHNICITIES.map((e) => e.value)).toContain("other");
+  });
+
+  it("NATIONALITIES has at least 20 options (curated, not exhaustive)", () => {
+    expect(NATIONALITIES.length).toBeGreaterThanOrEqual(20);
+    expect(NATIONALITIES.map((n) => n.value)).toContain("barbadian");
+    expect(NATIONALITIES.map((n) => n.value)).toContain("israeli");
+    expect(NATIONALITIES.map((n) => n.value)).toContain("other");
+  });
+
+  it("INTERESTS has 28 options spanning faith + lifestyle", () => {
+    expect(INTERESTS).toHaveLength(28);
+    expect(INTERESTS.map((i) => i.value)).toContain("scripture-study");
+    expect(INTERESTS.map((i) => i.value)).toContain("paleo-hebrew");
+    expect(INTERESTS.map((i) => i.value)).toContain("homesteading");
+  });
+
+  it("PERSONALITY_TRAITS has 12 options", () => {
+    expect(PERSONALITY_TRAITS).toHaveLength(12);
+    expect(PERSONALITY_TRAITS.map((p) => p.value)).toContain("introverted");
+    expect(PERSONALITY_TRAITS.map((p) => p.value)).toContain("nurturing");
+  });
+
+  it("RELOCATIONS has 4 options", () => {
+    expect(RELOCATIONS).toHaveLength(4);
+  });
+
+  it("COMMUNICATION_PREFS has 5 options", () => {
+    expect(COMMUNICATION_PREFS).toHaveLength(5);
+  });
+
+  it("Types compose correctly", () => {
+    const e: Ethnicity[] = ["afro-caribbean", "mixed-heritage"];
+    const n: Nationality = "barbadian";
+    const i: Interest[] = ["scripture-study", "hebrew-language"];
+    const p: PersonalityTrait[] = ["introverted", "intellectual"];
+    const r: Relocation = "will-relocate";
+    const c: CommunicationPref[] = ["video-calls", "in-person"];
+    expect(e).toHaveLength(2);
+    expect(n).toBe("barbadian");
+    expect(i).toHaveLength(2);
+    expect(p).toHaveLength(2);
+    expect(r).toBe("will-relocate");
+    expect(c).toHaveLength(2);
+  });
+
+  it("isEthnicity accepts all ETHNICITIES values", () => {
+    for (const opt of ETHNICITIES) {
+      expect(isEthnicity(opt.value)).toBe(true);
+    }
+  });
+
+  it("isEthnicity rejects invalid values", () => {
+    expect(isEthnicity("not-an-ethnicity")).toBe(false);
+    expect(isEthnicity(null)).toBe(false);
+    expect(isEthnicity(undefined)).toBe(false);
+    expect(isEthnicity(123)).toBe(false);
+    expect(isEthnicity({})).toBe(false);
+  });
+
+  it("isNationality accepts all NATIONALITIES values", () => {
+    for (const opt of NATIONALITIES) {
+      expect(isNationality(opt.value)).toBe(true);
+    }
+  });
+
+  it("isNationality rejects invalid values", () => {
+    expect(isNationality("not-a-nationality")).toBe(false);
+    expect(isNationality(null)).toBe(false);
+    expect(isNationality(undefined)).toBe(false);
+    expect(isNationality(123)).toBe(false);
+    expect(isNationality({})).toBe(false);
+  });
+
+  it("isInterest accepts all INTERESTS values", () => {
+    for (const opt of INTERESTS) {
+      expect(isInterest(opt.value)).toBe(true);
+    }
+  });
+
+  it("isInterest rejects invalid values", () => {
+    expect(isInterest("not-an-interest")).toBe(false);
+    expect(isInterest(null)).toBe(false);
+    expect(isInterest(undefined)).toBe(false);
+    expect(isInterest(123)).toBe(false);
+    expect(isInterest({})).toBe(false);
+  });
+
+  it("isPersonalityTrait accepts all PERSONALITY_TRAITS values", () => {
+    for (const opt of PERSONALITY_TRAITS) {
+      expect(isPersonalityTrait(opt.value)).toBe(true);
+    }
+  });
+
+  it("isPersonalityTrait rejects invalid values", () => {
+    expect(isPersonalityTrait("not-a-trait")).toBe(false);
+    expect(isPersonalityTrait(null)).toBe(false);
+    expect(isPersonalityTrait(undefined)).toBe(false);
+    expect(isPersonalityTrait(123)).toBe(false);
+    expect(isPersonalityTrait({})).toBe(false);
+  });
+
+  it("isRelocation accepts all RELOCATIONS values", () => {
+    for (const opt of RELOCATIONS) {
+      expect(isRelocation(opt.value)).toBe(true);
+    }
+  });
+
+  it("isRelocation rejects invalid values", () => {
+    expect(isRelocation("not-a-relocation")).toBe(false);
+    expect(isRelocation(null)).toBe(false);
+    expect(isRelocation(undefined)).toBe(false);
+    expect(isRelocation(123)).toBe(false);
+    expect(isRelocation({})).toBe(false);
+  });
+
+  it("isCommunicationPref accepts all COMMUNICATION_PREFS values", () => {
+    for (const opt of COMMUNICATION_PREFS) {
+      expect(isCommunicationPref(opt.value)).toBe(true);
+    }
+  });
+
+  it("isCommunicationPref rejects invalid values", () => {
+    expect(isCommunicationPref("not-a-pref")).toBe(false);
+    expect(isCommunicationPref(null)).toBe(false);
+    expect(isCommunicationPref(undefined)).toBe(false);
+    expect(isCommunicationPref(123)).toBe(false);
+    expect(isCommunicationPref({})).toBe(false);
   });
 });

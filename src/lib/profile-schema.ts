@@ -297,3 +297,239 @@ export const HEALTH_TAGS: ReadonlyArray<{ value: HealthTag; label: string }> = [
 export function isHealthTag(value: unknown): value is HealthTag {
   return typeof value === "string" && HEALTH_TAGS.some((opt) => opt.value === value);
 }
+
+// Ethnicity ---------------------------------------------------------------
+
+export type Ethnicity =
+  | "afro-caribbean"
+  | "afro-american"
+  | "afro-latino"
+  | "native-american"
+  | "native-african"
+  | "east-african"
+  | "west-african"
+  | "southern-african"
+  | "european"
+  | "mediterranean"
+  | "eurasian"
+  | "hispanic-latino"
+  | "middle-eastern"
+  | "south-asian"
+  | "southeast-asian"
+  | "mixed-heritage"
+  | "other";
+
+export const ETHNICITIES: ReadonlyArray<{ value: Ethnicity; label: string }> = [
+  { value: "afro-caribbean",   label: "Afro-Caribbean" },
+  { value: "afro-american",    label: "Afro-American" },
+  { value: "afro-latino",      label: "Afro-Latino" },
+  { value: "native-american",  label: "Native American" },
+  { value: "native-african",   label: "Native African" },
+  { value: "east-african",     label: "East African" },
+  { value: "west-african",     label: "West African" },
+  { value: "southern-african", label: "Southern African" },
+  { value: "european",         label: "European" },
+  { value: "mediterranean",    label: "Mediterranean" },
+  { value: "eurasian",         label: "Eurasian" },
+  { value: "hispanic-latino",  label: "Hispanic / Latino" },
+  { value: "middle-eastern",   label: "Middle Eastern" },
+  { value: "south-asian",      label: "South Asian" },
+  { value: "southeast-asian",  label: "Southeast Asian" },
+  { value: "mixed-heritage",   label: "Mixed Heritage" },
+  { value: "other",            label: "Other" },
+];
+
+export function isEthnicity(value: unknown): value is Ethnicity {
+  return typeof value === "string" && ETHNICITIES.some((opt) => opt.value === value);
+}
+
+// Nationality (curated — not exhaustive; allows free-text "other") ---------
+
+export type Nationality =
+  | "barbadian"
+  | "jamaican"
+  | "trinidadian"
+  | "guyanese"
+  | "american"
+  | "canadian"
+  | "nigerian"
+  | "ghanaian"
+  | "kenyan"
+  | "ethiopian"
+  | "british"
+  | "french"
+  | "brazilian"
+  | "dominican"
+  | "haitian"
+  | "mexican"
+  | "colombian"
+  | "south-african"
+  | "israeli"
+  | "other";
+
+export const NATIONALITIES: ReadonlyArray<{ value: Nationality; label: string }> = [
+  { value: "barbadian",     label: "Barbadian" },
+  { value: "jamaican",      label: "Jamaican" },
+  { value: "trinidadian",   label: "Trinidadian" },
+  { value: "guyanese",      label: "Guyanese" },
+  { value: "american",      label: "American" },
+  { value: "canadian",      label: "Canadian" },
+  { value: "nigerian",      label: "Nigerian" },
+  { value: "ghanaian",      label: "Ghanaian" },
+  { value: "kenyan",        label: "Kenyan" },
+  { value: "ethiopian",     label: "Ethiopian" },
+  { value: "british",       label: "British" },
+  { value: "french",        label: "French" },
+  { value: "brazilian",     label: "Brazilian" },
+  { value: "dominican",     label: "Dominican" },
+  { value: "haitian",       label: "Haitian" },
+  { value: "mexican",       label: "Mexican" },
+  { value: "colombian",     label: "Colombian" },
+  { value: "south-african", label: "South African" },
+  { value: "israeli",       label: "Israeli" },
+  { value: "other",         label: "Other" },
+];
+
+export function isNationality(value: unknown): value is Nationality {
+  return typeof value === "string" && NATIONALITIES.some((opt) => opt.value === value);
+}
+
+// Interests (multi-select) ------------------------------------------------
+
+export type Interest =
+  | "scripture-study"
+  | "hebrew-language"
+  | "paleo-hebrew"
+  | "homesteading"
+  | "farming"
+  | "gardening"
+  | "health-wellness"
+  | "fitness"
+  | "business-entrepreneurship"
+  | "modest-fashion"
+  | "natural-hair"
+  | "music-ministry"
+  | "feast-gatherings"
+  | "camping"
+  | "hiking"
+  | "travel"
+  | "cooking"
+  | "family-life"
+  | "community-building"
+  | "youth-mentorship"
+  | "street-teaching"
+  | "content-creation"
+  | "apologetics"
+  | "debate"
+  | "history-research"
+  | "ancient-cultures"
+  | "prophecy-studies"
+  | "survival-skills";
+
+export const INTERESTS: ReadonlyArray<{ value: Interest; label: string }> = [
+  { value: "scripture-study",          label: "Scripture Study" },
+  { value: "hebrew-language",          label: "Hebrew Language" },
+  { value: "paleo-hebrew",             label: "Paleo Hebrew" },
+  { value: "homesteading",             label: "Homesteading" },
+  { value: "farming",                  label: "Farming" },
+  { value: "gardening",                label: "Gardening" },
+  { value: "health-wellness",          label: "Health & Wellness" },
+  { value: "fitness",                  label: "Fitness" },
+  { value: "business-entrepreneurship", label: "Business / Entrepreneurship" },
+  { value: "modest-fashion",           label: "Modest Fashion" },
+  { value: "natural-hair",             label: "Natural Hair" },
+  { value: "music-ministry",           label: "Music Ministry" },
+  { value: "feast-gatherings",         label: "Feast Gatherings" },
+  { value: "camping",                  label: "Camping" },
+  { value: "hiking",                   label: "Hiking" },
+  { value: "travel",                   label: "Travel" },
+  { value: "cooking",                  label: "Cooking" },
+  { value: "family-life",              label: "Family Life" },
+  { value: "community-building",       label: "Community Building" },
+  { value: "youth-mentorship",         label: "Youth Mentorship" },
+  { value: "street-teaching",          label: "Street Teaching" },
+  { value: "content-creation",         label: "Content Creation" },
+  { value: "apologetics",              label: "Apologetics" },
+  { value: "debate",                   label: "Debate" },
+  { value: "history-research",         label: "History Research" },
+  { value: "ancient-cultures",         label: "Ancient Cultures" },
+  { value: "prophecy-studies",         label: "Prophecy Studies" },
+  { value: "survival-skills",          label: "Survival Skills" },
+];
+
+export function isInterest(value: unknown): value is Interest {
+  return typeof value === "string" && INTERESTS.some((opt) => opt.value === value);
+}
+
+// Personality traits (multi-select) ---------------------------------------
+
+export type PersonalityTrait =
+  | "introverted"
+  | "extroverted"
+  | "reserved"
+  | "intellectual"
+  | "traditional"
+  | "humorous"
+  | "adventurous"
+  | "calm"
+  | "assertive"
+  | "leadership-oriented"
+  | "nurturing"
+  | "disciplined";
+
+export const PERSONALITY_TRAITS: ReadonlyArray<{ value: PersonalityTrait; label: string }> = [
+  { value: "introverted",          label: "Introverted" },
+  { value: "extroverted",          label: "Extroverted" },
+  { value: "reserved",             label: "Reserved" },
+  { value: "intellectual",         label: "Intellectual" },
+  { value: "traditional",          label: "Traditional" },
+  { value: "humorous",             label: "Humorous" },
+  { value: "adventurous",          label: "Adventurous" },
+  { value: "calm",                 label: "Calm" },
+  { value: "assertive",            label: "Assertive" },
+  { value: "leadership-oriented",  label: "Leadership oriented" },
+  { value: "nurturing",            label: "Nurturing" },
+  { value: "disciplined",          label: "Disciplined" },
+];
+
+export function isPersonalityTrait(value: unknown): value is PersonalityTrait {
+  return typeof value === "string" && PERSONALITY_TRAITS.some((opt) => opt.value === value);
+}
+
+// Relocation + Communication ----------------------------------------------
+
+export type Relocation =
+  | "will-relocate"
+  | "wants-partner-willing"
+  | "local-only"
+  | "international-open";
+
+export const RELOCATIONS: ReadonlyArray<{ value: Relocation; label: string }> = [
+  { value: "will-relocate",         label: "Will relocate" },
+  { value: "wants-partner-willing", label: "Wants partner willing to relocate" },
+  { value: "local-only",            label: "Local only" },
+  { value: "international-open",    label: "International open" },
+];
+
+export function isRelocation(value: unknown): value is Relocation {
+  return typeof value === "string" && RELOCATIONS.some((opt) => opt.value === value);
+}
+
+export type CommunicationPref =
+  | "frequent"
+  | "slow-paced-courtship"
+  | "video-calls"
+  | "texting"
+  | "in-person";
+
+export const COMMUNICATION_PREFS: ReadonlyArray<{ value: CommunicationPref; label: string }> = [
+  { value: "frequent",             label: "Frequent communication" },
+  { value: "slow-paced-courtship", label: "Slow paced courtship" },
+  { value: "video-calls",          label: "Video calls preferred" },
+  { value: "texting",              label: "Texting preferred" },
+  { value: "in-person",            label: "In-person preferred" },
+];
+
+export function isCommunicationPref(value: unknown): value is CommunicationPref {
+  return typeof value === "string" && COMMUNICATION_PREFS.some((opt) => opt.value === value);
+}
