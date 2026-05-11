@@ -74,7 +74,7 @@ export default function DOBStep() {
   return (
     <OnboardingShell
       step={4}
-      totalSteps={10}
+      totalSteps={14}
       back="/onboarding/name"
       next="/onboarding/gender"
       ctaDisabled={!isValid}

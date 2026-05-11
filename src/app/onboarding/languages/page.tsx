@@ -133,7 +133,7 @@ export default function LanguagesStep() {
   return (
     <OnboardingShell
       step={9}
-      totalSteps={10}
+      totalSteps={14}
       back="/onboarding/country"
       next="/onboarding/bio"
       ctaDisabled={!isComplete}

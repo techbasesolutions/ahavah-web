@@ -34,7 +34,7 @@ export default function LookingForStep() {
   return (
     <OnboardingShell
       step={6}
-      totalSteps={10}
+      totalSteps={14}
       back="/onboarding/gender"
       next="/onboarding/photos"
       ctaDisabled={!selected}

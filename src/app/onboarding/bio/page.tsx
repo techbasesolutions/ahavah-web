@@ -41,9 +41,9 @@ export default function BioStep() {
   return (
     <OnboardingShell
       step={10}
-      totalSteps={10}
+      totalSteps={14}
       back="/onboarding/languages"
-      next="/onboarding/complete"
+      next="/onboarding/polygyny"
       ctaLabel="Finish"
       skipHref="/onboarding/complete"
     >

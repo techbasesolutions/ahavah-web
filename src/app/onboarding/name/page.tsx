@@ -24,7 +24,7 @@ export default function NameStep() {
   return (
     <OnboardingShell
       step={3}
-      totalSteps={10}
+      totalSteps={14}
       back="/onboarding/verify-phone"
       next="/onboarding/dob"
       ctaDisabled={!isValid}

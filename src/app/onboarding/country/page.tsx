@@ -56,7 +56,7 @@ export default function CountryStep() {
   return (
     <OnboardingShell
       step={8}
-      totalSteps={10}
+      totalSteps={14}
       back="/onboarding/photos"
       next="/onboarding/languages"
       ctaDisabled={!selected}
