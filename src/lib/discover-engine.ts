@@ -5,7 +5,8 @@ import type {
   Polygyny,
   FeastDay,
   Calendar,
-  BoundaryTag,
+  Intent,
+  HealthTag,
 } from "@/lib/profile-schema";
 
 /**
@@ -16,7 +17,12 @@ export interface DiscoverCandidate extends Profile {
 }
 
 /**
- * Optional filters applied after boundary tag evaluation.
+ * Discover filters. Session-scoped — all selection is positive
+ * ("show me candidates who match these"), no separate persistent
+ * boundary-tag concept. Per the 2026-05-11 consolidation: the 5 old
+ * boundary tags collapse into filter rows here (monogamy-only →
+ * polygynyStances, no-additional-spouses / serious-courtship-only →
+ * intents, no-smokers → healthTags, no-long-distance → countries).
  */
 export interface DiscoverFilters {
   ageMin?: number;
@@ -25,117 +31,44 @@ export interface DiscoverFilters {
   assemblies?: readonly Assembly[];
   torahLevels?: readonly TorahLevel[];
   polygynyStances?: readonly Polygyny[];
+  intents?: readonly Intent[];
   feastDays?: readonly FeastDay[];
   calendars?: readonly Calendar[];
+  healthTags?: readonly HealthTag[];
   verifiedOnly?: boolean;
 }
 
 /**
- * Apply hard boundary tags, then optional discover filters.
+ * Apply discover filters to a candidate list. All filters are positive
+ * gates with AND semantics — candidate must match every filter that is
+ * set. Empty / undefined filters are ignored.
  *
- * Boundary tags are evaluated in strict AND semantics:
- * - monogamy-only: excludes polygyny: "supports" and intent: "additional-wife"
- * - no-long-distance: excludes candidates not in viewer's country
- * - no-additional-spouses: excludes intent: "additional-wife"
- * - no-smokers: requires "non-smoker" in healthTags
- * - serious-courtship-only: requires intent: "courtship" or "marriage-only"
- *
- * Filters are applied after boundaries pass:
- * - ageMin/ageMax: both must be defined on candidate
- * - countries: candidate country must be in list
- * - assemblies/torahLevels/polygynyStances: candidate field in list
- * - feastDays: at least ONE overlap with candidate's feastDays
- * - calendars: candidate calendar in list
- * - verifiedOnly: requires non-empty verificationTags if true
+ * Filter rules:
+ * - ageMin/ageMax: candidate.age must be defined and within the range
+ * - countries / assemblies / torahLevels / polygynyStances / intents /
+ *   calendars: candidate field must be in the selected set
+ * - feastDays: at least ONE overlap between filter and candidate's
+ *   feastDays (multi-select overlap, not subset)
+ * - healthTags: candidate.healthTags must include EVERY selected tag
+ *   (AND semantics — picking "non-smoker" + "fitness" requires both)
+ * - verifiedOnly: candidate must have at least one verificationTag
  */
 export function applyHardFilters(
   viewer: Profile,
   candidates: readonly DiscoverCandidate[],
   filters?: DiscoverFilters,
 ): readonly DiscoverCandidate[] {
-  // Apply boundary tags
-  const boundaryTags = viewer.boundaryTags ?? [];
-  let filtered = candidates.filter((candidate) =>
-    passesAllBoundaries(viewer, candidate, boundaryTags),
-  );
-
-  // Apply discover filters
-  if (filters) {
-    filtered = filtered.filter((candidate) => passesAllFilters(candidate, filters));
-  }
-
-  return filtered;
+  if (!filters) return candidates;
+  return candidates.filter((candidate) => passesAllFilters(candidate, filters));
 }
 
-/**
- * Check if candidate passes all boundary tags (AND semantics).
- */
-function passesAllBoundaries(
-  viewer: Profile,
-  candidate: DiscoverCandidate,
-  boundaryTags: readonly BoundaryTag[],
-): boolean {
-  for (const tag of boundaryTags) {
-    if (!passesBoundary(viewer, candidate, tag)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-/**
- * Check if candidate passes a single boundary tag.
- */
-function passesBoundary(viewer: Profile, candidate: DiscoverCandidate, tag: BoundaryTag): boolean {
-  switch (tag) {
-    case "monogamy-only":
-      // Exclude polygyny: "supports" and intent: "additional-wife"
-      if (candidate.polygyny === "supports") return false;
-      if (candidate.intent === "additional-wife") return false;
-      return true;
-
-    case "no-long-distance":
-      // Exclude candidates not in viewer's country (strict: must have country)
-      if (!viewer.country || !candidate.country) {
-        return false;
-      }
-      return viewer.country === candidate.country;
-
-    case "no-additional-spouses":
-      // Exclude intent: "additional-wife"
-      if (candidate.intent === "additional-wife") return false;
-      return true;
-
-    case "no-smokers":
-      // Require "non-smoker" in healthTags (strict: must have healthTags)
-      if (!candidate.healthTags || candidate.healthTags.length === 0) {
-        return false;
-      }
-      return candidate.healthTags.includes("non-smoker");
-
-    case "serious-courtship-only":
-      // Require intent: "courtship" or "marriage-only"
-      return candidate.intent === "courtship" || candidate.intent === "marriage-only";
-
-    default:
-      return true;
-  }
-}
-
-/**
- * Check if candidate passes all discover filters (AND semantics).
- */
 function passesAllFilters(candidate: DiscoverCandidate, filters: DiscoverFilters): boolean {
   // Age range
   if (filters.ageMin !== undefined) {
-    if (!candidate.age || candidate.age < filters.ageMin) {
-      return false;
-    }
+    if (!candidate.age || candidate.age < filters.ageMin) return false;
   }
   if (filters.ageMax !== undefined) {
-    if (!candidate.age || candidate.age > filters.ageMax) {
-      return false;
-    }
+    if (!candidate.age || candidate.age > filters.ageMax) return false;
   }
 
   // Countries
@@ -166,17 +99,20 @@ function passesAllFilters(candidate: DiscoverCandidate, filters: DiscoverFilters
     }
   }
 
-  // Feast days (at least ONE overlap required)
-  if (filters.feastDays && filters.feastDays.length > 0) {
-    if (!candidate.feastDays || candidate.feastDays.length === 0) {
+  // Intents
+  if (filters.intents && filters.intents.length > 0) {
+    if (!candidate.intent || !filters.intents.includes(candidate.intent)) {
       return false;
     }
+  }
+
+  // Feast days (at least ONE overlap required)
+  if (filters.feastDays && filters.feastDays.length > 0) {
+    if (!candidate.feastDays || candidate.feastDays.length === 0) return false;
     const hasOverlap = candidate.feastDays.some((day) =>
       filters.feastDays!.includes(day),
     );
-    if (!hasOverlap) {
-      return false;
-    }
+    if (!hasOverlap) return false;
   }
 
   // Calendars
@@ -184,6 +120,15 @@ function passesAllFilters(candidate: DiscoverCandidate, filters: DiscoverFilters
     if (!candidate.calendar || !filters.calendars.includes(candidate.calendar)) {
       return false;
     }
+  }
+
+  // Health tags (candidate must have EVERY selected tag — AND semantics).
+  // Empty selection means "no health filter applied".
+  if (filters.healthTags && filters.healthTags.length > 0) {
+    if (!candidate.healthTags || candidate.healthTags.length === 0) return false;
+    const candidateTags = candidate.healthTags;
+    const allPresent = filters.healthTags.every((tag) => candidateTags.includes(tag));
+    if (!allPresent) return false;
   }
 
   // Verified only
@@ -198,7 +143,7 @@ function passesAllFilters(candidate: DiscoverCandidate, filters: DiscoverFilters
 
 /**
  * Rank candidates (identity stub for Sub-plan 4).
- * Returns candidates in unchanged order.
+ * Sub-plan 5 will plug compute-compatibility here.
  */
 export function rankCandidates(
   viewer: Profile,
@@ -209,7 +154,6 @@ export function rankCandidates(
 
 /**
  * Build a discover deck: filter, then rank.
- * Composition of applyHardFilters and rankCandidates.
  */
 export function buildDiscoverDeck(
   viewer: Profile,

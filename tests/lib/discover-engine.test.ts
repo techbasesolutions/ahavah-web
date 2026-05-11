@@ -6,6 +6,8 @@ import type {
   Polygyny,
   FeastDay,
   Calendar,
+  Intent,
+  HealthTag,
 } from "@/lib/profile-schema";
 import { SAMPLE_PROFILES } from "@/lib/profile-sample";
 import {
@@ -16,277 +18,13 @@ import {
   buildDiscoverDeck,
 } from "@/lib/discover-engine";
 
-/**
- * TDD test suite for discover-engine pure functions.
- * 15 tests covering boundary tags, filter semantics, and composition.
- */
-
 describe("discover-engine", () => {
-  // Helper to build a DiscoverCandidate from Profile
   const makeCandidate = (p: Profile): DiscoverCandidate => ({
     ...p,
     id: p.firstName || "unknown",
   });
 
-  // BOUNDARY TAG TESTS (5 tests)
-
-  describe("boundary: monogamy-only", () => {
-    it("excludes candidates with polygyny: 'supports'", () => {
-      const viewer: Profile = {
-        firstName: "Sarah",
-        boundaryTags: ["monogamy-only"],
-      };
-      const candidates: DiscoverCandidate[] = [
-        makeCandidate({
-          firstName: "Daniel",
-          polygyny: "supports",
-        }),
-        makeCandidate({
-          firstName: "Adam",
-          polygyny: "monogamy-only",
-        }),
-      ];
-
-      const result = applyHardFilters(viewer, candidates);
-      expect(result).toHaveLength(1);
-      expect(result[0].firstName).toBe("Adam");
-    });
-
-    it("excludes candidates with intent: 'additional-wife'", () => {
-      const viewer: Profile = {
-        firstName: "Sarah",
-        boundaryTags: ["monogamy-only"],
-      };
-      const candidates: DiscoverCandidate[] = [
-        makeCandidate({
-          firstName: "Yosef",
-          sex: "male",
-          intent: "additional-wife",
-        }),
-        makeCandidate({
-          firstName: "Jacob",
-          sex: "male",
-          intent: "first-wife",
-        }),
-      ];
-
-      const result = applyHardFilters(viewer, candidates);
-      expect(result).toHaveLength(1);
-      expect(result[0].firstName).toBe("Jacob");
-    });
-  });
-
-  describe("boundary: no-long-distance", () => {
-    it("excludes candidates from different countries", () => {
-      const viewer: Profile = {
-        firstName: "Daniel",
-        country: "BB",
-        boundaryTags: ["no-long-distance"],
-      };
-      const candidates: DiscoverCandidate[] = [
-        makeCandidate({
-          firstName: "Esther",
-          country: "US",
-        }),
-        makeCandidate({
-          firstName: "Miriam",
-          country: "BB",
-        }),
-      ];
-
-      const result = applyHardFilters(viewer, candidates);
-      expect(result).toHaveLength(1);
-      expect(result[0].firstName).toBe("Miriam");
-    });
-
-    it("excludes candidates with no country defined (strict semantics)", () => {
-      const viewer: Profile = {
-        firstName: "Daniel",
-        country: "BB",
-        boundaryTags: ["no-long-distance"],
-      };
-      const candidates: DiscoverCandidate[] = [
-        makeCandidate({
-          firstName: "Unknown",
-          // no country
-        }),
-        makeCandidate({
-          firstName: "Miriam",
-          country: "BB",
-        }),
-      ];
-
-      const result = applyHardFilters(viewer, candidates);
-      expect(result).toHaveLength(1);
-      expect(result[0].firstName).toBe("Miriam");
-    });
-  });
-
-  describe("boundary: no-additional-spouses", () => {
-    it("excludes candidates with intent: 'additional-wife'", () => {
-      const viewer: Profile = {
-        firstName: "Sarah",
-        boundaryTags: ["no-additional-spouses"],
-      };
-      const candidates: DiscoverCandidate[] = [
-        makeCandidate({
-          firstName: "Yosef",
-          sex: "male",
-          intent: "additional-wife",
-        }),
-        makeCandidate({
-          firstName: "David",
-          sex: "male",
-          intent: "first-wife",
-        }),
-      ];
-
-      const result = applyHardFilters(viewer, candidates);
-      expect(result).toHaveLength(1);
-      expect(result[0].firstName).toBe("David");
-    });
-  });
-
-  describe("boundary: no-smokers", () => {
-    it("excludes candidates without 'non-smoker' in healthTags", () => {
-      const viewer: Profile = {
-        firstName: "Sarah",
-        boundaryTags: ["no-smokers"],
-      };
-      const candidates: DiscoverCandidate[] = [
-        makeCandidate({
-          firstName: "John",
-          healthTags: ["fitness"],
-          // no non-smoker tag
-        }),
-        makeCandidate({
-          firstName: "Daniel",
-          healthTags: ["non-smoker", "fitness"],
-        }),
-      ];
-
-      const result = applyHardFilters(viewer, candidates);
-      expect(result).toHaveLength(1);
-      expect(result[0].firstName).toBe("Daniel");
-    });
-
-    it("excludes candidates with no healthTags (strict semantics)", () => {
-      const viewer: Profile = {
-        firstName: "Sarah",
-        boundaryTags: ["no-smokers"],
-      };
-      const candidates: DiscoverCandidate[] = [
-        makeCandidate({
-          firstName: "John",
-          // no healthTags at all
-        }),
-        makeCandidate({
-          firstName: "Daniel",
-          healthTags: ["non-smoker"],
-        }),
-      ];
-
-      const result = applyHardFilters(viewer, candidates);
-      expect(result).toHaveLength(1);
-      expect(result[0].firstName).toBe("Daniel");
-    });
-  });
-
-  describe("boundary: serious-courtship-only", () => {
-    it("requires intent: 'courtship' or 'marriage-only'", () => {
-      const viewer: Profile = {
-        firstName: "Sarah",
-        boundaryTags: ["serious-courtship-only"],
-      };
-      const candidates: DiscoverCandidate[] = [
-        makeCandidate({
-          firstName: "Daniel",
-          sex: "male",
-          intent: "courtship",
-        }),
-        makeCandidate({
-          firstName: "David",
-          sex: "male",
-          intent: "marriage-only",
-        }),
-        makeCandidate({
-          firstName: "John",
-          sex: "male",
-          intent: "long-distance-courtship",
-        }),
-      ];
-
-      const result = applyHardFilters(viewer, candidates);
-      expect(result).toHaveLength(2);
-      expect(result.map((c) => c.firstName)).toEqual(["Daniel", "David"]);
-    });
-  });
-
-  // MULTIPLE BOUNDARIES (AND) TEST
-  describe("multiple boundaries compose with AND", () => {
-    it("applies all boundaries together", () => {
-      const viewer: Profile = {
-        firstName: "Sarah",
-        country: "BB",
-        boundaryTags: ["monogamy-only", "no-smokers"],
-      };
-      const candidates: DiscoverCandidate[] = [
-        makeCandidate({
-          firstName: "Daniel",
-          polygyny: "supports", // fails monogamy-only
-          healthTags: ["non-smoker"],
-        }),
-        makeCandidate({
-          firstName: "Adam",
-          polygyny: "monogamy-only",
-          healthTags: ["fitness"], // fails no-smokers
-        }),
-        makeCandidate({
-          firstName: "David",
-          polygyny: "monogamy-only",
-          healthTags: ["non-smoker"], // passes both
-        }),
-      ];
-
-      const result = applyHardFilters(viewer, candidates);
-      expect(result).toHaveLength(1);
-      expect(result[0].firstName).toBe("David");
-    });
-  });
-
-  // NO BOUNDARY TAGS TEST
-  describe("no boundary tags", () => {
-    it("returns all candidates when viewer has no boundary tags", () => {
-      const viewer: Profile = {
-        firstName: "Sarah",
-        boundaryTags: [],
-      };
-      const candidates: DiscoverCandidate[] = [
-        makeCandidate({ firstName: "Daniel", polygyny: "supports" }),
-        makeCandidate({ firstName: "Yosef", intent: "additional-wife" }),
-        makeCandidate({ firstName: "John", healthTags: ["fitness"] }),
-      ];
-
-      const result = applyHardFilters(viewer, candidates);
-      expect(result).toHaveLength(3);
-    });
-
-    it("returns all candidates when viewer has undefined boundary tags", () => {
-      const viewer: Profile = {
-        firstName: "Sarah",
-        // no boundaryTags field
-      };
-      const candidates: DiscoverCandidate[] = [
-        makeCandidate({ firstName: "Daniel", polygyny: "supports" }),
-        makeCandidate({ firstName: "John" }),
-      ];
-
-      const result = applyHardFilters(viewer, candidates);
-      expect(result).toHaveLength(2);
-    });
-  });
-
-  // FILTER TESTS (5 tests)
+  // ------- filter: ageMin / ageMax -------
 
   describe("filter: ageMin / ageMax", () => {
     it("excludes candidates outside age range", () => {
@@ -299,8 +37,7 @@ describe("discover-engine", () => {
       const filters: DiscoverFilters = { ageMin: 25, ageMax: 40 };
 
       const result = applyHardFilters(viewer, candidates, filters);
-      expect(result).toHaveLength(1);
-      expect(result[0].firstName).toBe("Daniel");
+      expect(result.map((c) => c.firstName)).toEqual(["Daniel"]);
     });
 
     it("excludes candidates with no age defined", () => {
@@ -312,10 +49,11 @@ describe("discover-engine", () => {
       const filters: DiscoverFilters = { ageMin: 25 };
 
       const result = applyHardFilters(viewer, candidates, filters);
-      expect(result).toHaveLength(1);
-      expect(result[0].firstName).toBe("Daniel");
+      expect(result.map((c) => c.firstName)).toEqual(["Daniel"]);
     });
   });
+
+  // ------- filter: countries -------
 
   describe("filter: countries", () => {
     it("requires candidate country in the list", () => {
@@ -328,10 +66,11 @@ describe("discover-engine", () => {
       const filters: DiscoverFilters = { countries: ["BB", "JM"] };
 
       const result = applyHardFilters(viewer, candidates, filters);
-      expect(result).toHaveLength(2);
       expect(result.map((c) => c.firstName)).toEqual(["Daniel", "Yosef"]);
     });
   });
+
+  // ------- filter: assemblies -------
 
   describe("filter: assemblies", () => {
     it("requires candidate assembly in the list", () => {
@@ -346,10 +85,11 @@ describe("discover-engine", () => {
       };
 
       const result = applyHardFilters(viewer, candidates, filters);
-      expect(result).toHaveLength(2);
       expect(result.map((c) => c.firstName)).toEqual(["Daniel", "Adam"]);
     });
   });
+
+  // ------- filter: torahLevels -------
 
   describe("filter: torahLevels", () => {
     it("requires candidate torahLevel in the list", () => {
@@ -364,10 +104,11 @@ describe("discover-engine", () => {
       };
 
       const result = applyHardFilters(viewer, candidates, filters);
-      expect(result).toHaveLength(2);
       expect(result.map((c) => c.firstName)).toEqual(["Daniel", "Esther"]);
     });
   });
+
+  // ------- filter: polygynyStances -------
 
   describe("filter: polygynyStances", () => {
     it("requires candidate polygyny in the list", () => {
@@ -382,58 +123,77 @@ describe("discover-engine", () => {
       };
 
       const result = applyHardFilters(viewer, candidates, filters);
-      expect(result).toHaveLength(2);
       expect(result.map((c) => c.firstName)).toEqual(["Daniel", "Caleb"]);
     });
   });
 
-  describe("filter: feastDays", () => {
-    it("requires candidate to observe at least one of the feast days", () => {
+  // ------- filter: intents (NEW) -------
+
+  describe("filter: intents", () => {
+    it("requires candidate intent in the list", () => {
       const viewer: Profile = { firstName: "Sarah" };
       const candidates: DiscoverCandidate[] = [
-        makeCandidate({
-          firstName: "Daniel",
-          feastDays: ["passover", "shavuot", "sukkot"],
-        }),
-        makeCandidate({
-          firstName: "Esther",
-          feastDays: ["passover", "yom-kippur"],
-        }),
-        makeCandidate({
-          firstName: "John",
-          feastDays: ["hanukkah", "purim"],
-        }),
+        makeCandidate({ firstName: "Daniel", sex: "male", intent: "courtship" }),
+        makeCandidate({ firstName: "Yosef", sex: "male", intent: "additional-wife" }),
+        makeCandidate({ firstName: "David", sex: "male", intent: "marriage-only" }),
+      ];
+      const filters: DiscoverFilters = {
+        intents: ["courtship", "marriage-only"] as readonly Intent[],
+      };
+
+      const result = applyHardFilters(viewer, candidates, filters);
+      expect(result.map((c) => c.firstName)).toEqual(["Daniel", "David"]);
+    });
+
+    it("excludes candidates without an intent set", () => {
+      const viewer: Profile = { firstName: "Sarah" };
+      const candidates: DiscoverCandidate[] = [
+        makeCandidate({ firstName: "NoIntent" }),
+        makeCandidate({ firstName: "David", sex: "male", intent: "courtship" }),
+      ];
+      const filters: DiscoverFilters = {
+        intents: ["courtship"] as readonly Intent[],
+      };
+
+      const result = applyHardFilters(viewer, candidates, filters);
+      expect(result.map((c) => c.firstName)).toEqual(["David"]);
+    });
+  });
+
+  // ------- filter: feastDays -------
+
+  describe("filter: feastDays", () => {
+    it("requires candidate to observe at least one of the feast days (overlap)", () => {
+      const viewer: Profile = { firstName: "Sarah" };
+      const candidates: DiscoverCandidate[] = [
+        makeCandidate({ firstName: "Daniel", feastDays: ["passover", "shavuot", "sukkot"] }),
+        makeCandidate({ firstName: "Esther", feastDays: ["passover", "yom-kippur"] }),
+        makeCandidate({ firstName: "John", feastDays: ["hanukkah", "purim"] }),
       ];
       const filters: DiscoverFilters = {
         feastDays: ["passover", "shavuot"] as readonly FeastDay[],
       };
 
       const result = applyHardFilters(viewer, candidates, filters);
-      expect(result).toHaveLength(2);
       expect(result.map((c) => c.firstName)).toEqual(["Daniel", "Esther"]);
     });
 
     it("excludes candidates with no feastDays", () => {
       const viewer: Profile = { firstName: "Sarah" };
       const candidates: DiscoverCandidate[] = [
-        makeCandidate({
-          firstName: "Daniel",
-          feastDays: ["passover"],
-        }),
-        makeCandidate({
-          firstName: "John",
-          // no feastDays
-        }),
+        makeCandidate({ firstName: "Daniel", feastDays: ["passover"] }),
+        makeCandidate({ firstName: "John" }),
       ];
       const filters: DiscoverFilters = {
         feastDays: ["passover"] as readonly FeastDay[],
       };
 
       const result = applyHardFilters(viewer, candidates, filters);
-      expect(result).toHaveLength(1);
-      expect(result[0].firstName).toBe("Daniel");
+      expect(result.map((c) => c.firstName)).toEqual(["Daniel"]);
     });
   });
+
+  // ------- filter: calendars -------
 
   describe("filter: calendars", () => {
     it("requires candidate calendar in the list", () => {
@@ -448,41 +208,63 @@ describe("discover-engine", () => {
       };
 
       const result = applyHardFilters(viewer, candidates, filters);
-      expect(result).toHaveLength(2);
       expect(result.map((c) => c.firstName)).toEqual(["Daniel", "Esther"]);
     });
   });
+
+  // ------- filter: healthTags (NEW) -------
+
+  describe("filter: healthTags", () => {
+    it("requires candidate to have EVERY selected tag (AND semantics)", () => {
+      const viewer: Profile = { firstName: "Sarah" };
+      const candidates: DiscoverCandidate[] = [
+        makeCandidate({ firstName: "Daniel", healthTags: ["non-smoker", "fitness"] }),
+        makeCandidate({ firstName: "Adam", healthTags: ["non-smoker"] }),
+        makeCandidate({ firstName: "John", healthTags: ["fitness"] }),
+      ];
+      const filters: DiscoverFilters = {
+        healthTags: ["non-smoker", "fitness"] as readonly HealthTag[],
+      };
+
+      const result = applyHardFilters(viewer, candidates, filters);
+      expect(result.map((c) => c.firstName)).toEqual(["Daniel"]);
+    });
+
+    it("excludes candidates with no healthTags", () => {
+      const viewer: Profile = { firstName: "Sarah" };
+      const candidates: DiscoverCandidate[] = [
+        makeCandidate({ firstName: "Daniel", healthTags: ["non-smoker"] }),
+        makeCandidate({ firstName: "John" }),
+      ];
+      const filters: DiscoverFilters = {
+        healthTags: ["non-smoker"] as readonly HealthTag[],
+      };
+
+      const result = applyHardFilters(viewer, candidates, filters);
+      expect(result.map((c) => c.firstName)).toEqual(["Daniel"]);
+    });
+  });
+
+  // ------- filter: verifiedOnly -------
 
   describe("filter: verifiedOnly", () => {
     it("excludes candidates without verificationTags when verifiedOnly: true", () => {
       const viewer: Profile = { firstName: "Sarah" };
       const candidates: DiscoverCandidate[] = [
-        makeCandidate({
-          firstName: "Daniel",
-          verificationTags: ["government-id"],
-        }),
-        makeCandidate({
-          firstName: "John",
-          // no verificationTags
-        }),
+        makeCandidate({ firstName: "Daniel", verificationTags: ["government-id"] }),
+        makeCandidate({ firstName: "John" }),
       ];
       const filters: DiscoverFilters = { verifiedOnly: true };
 
       const result = applyHardFilters(viewer, candidates, filters);
-      expect(result).toHaveLength(1);
-      expect(result[0].firstName).toBe("Daniel");
+      expect(result.map((c) => c.firstName)).toEqual(["Daniel"]);
     });
 
-    it("includes all candidates when verifiedOnly: false or undefined", () => {
+    it("includes all candidates when verifiedOnly: false", () => {
       const viewer: Profile = { firstName: "Sarah" };
       const candidates: DiscoverCandidate[] = [
-        makeCandidate({
-          firstName: "Daniel",
-          verificationTags: ["government-id"],
-        }),
-        makeCandidate({
-          firstName: "John",
-        }),
+        makeCandidate({ firstName: "Daniel", verificationTags: ["government-id"] }),
+        makeCandidate({ firstName: "John" }),
       ];
 
       const result = applyHardFilters(viewer, candidates, { verifiedOnly: false });
@@ -490,40 +272,62 @@ describe("discover-engine", () => {
     });
   });
 
-  // COMPOSITE TESTS (2 tests)
+  // ------- composition + edge cases -------
 
-  describe("boundaries and filters compose", () => {
-    it("applies boundaries first, then filters", () => {
-      const viewer: Profile = {
-        firstName: "Sarah",
-        country: "BB",
-        boundaryTags: ["monogamy-only"],
-      };
+  describe("no filters", () => {
+    it("returns all candidates when filters is undefined", () => {
+      const viewer: Profile = { firstName: "Sarah" };
+      const candidates: DiscoverCandidate[] = [
+        makeCandidate({ firstName: "Daniel" }),
+        makeCandidate({ firstName: "John" }),
+      ];
+      expect(applyHardFilters(viewer, candidates)).toHaveLength(2);
+    });
+
+    it("returns all candidates when filters is empty {}", () => {
+      const viewer: Profile = { firstName: "Sarah" };
+      const candidates: DiscoverCandidate[] = [
+        makeCandidate({ firstName: "Daniel" }),
+        makeCandidate({ firstName: "John" }),
+      ];
+      expect(applyHardFilters(viewer, candidates, {})).toHaveLength(2);
+    });
+  });
+
+  describe("multiple filters compose with AND", () => {
+    it("candidate must clear EVERY active filter", () => {
+      const viewer: Profile = { firstName: "Sarah" };
       const candidates: DiscoverCandidate[] = [
         makeCandidate({
           firstName: "Daniel",
-          country: "BB",
-          polygyny: "supports", // fails boundary
           age: 32,
+          country: "BB",
+          polygyny: "monogamy-only",
+          healthTags: ["non-smoker"],
         }),
         makeCandidate({
           firstName: "Adam",
+          age: 32,
           country: "BB",
-          polygyny: "monogamy-only", // passes boundary
-          age: 25, // fails age filter
+          polygyny: "supports", // fails polygynyStances
+          healthTags: ["non-smoker"],
         }),
         makeCandidate({
-          firstName: "David",
+          firstName: "Young",
+          age: 22, // fails age
           country: "BB",
-          polygyny: "monogamy-only", // passes boundary
-          age: 32, // passes age filter
+          polygyny: "monogamy-only",
+          healthTags: ["non-smoker"],
         }),
       ];
-      const filters: DiscoverFilters = { ageMin: 30 };
+      const filters: DiscoverFilters = {
+        ageMin: 25,
+        polygynyStances: ["monogamy-only"] as readonly Polygyny[],
+        healthTags: ["non-smoker"] as readonly HealthTag[],
+      };
 
       const result = applyHardFilters(viewer, candidates, filters);
-      expect(result).toHaveLength(1);
-      expect(result[0].firstName).toBe("David");
+      expect(result.map((c) => c.firstName)).toEqual(["Daniel"]);
     });
   });
 
@@ -535,59 +339,41 @@ describe("discover-engine", () => {
         makeCandidate({ firstName: "Adam" }),
         makeCandidate({ firstName: "David" }),
       ];
-
-      const result = rankCandidates(viewer, candidates);
-      expect(result).toEqual(candidates);
+      expect(rankCandidates(viewer, candidates)).toEqual(candidates);
     });
   });
 
   describe("buildDiscoverDeck", () => {
     it("composes filter then rank", () => {
-      const viewer: Profile = {
-        firstName: "Sarah",
-        country: "BB",
-      };
+      const viewer: Profile = { firstName: "Sarah" };
       const candidates: DiscoverCandidate[] = [
-        makeCandidate({
-          firstName: "Daniel",
-          country: "BB",
-          age: 32,
-        }),
-        makeCandidate({
-          firstName: "Young",
-          country: "BB",
-          age: 20,
-        }),
-        makeCandidate({
-          firstName: "David",
-          country: "BB",
-          age: 35,
-        }),
+        makeCandidate({ firstName: "Daniel", age: 32 }),
+        makeCandidate({ firstName: "Young", age: 20 }),
+        makeCandidate({ firstName: "David", age: 35 }),
       ];
       const filters: DiscoverFilters = { ageMin: 30 };
 
       const result = buildDiscoverDeck(viewer, candidates, filters);
-      // Should filter to Daniel and David, then rank (which is identity)
-      expect(result).toHaveLength(2);
       expect(result.map((c) => c.firstName)).toEqual(["Daniel", "David"]);
     });
   });
 
-  // INTEGRATION TEST WITH SAMPLE PROFILES
   describe("integration with SAMPLE_PROFILES", () => {
-    it("filters sample profiles by boundaries and filters", () => {
-      const esther = makeCandidate(
-        SAMPLE_PROFILES.find((p) => p.firstName === "Esther")!,
-      );
-      const viewers = SAMPLE_PROFILES.map((p) => p);
+    it("returns the full sample set when no filters are applied", () => {
+      const viewer: Profile = { firstName: "Tester" };
+      const candidates = SAMPLE_PROFILES.map((p) => makeCandidate(p));
+      expect(applyHardFilters(viewer, candidates)).toHaveLength(8);
+    });
 
-      // Esther has: monogamy-only, no-smokers boundaries; monogamy-only polygyny; non-smoker tag
-      const danielView = viewers[0]; // Daniel
-      const candidates = [esther];
-      const result = applyHardFilters(danielView, candidates);
-
-      // Daniel has no boundaries, so Esther should pass
-      expect(result).toHaveLength(1);
+    it("polygynyStances=['monogamy-only','undecided'] filters out polygyny-supporting samples", () => {
+      const viewer: Profile = { firstName: "Tester" };
+      const candidates = SAMPLE_PROFILES.map((p) => makeCandidate(p));
+      const filters: DiscoverFilters = {
+        polygynyStances: ["monogamy-only", "undecided"] as readonly Polygyny[],
+      };
+      const result = applyHardFilters(viewer, candidates, filters);
+      // None of the 8 samples should be polygyny: "supports" after this filter
+      expect(result.every((c) => c.polygyny !== "supports")).toBe(true);
     });
   });
 });

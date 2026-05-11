@@ -26,8 +26,41 @@ import {
   type Polygyny,
   type FeastDay,
   type Calendar,
+  type Intent,
+  type HealthTag,
 } from "@/lib/profile-schema";
 import { POPULAR_COUNTRIES } from "@/lib/countries";
+
+/**
+ * Intent filter options — union of male + female intents, deduplicated by value.
+ * From the filter perspective, the viewer selects which intents they want to see,
+ * regardless of the candidate's gender.
+ */
+const INTENT_FILTER_OPTIONS: ReadonlyArray<{ value: Intent; label: string }> = [
+  { value: "first-wife",              label: "First wife" },
+  { value: "additional-wife",         label: "Additional wife" },
+  { value: "unmarried-man",           label: "Unmarried man" },
+  { value: "married-man",             label: "Married man" },
+  { value: "courtship",               label: "Courtship" },
+  { value: "marriage-only",           label: "Marriage only" },
+  { value: "long-distance-courtship", label: "Long-distance courtship" },
+  { value: "open-to-relocation",      label: "Open to relocation" },
+  { value: "local-only",              label: "Local only" },
+];
+
+/**
+ * Health & lifestyle filter options — from profile-schema.
+ * Viewer selects which health/lifestyle attributes they want to see.
+ */
+const HEALTH_TAG_FILTER_OPTIONS: ReadonlyArray<{ value: HealthTag; label: string }> = [
+  { value: "non-smoker",      label: "Non-smoker" },
+  { value: "no-alcohol",      label: "No alcohol" },
+  { value: "moderate-alcohol", label: "Moderate alcohol" },
+  { value: "fitness",         label: "Fitness" },
+  { value: "natural-health",  label: "Natural health" },
+  { value: "herbalist",       label: "Herbalist" },
+  { value: "prepper",         label: "Prepper" },
+];
 
 /**
  * FiltersSheet — discovery filters, opened from /discover header.
@@ -41,11 +74,11 @@ import { POPULAR_COUNTRIES } from "@/lib/countries";
  *   - shadcn Button — Apply + Reset CTA
  *   - HTML details/summary — collapsible filter groups (3–8 start collapsed)
  *
- * Filter groups (8 total):
+ * Filter groups (10 total):
  *   1. Age range — always open, slider 18–80
  *   2. Countries — always open, pill grid from POPULAR_COUNTRIES
- *   3–8. Assemblies, Torah level, Polygyny, Feast days, Calendars, Verified
- *        — collapsible, hidden by default
+ *   3–10. Assemblies, Torah level, Polygyny stance, Intent, Feast days,
+ *         Calendars, Health & lifestyle, Verified only — collapsible, hidden by default
  */
 
 export type DiscoverFiltersState = {
@@ -55,8 +88,10 @@ export type DiscoverFiltersState = {
   assemblies?: ReadonlyArray<Assembly>;
   torahLevels?: ReadonlyArray<TorahLevel>;
   polygynyStances?: ReadonlyArray<Polygyny>;
+  intents?: ReadonlyArray<Intent>;
   feastDays?: ReadonlyArray<FeastDay>;
   calendars?: ReadonlyArray<Calendar>;
+  healthTags?: ReadonlyArray<HealthTag>;
   verifiedOnly?: boolean;
 };
 
@@ -67,8 +102,10 @@ const DEFAULT_FILTERS: DiscoverFiltersState = {
   assemblies: undefined,
   torahLevels: undefined,
   polygynyStances: undefined,
+  intents: undefined,
   feastDays: undefined,
   calendars: undefined,
+  healthTags: undefined,
   verifiedOnly: false,
 };
 
@@ -335,7 +372,59 @@ export function FiltersSheet({
             </div>
           </details>
 
-          {/* 6. Feast day overlap — collapsible */}
+          {/* 6. Intent — collapsible */}
+          <details className="group">
+            <summary className="flex cursor-pointer items-center justify-between py-2 text-meta font-medium uppercase text-text-muted hover:text-white transition-colors">
+              Intent
+              <svg
+                className="h-4 w-4 transition-transform group-open:rotate-180"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 14l-7 7m0 0l-7-7m7 7V3"
+                />
+              </svg>
+            </summary>
+            <div className="flex flex-col gap-3 pt-3">
+              <p className="text-caption text-text-secondary">
+                What kind of relationship the person is looking for
+              </p>
+              <ToggleGroup
+                value={filters.intents ? Array.from(filters.intents) : []}
+                onValueChange={(v) => {
+                  update(
+                    "intents",
+                    v.length > 0
+                      ? (v as ReadonlyArray<Intent>)
+                      : undefined,
+                  );
+                }}
+                multiple
+                spacing={2}
+                width="full"
+                aria-label="Select intents"
+              >
+                {INTENT_FILTER_OPTIONS.map((opt) => (
+                  <ToggleGroupItem
+                    key={opt.value}
+                    value={opt.value}
+                    variant="pill"
+                    size="tap"
+                    aria-label={opt.label}
+                  >
+                    {opt.label}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+            </div>
+          </details>
+
+          {/* 7. Feast day overlap — collapsible */}
           <details className="group">
             <summary className="flex cursor-pointer items-center justify-between py-2 text-meta font-medium uppercase text-text-muted hover:text-white transition-colors">
               Feast day overlap
@@ -387,7 +476,7 @@ export function FiltersSheet({
             </div>
           </details>
 
-          {/* 7. Calendar — collapsible */}
+          {/* 8. Calendar — collapsible */}
           <details className="group">
             <summary className="flex cursor-pointer items-center justify-between py-2 text-meta font-medium uppercase text-text-muted hover:text-white transition-colors">
               Calendar
@@ -436,7 +525,59 @@ export function FiltersSheet({
             </div>
           </details>
 
-          {/* 8. Verified only — collapsible */}
+          {/* 9. Health & lifestyle — collapsible */}
+          <details className="group">
+            <summary className="flex cursor-pointer items-center justify-between py-2 text-meta font-medium uppercase text-text-muted hover:text-white transition-colors">
+              Health & lifestyle
+              <svg
+                className="h-4 w-4 transition-transform group-open:rotate-180"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 14l-7 7m0 0l-7-7m7 7V3"
+                />
+              </svg>
+            </summary>
+            <div className="flex flex-col gap-3 pt-3">
+              <p className="text-caption text-text-secondary">
+                Requires the person to claim every tag you pick
+              </p>
+              <ToggleGroup
+                value={filters.healthTags ? Array.from(filters.healthTags) : []}
+                onValueChange={(v) => {
+                  update(
+                    "healthTags",
+                    v.length > 0
+                      ? (v as ReadonlyArray<HealthTag>)
+                      : undefined,
+                  );
+                }}
+                multiple
+                spacing={2}
+                width="full"
+                aria-label="Select health and lifestyle tags"
+              >
+                {HEALTH_TAG_FILTER_OPTIONS.map((opt) => (
+                  <ToggleGroupItem
+                    key={opt.value}
+                    value={opt.value}
+                    variant="pill"
+                    size="tap"
+                    aria-label={opt.label}
+                  >
+                    {opt.label}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+            </div>
+          </details>
+
+          {/* 10. Verified only — collapsible */}
           <details className="group">
             <summary className="flex cursor-pointer items-center justify-between py-2 text-meta font-medium uppercase text-text-muted hover:text-white transition-colors">
               Verified only
