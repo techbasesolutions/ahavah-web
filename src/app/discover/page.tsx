@@ -9,7 +9,6 @@ import { Globe, Heart, MapPin, Pause, X } from "lucide-react";
 
 import { Avatar, AvatarBadge, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 
 import { BrandMark } from "@/components/brand/sparkle-mark";
 import { BottomNav } from "@/components/app/bottom-nav";
@@ -17,6 +16,7 @@ import { EmptyState } from "@/components/app/empty-state";
 import { FiltersSheet } from "@/components/app/filters-sheet";
 import { PageHeader, PageShell } from "@/components/app/page-shell";
 import { PhotoCaption } from "@/components/app/photo-caption";
+import { ProgressDots } from "@/components/app/progress-dots";
 import { CompatPill } from "@/components/app/compat-pill";
 import { useProfile } from "@/lib/use-profile";
 import { isDiscoverEligible } from "@/lib/profile-completeness";
@@ -24,7 +24,9 @@ import { firstMissingStepFor } from "@/lib/profile-completeness";
 import { buildDiscoverDeck, type DiscoverFilters, type DiscoverCandidate } from "@/lib/discover-engine";
 import { SAMPLE_PROFILES } from "@/lib/profile-sample";
 
-// Gradient palette for candidate photos (stable per firstName)
+// Gradient palette for candidate photos (stable per firstName).
+// Until profile.photos[] ships, we use a 3-gradient sequence per candidate
+// so the timeline (multi-photo carousel) has something to walk through.
 const PHOTO_GRADIENTS = [
   "linear-gradient(160deg,#FFB088 0%,#FF7A53 60%,#3D1A45 100%)",
   "linear-gradient(160deg,#9F76EA 0%,#5524F5 60%,#1A1340 100%)",
@@ -32,13 +34,19 @@ const PHOTO_GRADIENTS = [
   "linear-gradient(160deg,#6CB7FF 0%,#1A1340 60%,#000 100%)",
 ];
 
+const PHOTOS_PER_CANDIDATE = 3;
+
 /**
- * Get a stable gradient for a candidate based on their firstName.
+ * Stable 3-photo gradient sequence per candidate. Indexed off firstName's
+ * char code so the same candidate always shows the same sequence across
+ * remounts (no flicker on swipe + re-enter).
  */
-function gradientFor(firstName: string | undefined): string {
-  if (!firstName) return PHOTO_GRADIENTS[0];
-  const index = firstName.charCodeAt(0) % PHOTO_GRADIENTS.length;
-  return PHOTO_GRADIENTS[index];
+function photosFor(firstName: string | undefined): string[] {
+  const seed = firstName ? firstName.charCodeAt(0) : 0;
+  return Array.from(
+    { length: PHOTOS_PER_CANDIDATE },
+    (_, i) => PHOTO_GRADIENTS[(seed + i) % PHOTO_GRADIENTS.length],
+  );
 }
 
 /**
@@ -53,6 +61,7 @@ export default function DiscoverPage() {
   const router = useRouter();
   const { profile: userProfile, loaded } = useProfile();
   const [userIndex, setUserIndex] = useState(0);
+  const [photoIndex, setPhotoIndex] = useState(0);
   const [filters, setFilters] = useState<DiscoverFilters>({});
   // Track last action so AnimatePresence can pick a direction (skip → left,
   // like → right). Reset on user advance.
@@ -85,18 +94,45 @@ export default function DiscoverPage() {
   const profile = filteredDeck[userIndex];
 
   /**
-   * Get a single gradient photo for this candidate (since SAMPLE_PROFILES
-   * don't have photo arrays in the schema).
+   * 3-photo gradient sequence for the current candidate. Stable per
+   * firstName so the same candidate always shows the same photos.
    */
-  const candidateGradient = useMemo(() => {
-    return profile ? gradientFor(profile.firstName) : "";
-  }, [profile]);
+  const candidatePhotos = useMemo(
+    () => photosFor(profile?.firstName),
+    [profile?.firstName],
+  );
+
+  const currentPhoto = candidatePhotos[photoIndex] ?? candidatePhotos[0];
 
   const advanceUser = (action: "skip" | "like") => {
     if (!profile) return;
     // Stub: real impl POSTs to swipe service.
     setExitDirection(action === "like" ? "right" : "left");
     setUserIndex((i) => i + 1);
+    setPhotoIndex(0);
+  };
+
+  /**
+   * Walk the candidate's photo carousel. At the boundaries, advance / fall
+   * back to the previous candidate so the gesture always does something.
+   */
+  const advancePhoto = (direction: "prev" | "next") => {
+    if (!profile) return;
+    if (direction === "next") {
+      if (photoIndex < candidatePhotos.length - 1) {
+        setPhotoIndex((i) => i + 1);
+      } else {
+        advanceUser("skip");
+      }
+    } else {
+      if (photoIndex > 0) {
+        setPhotoIndex((i) => i - 1);
+      } else if (userIndex > 0) {
+        setExitDirection("right");
+        setUserIndex((i) => i - 1);
+        setPhotoIndex(0);
+      }
+    }
   };
 
 
@@ -212,30 +248,42 @@ export default function DiscoverPage() {
               className="relative w-full flex-1 overflow-hidden rounded-2xl bg-cover bg-center shadow-2xl"
               style={
                 {
-                  "--photo-bg": candidateGradient,
+                  "--photo-bg": currentPhoto,
                   backgroundImage: "var(--photo-bg)",
                 } as React.CSSProperties
               }
             >
-              {/* Progress bar (single since we're using one gradient per candidate) */}
-              <div
-                aria-hidden
-                className="absolute top-5 right-5 left-5 z-20 flex gap-1.5"
-              >
-                <Progress
-                  value={100}
-                  className="flex-1"
+              {/* Timeline — one segment per photo, stories-style. Bar mode
+                  fills reached segments and dims upcoming ones. */}
+              <div className="absolute top-5 right-5 left-5 z-20">
+                <ProgressDots
+                  mode="bar"
+                  tone="white"
+                  count={candidatePhotos.length}
+                  active={photoIndex}
                 />
               </div>
 
-              {/* Photo-nav tap zones removed: SAMPLE_PROFILES have one
-                  gradient placeholder each (no photo carousel), so the
-                  asymmetric 1/3 + 2/3 invisible buttons just split the
-                  card into uneven hover halves without actually navigating
-                  anything. The Skip / Like buttons at the bottom of the
-                  card are the real swipe affordance. When photo carousels
-                  land (future sub-plan), restore symmetric 50/50 tap zones
-                  that walk profile.photos[]. */}
+              {/* Symmetric tap zones — left half = previous photo (or
+                  previous candidate at photo 0), right half = next photo
+                  (or next candidate at last photo). Plain transparent
+                  <button> elements with no variant — the Button kit's
+                  ghost variant added hover/active backgrounds that
+                  produced a visible vertical seam down the card. These
+                  are pure tap surfaces, visually invisible at every
+                  state. Action row below sits on z-30. */}
+              <button
+                type="button"
+                aria-label="Previous photo"
+                onClick={() => advancePhoto("prev")}
+                className="absolute inset-y-0 left-0 z-10 h-full w-1/2 cursor-pointer bg-transparent outline-none focus-visible:bg-white/5"
+              />
+              <button
+                type="button"
+                aria-label="Next photo"
+                onClick={() => advancePhoto("next")}
+                className="absolute inset-y-0 right-0 z-10 h-full w-1/2 cursor-pointer bg-transparent outline-none focus-visible:bg-white/5"
+              />
 
               <PhotoCaption className="px-6 pb-20">
                 <h2 className="text-h2 leading-tight text-white">
