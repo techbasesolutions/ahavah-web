@@ -231,19 +231,32 @@ export default function DiscoverPage() {
           card slides in from the opposite side. Reduce-motion via
           globals.css. */}
       <div className="relative mt-3 flex flex-1 flex-col px-5">
-        <AnimatePresence mode="wait" initial={false}>
+        {/* AnimatePresence custom prop: passes the current exitDirection
+            to BOTH the exiting and entering card as a function arg for
+            initial/exit variants. Without this, the exiting card's exit
+            prop is captured from the previous render — so a reject right
+            after a like would play the like exit animation (slide right)
+            because exitDirection was still 'right' when the doomed card
+            last rendered. */}
+        <AnimatePresence mode="wait" initial={false} custom={exitDirection}>
           {profile ? (
             <motion.div
               key={profile.id}
-              initial={{
-                opacity: 0,
-                x: exitDirection === "left" ? 60 : -60,
+              custom={exitDirection}
+              variants={{
+                initial: (dir: "left" | "right") => ({
+                  opacity: 0,
+                  x: dir === "left" ? 60 : -60,
+                }),
+                animate: { opacity: 1, x: 0 },
+                exit: (dir: "left" | "right") => ({
+                  opacity: 0,
+                  x: dir === "left" ? -60 : 60,
+                }),
               }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{
-                opacity: 0,
-                x: exitDirection === "left" ? -60 : 60,
-              }}
+              initial="initial"
+              animate="animate"
+              exit="exit"
               transition={{ duration: 0.3, ease: "easeOut" }}
               className="relative w-full flex-1 overflow-hidden rounded-2xl bg-cover bg-center shadow-2xl"
               style={
