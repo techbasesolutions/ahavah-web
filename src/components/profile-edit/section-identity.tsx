@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-
 import {
   ETHNICITIES,
   NATIONALITIES,
@@ -9,6 +7,7 @@ import {
   type Nationality,
   type Sex,
 } from "@/lib/profile-schema";
+import { LANGUAGES } from "@/lib/languages";
 import { useProfile } from "@/lib/use-profile";
 
 import {
@@ -18,7 +17,6 @@ import {
   SingleSelectField,
   TextField,
 } from "@/components/app/profile-field";
-import { Label } from "@/components/ui/label";
 
 const SEX_OPTIONS: ReadonlyArray<{ value: Sex; label: string }> = [
   { value: "male", label: "Man" },
@@ -134,16 +132,21 @@ export default function IdentitySection() {
         onValueChange={(v: Ethnicity[]) => update({ ethnicities: v })}
       />
 
-      {/* 10. languages — link-out */}
-      <div className="flex flex-col gap-1.5">
-        <Label className="text-meta text-white">Languages</Label>
-        <Link
-          href="/onboarding/languages"
-          className="text-meta text-lime underline"
-        >
-          Edit languages →
-        </Link>
-      </div>
+      {/* 10. languages — inline multi-select. Custom-added languages
+          (the "Add another language" pattern with primary-star UX) live on
+          /onboarding/languages; from /profile/edit users can pick from the
+          14 built-in shortlist and any custom entries already on their
+          profile pass through unchanged. */}
+      <MultiSelectField
+        label="Languages"
+        description="Pick all you speak."
+        options={LANGUAGES.map((l) => ({
+          value: l.code,
+          label: `${l.flag} ${l.label}`,
+        }))}
+        value={profile.languages ?? []}
+        onValueChange={(v: string[]) => update({ languages: v })}
+      />
 
       {/* 11. occupation */}
       <TextField
