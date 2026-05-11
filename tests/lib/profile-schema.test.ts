@@ -58,6 +58,12 @@ import {
   PERSONALITY_TRAITS,
   RELOCATIONS,
   COMMUNICATION_PREFS,
+  type VerificationTag,
+  type BoundaryTag,
+  isVerificationTag,
+  isBoundaryTag,
+  VERIFICATION_TAGS,
+  BOUNDARY_TAGS,
 } from "@/lib/profile-schema";
 
 describe("Sex", () => {
@@ -531,5 +537,61 @@ describe("Ethnicity/Nationality/Interests/Personality cluster", () => {
     expect(isCommunicationPref(undefined)).toBe(false);
     expect(isCommunicationPref(123)).toBe(false);
     expect(isCommunicationPref({})).toBe(false);
+  });
+});
+
+describe("Verification + Boundary tags", () => {
+  it("VERIFICATION_TAGS has 4 options", () => {
+    expect(VERIFICATION_TAGS.map((v) => v.value)).toEqual([
+      "government-id",
+      "assembly",
+      "community-references",
+      "video-selfie",
+    ]);
+  });
+
+  it("BOUNDARY_TAGS has 5 options", () => {
+    expect(BOUNDARY_TAGS.map((b) => b.value)).toEqual([
+      "monogamy-only",
+      "no-long-distance",
+      "no-additional-spouses",
+      "no-smokers",
+      "serious-courtship-only",
+    ]);
+  });
+
+  it("Types are arrays in profile shape", () => {
+    const v: VerificationTag[] = ["government-id", "video-selfie"];
+    const b: BoundaryTag[] = ["no-smokers", "monogamy-only"];
+    expect(v).toHaveLength(2);
+    expect(b).toHaveLength(2);
+  });
+
+  it("isVerificationTag accepts all VERIFICATION_TAGS values", () => {
+    for (const opt of VERIFICATION_TAGS) {
+      expect(isVerificationTag(opt.value)).toBe(true);
+    }
+  });
+
+  it("isVerificationTag rejects invalid values", () => {
+    expect(isVerificationTag("not-a-verification-tag")).toBe(false);
+    expect(isVerificationTag(null)).toBe(false);
+    expect(isVerificationTag(undefined)).toBe(false);
+    expect(isVerificationTag(123)).toBe(false);
+    expect(isVerificationTag({})).toBe(false);
+  });
+
+  it("isBoundaryTag accepts all BOUNDARY_TAGS values", () => {
+    for (const opt of BOUNDARY_TAGS) {
+      expect(isBoundaryTag(opt.value)).toBe(true);
+    }
+  });
+
+  it("isBoundaryTag rejects invalid values", () => {
+    expect(isBoundaryTag("not-a-boundary-tag")).toBe(false);
+    expect(isBoundaryTag(null)).toBe(false);
+    expect(isBoundaryTag(undefined)).toBe(false);
+    expect(isBoundaryTag(123)).toBe(false);
+    expect(isBoundaryTag({})).toBe(false);
   });
 });

@@ -533,3 +533,41 @@ export const COMMUNICATION_PREFS: ReadonlyArray<{ value: CommunicationPref; labe
 export function isCommunicationPref(value: unknown): value is CommunicationPref {
   return typeof value === "string" && COMMUNICATION_PREFS.some((opt) => opt.value === value);
 }
+
+// Verification tags (set, not tier — combinable) ---------------------------
+
+export type VerificationTag =
+  | "government-id"
+  | "assembly"
+  | "community-references"
+  | "video-selfie";
+
+export const VERIFICATION_TAGS: ReadonlyArray<{ value: VerificationTag; label: string }> = [
+  { value: "government-id",        label: "Government ID verified" },
+  { value: "assembly",             label: "Assembly verified" },
+  { value: "community-references", label: "Community references" },
+  { value: "video-selfie",         label: "Video selfie verified" },
+];
+
+export const isVerificationTag = (value: unknown): value is VerificationTag =>
+  typeof value === "string" && VERIFICATION_TAGS.some((opt) => opt.value === value);
+
+// Boundary tags (auto-apply hard filters in discovery) ----------------------
+
+export type BoundaryTag =
+  | "monogamy-only"
+  | "no-long-distance"
+  | "no-additional-spouses"
+  | "no-smokers"
+  | "serious-courtship-only";
+
+export const BOUNDARY_TAGS: ReadonlyArray<{ value: BoundaryTag; label: string }> = [
+  { value: "monogamy-only",          label: "Monogamy only" },
+  { value: "no-long-distance",       label: "No long distance" },
+  { value: "no-additional-spouses",  label: "No additional spouses" },
+  { value: "no-smokers",             label: "No smokers" },
+  { value: "serious-courtship-only", label: "Serious courtship only" },
+];
+
+export const isBoundaryTag = (value: unknown): value is BoundaryTag =>
+  typeof value === "string" && BOUNDARY_TAGS.some((opt) => opt.value === value);
