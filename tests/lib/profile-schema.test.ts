@@ -7,6 +7,16 @@ import {
   isMaleIntent,
   isFemaleIntent,
   intentOptionsForSex,
+  type Assembly,
+  type TorahLevel,
+  type Shabbat,
+  type FeastDay,
+  type Calendar,
+  ASSEMBLIES,
+  TORAH_LEVELS,
+  SHABBATS,
+  FEAST_DAYS,
+  CALENDARS,
 } from "@/lib/profile-schema";
 
 describe("Sex", () => {
@@ -62,5 +72,66 @@ describe("RelationshipIntent", () => {
     const femalePick: Intent = "married-man";
     expect(malePick).toBeDefined();
     expect(femalePick).toBeDefined();
+  });
+});
+
+describe("Faith cluster", () => {
+  it("ASSEMBLIES has 6 documented values", () => {
+    expect(ASSEMBLIES.map((a) => a.value)).toEqual([
+      "messianic",
+      "torah-observant",
+      "hebrew-israelite",
+      "independent",
+      "christian-transitioning",
+      "non-denom-torah",
+    ]);
+  });
+
+  it("TORAH_LEVELS has 4 documented values in escalation order", () => {
+    expect(TORAH_LEVELS.map((t) => t.value)).toEqual([
+      "learning",
+      "beginner",
+      "intermediate",
+      "experienced",
+    ]);
+  });
+
+  it("SHABBATS has 4 options including 'other'", () => {
+    expect(SHABBATS).toHaveLength(4);
+    expect(SHABBATS.map((s) => s.value)).toContain("other");
+  });
+
+  it("FEAST_DAYS has all 9 biblical feasts", () => {
+    expect(FEAST_DAYS.map((f) => f.value)).toEqual([
+      "passover",
+      "unleavened-bread",
+      "first-fruits",
+      "shavuot",
+      "trumpets",
+      "yom-kippur",
+      "sukkot",
+      "hanukkah",
+      "purim",
+    ]);
+  });
+
+  it("CALENDARS has 6 options including 'other'", () => {
+    expect(CALENDARS).toHaveLength(6);
+    expect(CALENDARS.map((c) => c.value)).toContain("rabbinic");
+    expect(CALENDARS.map((c) => c.value)).toContain("aviv-barley");
+    expect(CALENDARS.map((c) => c.value)).toContain("other");
+  });
+
+  it("Type guards narrow correctly", () => {
+    const a: Assembly = "messianic";
+    const t: TorahLevel = "experienced";
+    const s: Shabbat = "friday-sunset-saturday-sunset";
+    const f: FeastDay = "passover";
+    const c: Calendar = "aviv-barley";
+    expect(a).toBe("messianic");
+    expect(t).toBe("experienced");
+    expect(s).toBe("friday-sunset-saturday-sunset");
+    expect(f).toBe("passover");
+    expect(c).toBe("aviv-barley");
   });
 });
