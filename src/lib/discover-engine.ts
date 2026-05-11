@@ -3,7 +3,6 @@ import type {
   Assembly,
   TorahLevel,
   Polygyny,
-  FeastDay,
   Calendar,
   Intent,
   HealthTag,
@@ -21,20 +20,25 @@ export interface DiscoverCandidate extends Profile {
 /**
  * Discover filters. Session-scoped — all selection is positive
  * ("show me candidates who match these"), no separate persistent
- * boundary-tag concept. Per the 2026-05-11 consolidation: the 5 old
- * boundary tags collapse into filter rows here (monogamy-only →
- * polygynyStances, no-additional-spouses / serious-courtship-only →
- * intents, no-smokers → healthTags, no-long-distance → countries).
+ * boundary-tag concept.
+ *
+ * Country filtering removed: the product spec is map-zoom-driven
+ * (Bumpy-style) and needs profile.lat/lng + a map view that don't
+ * exist yet. A fixed POPULAR_COUNTRIES pill list mismatches that
+ * design; reintroducing location filtering belongs to the future
+ * map-view feature.
+ *
+ * Feast-day filtering removed per the 2026-05-11 product call —
+ * day-by-day overlap is too granular at the filter layer and
+ * already feeds into compatibility scoring.
  */
 export interface DiscoverFilters {
   ageMin?: number;
   ageMax?: number;
-  countries?: readonly string[];
   assemblies?: readonly Assembly[];
   torahLevels?: readonly TorahLevel[];
   polygynyStances?: readonly Polygyny[];
   intents?: readonly Intent[];
-  feastDays?: readonly FeastDay[];
   calendars?: readonly Calendar[];
   healthTags?: readonly HealthTag[];
   verifiedOnly?: boolean;
@@ -73,13 +77,6 @@ function passesAllFilters(candidate: DiscoverCandidate, filters: DiscoverFilters
     if (!candidate.age || candidate.age > filters.ageMax) return false;
   }
 
-  // Countries
-  if (filters.countries && filters.countries.length > 0) {
-    if (!candidate.country || !filters.countries.includes(candidate.country)) {
-      return false;
-    }
-  }
-
   // Assemblies
   if (filters.assemblies && filters.assemblies.length > 0) {
     if (!candidate.assembly || !filters.assemblies.includes(candidate.assembly)) {
@@ -106,15 +103,6 @@ function passesAllFilters(candidate: DiscoverCandidate, filters: DiscoverFilters
     if (!candidate.intent || !filters.intents.includes(candidate.intent)) {
       return false;
     }
-  }
-
-  // Feast days (at least ONE overlap required)
-  if (filters.feastDays && filters.feastDays.length > 0) {
-    if (!candidate.feastDays || candidate.feastDays.length === 0) return false;
-    const hasOverlap = candidate.feastDays.some((day) =>
-      filters.feastDays!.includes(day),
-    );
-    if (!hasOverlap) return false;
   }
 
   // Calendars

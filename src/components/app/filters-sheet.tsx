@@ -22,17 +22,14 @@ import {
   ASSEMBLIES,
   TORAH_LEVELS,
   POLYGYNY_VIEWS,
-  FEAST_DAYS,
   CALENDARS,
   type Assembly,
   type TorahLevel,
   type Polygyny,
-  type FeastDay,
   type Calendar,
   type Intent,
   type HealthTag,
 } from "@/lib/profile-schema";
-import { POPULAR_COUNTRIES } from "@/lib/countries";
 
 /**
  * FiltersSheet — discovery filters drawer.
@@ -76,12 +73,10 @@ const HEALTH_TAG_FILTER_OPTIONS: ReadonlyArray<{ value: HealthTag; label: string
 export type DiscoverFiltersState = {
   ageMin?: number;
   ageMax?: number;
-  countries?: ReadonlyArray<string>;
   assemblies?: ReadonlyArray<Assembly>;
   torahLevels?: ReadonlyArray<TorahLevel>;
   polygynyStances?: ReadonlyArray<Polygyny>;
   intents?: ReadonlyArray<Intent>;
-  feastDays?: ReadonlyArray<FeastDay>;
   calendars?: ReadonlyArray<Calendar>;
   healthTags?: ReadonlyArray<HealthTag>;
   verifiedOnly?: boolean;
@@ -262,20 +257,12 @@ export function FiltersSheet({ trigger, initialFilters, onApply }: FiltersSheetP
             />
           </section>
 
-          <FilterSection label="Countries" defaultOpen>
-            <PillGrid
-              ariaLabel="Filter by countries"
-              options={POPULAR_COUNTRIES.map((c) => ({
-                value: c.cc,
-                label: c.name,
-                flag: c.flag,
-              }))}
-              value={filters.countries ?? []}
-              onValueChange={(v) => update("countries", v.length > 0 ? v : undefined)}
-            />
-          </FilterSection>
+          {/* Country filter intentionally omitted. A fixed pill list of
+              POPULAR_COUNTRIES doesn't match the app's intended Bumpy-style
+              map-zoom-driven location filtering. Real location filtering
+              will arrive with the map view + profile.lat/lng. */}
 
-          <FilterSection label="Assemblies">
+          <FilterSection label="Assemblies" defaultOpen>
             <PillGrid
               ariaLabel="Filter by assemblies"
               options={ASSEMBLIES}
@@ -318,20 +305,6 @@ export function FiltersSheet({ trigger, initialFilters, onApply }: FiltersSheetP
               value={filters.intents ?? []}
               onValueChange={(v) =>
                 update("intents", v.length > 0 ? (v as Intent[]) : undefined)
-              }
-            />
-          </FilterSection>
-
-          <FilterSection
-            label="Feast day overlap"
-            description="Show candidates who observe at least one."
-          >
-            <PillGrid
-              ariaLabel="Filter by feast days"
-              options={FEAST_DAYS}
-              value={filters.feastDays ?? []}
-              onValueChange={(v) =>
-                update("feastDays", v.length > 0 ? (v as FeastDay[]) : undefined)
               }
             />
           </FilterSection>

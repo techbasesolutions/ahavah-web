@@ -4,7 +4,6 @@ import type {
   Assembly,
   TorahLevel,
   Polygyny,
-  FeastDay,
   Calendar,
   Intent,
   HealthTag,
@@ -53,22 +52,8 @@ describe("discover-engine", () => {
     });
   });
 
-  // ------- filter: countries -------
-
-  describe("filter: countries", () => {
-    it("requires candidate country in the list", () => {
-      const viewer: Profile = { firstName: "Sarah" };
-      const candidates: DiscoverCandidate[] = [
-        makeCandidate({ firstName: "Daniel", country: "BB" }),
-        makeCandidate({ firstName: "Esther", country: "US" }),
-        makeCandidate({ firstName: "Yosef", country: "JM" }),
-      ];
-      const filters: DiscoverFilters = { countries: ["BB", "JM"] };
-
-      const result = applyHardFilters(viewer, candidates, filters);
-      expect(result.map((c) => c.firstName)).toEqual(["Daniel", "Yosef"]);
-    });
-  });
+  // Country filter removed — future map-zoom-driven location filtering
+  // will replace it once profile.lat/lng + map view ship.
 
   // ------- filter: assemblies -------
 
@@ -160,38 +145,8 @@ describe("discover-engine", () => {
     });
   });
 
-  // ------- filter: feastDays -------
-
-  describe("filter: feastDays", () => {
-    it("requires candidate to observe at least one of the feast days (overlap)", () => {
-      const viewer: Profile = { firstName: "Sarah" };
-      const candidates: DiscoverCandidate[] = [
-        makeCandidate({ firstName: "Daniel", feastDays: ["passover", "shavuot", "sukkot"] }),
-        makeCandidate({ firstName: "Esther", feastDays: ["passover", "yom-kippur"] }),
-        makeCandidate({ firstName: "John", feastDays: ["hanukkah", "purim"] }),
-      ];
-      const filters: DiscoverFilters = {
-        feastDays: ["passover", "shavuot"] as readonly FeastDay[],
-      };
-
-      const result = applyHardFilters(viewer, candidates, filters);
-      expect(result.map((c) => c.firstName)).toEqual(["Daniel", "Esther"]);
-    });
-
-    it("excludes candidates with no feastDays", () => {
-      const viewer: Profile = { firstName: "Sarah" };
-      const candidates: DiscoverCandidate[] = [
-        makeCandidate({ firstName: "Daniel", feastDays: ["passover"] }),
-        makeCandidate({ firstName: "John" }),
-      ];
-      const filters: DiscoverFilters = {
-        feastDays: ["passover"] as readonly FeastDay[],
-      };
-
-      const result = applyHardFilters(viewer, candidates, filters);
-      expect(result.map((c) => c.firstName)).toEqual(["Daniel"]);
-    });
-  });
+  // Feast-day filter removed — day-by-day overlap was too granular at
+  // the filter layer; the scoring engine already weights feast alignment.
 
   // ------- filter: calendars -------
 
