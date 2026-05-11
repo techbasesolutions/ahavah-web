@@ -320,7 +320,7 @@ export default function ProfileDetailPage({ params }: Props) {
                 {profile.familyViews?.length && (
                   <div className="flex flex-wrap gap-2">
                     {profile.familyViews.map((view) => (
-                      <Pill key={view} variant="lavender" className="text-xs font-medium">
+                      <Pill key={view} variant="lavender" size="sm">
                         {labelOf(view, FAMILY_VIEWS)}
                       </Pill>
                     ))}
@@ -329,7 +329,7 @@ export default function ProfileDetailPage({ params }: Props) {
                 {profile.livingPreferences?.length && (
                   <div className="flex flex-wrap gap-2">
                     {profile.livingPreferences.map((pref) => (
-                      <Pill key={pref} variant="lavender" className="text-xs font-medium">
+                      <Pill key={pref} variant="lavender" size="sm">
                         {labelOf(pref, LIVING_PREFERENCES)}
                       </Pill>
                     ))}
@@ -338,7 +338,7 @@ export default function ProfileDetailPage({ params }: Props) {
                 {profile.healthTags?.length && (
                   <div className="flex flex-wrap gap-2">
                     {profile.healthTags.map((tag) => (
-                      <Pill key={tag} variant="lavender" className="text-xs font-medium">
+                      <Pill key={tag} variant="lavender" size="sm">
                         {labelOf(tag, HEALTH_TAGS)}
                       </Pill>
                     ))}
@@ -365,7 +365,7 @@ export default function ProfileDetailPage({ params }: Props) {
                 </h2>
                 <div className="flex flex-wrap gap-2">
                   {profile.interests.map((interest) => (
-                    <Pill key={interest} variant="lime" className="text-xs font-medium">
+                    <Pill key={interest} variant="lime" size="sm">
                       {labelOf(interest, INTERESTS)}
                     </Pill>
                   ))}
@@ -381,7 +381,7 @@ export default function ProfileDetailPage({ params }: Props) {
                 </h2>
                 <div className="flex flex-wrap gap-2">
                   {profile.personalityTraits.map((trait) => (
-                    <Pill key={trait} variant="lavender" className="text-xs font-medium">
+                    <Pill key={trait} variant="lavender" size="sm">
                       {labelOf(trait, PERSONALITY_TRAITS)}
                     </Pill>
                   ))}
@@ -397,7 +397,7 @@ export default function ProfileDetailPage({ params }: Props) {
                 </h2>
                 <div className="flex flex-wrap gap-2">
                   {profile.verificationTags.map((tag) => (
-                    <Pill key={tag} variant="lime" className="text-xs font-medium">
+                    <Pill key={tag} variant="lime" size="sm">
                       {labelOf(tag, VERIFICATION_TAGS)}
                     </Pill>
                   ))}

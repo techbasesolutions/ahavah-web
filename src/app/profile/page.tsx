@@ -106,11 +106,8 @@ export default function ProfilePage() {
                     on the "this is YOU" screen). Verification status is a
                     Pill chip, not a paragraph caption. */}
                 <h1 className="text-h1 leading-tight text-white">Ehud, 30</h1>
-                <Pill
-                  variant="lavenderOutline"
-                  className="mt-2 inline-flex gap-1.5 px-2.5 py-1 text-caption font-medium"
-                >
-                  <ShieldCheck size={11} />
+                <Pill variant="lavenderOutline" className="mt-2">
+                  <ShieldCheck size={12} />
                   Bronze verified
                 </Pill>
               </div>

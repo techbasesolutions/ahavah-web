@@ -1,3 +1,4 @@
+import { cva, type VariantProps } from "class-variance-authority";
 import { ChevronDownIcon, ChevronUpIcon, MinusIcon } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -5,18 +6,39 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export type PillProps = ComponentProps<typeof Badge> & {
-  themed?: boolean;
-};
+// Pill sizes are cva-driven so call sites NEVER have to className-override
+// padding / text-size to get a different pill density (ui-design-system
+// rule 2). Stick to these tokens; do not pass `className="text-xs ..."` etc.
+const pillVariants = cva("rounded-full font-medium whitespace-nowrap", {
+  variants: {
+    size: {
+      // Kit default — chrome pills: unread counts (/inbox), tier badges
+      // (/paywall), status chips ('Bronze verified'). Comfortable touch
+      // area when standalone.
+      default: "gap-2 px-3 py-1 text-caption",
+      // Compact — pills inside content clusters where 3-6 pills stack
+      // in a flex-wrap row (/profile/[uuid] fact rows). Same height
+      // category as `default` but tighter so they pack.
+      sm: "gap-1.5 px-2.5 py-0.5 text-caption",
+    },
+  },
+  defaultVariants: { size: "default" },
+});
+
+export type PillProps = Omit<ComponentProps<typeof Badge>, "size"> &
+  VariantProps<typeof pillVariants> & {
+    themed?: boolean;
+  };
 
 export const Pill = ({
   variant = "secondary",
+  size,
   themed = false,
   className,
   ...props
 }: PillProps) => (
   <Badge
-    className={cn("gap-2 rounded-full px-3 py-1.5 font-normal", className)}
+    className={cn(pillVariants({ size }), className)}
     variant={variant}
     {...props}
   />
