@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { ArrowLeft, ChevronRight, Shield } from "lucide-react";
+import { ArrowLeft, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -12,12 +12,10 @@ import {
   ItemContent,
   ItemDescription,
   ItemGroup,
-  ItemMedia,
   ItemTitle,
 } from "@/components/ui/item";
 import { Switch } from "@/components/ui/switch";
 import { Pill } from "@/components/kibo-ui/pill";
-import { IconBadge } from "@/components/ui/icon-badge";
 
 import { BottomNav } from "@/components/app/bottom-nav";
 import {
@@ -84,9 +82,7 @@ const SHORTCUT_LINKS: ReadonlyArray<{
   title: string;
   subtitle: string;
   href: string;
-  icon?: "shield";
 }> = [
-  { title: "Boundaries",       subtitle: "Hard filters we auto-apply to your match queue", href: "/settings/boundaries", icon: "shield" },
   { title: "Blocked users",    subtitle: "Manage people you've blocked", href: "/settings/blocked" },
   { title: "Account & data",   subtitle: "Email, phone, account deletion", href: "/settings/account" },
 ];
@@ -172,13 +168,6 @@ export default function PrivacySettingsPage() {
                   />
                 }
               >
-                {link.icon === "shield" ? (
-                  <ItemMedia>
-                    <IconBadge tone="brand">
-                      <Shield className="size-4" />
-                    </IconBadge>
-                  </ItemMedia>
-                ) : null}
                 <ItemContent>
                   <ItemTitle className="text-meta text-white">
                     {link.title}
