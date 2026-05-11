@@ -262,7 +262,7 @@ export function FiltersSheet({ trigger, initialFilters, onApply }: FiltersSheetP
               map-zoom-driven location filtering. Real location filtering
               will arrive with the map view + profile.lat/lng. */}
 
-          <FilterSection label="Assemblies" defaultOpen>
+          <FilterSection label="I identify as" defaultOpen>
             <PillGrid
               ariaLabel="Filter by assemblies"
               options={ASSEMBLIES}
@@ -273,9 +273,9 @@ export function FiltersSheet({ trigger, initialFilters, onApply }: FiltersSheetP
             />
           </FilterSection>
 
-          <FilterSection label="Torah level">
+          <FilterSection label="Torah observance stage">
             <PillGrid
-              ariaLabel="Filter by Torah level"
+              ariaLabel="Filter by Torah observance stage"
               options={TORAH_LEVELS}
               value={filters.torahLevels ?? []}
               onValueChange={(v) =>

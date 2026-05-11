@@ -193,7 +193,7 @@ export default function ProfileDetailPage({ params }: Props) {
                 <dl className="space-y-2">
                   {profile.assembly && (
                     <div className="flex gap-2">
-                      <dt className="text-meta text-text-secondary">Assembly:</dt>
+                      <dt className="text-meta text-text-secondary">Identifies as:</dt>
                       <dd className="text-meta text-white">
                         {labelOf(profile.assembly, ASSEMBLIES)}
                       </dd>
@@ -201,7 +201,7 @@ export default function ProfileDetailPage({ params }: Props) {
                   )}
                   {profile.torahLevel && (
                     <div className="flex gap-2">
-                      <dt className="text-meta text-text-secondary">Torah level:</dt>
+                      <dt className="text-meta text-text-secondary">Torah stage:</dt>
                       <dd className="text-meta text-white">
                         {labelOf(profile.torahLevel, TORAH_LEVELS)}
                       </dd>

@@ -20,8 +20,9 @@ import {
 } from "@/components/app/profile-field";
 
 /**
- * FaithSection — edit assembly, Torah level, Shabbat observance, feast days,
- * and calendar system. All fields optional (soft-completeness model).
+ * FaithSection — edit self-description, Torah observance stage, Shabbat
+ * observance, feast days, and calendar system. All fields optional
+ * (soft-completeness model).
  *
  * Uses useProfile() + ProfileField helpers for controlled read/write.
  */
@@ -35,7 +36,7 @@ export default function FaithSection() {
     >
       <SingleSelectField<Assembly>
         id="assembly"
-        label="Assembly"
+        label="I identify as"
         options={ASSEMBLIES}
         value={profile.assembly}
         onValueChange={(v) => update({ assembly: v })}
@@ -43,7 +44,7 @@ export default function FaithSection() {
 
       <SingleSelectField<TorahLevel>
         id="torah-level"
-        label="Torah knowledge level"
+        label="Torah observance stage"
         options={TORAH_LEVELS}
         value={profile.torahLevel}
         onValueChange={(v) => update({ torahLevel: v })}

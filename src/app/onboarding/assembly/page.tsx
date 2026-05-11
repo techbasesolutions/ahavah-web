@@ -34,7 +34,7 @@ export default function AssemblyStep() {
         className="flex flex-col gap-2"
       >
         <h1 className="text-display text-white">
-          Which assembly do you identify with<span className="text-lime">?</span>
+          I identify as<span className="text-lime">…</span>
         </h1>
         <p className="text-body text-text-secondary">
           Used to surface matches who share your faith background. Pick the
