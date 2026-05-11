@@ -549,10 +549,14 @@ export const VERIFICATION_TAGS: ReadonlyArray<{ value: VerificationTag; label: s
   { value: "video-selfie",         label: "Video selfie verified" },
 ];
 
-export const isVerificationTag = (value: unknown): value is VerificationTag =>
-  typeof value === "string" && VERIFICATION_TAGS.some((opt) => opt.value === value);
+export function isVerificationTag(value: unknown): value is VerificationTag {
+  return typeof value === "string" && VERIFICATION_TAGS.some((opt) => opt.value === value);
+}
 
 // Boundary tags (auto-apply hard filters in discovery) ----------------------
+// Note: "monogamy-only" also appears in `Polygyny`. Intentional reuse — the
+// Polygyny value is a doctrine stance; the BoundaryTag is a discovery filter
+// the user opts into. They share a string but live in different fields.
 
 export type BoundaryTag =
   | "monogamy-only"
@@ -569,5 +573,6 @@ export const BOUNDARY_TAGS: ReadonlyArray<{ value: BoundaryTag; label: string }>
   { value: "serious-courtship-only", label: "Serious courtship only" },
 ];
 
-export const isBoundaryTag = (value: unknown): value is BoundaryTag =>
-  typeof value === "string" && BOUNDARY_TAGS.some((opt) => opt.value === value);
+export function isBoundaryTag(value: unknown): value is BoundaryTag {
+  return typeof value === "string" && BOUNDARY_TAGS.some((opt) => opt.value === value);
+}
