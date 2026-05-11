@@ -490,6 +490,67 @@ After all 5 tasks:
 
 ---
 
+## Per-screen UI audit gate (MANDATORY for any UI task in this plan or beyond)
+
+This gate is the discipline I keep failing without it. Every UI task — whether
+in this sub-plan or any future plan — must clear ALL of these before its
+commit can land. Lint + tsc + build green is not enough.
+
+For each new or modified screen / component:
+
+1. **Kit-primitive chrome audit.** Before placing anything near a kit
+   primitive's edge (sheet, dialog, popover, drawer), READ the primitive
+   source and note any chrome the kit auto-renders (close X, drag handle,
+   backdrop, etc.). New chrome MUST coexist without visual collision.
+   Failure mode this catches: `Reset all` colliding with `SheetContent`'s
+   auto-close X (2026-05-11).
+
+2. **Browser smoke at 414×896.** Walk the actual interaction in the browser
+   at the mobile baseline viewport. Verify:
+   - **Empty state** — what does the screen look like with no profile data?
+   - **Hover / focus / active state** — for every interactive element. No
+     vertical seams, no asymmetric hover bands, no leaked button-variant
+     backgrounds.
+   - **Selected state** — for every controllable input. Selection signal
+     must be unambiguous WITHOUT a redundant ring on top of an already-
+     coloured pill (2026-05-11 lime-on-lime ring issue).
+   - **Scroll behaviour** — long lists should scroll WITHIN the screen, not
+     push CTAs below the fold (2026-05-11 country-page CTA at y=13721).
+
+3. **Long-list rule.** Any single- or multi-select with ≥8 options must
+   use the combobox pattern (input + filtered dropdown), not a static
+   pill grid. Standard practice. Failure mode this catches: 14-pill
+   language list + free-text adder (2026-05-11).
+
+4. **Drill-out rule.** /profile/edit and other edit surfaces must NEVER
+   bounce the user back to /onboarding/* to edit a single field. Inline
+   the edit using kit primitives. If the inline edit is genuinely too
+   complex, add an explanatory comment naming WHY the drill-out stays
+   (e.g. primary-language star UX). Default is inline.
+
+5. **kit-only composition (failure pattern #2).** No raw `<button>` with
+   a kit's variants reimplemented in className. No one-off className
+   overrides that replicate cva variant values — extend the variant or
+   use the existing variant. The 2026-05-11 SelectField `className="h-tap
+   w-full rounded-xl border-white/10 bg-bg-elevated..."` was a direct
+   violation; the fix was adding `size="lg" tone="elevated"` variants
+   to SelectTrigger.
+
+6. **Animation captures live state.** Any `AnimatePresence` exit
+   animation that depends on dynamic state must use the `custom` prop
+   pattern, not closure over the state value. Failure mode this catches:
+   reject-after-likes playing the like exit (2026-05-11).
+
+7. **Tap targets symmetric + invisible.** Photo-nav / card-nav tap zones
+   must be 50/50 (not 1/3+2/3) and rendered as plain `<button>` with NO
+   variant — kit Button variants add hover/active backgrounds that
+   produce visible seams (2026-05-11 discover card).
+
+If any of these fails, the commit is not ready. Fixing the lint/tsc/build
+without checking these is the recurring failure pattern.
+
+---
+
 ## Self-review notes
 
 - **Single source of truth**: `WIZARD_STEPS` in one file. Adding a step is one
