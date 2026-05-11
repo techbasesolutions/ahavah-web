@@ -80,14 +80,18 @@ export default function IdentitySection() {
         helper="Must be 18 or older"
       />
 
-      {/* 4. sex */}
-      <SingleSelectField
-        id="sex"
-        label="Gender"
-        options={SEX_OPTIONS}
-        value={profile.sex}
-        onValueChange={(v) => update({ sex: v })}
-      />
+      {/* 4. sex — id-wrapped so PracticalSection's intent fallback can
+          anchor-scroll here instead of drilling out to /onboarding/gender.
+          scroll-mt-24 keeps the field visible under any sticky chrome. */}
+      <div id="field-sex" className="scroll-mt-24">
+        <SingleSelectField
+          id="sex"
+          label="Gender"
+          options={SEX_OPTIONS}
+          value={profile.sex}
+          onValueChange={(v) => update({ sex: v })}
+        />
+      </div>
 
       {/* 5. country — ComboboxField (search-as-you-type) drawing from the
           full ALL_COUNTRIES list. No more 2-letter text input + drill-out
