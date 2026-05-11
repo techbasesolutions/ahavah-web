@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { use } from "react";
-import { motion } from "motion/react";
+import { use, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import {
   ChevronLeft,
   Heart,
@@ -25,6 +25,7 @@ import { ProgressDots } from "@/components/app/progress-dots";
 import { CompatPill } from "@/components/app/compat-pill";
 import { useProfile } from "@/lib/use-profile";
 import { computeCompatibility } from "@/lib/scoring/compute-compatibility";
+import { gradientsFor } from "@/lib/profile-gradients";
 
 import {
   ASSEMBLIES,
@@ -58,6 +59,16 @@ export default function ProfileDetailPage({ params }: Props) {
   const { uuid } = use(params);
   const profile = sampleByName(uuid);
   const { profile: userProfile } = useProfile();
+
+  // Deterministic 3-photo gradient stamp keyed off the uuid. Same uuid →
+  // same gradients across reloads. Replaced once Sub-plan 9 (real photos)
+  // lands; the carousel + ProgressDots wiring stays.
+  const photos = useMemo(() => gradientsFor(uuid), [uuid]);
+  const [photoIndex, setPhotoIndex] = useState(0);
+  const nextPhoto = () =>
+    setPhotoIndex((i) => (i + 1) % photos.length);
+  const prevPhoto = () =>
+    setPhotoIndex((i) => (i - 1 + photos.length) % photos.length);
 
   // Compute compatibility between viewer and sample profile
   const compatResult = userProfile && profile
@@ -96,28 +107,54 @@ export default function ProfileDetailPage({ params }: Props) {
 
   return (
     <PageShell bottomPad="none">
-      {/* Photo header — fixed `aspect-4/5` (matches /matches grid card aspect)
-          so it doesn't absorb extra space via flex-1. With a fixed photo
-          height, the bio card below has its natural content height, total
-          page can exceed viewport, and PageShell's min-h-full lets the
-          shell grow → scroll works. Uses PhotoTile primitive with
-          `radius="none"` for full-bleed (the overlap-card curves over the
-          bottom — no rounded corners on the photo itself). Back + More
-          are overlay-tone circles top corners; photo paginator dots are
-          top-center (Stories-style). Photo fades in on mount as the visual
-          establishing shot. */}
+      {/* Photo carousel — `aspect-4/5` (matches /matches grid). The photo
+          region is a seeded 3-gradient stamp (gradientsFor(uuid)) until
+          Sub-plan 9 ships real photo upload. AnimatePresence crossfades
+          between gradients on tap. Left half / right half of the photo
+          are invisible prev/next tap zones, paginator dots stay top-center
+          (Stories-style), Back + More + (NEW) Compat chip sit overlaid. */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.4 }}
+        className="relative"
       >
         <PhotoTile
           aspect="4/5"
           radius="none"
           surface="none"
-          bg="linear-gradient(135deg, #c99fc9 0%, #f0a0e4 100%)"
+          bg="transparent"
           className="w-full"
         >
+          {/* Animated gradient layer — crossfade on photoIndex change. */}
+          <AnimatePresence initial={false}>
+            <motion.div
+              key={photoIndex}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              className="absolute inset-0"
+              style={{ background: photos[photoIndex] }}
+            />
+          </AnimatePresence>
+
+          {/* Tap zones — left half = prev, right half = next. Sit behind
+              the controls (z-0) so back / more / dots still receive taps. */}
+          <button
+            type="button"
+            aria-label="Previous photo"
+            onClick={prevPhoto}
+            className="absolute inset-y-0 left-0 z-0 w-1/2 cursor-default outline-none focus-visible:bg-black/10"
+          />
+          <button
+            type="button"
+            aria-label="Next photo"
+            onClick={nextPhoto}
+            className="absolute inset-y-0 right-0 z-0 w-1/2 cursor-default outline-none focus-visible:bg-black/10"
+          />
+
+          {/* Top chrome — back / more */}
           <div className="absolute top-3 right-3 left-3 z-10 flex items-center justify-between">
             <Link
               href="/discover"
@@ -133,12 +170,24 @@ export default function ProfileDetailPage({ params }: Props) {
           </div>
 
           <ProgressDots
-            count={1}
-            active={0}
+            count={photos.length}
+            active={photoIndex}
             size="sm"
             tone="white"
             className="absolute top-3 left-1/2 z-10 -translate-x-1/2"
           />
+
+          {/* Compat chip — anchors the carousel bottom-right instead of
+              competing with the name inside the bio card. */}
+          {compatResult && (
+            <div className="absolute bottom-12 right-4 z-10">
+              <CompatPill
+                score={compatResult.score}
+                breakdown={compatResult.breakdown}
+                size="sm"
+              />
+            </div>
+          )}
         </PhotoTile>
       </motion.div>
 
@@ -153,10 +202,11 @@ export default function ProfileDetailPage({ params }: Props) {
       >
         <Card
           tone="overlap"
-          className="relative z-20 -mt-8 gap-4 rounded-t-3xl px-5 pt-6 pb-6"
+          className="relative z-20 -mt-8 gap-5 rounded-t-3xl px-5 pt-6 pb-6"
         >
-          <CardContent className="flex flex-col gap-4 px-0">
-            {/* Header: name, age, location */}
+          <CardContent className="flex flex-col gap-5 px-0">
+            {/* Header: name, age, location. Compat chip now anchors the
+                carousel bottom-right; it no longer competes for space here. */}
             <div>
               <h1 className="text-h1 text-white">
                 {profile.firstName}, {profile.age}
@@ -168,17 +218,6 @@ export default function ProfileDetailPage({ params }: Props) {
               )}
             </div>
 
-            {/* Compatibility pill (if viewer profile is loaded) */}
-            {compatResult && (
-              <div className="mt-2">
-                <CompatPill
-                  score={compatResult.score}
-                  breakdown={compatResult.breakdown}
-                  size="md"
-                />
-              </div>
-            )}
-
             {/* Bio paragraph (conditional) */}
             {profile.bio && (
               <p className="text-body leading-relaxed text-white/85">{profile.bio}</p>
@@ -187,9 +226,9 @@ export default function ProfileDetailPage({ params }: Props) {
             {/* Faith cluster — dl/dt/dd fact rows */}
             {(profile.assembly || profile.torahLevel || profile.shabbat || profile.calendar) && (
               <div className="flex flex-col gap-2 border-t border-white/10 pt-4">
-                <h3 className="text-meta font-semibold uppercase text-text-secondary">
+                <h2 className="text-meta font-semibold uppercase text-text-secondary">
                   Faith
-                </h3>
+                </h2>
                 <dl className="space-y-2">
                   {profile.assembly && (
                     <div className="flex gap-2">
@@ -230,9 +269,9 @@ export default function ProfileDetailPage({ params }: Props) {
             {/* Doctrine cluster — fact rows */}
             {(profile.intent || profile.polygyny || profile.headCovering || profile.tzitzit) && (
               <div className="flex flex-col gap-2 border-t border-white/10 pt-4">
-                <h3 className="text-meta font-semibold uppercase text-text-secondary">
+                <h2 className="text-meta font-semibold uppercase text-text-secondary">
                   Doctrine
-                </h3>
+                </h2>
                 <dl className="space-y-2">
                   {profile.intent && (
                     <div className="flex gap-2">
@@ -275,9 +314,9 @@ export default function ProfileDetailPage({ params }: Props) {
             {/* Lifestyle cluster — Pill rows (lavender) */}
             {(profile.familyViews?.length || profile.livingPreferences?.length || profile.healthTags?.length || profile.relocation) && (
               <div className="flex flex-col gap-2 border-t border-white/10 pt-4">
-                <h3 className="text-meta font-semibold uppercase text-text-secondary">
+                <h2 className="text-meta font-semibold uppercase text-text-secondary">
                   Lifestyle
-                </h3>
+                </h2>
                 {profile.familyViews?.length && (
                   <div className="flex flex-wrap gap-2">
                     {profile.familyViews.map((view) => (
@@ -321,9 +360,9 @@ export default function ProfileDetailPage({ params }: Props) {
             {/* Interests cluster — Pill rows (lime) */}
             {profile.interests?.length && (
               <div className="flex flex-col gap-2 border-t border-white/10 pt-4">
-                <h3 className="text-meta font-semibold uppercase text-text-secondary">
+                <h2 className="text-meta font-semibold uppercase text-text-secondary">
                   Interests
-                </h3>
+                </h2>
                 <div className="flex flex-wrap gap-2">
                   {profile.interests.map((interest) => (
                     <Pill key={interest} variant="lime" className="text-xs font-medium">
@@ -337,9 +376,9 @@ export default function ProfileDetailPage({ params }: Props) {
             {/* Personality cluster — Pill rows (lavender) */}
             {profile.personalityTraits?.length && (
               <div className="flex flex-col gap-2 border-t border-white/10 pt-4">
-                <h3 className="text-meta font-semibold uppercase text-text-secondary">
+                <h2 className="text-meta font-semibold uppercase text-text-secondary">
                   Personality
-                </h3>
+                </h2>
                 <div className="flex flex-wrap gap-2">
                   {profile.personalityTraits.map((trait) => (
                     <Pill key={trait} variant="lavender" className="text-xs font-medium">
@@ -353,9 +392,9 @@ export default function ProfileDetailPage({ params }: Props) {
             {/* Verification cluster — Pill rows (lime) with ShieldCheck icon */}
             {profile.verificationTags?.length && (
               <div className="flex flex-col gap-2 border-t border-white/10 pt-4">
-                <h3 className="flex items-center gap-1.5 text-meta font-semibold uppercase text-text-secondary">
+                <h2 className="flex items-center gap-1.5 text-meta font-semibold uppercase text-text-secondary">
                   <ShieldCheck className="size-4" /> Verified
-                </h3>
+                </h2>
                 <div className="flex flex-wrap gap-2">
                   {profile.verificationTags.map((tag) => (
                     <Pill key={tag} variant="lime" className="text-xs font-medium">
