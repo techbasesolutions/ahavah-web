@@ -220,7 +220,9 @@ export function SelectField<T extends string>({
       >
         <SelectTrigger
           id={id}
-          className="h-tap w-full justify-between rounded-xl border-white/10 bg-bg-elevated px-4 text-body text-white"
+          size="lg"
+          tone="elevated"
+          className="w-full"
         >
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
