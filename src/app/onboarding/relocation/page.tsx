@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { motion } from "motion/react";
 
 import { Card } from "@/components/ui/card";
@@ -20,7 +19,7 @@ const fadeUp = {
 
 export default function RelocationStep() {
   const { profile, update } = useProfile();
-  const [selected, setSelected] = useState<string>(profile.relocation ?? "");
+  const selected = profile.relocation ?? "";
 
   return (
     <OnboardingShell
@@ -50,10 +49,7 @@ export default function RelocationStep() {
       >
         <RadioGroup
           value={selected}
-          onValueChange={(v) => {
-            setSelected(v);
-            update({ relocation: v as Relocation });
-          }}
+          onValueChange={(v) => update({ relocation: v as Relocation })}
           className="grid gap-3"
         >
           {RELOCATIONS.map((opt, i) => {

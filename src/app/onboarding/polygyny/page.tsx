@@ -17,8 +17,8 @@ const fadeUp = {
   animate: { opacity: 1, y: 0 },
 };
 
-export default function PolygnyStep() {
-  const { profile, update, loaded } = useProfile();
+export default function PolygynyStep() {
+  const { profile, update } = useProfile();
 
   return (
     <OnboardingShell
@@ -48,12 +48,12 @@ export default function PolygnyStep() {
         className="mt-8"
       >
         <RadioGroup
-          value={profile.polygyny || ""}
+          value={profile.polygyny ?? ""}
           onValueChange={(v) => update({ polygyny: v as Polygyny })}
           className="grid gap-3"
         >
           {POLYGYNY_VIEWS.map((opt, i) => {
-            const active = loaded && opt.value === profile.polygyny;
+            const active = opt.value === profile.polygyny;
             return (
               <motion.div
                 key={opt.value}

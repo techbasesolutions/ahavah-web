@@ -48,7 +48,7 @@ export default function AssemblyStep() {
         className="mt-8"
       >
         <RadioGroup
-          value={profile.assembly || ""}
+          value={profile.assembly ?? ""}
           onValueChange={(v) => update({ assembly: v as Assembly })}
           className="grid gap-3"
         >
