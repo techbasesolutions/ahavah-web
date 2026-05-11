@@ -8,8 +8,6 @@ import {
   ToggleGroupItem,
 } from "@/components/ui/toggle-group";
 
-import { cn } from "@/lib/utils";
-
 import { OnboardingShell } from "@/components/app/onboarding-shell";
 import { useProfile } from "@/lib/use-profile";
 import { VERIFICATION_TAGS, type VerificationTag } from "@/lib/profile-schema";
@@ -75,11 +73,7 @@ export default function VerificationStep() {
                 variant="pill"
                 size="tap"
                 aria-label={tag.label}
-                className={cn(
-                  "gap-2 transition-transform active:scale-95",
-                  selected.includes(tag.value) &&
-                    "ring-2 ring-lime ring-offset-2 ring-offset-bg-indigo",
-                )}
+                className="gap-2 transition-transform active:scale-95"
               >
                 <ShieldCheck className="size-4" aria-hidden />
                 {tag.label}

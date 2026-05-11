@@ -193,11 +193,7 @@ export default function LanguagesStep() {
                     if (!primary) setPrimary(lang.code);
                   }
                 }}
-                className={cn(
-                  "gap-2 transition-transform active:scale-95",
-                  primary === lang.code &&
-                    "ring-2 ring-lime ring-offset-2 ring-offset-bg-indigo",
-                )}
+                className="gap-2 transition-transform active:scale-95"
               >
                 <span aria-hidden>{lang.flag}</span>
                 {lang.label}
@@ -235,9 +231,7 @@ export default function LanguagesStep() {
                   key={label}
                   className={cn(
                     "inline-flex items-center overflow-hidden rounded-full border bg-bg-elevated transition-colors",
-                    isPrimary
-                      ? "border-lime ring-2 ring-lime ring-offset-2 ring-offset-bg-indigo"
-                      : "border-white/10",
+                    isPrimary ? "border-lime" : "border-white/10",
                   )}
                 >
                   <button
