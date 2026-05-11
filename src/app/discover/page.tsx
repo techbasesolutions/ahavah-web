@@ -16,6 +16,7 @@ import { EmptyState } from "@/components/app/empty-state";
 import { FiltersSheet } from "@/components/app/filters-sheet";
 import { PageHeader, PageShell } from "@/components/app/page-shell";
 import { PhotoCaption } from "@/components/app/photo-caption";
+import { CompatPill } from "@/components/app/compat-pill";
 import { useProfile } from "@/lib/use-profile";
 import { isDiscoverEligible } from "@/lib/profile-completeness";
 import { firstMissingStepFor } from "@/lib/profile-completeness";
@@ -254,6 +255,9 @@ export default function DiscoverPage() {
                     <MapPin className="size-3" /> {profile.country}
                   </p>
                 ) : null}
+                <div className="mt-3">
+                  <CompatPill score={profile.compatScore} size="sm" />
+                </div>
               </PhotoCaption>
 
               {/* Action row — skip/pause/like for the profile */}

@@ -332,14 +332,43 @@ describe("discover-engine", () => {
   });
 
   describe("rankCandidates", () => {
-    it("returns candidates in unchanged order for Sub-plan 4", () => {
+    it("attaches a compatScore to each candidate", () => {
       const viewer: Profile = { firstName: "Sarah" };
       const candidates: DiscoverCandidate[] = [
         makeCandidate({ firstName: "Daniel" }),
         makeCandidate({ firstName: "Adam" }),
-        makeCandidate({ firstName: "David" }),
       ];
-      expect(rankCandidates(viewer, candidates)).toEqual(candidates);
+      const result = rankCandidates(viewer, candidates);
+      expect(result).toHaveLength(2);
+      for (const c of result) {
+        expect(typeof c.compatScore).toBe("number");
+        expect(c.compatScore).toBeGreaterThanOrEqual(0);
+        expect(c.compatScore).toBeLessThanOrEqual(100);
+      }
+    });
+
+    it("sorts higher-compat candidates first", () => {
+      const viewer: Profile = {
+        firstName: "Sarah",
+        polygyny: "monogamy-only",
+        torahLevel: "experienced",
+      };
+      const candidates: DiscoverCandidate[] = [
+        makeCandidate({
+          firstName: "Mismatched",
+          polygyny: "supports",
+          torahLevel: "learning",
+        }),
+        makeCandidate({
+          firstName: "Aligned",
+          polygyny: "monogamy-only",
+          torahLevel: "experienced",
+        }),
+      ];
+      const result = rankCandidates(viewer, candidates);
+      expect(result[0].firstName).toBe("Aligned");
+      expect(result[1].firstName).toBe("Mismatched");
+      expect(result[0].compatScore).toBeGreaterThan(result[1].compatScore);
     });
   });
 

@@ -1,10 +1,10 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useMemo } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
-import { MapPin, MessageCircle, Search } from "lucide-react";
+import { MapPin, Search } from "lucide-react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -14,7 +14,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Pill } from "@/components/kibo-ui/pill";
 
 import { cn } from "@/lib/utils";
 
@@ -26,6 +25,10 @@ import {
   PageShell,
 } from "@/components/app/page-shell";
 import { PhotoTile } from "@/components/app/photo-tile";
+import { CompatPill } from "@/components/app/compat-pill";
+import { useProfile } from "@/lib/use-profile";
+import { computeCompatibility } from "@/lib/scoring/compute-compatibility";
+import { SAMPLE_PROFILES } from "@/lib/profile-sample";
 
 const fadeUp = {
   initial: { opacity: 0, y: 12 },
@@ -36,11 +39,16 @@ const fadeUp = {
 // cascade for seconds.
 const staggerDelay = (i: number) => 0.05 + Math.min(i, 5) * 0.06;
 
-const MATCHES = [
-  { id: "lucy",      name: "Theresa Webb",     age: 20, dist: "2 km away",   compat: 94, gradient: "linear-gradient(135deg,#FFB088,#7A4A4A)" },
-  { id: "jessica",   name: "Dianne Russell",   age: 25, dist: "1 km away",   compat: 92, gradient: "linear-gradient(135deg,#9F76EA,#3A1F4F)" },
-  { id: "margareth", name: "Kristin Watson",   age: 24, dist: "1.5 km away", compat: 97, gradient: "linear-gradient(135deg,#F9D976,#A87E1E)" },
-  { id: "emily",     name: "Eleanor Pena",     age: 27, dist: "3 km away",   compat: 90, gradient: "linear-gradient(135deg,#6CB7FF,#1A1340)" },
+// IDs match SAMPLE_PROFILES first names (lowercase) so computeCompatibility
+// has a real candidate to score against. Picked 4 women so the "Liked you"
+// list reads as a typical matches grid for a male viewer; the page
+// auto-recovers for female viewers (intent scoring will reflect the
+// gender-conditional rules).
+const MATCHES_DISPLAY = [
+  { id: "esther", name: "Esther", age: 28, dist: "2 km away",   gradient: "linear-gradient(135deg,#FFB088,#7A4A4A)" },
+  { id: "adina",  name: "Adina",  age: 24, dist: "1 km away",   gradient: "linear-gradient(135deg,#9F76EA,#3A1F4F)" },
+  { id: "rivka",  name: "Rivka",  age: 31, dist: "1.5 km away", gradient: "linear-gradient(135deg,#F9D976,#A87E1E)" },
+  { id: "tirzah", name: "Tirzah", age: 22, dist: "3 km away",   gradient: "linear-gradient(135deg,#6CB7FF,#1A1340)" },
 ];
 
 type State = "happy" | "loading" | "empty" | "error";
@@ -48,7 +56,24 @@ type State = "happy" | "loading" | "empty" | "error";
 function MatchesContent() {
   const params = useSearchParams();
   const state = (params.get("state") as State | null) ?? "happy";
-  const matches = state === "empty" ? [] : MATCHES;
+  const { profile: userProfile } = useProfile();
+
+  // Compute compatibility scores for display matches
+  const matchesWithCompat = useMemo(() => {
+    if (!userProfile) return MATCHES_DISPLAY.map(m => ({ ...m, compatScore: 0 }));
+    return MATCHES_DISPLAY.map(match => {
+      const sampleProfile = SAMPLE_PROFILES.find(
+        p => p.firstName?.toLowerCase() === match.id
+      );
+      if (!sampleProfile) {
+        return { ...match, compatScore: 0 };
+      }
+      const { score } = computeCompatibility(userProfile, sampleProfile);
+      return { ...match, compatScore: score };
+    });
+  }, [userProfile]);
+
+  const matches = state === "empty" ? [] : matchesWithCompat;
 
   const body =
     state === "loading" ? (
@@ -90,7 +115,7 @@ export default function MatchesPage() {
 // State branches
 // ---------------------------------------------------------------------------
 
-function MatchesGrid({ matches }: { matches: typeof MATCHES }) {
+function MatchesGrid({ matches }: { matches: Array<(typeof MATCHES_DISPLAY)[number] & { compatScore: number }> }) {
   return (
     <div className="grid grid-cols-2 gap-4 px-5 pt-6">
       {matches.map((m, i) => (
@@ -109,13 +134,9 @@ function MatchesGrid({ matches }: { matches: typeof MATCHES }) {
           >
             <Card tone="flat" size="sm" className="w-full gap-2 p-0">
               <PhotoTile aspect="4/5" radius="lg" surface="none" bg={m.gradient}>
-                <Pill
-                  variant="lime"
-                  className="absolute bottom-4 left-4 font-bold tabular-nums"
-                >
-                  <MessageCircle className="size-3" />
-                  {m.compat}%
-                </Pill>
+                <div className="absolute bottom-4 left-4">
+                  <CompatPill score={m.compatScore} size="sm" />
+                </div>
               </PhotoTile>
               <CardHeader className="px-0">
                 <CardTitle className="text-body font-semibold leading-tight text-white">
