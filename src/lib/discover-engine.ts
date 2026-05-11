@@ -8,6 +8,8 @@ import type {
   Intent,
   HealthTag,
 } from "@/lib/profile-schema";
+import { computeCompatibility } from "@/lib/scoring/compute-compatibility";
+import type { Weights } from "@/lib/scoring/weights";
 
 /**
  * A candidate is a Profile with an id field.
@@ -142,24 +144,40 @@ function passesAllFilters(candidate: DiscoverCandidate, filters: DiscoverFilters
 }
 
 /**
- * Rank candidates (identity stub for Sub-plan 4).
- * Sub-plan 5 will plug compute-compatibility here.
+ * A candidate plus its computed compatibility score against the viewer.
+ * `score` is 0..100; `breakdown` is exposed for UI tooltips / pills.
+ */
+export type RankedCandidate = DiscoverCandidate & {
+  compatScore: number;
+};
+
+/**
+ * Rank candidates by compatibility (descending). Each candidate gets a
+ * computeCompatibility() score against the viewer; ties preserve input
+ * order via stable sort.
  */
 export function rankCandidates(
   viewer: Profile,
   candidates: readonly DiscoverCandidate[],
-): readonly DiscoverCandidate[] {
-  return candidates;
+  weights?: Weights,
+): readonly RankedCandidate[] {
+  const scored = candidates.map((c) => ({
+    ...c,
+    compatScore: computeCompatibility(viewer, c, weights).score,
+  }));
+  return scored.sort((a, b) => b.compatScore - a.compatScore);
 }
 
 /**
- * Build a discover deck: filter, then rank.
+ * Build a discover deck: filter, then rank. Each item carries its
+ * compatibility score for downstream UI.
  */
 export function buildDiscoverDeck(
   viewer: Profile,
   candidates: readonly DiscoverCandidate[],
   filters?: DiscoverFilters,
-): readonly DiscoverCandidate[] {
+  weights?: Weights,
+): readonly RankedCandidate[] {
   const filtered = applyHardFilters(viewer, candidates, filters);
-  return rankCandidates(viewer, filtered);
+  return rankCandidates(viewer, filtered, weights);
 }
