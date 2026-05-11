@@ -576,3 +576,72 @@ export const BOUNDARY_TAGS: ReadonlyArray<{ value: BoundaryTag; label: string }>
 export function isBoundaryTag(value: unknown): value is BoundaryTag {
   return typeof value === "string" && BOUNDARY_TAGS.some((opt) => opt.value === value);
 }
+
+// Profile aggregate -------------------------------------------------------
+// Every field optional per 2026-05-11 soft-completeness model.
+// `MINIMUM_COMPLETE_FIELDS` is the soft-required set users must fill before
+// /discover access (enforced by `computeCompleteness`).
+
+export type Profile = {
+  // Basic identity
+  firstName?: string;
+  displayName?: string;
+  age?: number;
+  sex?: Sex;
+  country?: string;        // 2-letter ISO from src/lib/countries.ts
+  stateOrProvince?: string;
+  city?: string;
+  nationality?: Nationality;
+  ethnicities?: Ethnicity[];
+  languages?: string[];    // language codes from /onboarding/languages
+  occupation?: string;
+  education?: string;
+  bio?: string;            // also called "Testimony" in copy for this audience
+  // Relationship intent (gender-conditional)
+  intent?: Intent;
+  // Faith cluster
+  assembly?: Assembly;
+  torahLevel?: TorahLevel;
+  shabbat?: Shabbat;
+  feastDays?: FeastDay[];
+  calendar?: Calendar;
+  // Doctrine cluster
+  polygyny?: Polygyny;
+  headCovering?: HeadCovering;
+  tzitzit?: Tzitzit;
+  // Lifestyle cluster
+  familyViews?: FamilyView[];
+  livingPreferences?: LivingPreference[];
+  healthTags?: HealthTag[];
+  // Interests + personality
+  interests?: Interest[];
+  personalityTraits?: PersonalityTrait[];
+  // Practical compatibility
+  relocation?: Relocation;
+  communicationPrefs?: CommunicationPref[];
+  // Verification + boundaries
+  verificationTags?: VerificationTag[];
+  boundaryTags?: BoundaryTag[];
+  // Voice intro + prompt cards (placeholders — sub-plans 3 + 6)
+  voiceIntroUrl?: string;
+  promptCards?: Array<{ promptId: string; answer: string }>;
+};
+
+/**
+ * Soft-required field names. Users can finish minimal onboarding by filling
+ * these, then complete the rest in /profile/edit. `computeCompleteness`
+ * checks profile completion against this list for the "discover-eligible"
+ * gate; the full ~30-field completion drives the visual "X% complete" badge.
+ */
+export const MINIMUM_COMPLETE_FIELDS: ReadonlyArray<keyof Profile> = [
+  "firstName",
+  "age",
+  "sex",
+  "country",
+  "assembly",
+  "torahLevel",
+];
+
+export function emptyProfile(): Profile {
+  return {};
+}

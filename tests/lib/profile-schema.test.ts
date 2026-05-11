@@ -64,6 +64,9 @@ import {
   isBoundaryTag,
   VERIFICATION_TAGS,
   BOUNDARY_TAGS,
+  type Profile,
+  MINIMUM_COMPLETE_FIELDS,
+  emptyProfile,
 } from "@/lib/profile-schema";
 
 describe("Sex", () => {
@@ -593,5 +596,47 @@ describe("Verification + Boundary tags", () => {
     expect(isBoundaryTag(undefined)).toBe(false);
     expect(isBoundaryTag(123)).toBe(false);
     expect(isBoundaryTag({})).toBe(false);
+  });
+});
+
+describe("Profile aggregate", () => {
+  it("emptyProfile() returns a Profile with all optional fields undefined", () => {
+    const p = emptyProfile();
+    expect(p.firstName).toBeUndefined();
+    expect(p.age).toBeUndefined();
+    expect(p.sex).toBeUndefined();
+    expect(p.assembly).toBeUndefined();
+    expect(p.feastDays).toBeUndefined();
+    expect(p.interests).toBeUndefined();
+  });
+
+  it("MINIMUM_COMPLETE_FIELDS lists the soft-required fields", () => {
+    // Per 2026-05-11 soft-completeness decision: only these are required to
+    // browse /discover. Everything else can be filled in /profile/edit.
+    expect(MINIMUM_COMPLETE_FIELDS).toEqual([
+      "firstName",
+      "age",
+      "sex",
+      "country",
+      "assembly",
+      "torahLevel",
+    ]);
+  });
+
+  it("Profile accepts both shapes (male intent / female intent)", () => {
+    const male: Profile = {
+      firstName: "Daniel",
+      age: 32,
+      sex: "male",
+      intent: "first-wife",
+    };
+    const female: Profile = {
+      firstName: "Esther",
+      age: 28,
+      sex: "female",
+      intent: "unmarried-man",
+    };
+    expect(male.intent).toBe("first-wife");
+    expect(female.intent).toBe("unmarried-man");
   });
 });
