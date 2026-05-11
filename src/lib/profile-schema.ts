@@ -109,6 +109,10 @@ export const ASSEMBLIES: ReadonlyArray<AssemblyOption> = [
   { value: "non-denom-torah",         label: "Non-denominational Torah believer" },
 ];
 
+export function isAssembly(value: unknown): value is Assembly {
+  return typeof value === "string" && ASSEMBLIES.some((opt) => opt.value === value);
+}
+
 export type TorahLevel = "learning" | "beginner" | "intermediate" | "experienced";
 
 export const TORAH_LEVELS: ReadonlyArray<{ value: TorahLevel; label: string }> = [
@@ -117,6 +121,10 @@ export const TORAH_LEVELS: ReadonlyArray<{ value: TorahLevel; label: string }> =
   { value: "intermediate", label: "Intermediate" },
   { value: "experienced",  label: "Experienced" },
 ];
+
+export function isTorahLevel(value: unknown): value is TorahLevel {
+  return typeof value === "string" && TORAH_LEVELS.some((opt) => opt.value === value);
+}
 
 export type Shabbat =
   | "friday-sunset-saturday-sunset"
@@ -130,6 +138,10 @@ export const SHABBATS: ReadonlyArray<{ value: Shabbat; label: string }> = [
   { value: "saturday-only",                 label: "Saturday only" },
   { value: "other",                         label: "Other" },
 ];
+
+export function isShabbat(value: unknown): value is Shabbat {
+  return typeof value === "string" && SHABBATS.some((opt) => opt.value === value);
+}
 
 export type FeastDay =
   | "passover"
@@ -154,6 +166,10 @@ export const FEAST_DAYS: ReadonlyArray<{ value: FeastDay; label: string }> = [
   { value: "purim",            label: "Purim" },
 ];
 
+export function isFeastDay(value: unknown): value is FeastDay {
+  return typeof value === "string" && FEAST_DAYS.some((opt) => opt.value === value);
+}
+
 export type Calendar =
   | "rabbinic"
   | "aviv-barley"
@@ -170,3 +186,7 @@ export const CALENDARS: ReadonlyArray<{ value: Calendar; label: string }> = [
   { value: "observational-new-moon", label: "Observational new moon" },
   { value: "other",                  label: "Other" },
 ];
+
+export function isCalendar(value: unknown): value is Calendar {
+  return typeof value === "string" && CALENDARS.some((opt) => opt.value === value);
+}

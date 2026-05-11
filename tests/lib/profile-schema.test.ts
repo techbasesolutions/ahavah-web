@@ -12,6 +12,11 @@ import {
   type Shabbat,
   type FeastDay,
   type Calendar,
+  isAssembly,
+  isTorahLevel,
+  isShabbat,
+  isFeastDay,
+  isCalendar,
   ASSEMBLIES,
   TORAH_LEVELS,
   SHABBATS,
@@ -133,5 +138,75 @@ describe("Faith cluster", () => {
     expect(s).toBe("friday-sunset-saturday-sunset");
     expect(f).toBe("passover");
     expect(c).toBe("aviv-barley");
+  });
+
+  it("isAssembly accepts all ASSEMBLIES values", () => {
+    for (const opt of ASSEMBLIES) {
+      expect(isAssembly(opt.value)).toBe(true);
+    }
+  });
+
+  it("isAssembly rejects invalid values", () => {
+    expect(isAssembly("not-an-assembly")).toBe(false);
+    expect(isAssembly(null)).toBe(false);
+    expect(isAssembly(undefined)).toBe(false);
+    expect(isAssembly(123)).toBe(false);
+    expect(isAssembly({})).toBe(false);
+  });
+
+  it("isTorahLevel accepts all TORAH_LEVELS values", () => {
+    for (const opt of TORAH_LEVELS) {
+      expect(isTorahLevel(opt.value)).toBe(true);
+    }
+  });
+
+  it("isTorahLevel rejects invalid values", () => {
+    expect(isTorahLevel("not-a-level")).toBe(false);
+    expect(isTorahLevel(null)).toBe(false);
+    expect(isTorahLevel(undefined)).toBe(false);
+    expect(isTorahLevel(123)).toBe(false);
+    expect(isTorahLevel({})).toBe(false);
+  });
+
+  it("isShabbat accepts all SHABBATS values", () => {
+    for (const opt of SHABBATS) {
+      expect(isShabbat(opt.value)).toBe(true);
+    }
+  });
+
+  it("isShabbat rejects invalid values", () => {
+    expect(isShabbat("not-a-shabbat")).toBe(false);
+    expect(isShabbat(null)).toBe(false);
+    expect(isShabbat(undefined)).toBe(false);
+    expect(isShabbat(123)).toBe(false);
+    expect(isShabbat({})).toBe(false);
+  });
+
+  it("isFeastDay accepts all FEAST_DAYS values", () => {
+    for (const opt of FEAST_DAYS) {
+      expect(isFeastDay(opt.value)).toBe(true);
+    }
+  });
+
+  it("isFeastDay rejects invalid values", () => {
+    expect(isFeastDay("not-a-feast")).toBe(false);
+    expect(isFeastDay(null)).toBe(false);
+    expect(isFeastDay(undefined)).toBe(false);
+    expect(isFeastDay(123)).toBe(false);
+    expect(isFeastDay({})).toBe(false);
+  });
+
+  it("isCalendar accepts all CALENDARS values", () => {
+    for (const opt of CALENDARS) {
+      expect(isCalendar(opt.value)).toBe(true);
+    }
+  });
+
+  it("isCalendar rejects invalid values", () => {
+    expect(isCalendar("not-a-calendar")).toBe(false);
+    expect(isCalendar(null)).toBe(false);
+    expect(isCalendar(undefined)).toBe(false);
+    expect(isCalendar(123)).toBe(false);
+    expect(isCalendar({})).toBe(false);
   });
 });
