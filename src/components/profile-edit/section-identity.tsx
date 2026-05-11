@@ -11,9 +11,9 @@ import { LANGUAGES } from "@/lib/languages";
 import { useProfile } from "@/lib/use-profile";
 
 import {
+  ComboboxField,
   MultiSelectField,
   ProfileSection,
-  SelectField,
   SingleSelectField,
   TextField,
 } from "@/components/app/profile-field";
@@ -112,12 +112,14 @@ export default function IdentitySection() {
         maxLength={50}
       />
 
-      {/* 8. nationality — SelectField (dropdown) because the list is 20
-          options long; a RadioGroup+Card grid would force a long scroll. */}
-      <SelectField
+      {/* 8. nationality — ComboboxField. Type to filter; the dropdown
+          stays visible while focused so users can also scan/pick
+          without typing. Better than a static RadioGroup+Card grid at
+          this list size (20 options). */}
+      <ComboboxField
         id="nationality"
         label="Nationality"
-        placeholder="Pick your nationality"
+        placeholder="Type or pick your nationality"
         options={NATIONALITIES}
         value={profile.nationality}
         onValueChange={(v: Nationality) => update({ nationality: v })}

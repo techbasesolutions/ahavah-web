@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useId, useMemo, useRef, useState } from "react";
 
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -234,6 +235,142 @@ export function SelectField<T extends string>({
           ))}
         </SelectContent>
       </Select>
+      {description ? (
+        <span className="text-caption text-text-muted">{description}</span>
+      ) : null}
+    </div>
+  );
+}
+
+// --- ComboboxField (search-as-you-type, dropdown stays visible) ------------
+
+/**
+ * Input-reactive single-select. Typing filters the dropdown list in
+ * real time; the list remains visible while the input is focused so
+ * the user can scan options without typing. Use for fields where the
+ * option count is large enough that scrolling a static RadioGroup is
+ * tedious but small enough that a free-text fallback isn't needed
+ * (e.g. Nationality at 20 options).
+ */
+export function ComboboxField<T extends string>({
+  id,
+  label,
+  description,
+  placeholder = "Type or pick…",
+  options,
+  value,
+  onValueChange,
+}: {
+  id: string;
+  label: string;
+  description?: string;
+  placeholder?: string;
+  options: ReadonlyArray<Option<T>>;
+  value: T | undefined;
+  onValueChange: (next: T) => void;
+}) {
+  const listboxId = useId();
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const selected = options.find((opt) => opt.value === value);
+
+  // While focused, the input shows the live query; otherwise it shows
+  // the selected label (or empty placeholder).
+  const inputValue = open ? query : selected?.label ?? "";
+
+  const filtered = useMemo(() => {
+    if (!query) return options;
+    const q = query.toLowerCase();
+    return options.filter((opt) => opt.label.toLowerCase().includes(q));
+  }, [query, options]);
+
+  const close = () => {
+    setOpen(false);
+    setQuery("");
+  };
+
+  const pick = (next: T) => {
+    onValueChange(next);
+    close();
+  };
+
+  return (
+    <div className="flex flex-col gap-1.5" ref={containerRef}>
+      <Label htmlFor={id} className="text-meta text-white">
+        {label}
+      </Label>
+
+      <div className="relative">
+        <Input
+          id={id}
+          size="lg"
+          tone="elevated"
+          role="combobox"
+          autoComplete="off"
+          aria-expanded={open}
+          aria-controls={open ? listboxId : undefined}
+          aria-autocomplete="list"
+          placeholder={placeholder}
+          value={inputValue}
+          onFocus={() => setOpen(true)}
+          onChange={(e) => {
+            setOpen(true);
+            setQuery(e.target.value);
+          }}
+          onBlur={(e) => {
+            // Only close if the new focus target isn't inside our list,
+            // so clicking an option doesn't dismiss before its click fires.
+            const next = e.relatedTarget as Node | null;
+            if (!next || !containerRef.current?.contains(next)) {
+              close();
+            }
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") close();
+          }}
+        />
+
+        {open ? (
+          <div
+            id={listboxId}
+            role="listbox"
+            aria-label={label}
+            className="absolute top-full right-0 left-0 z-20 mt-1 max-h-64 overflow-y-auto rounded-2xl border border-white/10 bg-bg-elevated py-1 shadow-lg"
+          >
+            {filtered.length === 0 ? (
+              <p className="px-4 py-3 text-meta text-text-muted">
+                No matches
+              </p>
+            ) : (
+              filtered.map((opt) => {
+                const active = opt.value === value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    role="option"
+                    aria-selected={active ? "true" : "false"}
+                    // mousedown fires BEFORE the input's blur — preventDefault
+                    // keeps the input focused so we can finish the pick path.
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => pick(opt.value)}
+                    className={
+                      active
+                        ? "block w-full px-4 py-3 text-left text-body font-medium text-lime hover:bg-white/5"
+                        : "block w-full px-4 py-3 text-left text-body text-white hover:bg-white/5"
+                    }
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })
+            )}
+          </div>
+        ) : null}
+      </div>
+
       {description ? (
         <span className="text-caption text-text-muted">{description}</span>
       ) : null}
