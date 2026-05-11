@@ -590,12 +590,12 @@ export type EducationLevel =
   | "other";
 
 export const EDUCATIONS: ReadonlyArray<{ value: EducationLevel; label: string }> = [
-  { value: "primary",     label: "Primary school" },
-  { value: "secondary",   label: "Secondary / high school" },
-  { value: "vocational",  label: "Vocational / trade" },
-  { value: "associates",  label: "Associate's degree" },
-  { value: "bachelors",   label: "Bachelor's degree" },
-  { value: "masters",     label: "Master's degree" },
+  { value: "primary",     label: "Primary School" },
+  { value: "secondary",   label: "Secondary / High School" },
+  { value: "vocational",  label: "Vocational / Trade" },
+  { value: "associates",  label: "Associate's Degree" },
+  { value: "bachelors",   label: "Bachelor's Degree" },
+  { value: "masters",     label: "Master's Degree" },
   { value: "doctorate",   label: "Doctorate" },
   { value: "other",       label: "Other" },
 ];
