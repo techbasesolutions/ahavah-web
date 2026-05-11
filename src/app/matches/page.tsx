@@ -39,11 +39,16 @@ const fadeUp = {
 // cascade for seconds.
 const staggerDelay = (i: number) => 0.05 + Math.min(i, 5) * 0.06;
 
+// IDs match SAMPLE_PROFILES first names (lowercase) so computeCompatibility
+// has a real candidate to score against. Picked 4 women so the "Liked you"
+// list reads as a typical matches grid for a male viewer; the page
+// auto-recovers for female viewers (intent scoring will reflect the
+// gender-conditional rules).
 const MATCHES_DISPLAY = [
-  { id: "esther",     name: "Esther",          age: 28, dist: "2 km away",   gradient: "linear-gradient(135deg,#FFB088,#7A4A4A)" },
-  { id: "leah",       name: "Leah",            age: 26, dist: "1 km away",   gradient: "linear-gradient(135deg,#9F76EA,#3A1F4F)" },
-  { id: "rachel",     name: "Rachel",          age: 31, dist: "1.5 km away", gradient: "linear-gradient(135deg,#F9D976,#A87E1E)" },
-  { id: "miriam",     name: "Miriam",          age: 25, dist: "3 km away",   gradient: "linear-gradient(135deg,#6CB7FF,#1A1340)" },
+  { id: "esther", name: "Esther", age: 28, dist: "2 km away",   gradient: "linear-gradient(135deg,#FFB088,#7A4A4A)" },
+  { id: "adina",  name: "Adina",  age: 24, dist: "1 km away",   gradient: "linear-gradient(135deg,#9F76EA,#3A1F4F)" },
+  { id: "rivka",  name: "Rivka",  age: 31, dist: "1.5 km away", gradient: "linear-gradient(135deg,#F9D976,#A87E1E)" },
+  { id: "tirzah", name: "Tirzah", age: 22, dist: "3 km away",   gradient: "linear-gradient(135deg,#6CB7FF,#1A1340)" },
 ];
 
 type State = "happy" | "loading" | "empty" | "error";
