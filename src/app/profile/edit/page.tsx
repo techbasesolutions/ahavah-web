@@ -3,23 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { ArrowLeft, ChevronRight, Plus, X } from "lucide-react";
+import { ArrowLeft, Plus, X } from "lucide-react";
+
+import { Progress as ProgressPrimitive } from "@base-ui/react/progress";
 
 import { Button } from "@/components/ui/button";
-import { IconBadge } from "@/components/ui/icon-badge";
-import { Input } from "@/components/ui/input";
-import {
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemGroup,
-  ItemMedia,
-  ItemTitle,
-} from "@/components/ui/item";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Globe, Heart, Languages, Sparkles, Users } from "lucide-react";
+import { Card } from "@/components/ui/card";
 
 import { BottomNav } from "@/components/app/bottom-nav";
 import {
@@ -29,6 +18,20 @@ import {
 } from "@/components/app/page-shell";
 import { PhotoTile } from "@/components/app/photo-tile";
 
+import { useProfile } from "@/lib/use-profile";
+import { computeCompleteness } from "@/lib/profile-completeness";
+
+import IdentitySection from "@/components/profile-edit/section-identity";
+import FaithSection from "@/components/profile-edit/section-faith";
+import DoctrineSection from "@/components/profile-edit/section-doctrine";
+import LifestyleSection from "@/components/profile-edit/section-lifestyle";
+import InterestsSection from "@/components/profile-edit/section-interests";
+import PracticalSection from "@/components/profile-edit/section-practical";
+import VerificationSection from "@/components/profile-edit/section-verification";
+
+// Photo placeholders — `profile.photos` doesn't exist on the schema yet.
+// Kept as ephemeral local state so the existing photo grid renders during
+// Sub-plan 3; real photo persistence is its own future task.
 const PHOTO_GRADIENTS: ReadonlyArray<string> = [
   "linear-gradient(135deg,#FFB088,#FF7A53)",
   "linear-gradient(135deg,#9F76EA,#3A1F4F)",
@@ -36,31 +39,15 @@ const PHOTO_GRADIENTS: ReadonlyArray<string> = [
   "linear-gradient(135deg,#6CB7FF,#1A1340)",
 ];
 
-const ABOUT_LINKS: ReadonlyArray<{
-  Icon: typeof Heart;
-  title: string;
-  value: string;
-  href: string;
-}> = [
-  { Icon: Heart,     title: "Looking for",       value: "Relationship",        href: "/onboarding/bio" },
-  { Icon: Users,     title: "Show me",           value: "Women",               href: "/onboarding/gender" },
-  { Icon: Globe,     title: "Country",           value: "Barbados",            href: "/onboarding/country" },
-  { Icon: Languages, title: "Languages I speak", value: "English, Spanish",    href: "/onboarding/country" },
-  { Icon: Sparkles,  title: "Personality",       value: "Adventurous, curious",href: "/onboarding/bio" },
-];
-
-const MAX_BIO = 500;
-
 const fadeUp = {
   initial: { opacity: 0, y: 12 },
   animate: { opacity: 1, y: 0 },
 };
 
 export default function EditProfilePage() {
-  const [name, setName] = useState("Ehud");
-  const [bio, setBio] = useState(
-    "Cycling, board games, and finding the best espresso bar wherever I land.",
-  );
+  const { profile } = useProfile();
+  const completeness = computeCompleteness(profile);
+
   const [photos, setPhotos] = useState<(string | null)[]>([
     PHOTO_GRADIENTS[0],
     PHOTO_GRADIENTS[1],
@@ -77,6 +64,8 @@ export default function EditProfilePage() {
     setPhotos((prev) => prev.map((p, idx) => (idx === i ? next : p)));
   };
 
+  const requiredMissing = completeness.requiredTotal - completeness.requiredFilled;
+
   return (
     <PageShell bottomPad="nav">
       <PageHeader pad="tight" className="flex items-center gap-3">
@@ -92,22 +81,54 @@ export default function EditProfilePage() {
         <PageHeaderTitle>Edit profile</PageHeaderTitle>
       </PageHeader>
 
-      <div className="flex flex-col gap-6 px-5 pt-4">
-        {/* Photos — 3 col, 6 slots */}
+      <div className="flex flex-col gap-8 px-5 pt-4">
+        {/* Completeness summary — soft-completeness gate signal at the top.
+            requiredMissing > 0 highlights in pink so the missing-required
+            state reads urgently without nagging. */}
+        <motion.div
+          {...fadeUp}
+          transition={{ duration: 0.4 }}
+        >
+          <Card tone="elevated" className="flex flex-col gap-2 rounded-2xl px-5 py-4">
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-h3 text-white tabular-nums">
+                {completeness.percent}% complete
+              </span>
+              <span
+                className={
+                  requiredMissing > 0
+                    ? "text-meta text-pink"
+                    : "text-meta text-lime"
+                }
+              >
+                {requiredMissing > 0
+                  ? `${requiredMissing} required missing`
+                  : "All required filled"}
+              </span>
+            </div>
+            <ProgressPrimitive.Root
+              value={completeness.percent}
+              aria-label="Profile completeness"
+              className="w-full"
+            >
+              <ProgressPrimitive.Track className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+                <ProgressPrimitive.Indicator className="h-full rounded-full bg-lime transition-all" />
+              </ProgressPrimitive.Track>
+            </ProgressPrimitive.Root>
+          </Card>
+        </motion.div>
+
+        {/* Photos — 3 col, 6 slots. Not yet schema-backed. */}
         <motion.section
           {...fadeUp}
           transition={{ duration: 0.4, delay: 0.05 }}
           className="flex flex-col gap-3"
         >
-          <h2 className="text-overline text-text-muted">Photos</h2>
+          <h2 className="text-h3 text-white">Photos</h2>
           <div className="grid grid-cols-3 gap-3">
             {photos.map((photo, i) =>
               photo ? (
                 <PhotoTile key={i} bg={photo}>
-                  {/* 44px touch target (size="circle" = size-tap-lg) per
-                      mobile-responsive rule 1. Inset top-3 right-3 (12px)
-                      clears the rounded-2xl corner curve and matches the
-                      project's Pill inset norm from /profile/[uuid]. */}
                   <Button
                     size="circle"
                     tone="overlay"
@@ -136,101 +157,47 @@ export default function EditProfilePage() {
           </p>
         </motion.section>
 
-        {/* Basics */}
-        <motion.section
-          {...fadeUp}
-          transition={{ duration: 0.4, delay: 0.13 }}
-          className="flex flex-col gap-3"
-        >
-          <h2 className="text-overline text-text-muted">Basics</h2>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="name" className="text-meta text-white">
-              First name
-            </Label>
-            <Input
-              id="name"
-              size="lg"
-              tone="elevated"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="bio" className="text-meta text-white">
-              Bio
-            </Label>
-            <Textarea
-              id="bio"
-              size="lg"
-              tone="elevated"
-              value={bio}
-              onChange={(e) => setBio(e.target.value.slice(0, MAX_BIO))}
-              placeholder="A short bio helps people start a conversation."
-              aria-describedby="bio-counter"
-              className="min-h-32 resize-none"
-            />
-            {/* aria-live announces the count to SRs as the user types —
-                mirrors /onboarding/bio. tabular-nums keeps the digits from
-                shifting the row width as length grows. */}
-            <p
-              id="bio-counter"
-              aria-live="polite"
-              className="text-right text-caption tabular-nums text-text-muted"
-            >
-              {bio.length}/{MAX_BIO}
-            </p>
-          </div>
-        </motion.section>
+        <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.1 }}>
+          <IdentitySection />
+        </motion.div>
+        <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.15 }}>
+          <FaithSection />
+        </motion.div>
+        <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.2 }}>
+          <DoctrineSection />
+        </motion.div>
+        <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.25 }}>
+          <LifestyleSection />
+        </motion.div>
+        <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.3 }}>
+          <InterestsSection />
+        </motion.div>
+        <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.35 }}>
+          <PracticalSection />
+        </motion.div>
+        <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.4 }}>
+          <VerificationSection />
+        </motion.div>
 
-        {/* About */}
-        <motion.section
-          {...fadeUp}
-          transition={{ duration: 0.4, delay: 0.21 }}
-          className="flex flex-col gap-3"
-        >
-          <h2 className="text-overline text-text-muted">About</h2>
-          <ItemGroup className="gap-1">
-            {ABOUT_LINKS.map((link) => (
-              <Item
-                key={link.title}
-                variant="muted"
-                render={
-                  <Link
-                    href={link.href}
-                    prefetch={false}
-                    className="rounded-2xl"
-                  />
-                }
-              >
-                <ItemMedia>
-                  <IconBadge tone="brand">
-                    <link.Icon />
-                  </IconBadge>
-                </ItemMedia>
-                <ItemContent>
-                  <ItemTitle className="text-meta text-white">
-                    {link.title}
-                  </ItemTitle>
-                  <ItemDescription className="text-caption text-text-muted">
-                    {link.value}
-                  </ItemDescription>
-                </ItemContent>
-                <ItemActions>
-                  <ChevronRight className="size-4 text-text-muted" />
-                </ItemActions>
-              </Item>
-            ))}
-          </ItemGroup>
-        </motion.section>
-
-        {/* Save CTA */}
+        {/* Done button — useProfile autosaves every change, so this is just
+            a "I'm finished" affordance that routes back to /profile. */}
         <motion.div
           {...fadeUp}
-          transition={{ duration: 0.4, delay: 0.29 }}
+          transition={{ duration: 0.4, delay: 0.45 }}
+          className="flex flex-col gap-1"
         >
-          <Button size="cta" tone="cta" className="mt-2 w-full">
-            Save changes
+          <Button
+            size="cta"
+            tone="cta"
+            className="w-full"
+            nativeButton={false}
+            render={<Link href="/profile" prefetch={false} />}
+          >
+            Done
           </Button>
+          <p className="text-center text-caption text-text-muted">
+            Changes save automatically as you edit.
+          </p>
         </motion.div>
       </div>
 
