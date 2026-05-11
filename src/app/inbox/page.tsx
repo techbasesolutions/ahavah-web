@@ -40,23 +40,25 @@ const fadeUp = {
 // seconds to fully appear (visible window is ~7 rows on a 414×896 viewport).
 const staggerDelay = (i: number) => 0.05 + Math.min(i, 6) * 0.05;
 
+// Seed names MUST match SAMPLE_PROFILES (profile-sample.ts) so the chat-header
+// avatar → /profile/[id] route lands on a real record. Mismatch = "Profile
+// not found" from inbox→chat→profile.
 const STORIES = [
   { id: "self",    name: "Add story", isAdd: true,  ring: "none"   as const },
-  { id: "lucy",    name: "Lucy",      isAdd: false, ring: "lime"   as const },
-  { id: "marg",    name: "Margareth", isAdd: false, ring: "online" as const },
-  { id: "emily",   name: "Emily",     isAdd: false, ring: "lime"   as const },
-  { id: "alissia", name: "Alissia",   isAdd: false, ring: "none"   as const },
-  { id: "steph",   name: "Stephanie", isAdd: false, ring: "none"   as const },
+  { id: "adina",   name: "Adina",     isAdd: false, ring: "lime"   as const },
+  { id: "rivka",   name: "Rivka",     isAdd: false, ring: "online" as const },
+  { id: "esther",  name: "Esther",    isAdd: false, ring: "lime"   as const },
+  { id: "tirzah",  name: "Tirzah",    isAdd: false, ring: "none"   as const },
 ];
 
 const CHATS = [
-  { id: "lucy",      name: "Lucy",      age: 22, msg: "Say hi!",                 unread: 3, state: "count" as const, ring: "lime"   as const },
-  { id: "margareth", name: "Margareth", age: 21, msg: "Photo",                   unread: 0, state: "dot"   as const, ring: "online" as const },
-  { id: "emily",     name: "Emily",     age: 27, msg: "Hey, how are you?",       unread: 0, state: "dot"   as const, ring: "none"   as const },
-  { id: "alissia",   name: "Alissia",   age: 20, msg: "is typing…",              unread: 1, state: "count" as const, ring: "online" as const },
-  { id: "stephanie", name: "Stephanie", age: 19, msg: "It's me with my friends", unread: 0, state: "none"  as const, ring: "none"   as const },
-  { id: "mary",      name: "Mary",     age: 23, msg: "Sounds good 💜",            unread: 0, state: "none"  as const, ring: "none"   as const },
-  { id: "isabella",  name: "Isabella", age: 24, msg: "Thanks for the photos!",   unread: 0, state: "none"  as const, ring: "none"   as const },
+  { id: "adina",   name: "Adina",   age: 24, msg: "Say hi!",                 unread: 3, state: "count" as const, ring: "lime"   as const },
+  { id: "rivka",   name: "Rivka",   age: 31, msg: "Photo",                   unread: 0, state: "dot"   as const, ring: "online" as const },
+  { id: "esther",  name: "Esther",  age: 28, msg: "Hey, how are you?",       unread: 0, state: "dot"   as const, ring: "none"   as const },
+  { id: "tirzah",  name: "Tirzah",  age: 22, msg: "is typing…",              unread: 1, state: "count" as const, ring: "online" as const },
+  { id: "daniel",  name: "Daniel",  age: 32, msg: "Shalom — looking forward.", unread: 0, state: "none"  as const, ring: "none"   as const },
+  { id: "yosef",   name: "Yosef",   age: 41, msg: "Sounds good 💜",            unread: 0, state: "none"  as const, ring: "none"   as const },
+  { id: "ezekiel", name: "Ezekiel", age: 47, msg: "Thanks for the photos!",   unread: 0, state: "none"  as const, ring: "none"   as const },
 ];
 
 type State = "happy" | "loading" | "empty" | "error";

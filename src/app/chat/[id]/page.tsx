@@ -14,20 +14,22 @@ import { ChatInput } from "@/components/app/chat-input";
 
 type Props = { params: Promise<{ id: string }> };
 
+// Seed must match SAMPLE_PROFILES (profile-sample.ts) so the chat header's
+// profileHref={`/profile/${id}`} lands on a real record. See inbox/page.tsx.
 const SUBJECT_BY_ID: Record<string, { name: string; age: number; online: boolean }> = {
-  lucy:      { name: "Lucy",      age: 22, online: true },
-  margareth: { name: "Margareth", age: 21, online: true },
-  emily:     { name: "Emily",     age: 27, online: false },
-  alissia:   { name: "Alissia",   age: 20, online: true },
-  stephanie: { name: "Stephanie", age: 19, online: false },
-  mary:      { name: "Mary",      age: 23, online: true },
-  isabella:  { name: "Isabella",  age: 24, online: false },
-  jessica:   { name: "Jessica",   age: 25, online: true },
+  daniel:  { name: "Daniel",  age: 32, online: false },
+  esther:  { name: "Esther",  age: 28, online: false },
+  yosef:   { name: "Yosef",   age: 41, online: true  },
+  adina:   { name: "Adina",   age: 24, online: true  },
+  caleb:   { name: "Caleb",   age: 36, online: false },
+  rivka:   { name: "Rivka",   age: 31, online: true  },
+  ezekiel: { name: "Ezekiel", age: 47, online: false },
+  tirzah:  { name: "Tirzah",  age: 22, online: true  },
 };
 
 export default function ChatThreadPage({ params }: Props) {
   const { id } = use(params);
-  const subject = SUBJECT_BY_ID[id] ?? { name: "Mary", age: 23, online: true };
+  const subject = SUBJECT_BY_ID[id] ?? { name: "Adina", age: 24, online: true };
   const [reportOpen, setReportOpen] = useState(false);
 
   return (

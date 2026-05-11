@@ -131,7 +131,7 @@ export default function MatchPage() {
           transition={{ duration: 0.4, delay: 0.5 }}
           className="text-center text-meta text-white/85"
         >
-          You and Jessica liked each other.
+          You and Esther liked each other.
         </motion.p>
       </div>
 
