@@ -298,7 +298,7 @@ export function isHealthTag(value: unknown): value is HealthTag {
   return typeof value === "string" && HEALTH_TAGS.some((opt) => opt.value === value);
 }
 
-// Ethnicity ---------------------------------------------------------------
+// Ethnicity (multi-select) -----------------------------------------------
 
 export type Ethnicity =
   | "afro-caribbean"
