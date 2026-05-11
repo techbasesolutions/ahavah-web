@@ -15,6 +15,19 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  ASSEMBLIES,
+  TORAH_LEVELS,
+  POLYGYNY_VIEWS,
+  FEAST_DAYS,
+  CALENDARS,
+  type Assembly,
+  type TorahLevel,
+  type Polygyny,
+  type FeastDay,
+  type Calendar,
+} from "@/lib/profile-schema";
+import { POPULAR_COUNTRIES } from "@/lib/countries";
 
 /**
  * FiltersSheet — discovery filters, opened from /discover header.
@@ -22,46 +35,48 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
  *
  * Composition (kit primitives only):
  *   - shadcn Sheet (bottom side) — drawer container
- *   - shadcn ToggleGroup with brand variant — Looking-for + Show-me pills
- *   - shadcn Slider — distance (single) + age (range, two thumbs)
+ *   - shadcn ToggleGroup with variant="pill" — multi-select filter groups
+ *   - shadcn Slider — age range (two thumbs)
  *   - shadcn Switch — verified-only premium toggle
- *   - shadcn Button — Apply CTA (lavender per Dateasy "modify-settings" rule)
+ *   - shadcn Button — Apply + Reset CTA
+ *   - HTML details/summary — collapsible filter groups (3–8 start collapsed)
+ *
+ * Filter groups (8 total):
+ *   1. Age range — always open, slider 18–80
+ *   2. Countries — always open, pill grid from POPULAR_COUNTRIES
+ *   3–8. Assemblies, Torah level, Polygyny, Feast days, Calendars, Verified
+ *        — collapsible, hidden by default
  */
 
-const LOOKING_FOR_OPTIONS = [
-  { value: "relationship", label: "Relationship" },
-  { value: "friendship",   label: "Friendship" },
-];
-
-// Gender selection is binary across the app per product decision
-// (memory/feedback_ahavah_gender_binary.md). "All" was dropped since it's
-// no longer meaningful with two options.
-const SHOW_ME_OPTIONS = [
-  { value: "women", label: "Women" },
-  { value: "men",   label: "Men" },
-];
-
-export type FilterState = {
-  lookingFor: string;
-  showMe: string;
-  ageRange: [number, number];
-  maxDistance: number;
-  verifiedOnly: boolean;
+export type DiscoverFiltersState = {
+  ageMin?: number;
+  ageMax?: number;
+  countries?: ReadonlyArray<string>;
+  assemblies?: ReadonlyArray<Assembly>;
+  torahLevels?: ReadonlyArray<TorahLevel>;
+  polygynyStances?: ReadonlyArray<Polygyny>;
+  feastDays?: ReadonlyArray<FeastDay>;
+  calendars?: ReadonlyArray<Calendar>;
+  verifiedOnly?: boolean;
 };
 
-const DEFAULT_FILTERS: FilterState = {
-  lookingFor: "relationship",
-  showMe: "women",
-  ageRange: [18, 30],
-  maxDistance: 50,
+const DEFAULT_FILTERS: DiscoverFiltersState = {
+  ageMin: 18,
+  ageMax: 80,
+  countries: undefined,
+  assemblies: undefined,
+  torahLevels: undefined,
+  polygynyStances: undefined,
+  feastDays: undefined,
+  calendars: undefined,
   verifiedOnly: false,
 };
 
 type FiltersSheetProps = {
   /** The element that opens the Sheet — typically the /discover Globe button. */
   trigger: React.ReactElement;
-  initialFilters?: Partial<FilterState>;
-  onApply?: (filters: FilterState) => void;
+  initialFilters?: Partial<DiscoverFiltersState>;
+  onApply?: (filters: DiscoverFiltersState) => void;
 };
 
 export function FiltersSheet({
@@ -70,16 +85,27 @@ export function FiltersSheet({
   onApply,
 }: FiltersSheetProps) {
   const [open, setOpen] = useState(false);
-  const [filters, setFilters] = useState<FilterState>({
+  const [filters, setFilters] = useState<DiscoverFiltersState>({
     ...DEFAULT_FILTERS,
     ...initialFilters,
   });
 
-  const update = <K extends keyof FilterState>(key: K, value: FilterState[K]) =>
-    setFilters((prev) => ({ ...prev, [key]: value }));
+  const update = <K extends keyof DiscoverFiltersState>(
+    key: K,
+    value: DiscoverFiltersState[K],
+  ) => setFilters((prev) => ({ ...prev, [key]: value }));
+
+
+  const handleReset = () => {
+    setFilters(DEFAULT_FILTERS);
+  };
 
   const handleApply = () => {
-    onApply?.(filters);
+    // Omit undefined keys before passing to engine
+    const payload = Object.fromEntries(
+      Object.entries(filters).filter(([, v]) => v !== undefined),
+    );
+    onApply?.(payload as DiscoverFiltersState);
     setOpen(false);
   };
 
@@ -90,120 +116,358 @@ export function FiltersSheet({
         side="bottom"
         className="h-auto max-h-dvh gap-0 rounded-t-3xl border-white/10 bg-bg-indigo p-0"
       >
-        <SheetHeader className="px-5 pt-6 pb-2">
+        <SheetHeader className="flex items-center justify-between px-5 pt-6 pb-2">
           <SheetTitle className="text-h2 text-white">Filters</SheetTitle>
+          <button
+            onClick={handleReset}
+            className="text-meta font-medium text-text-secondary hover:text-white transition-colors"
+            aria-label="Reset all filters"
+          >
+            Reset all
+          </button>
         </SheetHeader>
 
-        <div className="flex flex-col gap-6 overflow-y-auto px-5 py-4">
-          {/* Looking for */}
-          <section className="flex flex-col gap-3">
-            <h3 className="text-meta font-medium text-white">Looking for</h3>
-            <ToggleGroup
-              value={[filters.lookingFor]}
-              onValueChange={(v) => v[0] && update("lookingFor", v[0])}
-              spacing={2}
-              width="full"
-            >
-              {LOOKING_FOR_OPTIONS.map((o) => (
-                <ToggleGroupItem
-                  key={o.value}
-                  value={o.value}
-                  variant="pill"
-                  size="tap"
-                  aria-label={o.label}
-                >
-                  {o.label}
-                </ToggleGroupItem>
-              ))}
-            </ToggleGroup>
-          </section>
-
-          {/* Show me */}
-          <section className="flex flex-col gap-3">
-            <h3 className="text-meta font-medium text-white">Show me</h3>
-            <ToggleGroup
-              value={[filters.showMe]}
-              onValueChange={(v) => v[0] && update("showMe", v[0])}
-              spacing={2}
-              width="full"
-            >
-              {SHOW_ME_OPTIONS.map((o) => (
-                <ToggleGroupItem
-                  key={o.value}
-                  value={o.value}
-                  variant="pill"
-                  size="tap"
-                  aria-label={o.label}
-                >
-                  {o.label}
-                </ToggleGroupItem>
-              ))}
-            </ToggleGroup>
-          </section>
-
-          {/* Age range — shadcn Slider supports range via 2-element value array */}
+        <div className="flex flex-col gap-4 overflow-y-auto px-5 py-4">
+          {/* 1. Age range — always open, two-thumb slider */}
           <section className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-meta font-medium text-white">Preferred age</h3>
+              <h3 className="text-meta font-medium uppercase text-text-muted">
+                Age range
+              </h3>
               <span className="text-meta tabular-nums text-text-secondary">
-                {filters.ageRange[0]}–{filters.ageRange[1]}
+                {filters.ageMin}–{filters.ageMax}
               </span>
             </div>
             <Slider
-              value={filters.ageRange}
+              value={[filters.ageMin || 18, filters.ageMax || 80]}
               onValueChange={(v) => {
-                // Base UI Slider's value type is `number | readonly number[]`
-                // (single + range share one signature). Range mode always
-                // returns an array — narrow before reading both thumbs.
                 if (Array.isArray(v)) {
-                  update("ageRange", [v[0], v[1]] as [number, number]);
+                  update("ageMin", v[0]);
+                  update("ageMax", v[1]);
                 }
               }}
               min={18}
               max={80}
               step={1}
               minStepsBetweenValues={1}
+              aria-label="Age range slider"
             />
           </section>
 
-          {/* Distance — single thumb */}
+          {/* 2. Countries — always open, pill grid from POPULAR_COUNTRIES */}
           <section className="flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-meta font-medium text-white">
-                Preferred distance
-              </h3>
-              <span className="text-meta tabular-nums text-text-secondary">
-                {filters.maxDistance} km
-              </span>
-            </div>
-            <Slider
-              value={[filters.maxDistance]}
+            <h3 className="text-meta font-medium uppercase text-text-muted">
+              Countries
+            </h3>
+            <ToggleGroup
+              value={filters.countries ? Array.from(filters.countries) : []}
               onValueChange={(v) => {
-                // Single-thumb slider — Base UI's value type is
-                // `number | readonly number[]`; coerce to array form
-                // and read the first (only) thumb.
-                const arr = Array.isArray(v) ? v : [v];
-                update("maxDistance", arr[0]);
+                update("countries", v.length > 0 ? v : undefined);
               }}
-              min={1}
-              max={500}
-              step={1}
-            />
+              multiple
+              spacing={2}
+              width="full"
+              aria-label="Select countries"
+            >
+              {POPULAR_COUNTRIES.map((country) => (
+                <ToggleGroupItem
+                  key={country.cc}
+                  value={country.cc}
+                  variant="pill"
+                  size="tap"
+                  aria-label={`${country.flag} ${country.name}`}
+                >
+                  <span>{country.flag}</span>
+                  <span>{country.name}</span>
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
           </section>
 
-          {/* Verified-only */}
-          <section className="flex items-center justify-between gap-3">
-            <div className="flex flex-col">
-              <h3 className="text-meta font-medium text-white">Verified only</h3>
-              <p className="text-caption text-text-secondary">
-                Premium feature
-              </p>
+          {/* 3. Assemblies — collapsible */}
+          <details className="group">
+            <summary className="flex cursor-pointer items-center justify-between py-2 text-meta font-medium uppercase text-text-muted hover:text-white transition-colors">
+              Assemblies
+              <svg
+                className="h-4 w-4 transition-transform group-open:rotate-180"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 14l-7 7m0 0l-7-7m7 7V3"
+                />
+              </svg>
+            </summary>
+            <div className="flex flex-col gap-3 pt-3">
+              <ToggleGroup
+                value={filters.assemblies ? Array.from(filters.assemblies) : []}
+                onValueChange={(v) => {
+                  update(
+                    "assemblies",
+                    v.length > 0
+                      ? (v as ReadonlyArray<Assembly>)
+                      : undefined,
+                  );
+                }}
+                multiple
+                spacing={2}
+                width="full"
+                aria-label="Select assemblies"
+              >
+                {ASSEMBLIES.map((opt) => (
+                  <ToggleGroupItem
+                    key={opt.value}
+                    value={opt.value}
+                    variant="pill"
+                    size="tap"
+                    aria-label={opt.label}
+                  >
+                    {opt.label}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
             </div>
-            <Switch
-              checked={filters.verifiedOnly}
-              onCheckedChange={(checked) => update("verifiedOnly", checked)}
-            />
-          </section>
+          </details>
+
+          {/* 4. Torah level — collapsible */}
+          <details className="group">
+            <summary className="flex cursor-pointer items-center justify-between py-2 text-meta font-medium uppercase text-text-muted hover:text-white transition-colors">
+              Torah level
+              <svg
+                className="h-4 w-4 transition-transform group-open:rotate-180"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 14l-7 7m0 0l-7-7m7 7V3"
+                />
+              </svg>
+            </summary>
+            <div className="flex flex-col gap-3 pt-3">
+              <ToggleGroup
+                value={filters.torahLevels ? Array.from(filters.torahLevels) : []}
+                onValueChange={(v) => {
+                  update(
+                    "torahLevels",
+                    v.length > 0
+                      ? (v as ReadonlyArray<TorahLevel>)
+                      : undefined,
+                  );
+                }}
+                multiple
+                spacing={2}
+                width="full"
+                aria-label="Select Torah levels"
+              >
+                {TORAH_LEVELS.map((opt) => (
+                  <ToggleGroupItem
+                    key={opt.value}
+                    value={opt.value}
+                    variant="pill"
+                    size="tap"
+                    aria-label={opt.label}
+                  >
+                    {opt.label}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+            </div>
+          </details>
+
+          {/* 5. Polygyny stances — collapsible */}
+          <details className="group">
+            <summary className="flex cursor-pointer items-center justify-between py-2 text-meta font-medium uppercase text-text-muted hover:text-white transition-colors">
+              Polygyny stance
+              <svg
+                className="h-4 w-4 transition-transform group-open:rotate-180"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 14l-7 7m0 0l-7-7m7 7V3"
+                />
+              </svg>
+            </summary>
+            <div className="flex flex-col gap-3 pt-3">
+              <ToggleGroup
+                value={
+                  filters.polygynyStances
+                    ? Array.from(filters.polygynyStances)
+                    : []
+                }
+                onValueChange={(v) => {
+                  update(
+                    "polygynyStances",
+                    v.length > 0
+                      ? (v as ReadonlyArray<Polygyny>)
+                      : undefined,
+                  );
+                }}
+                multiple
+                spacing={2}
+                width="full"
+                aria-label="Select polygyny stances"
+              >
+                {POLYGYNY_VIEWS.map((opt) => (
+                  <ToggleGroupItem
+                    key={opt.value}
+                    value={opt.value}
+                    variant="pill"
+                    size="tap"
+                    aria-label={opt.label}
+                  >
+                    {opt.label}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+            </div>
+          </details>
+
+          {/* 6. Feast day overlap — collapsible */}
+          <details className="group">
+            <summary className="flex cursor-pointer items-center justify-between py-2 text-meta font-medium uppercase text-text-muted hover:text-white transition-colors">
+              Feast day overlap
+              <svg
+                className="h-4 w-4 transition-transform group-open:rotate-180"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 14l-7 7m0 0l-7-7m7 7V3"
+                />
+              </svg>
+            </summary>
+            <div className="flex flex-col gap-3 pt-3">
+              <p className="text-caption text-text-secondary">
+                Show candidates who observe at least one
+              </p>
+              <ToggleGroup
+                value={filters.feastDays ? Array.from(filters.feastDays) : []}
+                onValueChange={(v) => {
+                  update(
+                    "feastDays",
+                    v.length > 0
+                      ? (v as ReadonlyArray<FeastDay>)
+                      : undefined,
+                  );
+                }}
+                multiple
+                spacing={2}
+                width="full"
+                aria-label="Select feast days"
+              >
+                {FEAST_DAYS.map((opt) => (
+                  <ToggleGroupItem
+                    key={opt.value}
+                    value={opt.value}
+                    variant="pill"
+                    size="tap"
+                    aria-label={opt.label}
+                  >
+                    {opt.label}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+            </div>
+          </details>
+
+          {/* 7. Calendar — collapsible */}
+          <details className="group">
+            <summary className="flex cursor-pointer items-center justify-between py-2 text-meta font-medium uppercase text-text-muted hover:text-white transition-colors">
+              Calendar
+              <svg
+                className="h-4 w-4 transition-transform group-open:rotate-180"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 14l-7 7m0 0l-7-7m7 7V3"
+                />
+              </svg>
+            </summary>
+            <div className="flex flex-col gap-3 pt-3">
+              <ToggleGroup
+                value={filters.calendars ? Array.from(filters.calendars) : []}
+                onValueChange={(v) => {
+                  update(
+                    "calendars",
+                    v.length > 0
+                      ? (v as ReadonlyArray<Calendar>)
+                      : undefined,
+                  );
+                }}
+                multiple
+                spacing={2}
+                width="full"
+                aria-label="Select calendars"
+              >
+                {CALENDARS.map((opt) => (
+                  <ToggleGroupItem
+                    key={opt.value}
+                    value={opt.value}
+                    variant="pill"
+                    size="tap"
+                    aria-label={opt.label}
+                  >
+                    {opt.label}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+            </div>
+          </details>
+
+          {/* 8. Verified only — collapsible */}
+          <details className="group">
+            <summary className="flex cursor-pointer items-center justify-between py-2 text-meta font-medium uppercase text-text-muted hover:text-white transition-colors">
+              Verified only
+              <svg
+                className="h-4 w-4 transition-transform group-open:rotate-180"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 14l-7 7m0 0l-7-7m7 7V3"
+                />
+              </svg>
+            </summary>
+            <div className="flex items-center justify-between pt-3">
+              <div className="flex flex-col">
+                <p className="text-caption text-text-secondary">
+                  Premium feature
+                </p>
+              </div>
+              <Switch
+                checked={filters.verifiedOnly || false}
+                onCheckedChange={(checked) =>
+                  update("verifiedOnly", checked || undefined)
+                }
+              />
+            </div>
+          </details>
         </div>
 
         <SheetFooter className="px-5 pb-6">
