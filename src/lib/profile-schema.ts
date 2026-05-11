@@ -230,3 +230,70 @@ export const TZITZIT_OPTIONS: ReadonlyArray<{ value: Tzitzit; label: string }> =
 export function isTzitzit(value: unknown): value is Tzitzit {
   return typeof value === "string" && TZITZIT_OPTIONS.some((opt) => opt.value === value);
 }
+
+// Lifestyle cluster (multi-select) ----------------------------------------
+
+export type FamilyView =
+  | "wants-children"
+  | "has-children"
+  | "open-to-more"
+  | "does-not-want"
+  | "open-blended"
+  | "interested-large-family";
+
+export const FAMILY_VIEWS: ReadonlyArray<{ value: FamilyView; label: string }> = [
+  { value: "wants-children",          label: "Wants children" },
+  { value: "has-children",            label: "Has children" },
+  { value: "open-to-more",            label: "Open to more children" },
+  { value: "does-not-want",           label: "Does not want children" },
+  { value: "open-blended",            label: "Open to blended family" },
+  { value: "interested-large-family", label: "Interested in large family" },
+];
+
+export function isFamilyView(value: unknown): value is FamilyView {
+  return typeof value === "string" && FAMILY_VIEWS.some((opt) => opt.value === value);
+}
+
+export type LivingPreference =
+  | "urban"
+  | "rural"
+  | "homestead"
+  | "off-grid"
+  | "community-living"
+  | "open-to-relocation";
+
+export const LIVING_PREFERENCES: ReadonlyArray<{ value: LivingPreference; label: string }> = [
+  { value: "urban",              label: "Urban" },
+  { value: "rural",              label: "Rural" },
+  { value: "homestead",          label: "Homestead lifestyle" },
+  { value: "off-grid",           label: "Off-grid interest" },
+  { value: "community-living",   label: "Community living" },
+  { value: "open-to-relocation", label: "Open to relocation" },
+];
+
+export function isLivingPreference(value: unknown): value is LivingPreference {
+  return typeof value === "string" && LIVING_PREFERENCES.some((opt) => opt.value === value);
+}
+
+export type HealthTag =
+  | "non-smoker"
+  | "no-alcohol"
+  | "moderate-alcohol"
+  | "fitness"
+  | "natural-health"
+  | "herbalist"
+  | "prepper";
+
+export const HEALTH_TAGS: ReadonlyArray<{ value: HealthTag; label: string }> = [
+  { value: "non-smoker",       label: "Non-smoker" },
+  { value: "no-alcohol",       label: "No alcohol" },
+  { value: "moderate-alcohol", label: "Moderate alcohol" },
+  { value: "fitness",          label: "Fitness focused" },
+  { value: "natural-health",   label: "Natural health focused" },
+  { value: "herbalist",        label: "Herbalist interest" },
+  { value: "prepper",          label: "Prepper / survival minded" },
+];
+
+export function isHealthTag(value: unknown): value is HealthTag {
+  return typeof value === "string" && HEALTH_TAGS.some((opt) => opt.value === value);
+}

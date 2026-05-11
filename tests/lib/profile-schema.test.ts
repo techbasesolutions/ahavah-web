@@ -31,6 +31,15 @@ import {
   POLYGYNY_VIEWS,
   HEAD_COVERINGS,
   TZITZIT_OPTIONS,
+  type FamilyView,
+  type LivingPreference,
+  type HealthTag,
+  isFamilyView,
+  isLivingPreference,
+  isHealthTag,
+  FAMILY_VIEWS,
+  LIVING_PREFERENCES,
+  HEALTH_TAGS,
 } from "@/lib/profile-schema";
 
 describe("Sex", () => {
@@ -296,5 +305,79 @@ describe("Doctrine cluster", () => {
     expect(isTzitzit(undefined)).toBe(false);
     expect(isTzitzit(123)).toBe(false);
     expect(isTzitzit({})).toBe(false);
+  });
+});
+
+describe("Lifestyle cluster", () => {
+  it("FAMILY_VIEWS has the 6 documented options", () => {
+    expect(FAMILY_VIEWS.map((f) => f.value)).toEqual([
+      "wants-children",
+      "has-children",
+      "open-to-more",
+      "does-not-want",
+      "open-blended",
+      "interested-large-family",
+    ]);
+  });
+
+  it("LIVING_PREFERENCES has 6 options including 'open-to-relocation'", () => {
+    expect(LIVING_PREFERENCES.map((l) => l.value)).toContain("open-to-relocation");
+    expect(LIVING_PREFERENCES).toHaveLength(6);
+  });
+
+  it("HEALTH_TAGS has 7 options including 'prepper'", () => {
+    expect(HEALTH_TAGS.map((h) => h.value)).toContain("prepper");
+    expect(HEALTH_TAGS).toHaveLength(7);
+  });
+
+  it("Lifestyle types are usable as multi-select arrays", () => {
+    const family: FamilyView[] = ["wants-children", "open-to-more"];
+    const living: LivingPreference[] = ["rural", "homestead"];
+    const health: HealthTag[] = ["non-smoker", "fitness"];
+    expect(family).toHaveLength(2);
+    expect(living).toHaveLength(2);
+    expect(health).toHaveLength(2);
+  });
+
+  it("isFamilyView accepts all FAMILY_VIEWS values", () => {
+    for (const opt of FAMILY_VIEWS) {
+      expect(isFamilyView(opt.value)).toBe(true);
+    }
+  });
+
+  it("isFamilyView rejects invalid values", () => {
+    expect(isFamilyView("not-a-family-view")).toBe(false);
+    expect(isFamilyView(null)).toBe(false);
+    expect(isFamilyView(undefined)).toBe(false);
+    expect(isFamilyView(123)).toBe(false);
+    expect(isFamilyView({})).toBe(false);
+  });
+
+  it("isLivingPreference accepts all LIVING_PREFERENCES values", () => {
+    for (const opt of LIVING_PREFERENCES) {
+      expect(isLivingPreference(opt.value)).toBe(true);
+    }
+  });
+
+  it("isLivingPreference rejects invalid values", () => {
+    expect(isLivingPreference("not-a-preference")).toBe(false);
+    expect(isLivingPreference(null)).toBe(false);
+    expect(isLivingPreference(undefined)).toBe(false);
+    expect(isLivingPreference(123)).toBe(false);
+    expect(isLivingPreference({})).toBe(false);
+  });
+
+  it("isHealthTag accepts all HEALTH_TAGS values", () => {
+    for (const opt of HEALTH_TAGS) {
+      expect(isHealthTag(opt.value)).toBe(true);
+    }
+  });
+
+  it("isHealthTag rejects invalid values", () => {
+    expect(isHealthTag("not-a-health-tag")).toBe(false);
+    expect(isHealthTag(null)).toBe(false);
+    expect(isHealthTag(undefined)).toBe(false);
+    expect(isHealthTag(123)).toBe(false);
+    expect(isHealthTag({})).toBe(false);
   });
 });
