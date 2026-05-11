@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
@@ -173,10 +174,12 @@ export default function DiscoverPage() {
             }}
           />
           <Button
+            nativeButton={false}
             size="circle"
             variant="ghost"
             aria-label="My profile"
             className="p-0"
+            render={<Link href="/profile" prefetch={false} />}
           >
             <Avatar size="tap-lg">
               <AvatarFallback variant="brand">E</AvatarFallback>
