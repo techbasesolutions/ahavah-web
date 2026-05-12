@@ -121,7 +121,7 @@ export function MapAvatar({ candidate }: MapAvatarProps) {
         className="pointer-events-none overflow-visible"
       >
         <div
-          className="size-full rounded-full ring-2 ring-white/20 shadow-lg transition-[box-shadow,--tw-ring-color] duration-150"
+          className="size-full rounded-full ring-2 ring-lime shadow-lg transition-[box-shadow,--tw-ring-color] duration-150"
           style={{ background: primaryGradient }}
         />
       </foreignObject>

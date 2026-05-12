@@ -1,44 +1,60 @@
 "use client";
 
 /**
- * /map — Discover Map screen (sub-plan 14 / Task 5).
+ * /map — Discover Map screen (sub-plan 14 / Task 5 — fix-up pass).
  *
- * Composes the four T2–T4 primitives:
- *   - <PageHeader> + <PageHeaderTitle> for chrome ("Map")
- *   - <ContinentPicker> (T4) — 6-pill row above the map
- *   - <WorldMap> (T2) — pan/zoom SVG world primitive
- *   - <MapAvatar> (T3) — gradient stamp per candidate at their country centroid
+ * Bumpy reference (screenshot shared by user 2026-05-12) shows:
+ *   - The map is FULL-BLEED (no card wrapper, no inset).
+ *   - The top bar is a thin BrandMark + filter-sliders icon row — NO
+ *     "Map" page title.
+ *   - The continent picker lives INSIDE a filter Sheet opened from the
+ *     top-right filter icon — NOT inline above the map.
  *
- * SAMPLE_PROFILES (8 candidates) render unfiltered for now. T7 introduces
- * the `showOnMap` privacy field and the filter becomes:
- *   SAMPLE_PROFILES.filter((p) => p.showOnMap !== false)
- * — for T5 every sample is shown.
+ * Implementation:
+ *   - PageShell uses bottomPad="none" + relative positioning. The
+ *     WorldMap absolutely fills the shell from top to bottom. The thin
+ *     top bar and BottomNav float over it.
+ *   - The top bar is `absolute inset-x-0 top-0` with a translucent
+ *     backdrop blur, so the map shows through.
+ *   - BottomNav is `fixed` (its own primitive), so it sits over the map
+ *     at the bottom regardless of shell padding.
+ *   - The filter sheet uses the kit's <Sheet> primitive bottom-side;
+ *     opening it reveals <ContinentPicker>. Picking a continent both
+ *     pans/zooms the map AND closes the sheet so the result is
+ *     immediately visible.
  *
- * Marker tap navigates to /profile/[firstName]; the MapAvatar component
- * owns that behavior internally.
+ * The MapAvatar ring is bumped to lime brand accent so markers pop
+ * against the dark country fill (Bumpy uses a green ring; lime is
+ * Ahavah's analog).
+ *
+ * MAP RENDERER NOTE: this is still d3-geo SVG. Bumpy uses Google Maps
+ * raster tiles. Swapping to Mapbox / Google Maps requires an API key +
+ * billing, which is Tier-4 backend-blocked per docs/BUILD-PLAN.md.
+ * A future sub-plan handles the swap.
  *
  * Soft-completeness gate mirrors /discover: incomplete profiles are
- * redirected to the first missing onboarding step. The redirect runs in
- * a useEffect; before it fires we render a minimal placeholder to avoid
- * map flash for incomplete profiles.
- *
- * Bottom-CTA wiring + visible-bounds resolution is T6's work and is
- * deliberately left out here.
+ * redirected to the first missing onboarding step. Pre-redirect the
+ * page renders a minimal scaffold to avoid map flash for incomplete
+ * profiles.
  */
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "motion/react";
+import { SlidersHorizontal } from "lucide-react";
 
 import { BottomNav } from "@/components/app/bottom-nav";
 import { ContinentPicker } from "@/components/app/continent-picker";
 import { MapAvatar } from "@/components/app/map-avatar";
-import {
-  PageHeader,
-  PageHeaderTitle,
-  PageShell,
-} from "@/components/app/page-shell";
+import { PageShell } from "@/components/app/page-shell";
 import { WorldMap, type Viewport } from "@/components/app/world-map";
+import { BrandMark } from "@/components/brand/sparkle-mark";
+import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 
 import type { BBox, Continent } from "@/lib/continent-bbox";
 import {
@@ -47,11 +63,6 @@ import {
 } from "@/lib/profile-completeness";
 import { SAMPLE_PROFILES } from "@/lib/profile-sample";
 import { useProfile } from "@/lib/use-profile";
-
-const fadeUp = {
-  initial: { opacity: 0, y: 12 },
-  animate: { opacity: 1, y: 0 },
-};
 
 /**
  * Heuristic: convert a continent bbox to a (center, zoom) Viewport for
@@ -91,6 +102,7 @@ export default function MapPage() {
   const [activeContinent, setActiveContinent] = useState<
     Continent | undefined
   >(undefined);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   // Soft-completeness gate — match /discover's pattern exactly.
   useEffect(() => {
@@ -105,6 +117,10 @@ export default function MapPage() {
   const handlePickContinent = (id: Continent, bbox: BBox) => {
     setActiveContinent(id);
     setViewport(viewportFromBbox(bbox));
+    // Auto-close on pick — Bumpy does this implicitly, so the user sees
+    // the map pan/zoom immediately instead of having to dismiss the
+    // sheet first.
+    setFiltersOpen(false);
   };
 
   // Until T7 adds `showOnMap`, every sample renders. After T7:
@@ -116,9 +132,6 @@ export default function MapPage() {
   if (!loaded || (loaded && !isDiscoverEligible(viewer))) {
     return (
       <PageShell bottomPad="nav">
-        <PageHeader pad="tight">
-          <PageHeaderTitle>Map</PageHeaderTitle>
-        </PageHeader>
         <div
           className="flex flex-1 items-center justify-center px-5"
           aria-live="polite"
@@ -133,39 +146,56 @@ export default function MapPage() {
   }
 
   return (
-    <PageShell bottomPad="nav">
-      <PageHeader pad="tight">
-        <PageHeaderTitle>Map</PageHeaderTitle>
-      </PageHeader>
-
-      <motion.div
-        initial={fadeUp.initial}
-        animate={fadeUp.animate}
-        transition={{ duration: 0.4, delay: 0.05 }}
-        className="px-5"
-      >
-        <ContinentPicker
-          active={activeContinent}
-          onPick={handlePickContinent}
-        />
-      </motion.div>
-
-      <motion.div
-        initial={fadeUp.initial}
-        animate={fadeUp.animate}
-        transition={{ duration: 0.4, delay: 0.15 }}
-        className="mt-4 px-5"
-      >
+    <PageShell bottomPad="none" className="relative overflow-hidden">
+      {/* Full-bleed map — absolute-fills the shell. The country paths +
+          markers will project into the SVG's 800×450 viewBox and scale
+          to whatever pixel size the parent gives them
+          (preserveAspectRatio="xMidYMid meet"). */}
+      <div className="absolute inset-0">
         <WorldMap
           viewport={viewport}
           onBoundsChange={setVisibleBounds}
-          className="aspect-[16/9] w-full overflow-hidden rounded-2xl border border-white/10 bg-bg-elevated"
+          className="size-full"
         >
           {visibleSamples.map((p) => (
             <MapAvatar key={p.firstName} candidate={p} />
           ))}
         </WorldMap>
-      </motion.div>
+      </div>
+
+      {/* Thin top bar overlay — BrandMark left, filter icon right. The
+          translucent backdrop + blur lets the map texture show through
+          while keeping the brand mark legible. */}
+      <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between gap-3 bg-bg-canvas/80 px-4 py-3 supports-backdrop-filter:bg-bg-canvas/60 supports-backdrop-filter:backdrop-blur-md">
+        <BrandMark size="sm" />
+        <Button
+          size="circle"
+          tone="elevated"
+          aria-label="Filter map"
+          onClick={() => setFiltersOpen(true)}
+        >
+          <SlidersHorizontal className="text-white" />
+        </Button>
+      </div>
+
+      {/* Filter sheet — opens from the filter icon. Hosts the
+          ContinentPicker. Auto-closes on pick (handlePickContinent). */}
+      <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
+        <SheetContent
+          side="bottom"
+          className="flex flex-col gap-0 rounded-t-3xl border-white/10 bg-bg-indigo p-0"
+        >
+          <SheetHeader className="items-start px-5 pt-6 pb-3">
+            <SheetTitle className="text-h2 text-white">Filter map</SheetTitle>
+          </SheetHeader>
+          <div className="px-5 pb-6">
+            <ContinentPicker
+              active={activeContinent}
+              onPick={handlePickContinent}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <BottomNav />
     </PageShell>
