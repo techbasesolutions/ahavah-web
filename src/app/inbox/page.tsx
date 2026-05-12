@@ -248,7 +248,7 @@ function InboxErrorState() {
       <ErrorState
         title="Couldn't load your chats"
         description="Check your connection and try again."
-        retry={{ label: "Try again" }}
+        retry={{ label: "Try again", onClick: () => window.location.reload() }}
       />
     </motion.div>
   );

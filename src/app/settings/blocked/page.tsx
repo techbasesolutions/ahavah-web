@@ -58,7 +58,7 @@ function BlockedContent() {
       <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.1 }}>
         <ErrorState
           description="We couldn't load your blocked users. Please try again."
-          retry={{ label: "Try again" }}
+          retry={{ label: "Try again", onClick: () => window.location.reload() }}
         />
       </motion.div>
     ) : visible.length === 0 ? (

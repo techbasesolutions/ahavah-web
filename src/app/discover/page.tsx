@@ -62,6 +62,9 @@ export default function DiscoverPage() {
   const router = useRouter();
   const { profile: userProfile, loaded } = useProfile();
   const { recordPass, recordLike, hasDecided } = useDecisions();
+  // Lifted FiltersSheet open state so both the Globe trigger AND the
+  // empty-deck "Adjust filters" CTA can open the same sheet.
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [userIndex, setUserIndex] = useState(0);
   const [photoIndex, setPhotoIndex] = useState(0);
   const [filters, setFilters] = useState<DiscoverFilters>({});
@@ -210,6 +213,8 @@ export default function DiscoverPage() {
         <BrandMark size="sm" />
         <div className="flex items-center gap-3">
           <FiltersSheet
+            open={filtersOpen}
+            onOpenChange={setFiltersOpen}
             trigger={
               <Button
                 size="circle"
@@ -395,7 +400,7 @@ export default function DiscoverPage() {
                 description="No more matches nearby — try widening your filters or check back later."
                 action={{
                   label: "Adjust filters",
-                  onClick: () => setFilters({}),
+                  onClick: () => setFiltersOpen(true),
                 }}
                 className="mx-0 mt-0 rounded-2xl border border-white/10 bg-bg-elevated"
               />
