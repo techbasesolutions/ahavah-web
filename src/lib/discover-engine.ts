@@ -23,14 +23,19 @@ export interface DiscoverCandidate extends Profile {
  * ("show me candidates who match these"), no separate persistent
  * boundary-tag concept.
  *
- * International discovery is filter-first per Bumpy spec (docs/specs/bumpy_dating_app_product_feature_breakdown.md) lines 47 + 130:
- * "Local dating apps constrain users to nearby pools... Bumpy promotes
- * finding people across countries, cultures, and languages." Not
- * map-based — Bumpy contrasts itself with Tinder's local-first model
- * (spec line 518). Country filter is multi-select; empty selection =
- * "Anywhere" (no filter applied). Distance/lat-lng remain Tier-4
- * backend (docs/BUILD-PLAN.md:226-229); a map view MAY come post-MVP
- * as a refinement, NOT as the primary discovery mechanic.
+ * International discovery on Bumpy is BOTH filter-first AND map-based;
+ * the two surfaces are peers. Country/language/intent/etc. filters
+ * narrow the global pool; the world-map view (sub-plan 14) is a
+ * complementary discovery surface where user avatars pin to country
+ * centroids and panning/zooming the map localises the swipe deck to
+ * the visible region. The earlier framing in this comment block —
+ * "Bumpy is filter-first not map-based" — was a misread of an
+ * incomplete internal spec doc; verified against the live Bumpy app
+ * (2026-05-12 web research). The country / language multi-select
+ * filters here are still correct; the map view is additive, not a
+ * replacement. Distance/lat-lng for real users remain Tier-4 backend
+ * (docs/BUILD-PLAN.md:226-229); the map sub-plan uses country
+ * centroids as pin positions over SAMPLE_PROFILES.
  *
  * Feast-day filtering removed per the 2026-05-11 product call —
  * day-by-day overlap is too granular at the filter layer and

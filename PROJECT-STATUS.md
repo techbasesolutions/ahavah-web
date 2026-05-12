@@ -1739,6 +1739,16 @@ Tier 4 (behind backend) items remain explicitly out of scope for `ahavah-web`:
 
 This sub-plan is the directional correction §16/§17 flagged: prior to T1, the codebase had drifted toward generic Tinder-style discovery (one location, one age range, no language signal, country filter deliberately stubbed out behind a comment that misread Bumpy as map-based). The spec at `docs/specs/bumpy_dating_app_product_feature_breakdown.md` is explicit at lines 47 + 130 + 518 that Bumpy's premise is a global pool a user narrows with multi-select filters — country, languages, faith stance, etc. Sub-plan 13 makes the runtime behaviour match that premise, anchors the relevant source comments to the spec lines, and surfaces the profile data (languages, nationality) Ahavah was already collecting but hiding. The compatibility score now treats shared languages as a first-class signal, not a passive identity field.
 
+### Correction (2026-05-12, post-SP13 merge — appended to this section honestly rather than rewriting history)
+
+**The "Bumpy alignment" framing above is wrong in one important respect.** The paragraph claims the original `discover-engine.ts` comment "misread Bumpy as map-based" and that SP13 corrects that misread. After the user pushed back ("there has to be a map interface — Bumpy has it"), I did the WebSearch I should have done before rewriting the comment: Bumpy ships a prominent **world-map view** where user avatars pin to country centroids, the map is pan/zoom interactive, and swiping is localised to the visible map region. The internal spec doc at `docs/specs/bumpy_dating_app_product_feature_breakdown.md` documents the filter-first / international premise but does **not** describe the map UI — so reading absence of "map" in the spec as absence of map in the product was wrong.
+
+The original comment in `src/lib/discover-engine.ts` ("pending map-zoom-driven Bumpy-style UI") was accurate, not a misread. My SP13 rewrites in `c095ba7` (engine) and `a3567e0` (filters-sheet T8 closeout) both encoded the wrong framing. Source comments on both files have been **re-rewritten** to acknowledge that Bumpy ships filter-first AND map-based, in peer (commit forthcoming alongside the SP14 spec). The SP13 features themselves (country / language filters, language scoring axis, profile surfaces, canonical onboarding list) are still real Bumpy parity and stay shipped — only the framing was wrong, not the code.
+
+**Lesson saved to memory** (`feedback_ahavah_verify_external_products.md`): before rewriting comments / docs that characterize an external product, WebSearch the live product. Internal spec docs are not authoritative for external UX.
+
+Sub-plan 14 (Map Discovery) is the actual second half of the Bumpy international model — world-map view as a top-level bottom-nav tab, country-centroid avatar markers tappable to `/profile/[uuid]`, swipe deck localised to the visible map bounds.
+
 ### Branch: `sub-plan-13-worldwide-search` (8 commits)
 
 Ready for merge to `master` via `git merge --no-ff`.

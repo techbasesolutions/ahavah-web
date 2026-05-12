@@ -298,15 +298,14 @@ export function FiltersSheet({
           </section>
 
           {/* Country + Languages filters are rendered further below as
-              FilterSection groups. They are filter-first international per
-              Bumpy spec (docs/specs/bumpy_dating_app_product_feature_breakdown.md
-              lines 47 + 130 + 518). The earlier comment in this slot claimed
-              country filtering was deferred pending a Bumpy-style location
-              UI; that was a misread — Bumpy is explicitly a filter-first
-              global-pool model, not a location-zoom model. The Country
-              FilterSection (sub-plan 13 T4) and the language-aware
-              passesAllFilters branch in discover-engine.ts (sub-plan 13 T1)
-              are the canonical implementation. */}
+              FilterSection groups. Bumpy ships BOTH a filter-first model
+              (this sheet) AND a world-map view where avatars pin to country
+              centroids and panning the map localises the swipe deck (sub-
+              plan 14). An earlier rewrite of this comment claimed Bumpy was
+              "filter-first not map-based" — that was wrong, verified against
+              the live app on 2026-05-12. The original anticipatory comment
+              ("pending map-zoom-driven Bumpy-style UI") was correct; these
+              filters are peer to, not replacement for, the map view. */}
 
           <FilterSection label="I identify as" defaultOpen>
             <PillGrid
