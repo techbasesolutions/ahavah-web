@@ -100,6 +100,19 @@ export function MapAvatar({ candidate }: MapAvatarProps) {
       onKeyDown={onKeyDown}
       className="cursor-pointer outline-none focus-visible:[&>foreignObject>div]:ring-lavender focus-visible:[&>foreignObject>div]:ring-2 hover:[&>foreignObject>div]:ring-lavender/70"
     >
+      {/* Invisible SVG <circle> sits behind the foreignObject so the
+          marker has a paint-target the parent <g>'s pointer-events:
+          visiblePainted resolution can hit. Without it, the <g> has
+          no SVG-paint surface and elementFromPoint at the marker
+          centre returns the underlying <svg> instead — meaning real
+          taps reach d3-zoom's pan handler, not the marker's onClick.
+          The previous attempt at making the foreignObject's <div> the
+          tap surface failed because in Chrome/Safari pointer-events on
+          <foreignObject> content do not bubble across the SVG/HTML
+          boundary back to the parent <g>'s React handlers. The
+          transparent circle (fill="transparent" with a positive r) IS
+          paintable for hit-testing purposes — that's enough. */}
+      <circle r={22} fill="transparent" />
       <foreignObject
         x={-22}
         y={-22}
