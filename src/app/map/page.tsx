@@ -45,6 +45,14 @@
  * redirected to the first missing onboarding step. Pre-redirect the
  * page renders a minimal scaffold to avoid map flash for incomplete
  * profiles.
+ *
+ * Home-default on session start (SP17.5, 2026-05-12): on the first
+ * /map mount per PWA session, the viewport flies to a ±15° bbox
+ * around the user's home-country centroid. A one-shot sessionStorage
+ * flag suppresses re-fly on subsequent /map mounts within the same
+ * session (preserves user's pan position when bouncing through
+ * BottomNav). App close → sessionStorage clears → next launch
+ * defaults to home again. See the useEffect for full reasoning.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -52,13 +60,15 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { SlidersHorizontal } from "lucide-react";
 
+import type { BBox } from "@/lib/continent-bbox";
+
 import { BottomNav } from "@/components/app/bottom-nav";
 import { FiltersSheet } from "@/components/app/filters-sheet";
 import { PageShell } from "@/components/app/page-shell";
 import { BrandMark } from "@/components/brand/sparkle-mark";
 import { Button } from "@/components/ui/button";
 
-import { countriesInBounds } from "@/lib/country-centroids";
+import { centroidOf, countriesInBounds } from "@/lib/country-centroids";
 import { simulateLikesBack } from "@/lib/decision-engine";
 import { applyHardFilters, type DiscoverCandidate } from "@/lib/discover-engine";
 import { ACTIVE_CHAT_IDS } from "@/lib/inbox-seed";
@@ -93,12 +103,22 @@ const MapAvatar = dynamic(
   { ssr: false },
 );
 
+// SP17.5: session-scoped flag keyed in sessionStorage. The flag is a
+// boolean marker, not the filter itself — useFilters() keeps its own
+// localStorage store for everything else (age, intent, etc.). Only this
+// one-shot "have we auto-flown yet this session?" bit lives in
+// sessionStorage so it clears on PWA close → next launch defaults to
+// home country again.
+const SESSION_FLAG = "ahavah.map.session_initialized";
+const INITIAL_PADDING_DEG = 15;
+
 export default function MapPage() {
   const router = useRouter();
   const { profile: viewer, loaded } = useProfile();
   const { decisions } = useDecisions();
   const { filters, setFilters } = useFilters();
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [initialBbox, setInitialBbox] = useState<BBox | undefined>(undefined);
 
   // Soft-completeness gate — match /discover's pattern exactly.
   useEffect(() => {
@@ -109,6 +129,54 @@ export default function MapPage() {
       }
     }
   }, [loaded, viewer, router]);
+
+  /**
+   * SP17.5: default the map viewport to the user's home country on the
+   * FIRST /map mount per PWA session. The signal is sessionStorage
+   * (clears on app/tab close, persists across backgrounding) plus a
+   * one-shot flag so subsequent /map mounts within the same session
+   * preserve whatever pan position is already there — switching tabs
+   * via BottomNav and coming back shouldn't yank the user's view.
+   *
+   * Why sessionStorage: PWAs close → sessionStorage clears → next cold
+   * launch is a fresh session, and the user lands back on their home
+   * region. Backgrounding the app (iOS Home button, Android task
+   * switcher) does NOT clear sessionStorage, so a quick return won't
+   * trigger an unwanted re-fly.
+   *
+   * Why a one-shot flag: subsequent /map mounts within the same session
+   * shouldn't auto-fly. If the user pans to Africa, navigates to
+   * /discover, then comes back to /map, they expect Africa — not a
+   * snap back to home.
+   *
+   * Why 15° padding: rough continent-scale view. Wide enough to show
+   * neighboring countries (so the user sees nearby candidates without
+   * having to zoom out first), narrow enough to keep their home region
+   * the obvious focus. Clamped to [-85, 85] / [-180, 180] so polar /
+   * antimeridian edges don't break fitBounds.
+   *
+   * Bbox flow: setInitialBbox(...) → passed as WorldMap.bbox →
+   * fitBounds → moveend → existing handleBoundsChange writes
+   * filter.country naturally. No bespoke filter write here.
+   */
+  useEffect(() => {
+    if (!loaded || !viewer?.country) return;
+    if (typeof window === "undefined") return;
+    if (sessionStorage.getItem(SESSION_FLAG)) return;
+    const centroid = centroidOf(viewer.country);
+    if (!centroid) return;
+    // Bridging external state (sessionStorage flag + profile-load
+    // timing) into React state on first qualifying render. Canonical
+    // pattern in this codebase — see use-profile.ts mount-hydration.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setInitialBbox({
+      north: Math.min(85, centroid.lat + INITIAL_PADDING_DEG),
+      south: Math.max(-85, centroid.lat - INITIAL_PADDING_DEG),
+      east: Math.min(180, centroid.lng + INITIAL_PADDING_DEG),
+      west: Math.max(-180, centroid.lng - INITIAL_PADDING_DEG),
+    });
+    sessionStorage.setItem(SESSION_FLAG, "1");
+  }, [loaded, viewer]);
 
   // SP17 T2: map-driven country filter. Every Leaflet pan/zoom-settle
   // fires moveend → onBoundsChange(bbox); we convert the visible bbox
@@ -177,7 +245,11 @@ export default function MapPage() {
           and country/region filtering happens through FiltersSheet's
           Country pill grid (shared with /discover). */}
       <div className="absolute inset-0">
-        <WorldMap className="size-full" onBoundsChange={handleBoundsChange}>
+        <WorldMap
+          className="size-full"
+          onBoundsChange={handleBoundsChange}
+          bbox={initialBbox}
+        >
           {visibleSamples.map((p) => {
             // SP16 T5: resolve per-candidate marker state.
             //   - `id` is the lowercased firstName slug used everywhere
