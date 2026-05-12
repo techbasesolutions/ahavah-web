@@ -24,6 +24,8 @@ export const WIZARD_STEPS: ReadonlyArray<WizardStep> = [
   { href: "/onboarding/name",           label: "Name",           requiredField: "firstName" },
   { href: "/onboarding/dob",            label: "Date of birth",  requiredField: "age" },
   { href: "/onboarding/gender",         label: "Gender",         requiredField: "sex" },
+  { href: "/onboarding/marital-status", label: "Marital status", requiredField: "maritalStatus" },
+  { href: "/onboarding/children",       label: "Children",       requiredField: "children" },
   { href: "/onboarding/looking-for",    label: "Looking for",    requiredField: "intent" },
   { href: "/onboarding/photos",         label: "Photos" },
   { href: "/onboarding/country",        label: "Country",        requiredField: "country" },
@@ -121,29 +123,12 @@ const fieldComplete = (profile: Profile, key: keyof Profile): boolean => {
  * Walks WIZARD_STEPS in canonical order and returns the href of the
  * first step whose requiredField is empty on the profile. Returns null
  * when every required field is filled.
- *
- * Sub-plan 18 T1 adds two interim cases for `maritalStatus` and `children`
- * — these aren't yet WIZARD_STEPS entries (T3 will insert them), but they
- * ARE in `MINIMUM_COMPLETE_FIELDS` so the gate already requires them. The
- * interim cases route to the screens T2 will build; T3 then moves them
- * into WIZARD_STEPS and removes this block. Order matches the future
- * wizard slot (post-gender, pre-country/intent).
  */
 export function firstMissingStepFor(profile: Profile): string | null {
   for (const step of WIZARD_STEPS) {
     if (!step.requiredField) continue;
     if (!fieldComplete(profile, step.requiredField)) {
       return step.href;
-    }
-    // Interim insertion: sub-plan 18 fields slot in after gender, before
-    // intent/country. Once T3 lifts them into WIZARD_STEPS, drop this.
-    if (step.href === "/onboarding/gender") {
-      if (!fieldComplete(profile, "maritalStatus")) {
-        return "/onboarding/marital-status";
-      }
-      if (!fieldComplete(profile, "children")) {
-        return "/onboarding/children";
-      }
     }
   }
   return null;
