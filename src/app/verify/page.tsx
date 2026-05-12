@@ -102,9 +102,16 @@ export default function VerifyPage() {
                       pattern flagged on /verify/silver). The active tier
                       keeps its bare tile because the lime 'Active' pill
                       already celebrates it. */}
+                  {/* `w-fit` shrinks this wrapper to the 48px IconBadge —
+                      without it, CardHeader's `display: grid` stretches the
+                      div to the full grid-cell width (~334px) and the
+                      `ring-2 ring-lavender/30` paints a "phantom pill"
+                      between the icon and the right edge of inactive tiers.
+                      The call-site `flex-row` on CardHeader has no effect
+                      because the base is grid, not flex. */}
                   <div
                     className={cn(
-                      "rounded-full",
+                      "w-fit rounded-full",
                       !isCurrent && "ring-2 ring-lavender/30",
                     )}
                   >
