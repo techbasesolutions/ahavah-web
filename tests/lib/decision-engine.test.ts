@@ -5,6 +5,7 @@ import {
   getDecision,
   hasDecided,
   simulateLikesBack,
+  popLastDecision,
   LIKE_THRESHOLD,
 } from "@/lib/decision-engine";
 import { SAMPLE_PROFILES } from "@/lib/profile-sample";
@@ -104,5 +105,37 @@ describe("decision-engine", () => {
     // (sub-plan 13 t3) lifts more candidates above LIKE_THRESHOLD since
     // most profiles share "en". Upper bound dropped to avoid vacuous assertion.
     expect(mutuals.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("popLastDecision returns null + empty rest for an empty input", () => {
+    const result = popLastDecision([]);
+    expect(result.popped).toBeNull();
+    expect(result.rest).toEqual([]);
+  });
+
+  it("popLastDecision removes the last entry and returns it", () => {
+    const ds: Decision[] = [
+      { subjectId: "yosef",  action: "like", timestamp: 1 },
+      { subjectId: "esther", action: "pass", timestamp: 2 },
+    ];
+    const result = popLastDecision(ds);
+    expect(result.popped).toEqual({
+      subjectId: "esther",
+      action: "pass",
+      timestamp: 2,
+    });
+    expect(result.rest.map((d) => d.subjectId)).toEqual(["yosef"]);
+  });
+
+  it("popLastDecision does not mutate its input", () => {
+    const ds: Decision[] = [
+      { subjectId: "yosef", action: "like", timestamp: 1 },
+    ];
+    const frozen = Object.freeze([...ds]) as ReadonlyArray<Decision>;
+    const result = popLastDecision(frozen);
+    expect(ds).toEqual([
+      { subjectId: "yosef", action: "like", timestamp: 1 },
+    ]);
+    expect(result.rest).not.toBe(ds);
   });
 });
