@@ -39,4 +39,9 @@ describe("inbox-filter", () => {
   it("filterChats returns [] when no match", () => {
     expect(filterChats(CHATS, "xyz")).toEqual([]);
   });
+
+  it("filterChats returns a fresh array (no aliasing of input)", () => {
+    expect(filterChats(CHATS, "")).not.toBe(CHATS);
+    expect(filterChats(CHATS, "xyz")).not.toBe(CHATS);
+  });
 });
