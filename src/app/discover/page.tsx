@@ -111,9 +111,13 @@ export default function DiscoverPage() {
 
   const advanceUser = (action: "skip" | "like") => {
     if (!profile) return;
-    // Stub: real impl POSTs to swipe service.
+    // The decision causes hasDecided(profile.id) to flip true on next
+    // render, so filteredDeck drops this candidate from its head.
+    // userIndex stays at 0 and naturally points at the new head.
+    // Bumping userIndex here would skip the candidate that takes the
+    // head slot after the filter shrinks — index drift bug fixed.
     setExitDirection(action === "like" ? "right" : "left");
-    setUserIndex((i) => i + 1);
+    setUserIndex(0);
     setPhotoIndex(0);
   };
 
@@ -129,15 +133,15 @@ export default function DiscoverPage() {
       } else {
         advanceUser("skip");
       }
-    } else {
-      if (photoIndex > 0) {
-        setPhotoIndex((i) => i - 1);
-      } else if (userIndex > 0) {
-        setExitDirection("right");
-        setUserIndex((i) => i - 1);
-        setPhotoIndex(0);
-      }
+    } else if (photoIndex > 0) {
+      setPhotoIndex((i) => i - 1);
     }
+    // TODO(decision-undo): at photoIndex 0 with prev, currently no-ops.
+    // The previous "walk back to last candidate" path manipulated
+    // userIndex against a moving filter set — meaningless under the
+    // head-only deck model. If product wants an "undo last skip"
+    // affordance, implement by popping the most recent decision from
+    // useDecisions, not by stepping userIndex backward.
   };
 
 
