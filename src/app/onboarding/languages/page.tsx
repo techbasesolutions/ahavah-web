@@ -12,30 +12,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+import { CUSTOM_LANGUAGE_PREFIX, LANGUAGES } from "@/lib/languages";
 import { cn } from "@/lib/utils";
 
 import { OnboardingShell } from "@/components/app/onboarding-shell";
 
-// Built-in shortlist (drives chat/translation defaults). Anything beyond
-// this is added by the user via the "Add another language" input below.
-const LANGUAGES: ReadonlyArray<{ code: string; label: string; flag: string }> = [
-  { code: "en", label: "English",    flag: "🇬🇧" },
-  { code: "es", label: "Spanish",    flag: "🇪🇸" },
-  { code: "fr", label: "French",     flag: "🇫🇷" },
-  { code: "pt", label: "Portuguese", flag: "🇵🇹" },
-  { code: "de", label: "German",     flag: "🇩🇪" },
-  { code: "it", label: "Italian",    flag: "🇮🇹" },
-  { code: "nl", label: "Dutch",      flag: "🇳🇱" },
-  { code: "ja", label: "Japanese",   flag: "🇯🇵" },
-  { code: "zh", label: "Mandarin",   flag: "🇨🇳" },
-  { code: "ko", label: "Korean",     flag: "🇰🇷" },
-  { code: "ar", label: "Arabic",     flag: "🇸🇦" },
-  { code: "hi", label: "Hindi",      flag: "🇮🇳" },
-  { code: "he", label: "Hebrew",     flag: "🇮🇱" },
-  { code: "ru", label: "Russian",    flag: "🇷🇺" },
-];
-
-const CUSTOM_PREFIX = "custom:";
 const MAX_CUSTOM_LEN = 40;
 
 const fadeUp = {
@@ -85,7 +66,7 @@ export default function LanguagesStep() {
       setFeedback(`"${trimmed}" is already in your list.`);
       return;
     }
-    const value = `${CUSTOM_PREFIX}${trimmed}`;
+    const value = `${CUSTOM_LANGUAGE_PREFIX}${trimmed}`;
     setCustomLanguages([...customLanguages, trimmed]);
     setSelected([...selected, value]);
     if (!primary) setPrimary(value);
@@ -94,7 +75,7 @@ export default function LanguagesStep() {
   };
 
   const removeCustom = (label: string) => {
-    const value = `${CUSTOM_PREFIX}${label}`;
+    const value = `${CUSTOM_LANGUAGE_PREFIX}${label}`;
     const nextCustom = customLanguages.filter((l) => l !== label);
     const nextSelected = selected.filter((c) => c !== value);
     setCustomLanguages(nextCustom);
@@ -114,8 +95,8 @@ export default function LanguagesStep() {
 
   // Resolve the human-readable name of the current primary so the helper
   // sentence reads naturally regardless of source (built-in vs custom).
-  const primaryLabel = primary.startsWith(CUSTOM_PREFIX)
-    ? primary.slice(CUSTOM_PREFIX.length)
+  const primaryLabel = primary.startsWith(CUSTOM_LANGUAGE_PREFIX)
+    ? primary.slice(CUSTOM_LANGUAGE_PREFIX.length)
     : LANGUAGES.find((l) => l.code === primary)?.label ?? "";
 
   // Helper: invalid (no selection) → pink alert; valid → muted explanation
@@ -218,7 +199,7 @@ export default function LanguagesStep() {
           <p className="mb-2 text-overline text-text-muted">Your additions</p>
           <div className="flex flex-wrap gap-2">
             {customLanguages.map((label) => {
-              const value = `${CUSTOM_PREFIX}${label}`;
+              const value = `${CUSTOM_LANGUAGE_PREFIX}${label}`;
               const isPrimary = primary === value;
               return (
                 <div
