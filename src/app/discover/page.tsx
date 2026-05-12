@@ -355,7 +355,7 @@ export default function DiscoverPage() {
                   <Pause className="text-black" fill="currentColor" />
                 </Button>
                 <Button
-                  size="circle-lg"
+                  size="circle"
                   tone="action"
                   lift="float"
                   aria-label="Like user"
