@@ -272,20 +272,26 @@ export default function ProfileDetailPage({ params }: Props) {
                   <MapPin className="size-3" /> {profile.country}
                 </p>
               )}
-              {profile.nationality && (
-                <Pill variant="lavender" size="sm" className="mt-2">
-                  {labelOf(profile.nationality, NATIONALITIES) ?? profile.nationality}
-                </Pill>
-              )}
-              {profile.maritalStatus !== undefined && (
-                <Pill variant="lavender" size="sm" className="mt-2">
-                  {labelOf(profile.maritalStatus, MARITAL_STATUSES) ?? profile.maritalStatus}
-                </Pill>
-              )}
-              {profile.children !== undefined && (
-                <Pill variant="lavender" size="sm" className="mt-2">
-                  {profile.children === 1 ? "1 child" : `${profile.children} children`}
-                </Pill>
+              {(profile.nationality ||
+                profile.maritalStatus !== undefined ||
+                profile.children !== undefined) && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {profile.nationality && (
+                    <Pill variant="lavender" size="sm">
+                      {labelOf(profile.nationality, NATIONALITIES) ?? profile.nationality}
+                    </Pill>
+                  )}
+                  {profile.maritalStatus !== undefined && (
+                    <Pill variant="lavender" size="sm">
+                      {labelOf(profile.maritalStatus, MARITAL_STATUSES) ?? profile.maritalStatus}
+                    </Pill>
+                  )}
+                  {profile.children !== undefined && (
+                    <Pill variant="lavender" size="sm">
+                      {profile.children === 1 ? "1 child" : `${profile.children} children`}
+                    </Pill>
+                  )}
+                </div>
               )}
             </div>
 

@@ -199,13 +199,15 @@ export type MaritalStatus =
   | "never-married"
   | "married"
   | "re-married"
-  | "divorced";
+  | "divorced"
+  | "widowed";
 
 export const MARITAL_STATUSES: ReadonlyArray<{ value: MaritalStatus; label: string }> = [
   { value: "never-married", label: "Never Married" },
   { value: "married",       label: "Married" },
   { value: "re-married",    label: "Re-married" },
   { value: "divorced",      label: "Divorced" },
+  { value: "widowed",       label: "Widowed" },
 ];
 
 export function isMaritalStatus(value: unknown): value is MaritalStatus {
