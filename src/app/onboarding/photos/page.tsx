@@ -136,7 +136,7 @@ export default function PhotosStep() {
         className={
           hasMain
             ? "mt-6 text-center text-caption text-lime"
-            : "mt-6 text-center text-caption text-text-muted"
+            : "mt-6 text-center text-caption text-text-secondary"
         }
         aria-live="polite"
       >

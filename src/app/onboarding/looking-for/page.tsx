@@ -67,6 +67,7 @@ export default function LookingForStep() {
         <RadioGroup
           value={selected}
           onValueChange={(v) => update({ intent: v as Intent })}
+          aria-label="What you're looking for"
           className="grid gap-3"
         >
           {options.map((opt, i) => {
@@ -75,7 +76,7 @@ export default function LookingForStep() {
               <motion.div
                 key={opt.value}
                 {...fadeUp}
-                transition={{ duration: 0.35, delay: 0.2 + i * 0.05 }}
+                transition={{ duration: 0.35, delay: 0.1 + i * 0.03 }}
               >
                 <Label
                   htmlFor={`looking-${opt.value}`}

@@ -131,7 +131,7 @@ export default function LanguagesStep() {
           Pills below. */}
       <motion.div
         {...fadeUp}
-        transition={{ duration: 0.4, delay: 0.15 }}
+        transition={{ duration: 0.4, delay: 0.1 }}
         className="mt-8"
       >
         <ToggleGroup
@@ -148,7 +148,7 @@ export default function LanguagesStep() {
               {...fadeUp}
               transition={{
                 duration: 0.3,
-                delay: 0.2 + Math.min(i, 8) * 0.03,
+                delay: 0.1 + Math.min(i, 4) * 0.04,
               }}
               className="contents"
             >
@@ -252,7 +252,7 @@ export default function LanguagesStep() {
           aria-live region. */}
       <motion.div
         {...fadeUp}
-        transition={{ duration: 0.4, delay: 0.5 }}
+        transition={{ duration: 0.4, delay: 0.25 }}
         className="mt-5"
       >
         <Label
@@ -295,7 +295,7 @@ export default function LanguagesStep() {
           whole page. */}
       <motion.p
         {...fadeUp}
-        transition={{ duration: 0.4, delay: 0.6 }}
+        transition={{ duration: 0.4, delay: 0.3 }}
         id="languages-helper"
         role={selected.length === 0 ? "alert" : undefined}
         aria-live="polite"

@@ -44,6 +44,7 @@ export default function AssemblyStep() {
         <RadioGroup
           value={profile.assembly ?? ""}
           onValueChange={(v) => update({ assembly: v as Assembly })}
+          aria-label="Faith identification"
           className="grid gap-3"
         >
           {ASSEMBLIES.map((opt, i) => {
@@ -52,7 +53,7 @@ export default function AssemblyStep() {
               <motion.div
                 key={opt.value}
                 {...fadeUp}
-                transition={{ duration: 0.35, delay: 0.2 + i * 0.05 }}
+                transition={{ duration: 0.35, delay: 0.1 + i * 0.03 }}
               >
                 <Label
                   htmlFor={`assembly-${opt.value}`}

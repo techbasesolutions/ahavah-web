@@ -96,6 +96,7 @@ export default function GenderStep() {
                       id={`gender-${opt.key}`}
                       value={opt.key}
                       variant="brand"
+                      aria-label={opt.label}
                       className={
                         active
                           ? "border-black data-checked:bg-black data-checked:border-black"

@@ -170,6 +170,7 @@ export function SingleSelectField<T extends string>({
                   id={`${id}-${opt.value}`}
                   value={opt.value}
                   variant="brand"
+                  aria-label={opt.label}
                   className={
                     active
                       ? "border-black data-checked:bg-black data-checked:border-black"

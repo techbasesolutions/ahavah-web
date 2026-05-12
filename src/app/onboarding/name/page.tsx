@@ -54,11 +54,12 @@ export default function NameStep() {
           onChange={(e) => update({ firstName: e.target.value.slice(0, MAX_NAME) })}
           placeholder="e.g. Jessica"
           aria-describedby="name-help"
+          aria-invalid={name.length > 0 && !isValid}
           maxLength={MAX_NAME}
         />
         <div className="flex items-center justify-between text-caption text-text-muted">
           <span id="name-help">
-            Just your first name — change anytime in Settings.
+            Just your first name, change anytime in Settings.
           </span>
           <span className="tabular-nums" aria-hidden>
             {name.length}/{MAX_NAME}
