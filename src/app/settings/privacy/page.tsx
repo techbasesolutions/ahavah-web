@@ -23,6 +23,7 @@ import {
   PageHeaderTitle,
   PageShell,
 } from "@/components/app/page-shell";
+import { useShowOnMap } from "@/lib/use-show-on-map";
 
 const fadeUp = {
   initial: { opacity: 0, y: 12 },
@@ -33,6 +34,7 @@ type ToggleKey =
   | "showAge"
   | "showDistance"
   | "showLastActive"
+  | "showOnMap"
   | "incognito"
   | "readReceipts"
   | "limitWhoCanMessage"
@@ -55,6 +57,10 @@ const PRIVACY_GROUPS: ReadonlyArray<{
       { key: "showAge",         title: "Show my age",         description: "Display age next to your name" },
       { key: "showDistance",    title: "Show distance",       description: "Show how far you are from matches" },
       { key: "showLastActive",  title: "Show last active",    description: '"Online now" / "Active 2h ago"' },
+      // Sub-plan 14 / T7 — surfaces the showOnMap opt-in. Bound to a
+      // dedicated hook (useShowOnMap) below, not the in-memory toggles
+      // map, so the value persists to localStorage across reloads.
+      { key: "showOnMap",       title: "Show me on the map",  description: "Others see your avatar pinned to your country on the discovery map. Turn off to stay hidden." },
     ],
   },
   {
@@ -72,6 +78,11 @@ const DEFAULTS: Record<ToggleKey, boolean> = {
   showAge:             true,
   showDistance:        true,
   showLastActive:      false,
+  // Note: the actual source of truth for `showOnMap` is the
+  // `useShowOnMap` localStorage hook. This default mirrors the hook's
+  // own default so the SSR render matches the hydrated value for fresh
+  // users (avoids a flash of "off" before hydration).
+  showOnMap:           true,
   incognito:           false,
   readReceipts:        true,
   limitWhoCanMessage:  false,
@@ -89,9 +100,21 @@ const SHORTCUT_LINKS: ReadonlyArray<{
 
 export default function PrivacySettingsPage() {
   const [toggles, setToggles] = useState<Record<ToggleKey, boolean>>(DEFAULTS);
+  // Sub-plan 14 / T7 — `showOnMap` is the only toggle on this page
+  // currently backed by real persistent storage (localStorage). The
+  // rest are in-memory placeholders until the backend lands.
+  const { value: showOnMap, setValue: setShowOnMap } = useShowOnMap();
 
-  const set = (key: ToggleKey, value: boolean) =>
+  const checkedFor = (key: ToggleKey): boolean =>
+    key === "showOnMap" ? showOnMap : toggles[key];
+
+  const set = (key: ToggleKey, value: boolean) => {
+    if (key === "showOnMap") {
+      setShowOnMap(value);
+      return;
+    }
     setToggles((prev) => ({ ...prev, [key]: value }));
+  };
 
   return (
     <PageShell bottomPad="nav">
@@ -139,7 +162,7 @@ export default function PrivacySettingsPage() {
                     </ItemDescription>
                   </ItemContent>
                   <Switch
-                    checked={toggles[item.key]}
+                    checked={checkedFor(item.key)}
                     onCheckedChange={(checked) => set(item.key, checked)}
                     aria-label={item.title}
                   />

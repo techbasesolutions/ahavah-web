@@ -1983,6 +1983,95 @@ Pass rate (excluding waived): **92 / 92 = 100%**.
 
 ---
 
+## 21. 2026-05-12 Sub-plan 14 closure — Map Discovery (real Leaflet+OSM tiles)
+
+Sub-plan 14 ships the second half of Bumpy's international-discovery model that §19's "Correction" subsection (commit `8eee357`) acknowledged was missing — the world-map view that complements §19's filter-first surface. `/map` renders a real raster-tile world map (Leaflet + OSM, no API key) with avatar markers pinned to country centroids; tapping a marker opens `/profile/[uuid]?from=map` and the profile-detail back button is context-aware. Filters are shared with `/discover` via a single `useFilters()` localStorage-backed store, so panning the map and adjusting filters narrows the swipe deck on shared state. Together with SP13, SP14 closes the gap §19's Correction subsection opened: Bumpy ships filter-first AND map-based, and Ahavah now does too.
+
+### Honest scope-creep accounting — three iterations + four UX rounds
+
+This sub-plan reached its current shape only after three rounds of user pushback. Each correction landed with the user's feedback as the driver; without it, the wrong-looking surfaces would have shipped. The history is preserved here so future readers see the cost honestly.
+
+**First iteration (T1–T5, d3-geo SVG renderer path).** Original plan picked `react-simple-maps`, which has a hard React 18 peer-dep — incompatible with this project's React 19. We swapped the renderer to `d3-geo` + `d3-zoom` + `topojson-client` + `world-atlas` (commit `fbd3bf0`), then built the primitives (`WorldMap` `9b4b452`, `MapAvatar` `0828bbe`, `ContinentPicker` `a00d51f`) and shipped `/map` at `2f5e139`. Outcome: rendered the world, but as a letterboxed grey-on-grey SVG that looked nothing like a real map. First user pushback ("the map looks bad") drove a layout rebuild (`6834b16` T5b) — full-bleed map, thin top bar, FAB-style CTA — matching the Bumpy reference screenshot the user supplied.
+
+**Renderer swap (Leaflet + OSM raster tiles, commit `9691025`).** Second user pushback was blunt: "why does the map look like shit? use a real google map interface or some other native map software." Full renderer swap: d3-geo SVG out, `react-leaflet` + `MapContainer` + OSM `tile.openstreetmap.org` raster tiles in. Bundle size went DOWN by ~113KB because `d3-geo` + `d3-zoom` + `topojson-client` + `world-atlas` topology JSON together outweighed `leaflet` + the dynamic-imported `react-leaflet` wrapper. The bbox prop was preserved (Leaflet honours it via `fitBounds` in `MapEventHandler`), so any future continent picker can fly the map to a region without a separate API.
+
+**Layout + UX corrections (4 rounds of fix-ups across `708ff2f` + `086c531`).** Third user pushback came as a batch of 4 reference screenshots: flag emojis on markers, a wide "Show me on Map" opt-in CTA, verified-only inside the filter sheet rather than as a top-level toggle, and Caleb opt-out for demo. Combined T6+T7 work landed at `708ff2f`: `showOnMap?: boolean` field on `Profile`, `useShowOnMap()` hook (localStorage key `ahavah.show_on_map.v1`), Settings → Privacy switch row, flag-emoji overlay on every `MapAvatar` via `flagFromCC()`, verified-only as a row inside `FiltersSheet`, and the in-map CTA. Fourth pushback batch — four corrections more — landed at `086c531`: (a) map filters must be the SAME filters as `/discover` → drop the bespoke `ContinentPicker` + verified-only sheet, mount the shared `FiltersSheet` directly on `/map` and back both surfaces with `useFilters()`; (b) `Globe` icon on `/discover` is misleading because the actual map view is on its own BottomNav tab → swap to `SlidersHorizontal` on both surfaces for filter-open buttons; (c) back button on `/profile/[uuid]` arriving from a map marker should return to `/map`, not `/discover` → marker hrefs append `?from=map`, profile page reads `searchParams.get("from")` and points `backHref` accordingly with an aria-label that matches; (d) drop the in-map "Show me on Map" CTA entirely — viewers control their own visibility from Settings only.
+
+### Per-task commit table
+
+| Commit | Layer | Purpose |
+|---|---|---|
+| `d74868f` | spec | SP14 Map Discovery plan committed |
+| `fbd3bf0` | T1 | `country-centroids` + `continent-bbox` modules + initial d3 stack (after react-simple-maps React 19 blocker) |
+| `9b4b452` | T2 | `<WorldMap>` primitive — d3-geo + d3-zoom SVG world (later replaced) |
+| `0828bbe` | T3 | `<MapAvatar>` — tappable gradient marker at country centroid |
+| `a00d51f` | T4 | `<ContinentPicker>` — 6-continent pill row (later removed in `086c531`) |
+| `2f5e139` | T5 | `/map` route + 5-tab BottomNav with Map tab |
+| `6834b16` | T5b | full-bleed layout matching Bumpy reference (top bar, FAB CTA) |
+| `9691025` | renderer | swap d3-geo SVG for react-leaflet + OSM raster tiles |
+| `708ff2f` | T6+T7 | `showOnMap` field + `useShowOnMap` hook + Settings toggle + flag-emoji overlay + verified-only inside filter sheet + Caleb opt-out demo |
+| `086c531` | fix-up | unify filters with /discover via `useFilters()`, swap `Globe` → `SlidersHorizontal`, `?from=map` back-button context, drop in-map CTA |
+
+### Architecture
+
+`/map` (`src/app/map/page.tsx`) is composed of a thin top bar (`BrandMark` left + `FiltersSheet`-triggering `SlidersHorizontal` button right, both `absolute inset-x-0 top-0 z-20` with `bg-bg-canvas/80` blur) and the `WorldMap` primitive that absolute-fills the `PageShell` (`bottomPad="none"`). The `WorldMap` mounts a Leaflet `MapContainer` (`worldCopyJump`, `minZoom={2}`, `maxZoom={10}`, OSM `TileLayer`) and renders `<MapAvatar>` children as Leaflet `<Marker>` elements via `L.divIcon` — each marker is a 44×44 gradient circle (lime ring via `box-shadow`) with an 18×18 flag-emoji bubble bottom-right (`flagFromCC()` derives the emoji from the ISO code). Cross-route filter state is mediated by `useFilters()` (a localStorage-backed shared hook consumed by `/discover`, `/map`, and `/settings/privacy`), so picking Country: BB on one surface immediately narrows the marker pool on the other. The `?from=map` searchParam is appended to marker hrefs in `MapAvatar` and read by `/profile/[uuid]/page.tsx` to flip `backHref` to `/map` and `backLabel` to "Back to map".
+
+### Cross-screen functionality update
+
+- **`/map`** — full-bleed Leaflet view; 7 markers visible (Caleb opted out via `showOnMap: false`); flag emoji bubble per marker; `FiltersSheet` (the SP13 full filter set) opens from the top-right `SlidersHorizontal` button; continent jumping happens through pan/zoom only (no explicit picker); BottomNav floats over the map.
+- **`/discover`** — header filter icon is now `SlidersHorizontal` (was `Globe`); same `FiltersSheet`; state synchronised with `/map` via `useFilters()`; the BottomNav Map tab still uses the `Globe` glyph (tab-label semantics — "open the world view").
+- **`/profile/[uuid]`** — back button is context-aware: `searchParams.get("from") === "map"` → `backHref = "/map"`, `backLabel = "Back to map"`; default remains `/discover`.
+- **`/settings/privacy`** — new "Show me on the map" Switch row (helper: "Others see your avatar pinned to your country on the discovery map. Turn off to stay hidden."), persisted to localStorage `ahavah.show_on_map.v1`.
+
+### Final verification — every claim cites a re-runnable query
+
+- **Real OSM tile rendering:** `grep -n "tile.openstreetmap" src/components/app/world-map.tsx` returns the `TileLayer` URL at line 135 — `https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png`.
+- **Leaflet renderer (not d3-geo):** `grep -n "react-leaflet\|leaflet" src/components/app/world-map.tsx` returns 4 matches (CSS import, `MapContainer`/`TileLayer`/`useMap`/`useMapEvents` imports, doc-comment lines).
+- **Filter state shared cross-route:** `grep -rln "useFilters" src/app/ src/lib/` returns `src/app/discover/page.tsx`, `src/app/map/page.tsx`, `src/lib/use-filters.ts` (the hook itself).
+- **Settings opt-in hook:** `grep -rln "useShowOnMap" src/` returns `src/app/settings/privacy/page.tsx`, `src/lib/use-show-on-map.ts`.
+- **Profile back-button context:** `grep -n "searchParams.get" src/app/profile/[uuid]/page.tsx` returns line 77 — `const fromMap = searchParams.get("from") === "map";` — backed by `backHref = fromMap ? "/map" : "/discover"` at line 78 and `backLabel` at line 79.
+- **Marker hrefs append `?from=map`:** `grep -n "from=map" src/components/app/map-avatar.tsx` returns line 84 — `` const href = `/profile/${slug}?from=map`; ``.
+- **No `Globe` icon on `/discover`:** `grep -n "Globe" src/app/discover/page.tsx` returns no matches; `SlidersHorizontal` appears 4 times (import line 8, lifted-open comment line 66, two trigger buttons at 176 + 230).
+- **Map filter icon is `SlidersHorizontal`:** `grep -n "SlidersHorizontal" src/app/map/page.tsx` returns 4 matches (doc-comment lines 19/158 + import 53 + JSX 168). `Globe` does not appear in `src/app/map/page.tsx`.
+- **`showOnMap` field on schema + sample:** `grep -n "showOnMap" src/lib/profile-schema.ts` returns line 657 (`showOnMap?: boolean;`). `grep -n "showOnMap" src/lib/profile-sample.ts` returns 9 matches — Caleb at line 163 is `false`, the other 7 sample profiles are `true`.
+- **localStorage key for opt-out:** `grep -n "ahavah.show_on_map" src/lib/use-show-on-map.ts` returns `STORAGE_KEY = "ahavah.show_on_map.v1"` at line 20 (and 3 read/write sites at lines 27/39/44).
+- **No in-map "Show me on Map" CTA:** `grep -n "Show me on Map" src/app/map/page.tsx` returns only a doc-comment reference ("CTA was removed in commit `086c531`") — no JSX, no rendered text.
+- **5-tab BottomNav with Map tab:** `grep -n '/map' src/components/app/bottom-nav.tsx` returns line 12 — `{ key: "map", href: "/map", label: "Map", Icon: Globe }` — flanked by Discover/Matches/Inbox/Profile (lines 11/13/14/15).
+- **Caleb opt-out applied at the map page:** `grep -n "showOnMap !== false" src/app/map/page.tsx` returns the filter call at line 114.
+- **44 routes built (`/map` is the new addition):** `pnpm build` output enumerates 44 routes; `/map` appears between `/maintenance` and `/match`.
+- **Vitest 251/251 pass:** `npx vitest run` returns `Test Files 22 passed (22), Tests 251 passed (251)`. SP14 added 4 test files — `tests/lib/use-show-on-map.test.ts` (6 cases), `tests/lib/use-filters.test.ts` (3 cases), `tests/lib/country-centroids.test.ts` (5 cases), `tests/lib/continent-bbox.test.ts` (5 cases) — 19 new cases total.
+- **Typecheck + lint clean:** `npx tsc --noEmit` exits 0 (no output). `pnpm exec eslint --max-warnings=0 .` exits 0 (no output).
+- **All SP14 routes return HTTP 200:** `curl` against the dev server: `/map`, `/discover`, `/profile/adina`, `/profile/adina?from=map`, `/settings/privacy` — all 200.
+
+### Outstanding sub-plans (carry-forward)
+
+- ~~Sub-plan 14 (Map Discovery)~~ — **shipped (this sub-plan, §21).**
+- Settings shell-out — still outstanding.
+- Legal pages (Terms, Privacy Policy, Community Guidelines) — still outstanding.
+
+### Deferred (not in MVP scope; future sub-plans)
+
+- **Marker state badges** — overlay heart/message/paper-plane decision glyphs on `MapAvatar` so the map reflects `useDecisions()` state at a glance. Requires coupling `useDecisions` into `MapAvatar` + a sprite layer for the overlay.
+- **Real Google Maps / Mapbox tiles** — Tier-4 backend (paid API key required). Current `WorldMap` is one `TileLayer` URL swap away from any compatible raster provider.
+- **Rocket / Warp / Boost FAB** — likely Bumpy-style premium feature; deferred until monetization phase.
+- **Marker sizing by activity / proximity** — would need real-time activity data; not in the demo sample pool.
+
+### Bumpy alignment
+
+SP14 + SP13 together complete Bumpy's international discovery model — filter-first (SP13's `FiltersSheet` + 9-axis scoring including languages) AND map-based (SP14's full-bleed Leaflet view + country-centroid markers). The §19 "Correction" subsection (commit `8eee357`) documented the misframing that delayed SP14 — SP13 had originally claimed Bumpy was "filter-first only, no map view," which the user corrected with a screenshot. SP14 closes the gap that Correction opened.
+
+### Honesty note (per §18 sign-off rule)
+
+- Three user-pushback rounds drove the iteration. None were the result of unprompted internal review; in each case the user supplied a reference screenshot or a direct complaint, and I corrected after the fact. The first version of T5 wrapped the map in a Card. The d3-geo letterbox looked grey-on-grey and nothing like a real map. The bespoke continent picker + verified-only sheet duplicated `/discover`'s filter affordances instead of sharing them. The in-map opt-in CTA cluttered the surface for an opt-in that already lived in Settings. The `Globe` filter icon on `/discover` was a duplicate cue for the Map tab.
+- A real interactive smoke walk in a browser (real OS pan/zoom events, real touch on a marker, real localStorage round-trip on the Settings switch) was not performed in this closeout pass — the smoke walk was structural verification via code inspection, grep, HTTP probes, and the verification gates (vitest 251/251, typecheck clean, lint clean, build 44 routes). The browser-driven walk should be the user's first action post-merge.
+- Every "X is complete" claim above is anchored to a grep query, a test-file path with case count, an HTTP probe, or a build-output line, in keeping with the §18 sign-off rule and the "no pretending" §15 directive.
+
+### Branch + merge
+
+Branch `sub-plan-14-map-discovery` at head `086c531`. Merge to `master` via `git merge --no-ff` (so the SP14 iteration history is preserved as a sub-graph on master).
+
+---
+
 ## Sign-off
 
 This audit is honest. Where it disagrees with `SESSION-SUMMARY.md`, this document supersedes. Future sessions: read this first, update it last. Don't pretend.

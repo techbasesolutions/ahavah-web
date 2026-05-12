@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { Heart, Home, Mail, User } from "lucide-react";
+import { Globe, Heart, Home, Mail, User } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
 const TABS = [
   { key: "discover", href: "/discover", label: "Discover", Icon: Home },
+  { key: "map",      href: "/map",      label: "Map",      Icon: Globe },
   { key: "matches",  href: "/matches",  label: "Matches",  Icon: Heart },
   { key: "inbox",    href: "/inbox",    label: "Inbox",    Icon: Mail },
   { key: "profile",  href: "/profile",  label: "Profile",  Icon: User },

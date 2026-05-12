@@ -652,6 +652,9 @@ export type Profile = {
   // Voice intro + prompt cards (placeholders — sub-plans 3 + 6)
   voiceIntroUrl?: string;
   promptCards?: Array<{ promptId: string; answer: string }>;
+  // Map visibility (sub-plan 14 / T7) — soft default `true` at consumer
+  // level. When false, the profile is filtered out of the /map view.
+  showOnMap?: boolean;
 };
 
 /**

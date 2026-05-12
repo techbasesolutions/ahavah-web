@@ -655,9 +655,15 @@ describe("Sample profiles", () => {
     expect(SAMPLE_PROFILES).toHaveLength(8);
   });
 
-  it("all 8 samples are discoverEligible (minimum 6 fields filled)", () => {
+  it("samples are discoverEligible except for documented T6 demo (Tirzah)", () => {
+    // Sub-plan 14 / T6+T7: Tirzah's verificationTags was intentionally
+    // emptied so the /map "Verified only" filter has an observable
+    // effect. verificationTags is in MINIMUM_COMPLETE_FIELDS, so she
+    // is the ONE expected discoverEligible=false sample. Every other
+    // sample must still pass.
     for (const p of SAMPLE_PROFILES) {
-      expect(computeCompleteness(p).discoverEligible).toBe(true);
+      const expected = p.firstName === "Tirzah" ? false : true;
+      expect(computeCompleteness(p).discoverEligible).toBe(expected);
     }
   });
 

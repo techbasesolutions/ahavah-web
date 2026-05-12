@@ -4,7 +4,12 @@ export type Country = {
   flag: string;
 };
 
-const flagFromCC = (cc: string): string =>
+/**
+ * Convert a 2-letter ISO country code to its emoji flag. Exported so
+ * MapAvatar (sub-plan 14 / T6) can render the same flag inline on the
+ * map marker as is rendered alongside the country name elsewhere.
+ */
+export const flagFromCC = (cc: string): string =>
   cc
     .toUpperCase()
     .split("")

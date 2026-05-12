@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { use, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
@@ -66,7 +66,17 @@ export default function ProfileDetailPage({ params }: Props) {
   const profile = sampleByName(uuid);
   const { profile: userProfile, loaded: profileLoaded } = useProfile();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { recordPass, recordLike } = useDecisions();
+
+  // Back-button target — when the viewer arrived from /map (MapAvatar
+  // appends ?from=map on marker tap), we return to /map instead of the
+  // /discover default. User feedback (2026-05-12):
+  // "the back button on profiles when clicked from the map should go
+  //  back to the map".
+  const fromMap = searchParams.get("from") === "map";
+  const backHref = fromMap ? "/map" : "/discover";
+  const backLabel = fromMap ? "Back to map" : "Back to discover";
 
   // Deterministic 3-photo gradient stamp keyed off the uuid. Same uuid →
   // same gradients across reloads. Replaced once Sub-plan 9 (real photos)
@@ -165,12 +175,13 @@ export default function ProfileDetailPage({ params }: Props) {
             className="absolute inset-y-0 right-0 z-0 w-1/2 cursor-default outline-none focus-visible:bg-black/10"
           />
 
-          {/* Top chrome — back / more */}
+          {/* Top chrome — back / more. Back href + label read from
+              ?from=map to send map visitors back to /map. */}
           <div className="absolute top-3 right-3 left-3 z-10 flex items-center justify-between">
             <Link
-              href="/discover"
+              href={backHref}
               prefetch={false}
-              aria-label="Back"
+              aria-label={backLabel}
               className={cn(buttonVariants({ size: "circle", tone: "overlay" }))}
             >
               <ChevronLeft className="text-white" />
@@ -477,7 +488,7 @@ export default function ProfileDetailPage({ params }: Props) {
                 onClick={() => {
                   const subjectId = (profile.firstName ?? uuid).toLowerCase();
                   recordPass(subjectId);
-                  router.push("/discover");
+                  router.push(backHref);
                 }}
               >
                 <X className="text-black" />
@@ -494,7 +505,7 @@ export default function ProfileDetailPage({ params }: Props) {
                   if (userProfile && simulateLikesBack(userProfile, profile)) {
                     router.push(`/match?id=${subjectId}`);
                   } else {
-                    router.push("/discover");
+                    router.push(backHref);
                   }
                 }}
               >
