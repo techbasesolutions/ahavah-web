@@ -131,6 +131,12 @@ export default function DiscoverPage() {
       if (photoIndex < candidatePhotos.length - 1) {
         setPhotoIndex((i) => i + 1);
       } else {
+        // Past the last photo → treat as a Skip on the current candidate.
+        // The recordPass is required: under the head-only deck model, the
+        // filter (hasDecided) is the sole driver of deck advancement. Without
+        // recording the decision, the candidate stays atop filteredDeck and
+        // the user loops on right-edge taps.
+        recordPass(profile.id);
         advanceUser("skip");
       }
     } else if (photoIndex > 0) {
