@@ -1,31 +1,61 @@
 "use client";
 
+import Link from "next/link";
 import { motion } from "motion/react";
-import { ShieldCheck } from "lucide-react";
+import { IdCard, Scan, Smartphone } from "lucide-react";
 
-import {
-  ToggleGroup,
-  ToggleGroupItem,
-} from "@/components/ui/toggle-group";
+import { buttonVariants } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { IconBadge } from "@/components/ui/icon-badge";
+
+import { cn } from "@/lib/utils";
 
 import { OnboardingShell } from "@/components/app/onboarding-shell";
-import { useProfile } from "@/lib/use-profile";
-import { VERIFICATION_TAGS, type VerificationTag } from "@/lib/profile-schema";
 
 const fadeUp = {
   initial: { opacity: 0, y: 12 },
   animate: { opacity: 1, y: 0 },
 };
 
-export default function VerificationStep() {
-  const { profile, update } = useProfile();
-  const selected = profile.verificationTags ?? [];
+// Mirrors the TIERS array in src/app/verify/page.tsx. Body copy is
+// trimmed slightly here to read better at onboarding length, but the
+// label / sub / color / icon set is identical to the /verify hub so the
+// user's first encounter with the tier system matches what they'll see
+// later from their profile.
+const TIERS = [
+  {
+    key: "bronze",
+    color: "#CD7F32",
+    label: "Bronze",
+    sub: "Profile verified",
+    body: "Selfie + photo cross-check. Confirms you're a real person matching your photos.",
+    Icon: Smartphone,
+  },
+  {
+    key: "silver",
+    color: "#C0C0C0",
+    label: "Silver",
+    sub: "Liveness verified",
+    body: "Quick face-liveness check (anti-spoofing). Distinguishes you from a video or photo.",
+    Icon: Scan,
+  },
+  {
+    key: "gold",
+    color: "#FFD700",
+    label: "Gold",
+    sub: "ID verified",
+    body: "Government ID + face match. Highest trust signal.",
+    Icon: IdCard,
+  },
+];
 
+export default function VerificationStep() {
   return (
     <OnboardingShell
       href="/onboarding/verification"
       next="/onboarding/complete"
-      ctaDisabled={selected.length === 0}
+      ctaDisabled={false}
+      ctaLabel="Skip for now"
     >
       <motion.div
         {...fadeUp}
@@ -33,53 +63,59 @@ export default function VerificationStep() {
         className="flex flex-col gap-2"
       >
         <h1 className="text-display text-white">
-          Choose at least one way to verify<span className="text-lime">.</span>
+          Trust takes you further<span className="text-lime">.</span>
         </h1>
         <p className="text-body text-text-secondary">
-          More verifications = more trust + better matches. You can add more
-          later from /verify.
+          Pick where you want to start verifying. You can always upgrade later
+          from your profile.
         </p>
       </motion.div>
 
-      <motion.div
-        {...fadeUp}
-        transition={{ duration: 0.4, delay: 0.15 }}
-        className="mt-8"
-      >
-        <ToggleGroup
-          multiple
-          value={selected}
-          onValueChange={(v) =>
-            update({ verificationTags: v as VerificationTag[] })
-          }
-          spacing={2}
-          className="flex-wrap"
-          aria-label="Verification methods"
-        >
-          {VERIFICATION_TAGS.map((tag, i) => (
-            <motion.div
-              key={tag.value}
-              {...fadeUp}
-              transition={{
-                duration: 0.3,
-                delay: 0.2 + Math.min(i, 4) * 0.05,
-              }}
-              className="contents"
+      {/* Tier cards stagger in (bronze → silver → gold) matching the
+          visual progression of the tier system on /verify. Every tier is
+          an equally-valid starting point at onboarding time, so no
+          "current" lavender-ring treatment — leans on the tier color as
+          the primary signal. */}
+      <div className="mt-8 flex flex-col gap-4">
+        {TIERS.map((tier, i) => (
+          <motion.div
+            key={tier.key}
+            {...fadeUp}
+            transition={{ duration: 0.4, delay: 0.08 + i * 0.08 }}
+          >
+            <Card
+              tone="tier"
+              className="gap-3 px-5 py-5"
+              style={{ "--tier-color": tier.color } as React.CSSProperties}
             >
-              <ToggleGroupItem
-                value={tag.value}
-                variant="pill"
-                size="tap"
-                aria-label={tag.label}
-                className="gap-2 transition-transform active:scale-95"
-              >
-                <ShieldCheck className="size-4" aria-hidden />
-                {tag.label}
-              </ToggleGroupItem>
-            </motion.div>
-          ))}
-        </ToggleGroup>
-      </motion.div>
+              <CardHeader className="flex-row items-center gap-3 px-0">
+                <IconBadge tone="tier" size="xl">
+                  <tier.Icon />
+                </IconBadge>
+                <div className="flex-1">
+                  <h2 className="text-h3 text-white">{tier.label}</h2>
+                  <p className="text-meta text-text-secondary">{tier.sub}</p>
+                </div>
+              </CardHeader>
+              <CardContent className="px-0">
+                <p className="text-body leading-relaxed text-white/85">
+                  {tier.body}
+                </p>
+                <Link
+                  href={`/verify/${tier.key}`}
+                  prefetch={false}
+                  className={cn(
+                    buttonVariants({ variant: "outlineTier", size: "lg" }),
+                    "mt-4 w-full rounded-full",
+                  )}
+                >
+                  Start {tier.label} verification →
+                </Link>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
+      </div>
     </OnboardingShell>
   );
 }

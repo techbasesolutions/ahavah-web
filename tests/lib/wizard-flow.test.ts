@@ -71,8 +71,10 @@ describe("wizard-flow", () => {
   it("routeForField maps a required-field key to its wizard route", () => {
     expect(routeForField("firstName")).toBe("/onboarding/name");
     expect(routeForField("intent")).toBe("/onboarding/looking-for");
-    expect(routeForField("verificationTags")).toBe("/onboarding/verification");
-    // Fields without a wizard step (e.g. interests is not required) return null
+    // Fields without a wizard step (e.g. interests is not required) return null.
+    // Post-SP24, verificationTags is also unmapped — the /onboarding/verification
+    // step still renders but no longer carries a requiredField annotation.
+    expect(routeForField("verificationTags")).toBeNull();
     expect(routeForField("interests")).toBeNull();
   });
 
@@ -104,5 +106,26 @@ describe("wizard-flow", () => {
 
   it("firstMissingStepFor on an empty profile returns the first required step", () => {
     expect(firstMissingStepFor({})).toBe("/onboarding/name");
+  });
+
+  it("does not gate /onboarding/verification on verificationTags after SP24", () => {
+    // Profile that satisfies every other required wizard field but has no
+    // verificationTags. Pre-SP24 this would have routed to
+    // /onboarding/verification; post-SP24 the wizard treats verificationTags
+    // as earned at /verify/[tier], not pre-committed at onboarding, so
+    // firstMissingStepFor returns null.
+    const profile: Profile = {
+      firstName: "Test",
+      age: 30,
+      sex: "female",
+      maritalStatus: "never-married",
+      children: 0,
+      country: "BB",
+      intent: "marriage-only",
+      assembly: "messianic",
+      relocation: "international-open",
+      // verificationTags omitted
+    };
+    expect(firstMissingStepFor(profile)).toBeNull();
   });
 });
