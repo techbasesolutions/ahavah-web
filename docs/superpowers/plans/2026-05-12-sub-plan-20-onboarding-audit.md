@@ -30,7 +30,7 @@ For each (route, axis) cell: PASS / NEEDS WORK / FAIL / WAIVED / UNVERIFIED. Eve
 | 2 | Brand presence | BrandMark or equivalent identity anchor visible OR justified absence |
 | 3 | Color hierarchy | Primary action visually dominant, supporting actions de-emphasized, semantic tokens used |
 | 4 | Spatial composition | Asymmetric/intentional layout; respects PageShell + 8px grid; not centered-blob without reason |
-| 5 | Motion | Fade-up entrance staggered ≤300ms total; reduce-motion respected; GPU-only transforms |
+| 5 | Motion | (a) Interaction feedback ≤300ms (button taps, hovers, state changes). (b) Staggered entrance reveals ≤500ms total (cascaded item fade-ups). reduce-motion respected; GPU-only transforms. See `docs/motion-budget.md` for the cookbook + `scripts/audit-motion.mjs` for measurement. |
 | 6 | Typography | text-display/h1/h2/h3/body/meta/caption/overline tokens used; tabular-nums on numerics; 16px min body to prevent iOS auto-zoom |
 | 7 | Touch targets | All interactive elements ≥44px; tap zones explicit |
 | 8 | R5 four-state | happy / loading / empty / error present OR WAIVED with reason |

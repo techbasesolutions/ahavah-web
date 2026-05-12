@@ -115,7 +115,7 @@ export default function LanguagesStep() {
     <OnboardingShell href="/onboarding/languages" ctaDisabled={!isComplete}>
       <motion.div
         {...fadeUp}
-        transition={{ duration: 0.4 }}
+        transition={{ duration: 0.3 }}
         className="flex flex-col gap-2"
       >
         <h1 className="text-display text-white">
@@ -131,7 +131,7 @@ export default function LanguagesStep() {
           Pills below. */}
       <motion.div
         {...fadeUp}
-        transition={{ duration: 0.4, delay: 0.1 }}
+        transition={{ duration: 0.3, delay: 0.06 }}
         className="mt-8"
       >
         <ToggleGroup
@@ -147,8 +147,8 @@ export default function LanguagesStep() {
               key={lang.code}
               {...fadeUp}
               transition={{
-                duration: 0.3,
-                delay: 0.1 + Math.min(i, 4) * 0.04,
+                duration: 0.25,
+                delay: 0.06 + Math.min(i, 4) * 0.03,
               }}
               className="contents"
             >
@@ -252,7 +252,7 @@ export default function LanguagesStep() {
           aria-live region. */}
       <motion.div
         {...fadeUp}
-        transition={{ duration: 0.4, delay: 0.25 }}
+        transition={{ duration: 0.25, delay: 0.18 }}
         className="mt-5"
       >
         <Label
@@ -295,7 +295,7 @@ export default function LanguagesStep() {
           whole page. */}
       <motion.p
         {...fadeUp}
-        transition={{ duration: 0.4, delay: 0.3 }}
+        transition={{ duration: 0.25, delay: 0.22 }}
         id="languages-helper"
         role={selected.length === 0 ? "alert" : undefined}
         aria-live="polite"

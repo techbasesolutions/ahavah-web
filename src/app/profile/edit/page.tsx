@@ -60,7 +60,7 @@ export default function EditProfilePage() {
             state reads urgently without nagging. */}
         <motion.div
           {...fadeUp}
-          transition={{ duration: 0.4 }}
+          transition={{ duration: 0.25 }}
         >
           <Card tone="elevated" className="flex flex-col gap-2 rounded-2xl px-5 py-4">
             <div className="flex items-baseline justify-between gap-3">
@@ -95,29 +95,29 @@ export default function EditProfilePage() {
             photos are the headline of any profile. Uses PhotoEditSection
             which wraps the same compressImage + canAddPhoto + PhotoSlot
             stack as /onboarding/photos, but in a ProfileSection shell. */}
-        <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.05 }}>
+        <motion.div {...fadeUp} transition={{ duration: 0.25, delay: 0.04 }}>
           <PhotoEditSection />
         </motion.div>
 
-        <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.1 }}>
+        <motion.div {...fadeUp} transition={{ duration: 0.25, delay: 0.08 }}>
           <IdentitySection />
         </motion.div>
-        <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.15 }}>
+        <motion.div {...fadeUp} transition={{ duration: 0.25, delay: 0.12 }}>
           <FaithSection />
         </motion.div>
-        <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.2 }}>
+        <motion.div {...fadeUp} transition={{ duration: 0.25, delay: 0.16 }}>
           <DoctrineSection />
         </motion.div>
-        <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.25 }}>
+        <motion.div {...fadeUp} transition={{ duration: 0.25, delay: 0.16 }}>
           <LifestyleSection />
         </motion.div>
-        <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.3 }}>
+        <motion.div {...fadeUp} transition={{ duration: 0.25, delay: 0.16 }}>
           <InterestsSection />
         </motion.div>
-        <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.35 }}>
+        <motion.div {...fadeUp} transition={{ duration: 0.25, delay: 0.16 }}>
           <PracticalSection />
         </motion.div>
-        <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.4 }}>
+        <motion.div {...fadeUp} transition={{ duration: 0.25, delay: 0.16 }}>
           <VerificationSection />
         </motion.div>
 
@@ -125,7 +125,7 @@ export default function EditProfilePage() {
             a "I'm finished" affordance that routes back to /profile. */}
         <motion.div
           {...fadeUp}
-          transition={{ duration: 0.4, delay: 0.45 }}
+          transition={{ duration: 0.25, delay: 0.2 }}
           className="flex flex-col gap-1"
         >
           <Button

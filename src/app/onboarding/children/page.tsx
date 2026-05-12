@@ -44,7 +44,7 @@ export default function ChildrenStep() {
 
       <motion.div
         {...fadeUp}
-        transition={{ duration: 0.4, delay: 0.15 }}
+        transition={{ duration: 0.3, delay: 0.1 }}
         className="mt-10 flex flex-col items-center gap-3"
       >
         <Label className="sr-only" htmlFor="children-stepper-readout">

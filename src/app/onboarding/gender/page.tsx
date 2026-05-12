@@ -52,7 +52,7 @@ export default function GenderStep() {
 
       <motion.div
         {...fadeUp}
-        transition={{ duration: 0.4, delay: 0.15 }}
+        transition={{ duration: 0.3, delay: 0.08 }}
         className="mt-8"
       >
         <RadioGroup
@@ -69,7 +69,7 @@ export default function GenderStep() {
               <motion.div
                 key={opt.key}
                 {...fadeUp}
-                transition={{ duration: 0.35, delay: 0.2 + i * 0.05 }}
+                transition={{ duration: 0.25, delay: 0.06 + Math.min(i, 5) * 0.03 }}
               >
                 <Label
                   htmlFor={`gender-${opt.key}`}

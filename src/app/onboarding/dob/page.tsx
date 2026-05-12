@@ -95,7 +95,7 @@ export default function DOBStep() {
 
       <motion.div
         {...fadeUp}
-        transition={{ duration: 0.4, delay: 0.15 }}
+        transition={{ duration: 0.3, delay: 0.1 }}
         className="mt-8 grid grid-cols-3 gap-3"
       >
         <div className="flex flex-col gap-1">
@@ -161,7 +161,7 @@ export default function DOBStep() {
 
       <motion.p
         {...fadeUp}
-        transition={{ duration: 0.4, delay: 0.25 }}
+        transition={{ duration: 0.3, delay: 0.18 }}
         id="dob-help"
         role={isUnderage ? "alert" : undefined}
         className={

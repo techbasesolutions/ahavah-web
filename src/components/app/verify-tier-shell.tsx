@@ -104,7 +104,7 @@ export function VerifyTierShell({
             stylesheet. */}
         <motion.div
           {...fadeUp}
-          transition={{ duration: 0.5, delay: 0.05 }}
+          transition={{ duration: 0.3, delay: 0 }}
           className="flex flex-col items-center gap-5 py-4 text-center"
         >
           <div className="relative">
@@ -144,7 +144,7 @@ export function VerifyTierShell({
             SRs still read this as an ordered list. */}
         <motion.section
           {...fadeUp}
-          transition={{ duration: 0.4, delay: 0.18 }}
+          transition={{ duration: 0.25, delay: 0.06 }}
           className="flex flex-col gap-4"
           aria-label="How it works"
         >
@@ -163,7 +163,7 @@ export function VerifyTierShell({
                 <li key={step.title}>
                   <motion.div
                     {...fadeUp}
-                    transition={{ duration: 0.35, delay: 0.28 + i * 0.07 }}
+                    transition={{ duration: 0.25, delay: 0.1 + Math.min(i, 4) * 0.03 }}
                     className="relative flex items-start gap-4"
                   >
                     {/* Tier-colored numbered badge — IconBadge primitive
@@ -202,7 +202,7 @@ export function VerifyTierShell({
             comes through the ring. */}
         <motion.div
           {...fadeUp}
-          transition={{ duration: 0.45, delay: 0.55 }}
+          transition={{ duration: 0.25, delay: 0.22 }}
           className="mt-auto flex flex-col gap-3 pt-2 pb-2"
         >
           <p className="text-center text-caption text-text-muted">

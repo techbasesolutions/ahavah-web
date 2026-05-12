@@ -88,7 +88,7 @@ export default function VerifyPage() {
             <motion.div
               key={tier.key}
               {...fadeUp}
-              transition={{ duration: 0.4, delay: 0.08 + i * 0.08 }}
+              transition={{ duration: 0.25, delay: 0.06 + Math.min(i, 4) * 0.04 }}
             >
               <Card
                 tone={isCurrent ? "tier" : "tierInactive"}

@@ -59,7 +59,7 @@ export default function SignUpPage() {
     <PageShell bottomPad="default" className="px-5 pt-6">
       <motion.div
         {...fadeUp}
-        transition={{ duration: 0.4 }}
+        transition={{ duration: 0.25 }}
         className="flex justify-center pt-2"
       >
         <BrandMark size="md" />
@@ -67,7 +67,7 @@ export default function SignUpPage() {
 
       <motion.div
         {...fadeUp}
-        transition={{ duration: 0.4, delay: 0.1 }}
+        transition={{ duration: 0.25, delay: 0.07 }}
         className="mt-6 flex flex-col gap-2 text-center"
       >
         <h1 className="text-display text-white">
@@ -80,7 +80,7 @@ export default function SignUpPage() {
 
       <motion.form
         {...fadeUp}
-        transition={{ duration: 0.4, delay: 0.2 }}
+        transition={{ duration: 0.25, delay: 0.14 }}
         className="mt-8 flex flex-col gap-4"
         onSubmit={handleSubmit}
       >
@@ -246,7 +246,7 @@ export default function SignUpPage() {
 
       <motion.div
         {...fadeUp}
-        transition={{ duration: 0.4, delay: 0.3 }}
+        transition={{ duration: 0.25, delay: 0.21 }}
         className="mt-6 flex items-center justify-center gap-2 text-meta text-text-secondary"
       >
         <span>Already have an account?</span>

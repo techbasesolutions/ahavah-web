@@ -39,7 +39,7 @@ export default function NameStep() {
 
       <motion.div
         {...fadeUp}
-        transition={{ duration: 0.4, delay: 0.15 }}
+        transition={{ duration: 0.3, delay: 0.1 }}
         className="mt-8 flex flex-col gap-2"
       >
         <Label htmlFor="name-input" className="text-meta text-white">

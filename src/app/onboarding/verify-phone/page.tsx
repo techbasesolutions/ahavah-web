@@ -83,7 +83,7 @@ export default function VerifyPhoneStep() {
 
       <motion.div
         {...fadeUp}
-        transition={{ duration: 0.4, delay: 0.15 }}
+        transition={{ duration: 0.25, delay: 0.1 }}
         className="mt-10"
       >
         <CodeInput
@@ -96,7 +96,7 @@ export default function VerifyPhoneStep() {
 
       <motion.div
         {...fadeUp}
-        transition={{ duration: 0.4, delay: 0.3 }}
+        transition={{ duration: 0.25, delay: 0.2 }}
         className="mt-6 flex flex-col items-center gap-2"
       >
         <p className="text-meta text-text-secondary">Didn&apos;t get the code?</p>

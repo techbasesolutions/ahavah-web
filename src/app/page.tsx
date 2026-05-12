@@ -38,7 +38,7 @@ export default function WelcomePage() {
       {/* Brand */}
       <motion.div
         {...fadeUp}
-        transition={{ duration: 0.4 }}
+        transition={{ duration: 0.25 }}
         className="flex justify-center pt-2"
       >
         <BrandMark size="md" />
@@ -50,7 +50,7 @@ export default function WelcomePage() {
           "no stickers on welcome / from the design kit" rule. */}
       <motion.div
         {...fadeUp}
-        transition={{ duration: 0.4, delay: 0.1 }}
+        transition={{ duration: 0.25, delay: 0.07 }}
         className="flex flex-1 flex-col items-center justify-center gap-4 px-2 text-center"
       >
         <h1 className="text-display text-white">
@@ -66,7 +66,7 @@ export default function WelcomePage() {
       {/* Email composer + provider chips */}
       <motion.div
         {...fadeUp}
-        transition={{ duration: 0.4, delay: 0.2 }}
+        transition={{ duration: 0.25, delay: 0.14 }}
         className="flex flex-col gap-3"
       >
         <Input
@@ -104,7 +104,7 @@ export default function WelcomePage() {
           flows for new vs returning users. */}
       <motion.div
         {...fadeUp}
-        transition={{ duration: 0.4, delay: 0.3 }}
+        transition={{ duration: 0.25, delay: 0.21 }}
         className="mt-8 flex flex-col gap-3"
       >
         <Button

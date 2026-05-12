@@ -114,7 +114,7 @@ export default function ProfilePage() {
 
       <motion.div
         {...fadeUp}
-        transition={{ duration: 0.4, delay: 0.1 }}
+        transition={{ duration: 0.3, delay: 0.08 }}
         className="px-3 pt-8"
       >
         <ItemGroup className="gap-1">
@@ -155,7 +155,7 @@ export default function ProfilePage() {
 
       <motion.div
         {...fadeUp}
-        transition={{ duration: 0.4, delay: 0.18 }}
+        transition={{ duration: 0.3, delay: 0.16 }}
         className="px-5 pt-6 pb-2"
       >
         <Dialog open={signOutOpen} onOpenChange={setSignOutOpen}>

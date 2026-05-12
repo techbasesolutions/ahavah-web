@@ -28,7 +28,7 @@ export default function OnboardingCompletePage() {
           initial={{ opacity: 0, scale: 0.7 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{
-            duration: 0.5,
+            duration: 0.4,
             type: "spring",
             stiffness: 200,
             damping: 15,
@@ -56,7 +56,7 @@ export default function OnboardingCompletePage() {
 
         <motion.div
           {...fadeUp}
-          transition={{ duration: 0.4, delay: 0.25 }}
+          transition={{ duration: 0.3, delay: 0.15 }}
           className="flex max-w-sm flex-col gap-3"
         >
           <h1 className="text-display text-white">
@@ -71,7 +71,7 @@ export default function OnboardingCompletePage() {
 
       <motion.div
         {...fadeUp}
-        transition={{ duration: 0.4, delay: 0.45 }}
+        transition={{ duration: 0.25, delay: 0.2 }}
         className="flex flex-col gap-3"
       >
         <Button

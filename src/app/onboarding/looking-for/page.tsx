@@ -61,7 +61,7 @@ export default function LookingForStep() {
 
       <motion.div
         {...fadeUp}
-        transition={{ duration: 0.4, delay: 0.15 }}
+        transition={{ duration: 0.3, delay: 0.08 }}
         className="mt-8"
       >
         <RadioGroup
@@ -76,7 +76,7 @@ export default function LookingForStep() {
               <motion.div
                 key={opt.value}
                 {...fadeUp}
-                transition={{ duration: 0.35, delay: 0.1 + i * 0.03 }}
+                transition={{ duration: 0.25, delay: 0.06 + Math.min(i, 5) * 0.03 }}
               >
                 <Label
                   htmlFor={`looking-${opt.value}`}
