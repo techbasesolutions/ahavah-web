@@ -44,8 +44,8 @@ export interface DiscoverFilters {
   polygynyStances?: readonly Polygyny[];
   intents?: readonly Intent[];
   calendars?: readonly Calendar[];
-  country?: string[];
-  languages?: string[];
+  country?: readonly string[];
+  languages?: readonly string[];
   healthTags?: readonly HealthTag[];
   educations?: readonly EducationLevel[];
   verifiedOnly?: boolean;

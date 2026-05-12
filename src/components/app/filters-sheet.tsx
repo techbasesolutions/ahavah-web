@@ -32,6 +32,8 @@ import {
   type Polygyny,
   type TorahLevel,
 } from "@/lib/profile-schema";
+import { ALL_COUNTRIES, POPULAR_COUNTRIES } from "@/lib/countries";
+import { LANGUAGES } from "@/lib/languages";
 
 /**
  * FiltersSheet — discovery filters drawer.
@@ -82,8 +84,29 @@ export type DiscoverFiltersState = {
   calendars?: ReadonlyArray<Calendar>;
   healthTags?: ReadonlyArray<HealthTag>;
   educations?: ReadonlyArray<EducationLevel>;
+  country?: ReadonlyArray<string>;
+  languages?: ReadonlyArray<string>;
   verifiedOnly?: boolean;
 };
+
+// Country options: POPULAR_COUNTRIES (Caribbean-first 19) FIRST, then
+// alphabetized rest of ALL_COUNTRIES (231 more). PillGrid renders each
+// option as `${flag} ${label}` — matches /profile/edit + /onboarding/
+// nationality. Filter value = ISO cc to match `profile.country`.
+const COUNTRY_FILTER_OPTIONS: ReadonlyArray<PillOption<string>> = [
+  ...POPULAR_COUNTRIES.map((c) => ({ value: c.cc, label: c.name, flag: c.flag })),
+  ...[...ALL_COUNTRIES]
+    .filter((c) => !POPULAR_COUNTRIES.some((p) => p.cc === c.cc))
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((c) => ({ value: c.cc, label: c.name, flag: c.flag })),
+];
+
+// Language options: 71-entry curated list from src/lib/languages.ts,
+// preserves authored order (anglophone → European → Caribbean → African →
+// Middle East → South Asia → East/SE Asia → Sign). Value = code (e.g. "en").
+const LANGUAGE_FILTER_OPTIONS: ReadonlyArray<PillOption<string>> = LANGUAGES.map(
+  (l) => ({ value: l.code, label: l.label, flag: l.flag }),
+);
 
 const DEFAULT_FILTERS: DiscoverFiltersState = {
   ageMin: 18,
@@ -322,6 +345,34 @@ export function FiltersSheet({
               value={filters.intents ?? []}
               onValueChange={(v) =>
                 update("intents", v.length > 0 ? (v as Intent[]) : undefined)
+              }
+            />
+          </FilterSection>
+
+          <FilterSection
+            label="Country"
+            description="Caribbean & most-common destinations appear first."
+          >
+            <PillGrid
+              ariaLabel="Filter by country"
+              options={COUNTRY_FILTER_OPTIONS}
+              value={filters.country ?? []}
+              onValueChange={(v) =>
+                update("country", v.length > 0 ? v : undefined)
+              }
+            />
+          </FilterSection>
+
+          <FilterSection
+            label="Languages"
+            description="Match candidates who speak any of the languages you select."
+          >
+            <PillGrid
+              ariaLabel="Filter by languages"
+              options={LANGUAGE_FILTER_OPTIONS}
+              value={filters.languages ?? []}
+              onValueChange={(v) =>
+                update("languages", v.length > 0 ? v : undefined)
               }
             />
           </FilterSection>
