@@ -42,6 +42,7 @@ const AXIS_LABELS: Record<keyof CompatibilityBreakdown, string> = {
   communication: "Communication",
   observance: "Observance",
   feast: "Feast Days",
+  language: "Language",
 };
 
 export function CompatPill({
