@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { use } from "react";
 
 import { BlockReportSheet } from "@/components/app/block-report-sheet";
@@ -27,10 +27,29 @@ const SUBJECT_BY_ID: Record<string, { name: string; age: number; online: boolean
   tirzah:  { name: "Tirzah",  age: 22, online: true  },
 };
 
+type SentMessage = { id: string; text: string };
+
 export default function ChatThreadPage({ params }: Props) {
   const { id } = use(params);
   const subject = SUBJECT_BY_ID[id] ?? { name: "Adina", age: 24, online: true };
   const [reportOpen, setReportOpen] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [sent, setSent] = useState<SentMessage[]>([]);
+  const endRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [sent.length]);
+
+  const handleSend = () => {
+    const text = draft.trim();
+    if (!text) return;
+    setSent((prev) => [
+      ...prev,
+      { id: `${Date.now()}-${prev.length}`, text },
+    ]);
+    setDraft("");
+  };
 
   return (
     // `h-screen` (not `h-full`) so the chat layout is locked to viewport:
@@ -52,12 +71,11 @@ export default function ChatThreadPage({ params }: Props) {
         onMoreClick={() => setReportOpen(true)}
       />
 
-      {/* Messages — each bubble fades up + slides from its side on mount.
-          Stagger delay = 0.06s × i (already capped by the small message
-          count; for long threads a future virtualization layer would reset
-          delay to 0 for off-screen entries).
-          role="log" + aria-live="polite" so screen readers announce new
-          messages as they arrive without taking focus from the composer. */}
+      {/* Messages — seeded bubbles cascade in on mount with explicit delays
+          (0, 0.06, 0.12, 0.18, 0.24). Sent bubbles use delay=0 so user-typed
+          messages appear instantly on tap. role='log' + aria-live='polite'
+          so screen readers announce new messages as they arrive without
+          taking focus from the composer. */}
       <div
         role="log"
         aria-live="polite"
@@ -82,12 +100,23 @@ export default function ChatThreadPage({ params }: Props) {
         <TextBubble side="them" avatar={subject.name[0]} delay={0.24}>
           So let&apos;s go out of town?
         </TextBubble>
+        {sent.map((m) => (
+          <TextBubble
+            key={m.id}
+            side="me"
+            delay={0}
+          >
+            {m.text}
+          </TextBubble>
+        ))}
+        <div ref={endRef} aria-hidden />
       </div>
 
-      {/* TODO(chat-send): ChatInput defaults onSend to undefined here, so
-          tap-send is a no-op. Real backend will wire a send handler that
-          pushes the typed message into the thread + persists. */}
-      <ChatInput />
+      <ChatInput
+        value={draft}
+        onChange={setDraft}
+        onSend={handleSend}
+      />
 
       <BlockReportSheet
         open={reportOpen}

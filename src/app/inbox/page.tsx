@@ -1,12 +1,13 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
 import { Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Item,
   ItemActions,
@@ -16,10 +17,18 @@ import {
   ItemMedia,
   ItemTitle,
 } from "@/components/ui/item";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Pill, PillIndicator } from "@/components/kibo-ui/pill";
 
 import { cn } from "@/lib/utils";
+import { filterChats } from "@/lib/inbox-filter";
 
 import { BottomNav } from "@/components/app/bottom-nav";
 import { EmptyState, ErrorState } from "@/components/app/empty-state";
@@ -64,9 +73,12 @@ const CHATS = [
 type State = "happy" | "loading" | "empty" | "error";
 
 function InboxContent() {
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState("");
   const params = useSearchParams();
   const state = (params.get("state") as State | null) ?? "happy";
-  const chats = state === "empty" ? [] : CHATS;
+  const baseChats = state === "empty" ? [] : CHATS;
+  const chats = filterChats(baseChats, query);
   const stories = state === "empty" || state === "loading" ? [] : STORIES;
 
   const body =
@@ -75,7 +87,11 @@ function InboxContent() {
     ) : state === "error" ? (
       <InboxErrorState />
     ) : chats.length === 0 ? (
-      <InboxEmptyState />
+      state !== "empty" && query.length > 0 ? (
+        <InboxNoSearchResults query={query} />
+      ) : (
+        <InboxEmptyState />
+      )
     ) : (
       <ChatList chats={chats} />
     );
@@ -84,12 +100,34 @@ function InboxContent() {
     <PageShell bottomPad="nav">
       <PageHeader pad="tight" className="flex items-center justify-between">
         <PageHeaderTitle>Chat</PageHeaderTitle>
-        {/* TODO(inbox-search): Search button needs an onClick that opens a
-            search Sheet (filter by name / message content). Renders today
-            for visual completeness but tap is a no-op. */}
-        <Button size="circle" tone="elevated" aria-label="Search messages">
-          <Search className="text-white" />
-        </Button>
+        <Sheet open={searchOpen} onOpenChange={setSearchOpen}>
+          <SheetTrigger
+            render={
+              <Button size="circle" tone="elevated" aria-label="Search messages">
+                <Search className="text-white" />
+              </Button>
+            }
+          />
+          <SheetContent side="top" className="rounded-b-3xl border-white/10 bg-bg-indigo">
+            <SheetHeader>
+              <SheetTitle>Search messages</SheetTitle>
+            </SheetHeader>
+            <div className="mt-4 px-1">
+              {/* autoFocus fires every open — SheetPortal unmounts content on close
+                  by Base UI default, so the Input re-mounts and autoFocus re-fires. */}
+              <Input
+                autoFocus
+                size="lg"
+                tone="elevated"
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search by name or last message"
+                aria-label="Search query"
+              />
+            </div>
+          </SheetContent>
+        </Sheet>
       </PageHeader>
 
       {/* Stories rail only renders on happy + error (matches the
@@ -238,6 +276,21 @@ function InboxEmptyState() {
   );
 }
 
+function InboxNoSearchResults({ query }: { query: string }) {
+  return (
+    <motion.div
+      {...fadeUp}
+      transition={{ duration: 0.4, delay: 0.1 }}
+      className="contents"
+    >
+      <EmptyState
+        variant="no-search-results"
+        description={`No conversations match "${query}".`}
+      />
+    </motion.div>
+  );
+}
+
 function InboxErrorState() {
   return (
     <motion.div
@@ -248,7 +301,7 @@ function InboxErrorState() {
       <ErrorState
         title="Couldn't load your chats"
         description="Check your connection and try again."
-        retry={{ label: "Try again" }}
+        retry={{ label: "Try again", onClick: () => window.location.reload() }}
       />
     </motion.div>
   );

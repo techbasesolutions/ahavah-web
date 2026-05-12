@@ -183,10 +183,29 @@ type FiltersSheetProps = {
   trigger: React.ReactElement;
   initialFilters?: Partial<DiscoverFiltersState>;
   onApply?: (filters: DiscoverFiltersState) => void;
+  /** Controlled open state. If omitted, the sheet manages its own state. */
+  open?: boolean;
+  /** Controlled state setter. Required when `open` is set. */
+  onOpenChange?: (next: boolean) => void;
 };
 
-export function FiltersSheet({ trigger, initialFilters, onApply }: FiltersSheetProps) {
-  const [open, setOpen] = useState(false);
+export function FiltersSheet({
+  trigger,
+  initialFilters,
+  onApply,
+  open: openProp,
+  onOpenChange,
+}: FiltersSheetProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  // Controlled when both `open` and `onOpenChange` are provided; otherwise
+  // uncontrolled. Lets /discover share the sheet between the Globe button
+  // (uncontrolled via SheetTrigger) and the empty-deck "Adjust filters"
+  // CTA (controlled — calls setFiltersOpen(true) from EmptyState action).
+  const open = openProp ?? internalOpen;
+  const setOpen = (next: boolean) => {
+    if (onOpenChange) onOpenChange(next);
+    else setInternalOpen(next);
+  };
   const [filters, setFilters] = useState<DiscoverFiltersState>({
     ...DEFAULT_FILTERS,
     ...initialFilters,

@@ -23,12 +23,16 @@ import { Input } from "@/components/ui/input";
  */
 type ChatInputProps = {
   placeholder?: string;
+  value: string;
+  onChange: (next: string) => void;
   onAttach?: () => void;
   onSend?: () => void;
 };
 
 export function ChatInput({
   placeholder = "Type something…",
+  value,
+  onChange,
   onAttach,
   onSend,
 }: ChatInputProps) {
@@ -48,6 +52,19 @@ export function ChatInput({
         placeholder={placeholder}
         aria-label="Type a message"
         className="flex-1"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => {
+          if (
+            e.key === "Enter" &&
+            !e.shiftKey &&
+            !e.nativeEvent.isComposing &&
+            value.trim().length > 0
+          ) {
+            e.preventDefault();
+            onSend?.();
+          }
+        }}
       />
       <Button size="circle" tone="cta" aria-label="Send" onClick={onSend}>
         <Send className="text-black" />

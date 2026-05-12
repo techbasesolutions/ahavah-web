@@ -188,7 +188,7 @@ function MatchesErrorState() {
     <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.1 }}>
       <ErrorState
         description="We couldn't load your matches. Check your connection and try again."
-        retry={{ label: "Try again" }}
+        retry={{ label: "Try again", onClick: () => window.location.reload() }}
       />
     </motion.div>
   );
