@@ -23,7 +23,7 @@ export interface DiscoverCandidate extends Profile {
  * ("show me candidates who match these"), no separate persistent
  * boundary-tag concept.
  *
- * International discovery is filter-first per Bumpy spec lines 47 + 130:
+ * International discovery is filter-first per Bumpy spec (docs/specs/bumpy_dating_app_product_feature_breakdown.md) lines 47 + 130:
  * "Local dating apps constrain users to nearby pools... Bumpy promotes
  * finding people across countries, cultures, and languages." Not
  * map-based — Bumpy contrasts itself with Tinder's local-first model
@@ -57,10 +57,8 @@ export interface DiscoverFilters {
  *
  * Filter rules:
  * - ageMin/ageMax: candidate.age must be defined and within the range
- * - countries / assemblies / torahLevels / polygynyStances / intents /
+ * - country / assemblies / torahLevels / polygynyStances / intents /
  *   calendars: candidate field must be in the selected set
- * - feastDays: at least ONE overlap between filter and candidate's
- *   feastDays (multi-select overlap, not subset)
  * - healthTags: candidate.healthTags must include EVERY selected tag
  *   (AND semantics — picking "non-smoker" + "fitness" requires both)
  * - verifiedOnly: candidate must have at least one verificationTag
