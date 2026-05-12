@@ -85,6 +85,24 @@ export function routeForField(field: keyof Profile): string | null {
   return FIELD_TO_HREF.get(field) ?? null;
 }
 
+/**
+ * Fields where a numeric `0` is a VALID complete answer (e.g. `children: 0`
+ * means "I have zero children"). For these, completeness uses an
+ * undefined/null/empty check, not a truthy check. Kept in sync with the same
+ * set in `profile-completeness.ts`.
+ */
+const ZERO_ALLOWED_FIELDS: ReadonlySet<keyof Profile> = new Set<keyof Profile>([
+  "children",
+]);
+
+const isAnswered = (value: unknown): boolean => {
+  if (value === undefined || value === null) return false;
+  if (typeof value === "string") return value.length > 0;
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === "object") return Object.keys(value).length > 0;
+  return true;
+};
+
 const isFilled = (value: unknown): boolean => {
   if (value === undefined || value === null) return false;
   if (typeof value === "string") return value.length > 0;
@@ -94,16 +112,38 @@ const isFilled = (value: unknown): boolean => {
   return true;
 };
 
+const fieldComplete = (profile: Profile, key: keyof Profile): boolean => {
+  const value = profile[key];
+  return ZERO_ALLOWED_FIELDS.has(key) ? isAnswered(value) : isFilled(value);
+};
+
 /**
  * Walks WIZARD_STEPS in canonical order and returns the href of the
  * first step whose requiredField is empty on the profile. Returns null
  * when every required field is filled.
+ *
+ * Sub-plan 18 T1 adds two interim cases for `maritalStatus` and `children`
+ * — these aren't yet WIZARD_STEPS entries (T3 will insert them), but they
+ * ARE in `MINIMUM_COMPLETE_FIELDS` so the gate already requires them. The
+ * interim cases route to the screens T2 will build; T3 then moves them
+ * into WIZARD_STEPS and removes this block. Order matches the future
+ * wizard slot (post-gender, pre-country/intent).
  */
 export function firstMissingStepFor(profile: Profile): string | null {
   for (const step of WIZARD_STEPS) {
     if (!step.requiredField) continue;
-    if (!isFilled(profile[step.requiredField])) {
+    if (!fieldComplete(profile, step.requiredField)) {
       return step.href;
+    }
+    // Interim insertion: sub-plan 18 fields slot in after gender, before
+    // intent/country. Once T3 lifts them into WIZARD_STEPS, drop this.
+    if (step.href === "/onboarding/gender") {
+      if (!fieldComplete(profile, "maritalStatus")) {
+        return "/onboarding/marital-status";
+      }
+      if (!fieldComplete(profile, "children")) {
+        return "/onboarding/children";
+      }
     }
   }
   return null;

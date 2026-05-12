@@ -69,6 +69,8 @@ describe("wizard-flow", () => {
       firstName: "Test",
       age: 30,
       sex: "male",
+      maritalStatus: "never-married",
+      children: 0,
       country: "BB",
       intent: "first-wife",
       assembly: "torah-observant",

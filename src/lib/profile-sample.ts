@@ -4,7 +4,8 @@ import type { Profile } from "@/lib/profile-schema";
  * 8 seed sample profiles for development + sub-plan testing.
  * 4 male + 4 female; covers all 4 Torah levels; covers both polygyny
  * stances; varies country/ethnicity. Most profiles pass
- * `computeCompleteness().discoverEligible` (all 6 minimum fields).
+ * `computeCompleteness().discoverEligible` (all 10 minimum fields incl.
+ * sub-plan 18's `maritalStatus` + `children`).
  *
  * Two intentional demo exceptions (sub-plan 14 / T6+T7):
  *   - Caleb has `showOnMap: false` so the /map "filter out opt-outs"
@@ -20,6 +21,8 @@ export const SAMPLE_PROFILES: ReadonlyArray<Profile> = [
     firstName: "Daniel",
     age: 32,
     sex: "male",
+    maritalStatus: "never-married",
+    children: 0,
     country: "BB",
     nationality: "barbadian",
     ethnicities: ["afro-caribbean"],
@@ -49,6 +52,8 @@ export const SAMPLE_PROFILES: ReadonlyArray<Profile> = [
     firstName: "Esther",
     age: 28,
     sex: "female",
+    maritalStatus: "never-married",
+    children: 0,
     country: "US",
     nationality: "american",
     ethnicities: ["afro-american"],
@@ -77,6 +82,8 @@ export const SAMPLE_PROFILES: ReadonlyArray<Profile> = [
     firstName: "Yosef",
     age: 41,
     sex: "male",
+    maritalStatus: "married",
+    children: 3,
     country: "JM",
     nationality: "jamaican",
     ethnicities: ["afro-caribbean"],
@@ -106,6 +113,8 @@ export const SAMPLE_PROFILES: ReadonlyArray<Profile> = [
     firstName: "Adina",
     age: 24,
     sex: "female",
+    maritalStatus: "never-married",
+    children: 0,
     country: "IL",
     nationality: "israeli",
     ethnicities: ["middle-eastern"],
@@ -134,6 +143,8 @@ export const SAMPLE_PROFILES: ReadonlyArray<Profile> = [
     firstName: "Caleb",
     age: 36,
     sex: "male",
+    maritalStatus: "divorced",
+    children: 2,
     country: "ZA",
     nationality: "south-african",
     ethnicities: ["southern-african"],
@@ -167,6 +178,8 @@ export const SAMPLE_PROFILES: ReadonlyArray<Profile> = [
     firstName: "Rivka",
     age: 31,
     sex: "female",
+    maritalStatus: "never-married",
+    children: 0,
     country: "GB",
     nationality: "british",
     ethnicities: ["afro-caribbean", "european", "mixed-heritage"],
@@ -195,6 +208,8 @@ export const SAMPLE_PROFILES: ReadonlyArray<Profile> = [
     firstName: "Ezekiel",
     age: 47,
     sex: "male",
+    maritalStatus: "re-married",
+    children: 6,
     country: "NG",
     nationality: "nigerian",
     ethnicities: ["west-african"],
@@ -224,6 +239,8 @@ export const SAMPLE_PROFILES: ReadonlyArray<Profile> = [
     firstName: "Tirzah",
     age: 22,
     sex: "female",
+    maritalStatus: "never-married",
+    children: 0,
     country: "GH",
     nationality: "ghanaian",
     ethnicities: ["west-african"],

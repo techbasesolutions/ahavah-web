@@ -610,14 +610,17 @@ describe("Profile aggregate", () => {
     expect(p.interests).toBeUndefined();
   });
 
-  it("MINIMUM_COMPLETE_FIELDS lists the 8 soft-required fields", () => {
+  it("MINIMUM_COMPLETE_FIELDS lists the 10 soft-required fields", () => {
     // Sourced from 2026-05-11 product spec — asterisked fields in the
     // Torah-observant matchmaker profile structure. verificationTags
     // requires AT LEAST ONE tag (empty arrays are not-filled).
+    // Sub-plan 18 added `maritalStatus` + `children`.
     expect(MINIMUM_COMPLETE_FIELDS).toEqual([
       "firstName",
       "age",
       "sex",
+      "maritalStatus",
+      "children",
       "country",
       "intent",
       "assembly",
