@@ -62,7 +62,7 @@ const SAMPLE_AS_CANDIDATES: DiscoverCandidate[] = SAMPLE_PROFILES.map((profile) 
 export default function DiscoverPage() {
   const router = useRouter();
   const { profile: userProfile, loaded } = useProfile();
-  const { recordPass, recordLike, hasDecided, popLast } = useDecisions();
+  const { recordPass, recordLike, hasDecided, popLast, clearAll } = useDecisions();
   // Lifted FiltersSheet open state so both the SlidersHorizontal trigger
   // AND the empty-deck "Adjust filters" CTA can open the same sheet.
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -115,6 +115,18 @@ export default function DiscoverPage() {
   );
 
   const currentPhoto = candidatePhotos[photoIndex] ?? candidatePhotos[0];
+
+  /**
+   * Reset deck affordance for the empty state. Clears all locally-recorded
+   * pass/like decisions and resets the UI indices so filteredDeck repopulates
+   * from the head. Pre-backend MVP only — once Tier-4 auth/server decisions
+   * land in a later sub-plan, this button is repurposed or removed.
+   */
+  const handleResetDeck = () => {
+    clearAll();
+    setUserIndex(0);
+    setPhotoIndex(0);
+  };
 
   const advanceUser = (action: "skip" | "like") => {
     if (!profile) return;
@@ -410,6 +422,20 @@ export default function DiscoverPage() {
                 }}
                 className="mx-0 mt-0 rounded-2xl border border-white/10 bg-bg-elevated"
               />
+              {/* Secondary affordance: clear local decisions so the deck
+                  repopulates. EmptyState only supports a single action prop,
+                  so this is rendered as a separate full-width button beneath
+                  it, matching the outlineSubtle treatment of the primary CTA.
+                  Pre-backend MVP only — see comment on handleResetDeck. */}
+              <div className="mx-5 mt-3 flex justify-center">
+                <Button
+                  variant="outlineSubtle"
+                  size="lg"
+                  onClick={handleResetDeck}
+                >
+                  Reset all decisions
+                </Button>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
