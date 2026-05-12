@@ -55,8 +55,15 @@ export default function ChatThreadPage({ params }: Props) {
       {/* Messages — each bubble fades up + slides from its side on mount.
           Stagger delay = 0.06s × i (already capped by the small message
           count; for long threads a future virtualization layer would reset
-          delay to 0 for off-screen entries). */}
-      <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-4">
+          delay to 0 for off-screen entries).
+          role="log" + aria-live="polite" so screen readers announce new
+          messages as they arrive without taking focus from the composer. */}
+      <div
+        role="log"
+        aria-live="polite"
+        aria-label={`Conversation with ${subject.name}`}
+        className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-4"
+      >
         <TextBubble side="them" avatar={subject.name[0]} delay={0}>
           Hi! How&apos;s everything with you? Did you get home safely yesterday?
         </TextBubble>
@@ -77,6 +84,9 @@ export default function ChatThreadPage({ params }: Props) {
         </TextBubble>
       </div>
 
+      {/* TODO(chat-send): ChatInput defaults onSend to undefined here, so
+          tap-send is a no-op. Real backend will wire a send handler that
+          pushes the typed message into the thread + persists. */}
       <ChatInput />
 
       <BlockReportSheet

@@ -84,6 +84,9 @@ function InboxContent() {
     <PageShell bottomPad="nav">
       <PageHeader pad="tight" className="flex items-center justify-between">
         <PageHeaderTitle>Chat</PageHeaderTitle>
+        {/* TODO(inbox-search): Search button needs an onClick that opens a
+            search Sheet (filter by name / message content). Renders today
+            for visual completeness but tap is a no-op. */}
         <Button size="circle" tone="elevated" aria-label="Search messages">
           <Search className="text-white" />
         </Button>
@@ -161,7 +164,12 @@ function ChatList({ chats }: { chats: typeof CHATS }) {
               <ItemTitle className="text-body text-white">
                 {c.name}, {c.age}
               </ItemTitle>
+              {/* aria-live on the description so 'is typing…' / 'sent a photo'
+                  status changes get announced. Typing-indicator carries
+                  c.state === 'count' + the message text; safer to surface
+                  every dynamic message change than only the typing case. */}
               <ItemDescription
+                aria-live={c.state !== "none" ? "polite" : undefined}
                 className={cn(
                   "text-meta",
                   c.state !== "none" ? "text-white" : "text-text-secondary",
@@ -222,7 +230,10 @@ function InboxEmptyState() {
       transition={{ duration: 0.4, delay: 0.1 }}
       className="contents"
     >
-      <EmptyState variant="no-messages" />
+      <EmptyState
+        variant="no-messages"
+        action={{ label: "Start discovering", href: "/discover" }}
+      />
     </motion.div>
   );
 }
