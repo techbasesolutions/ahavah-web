@@ -61,7 +61,7 @@ const SAMPLE_AS_CANDIDATES: DiscoverCandidate[] = SAMPLE_PROFILES.map((profile) 
 export default function DiscoverPage() {
   const router = useRouter();
   const { profile: userProfile, loaded } = useProfile();
-  const { recordPass, recordLike, hasDecided } = useDecisions();
+  const { recordPass, recordLike, hasDecided, popLast } = useDecisions();
   // Lifted FiltersSheet open state so both the Globe trigger AND the
   // empty-deck "Adjust filters" CTA can open the same sheet.
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -144,13 +144,14 @@ export default function DiscoverPage() {
       }
     } else if (photoIndex > 0) {
       setPhotoIndex((i) => i - 1);
+    } else {
+      // photoIndex === 0 + prev tap → pop most recent decision so the
+      // previously-decided candidate re-appears at the head of filteredDeck.
+      // Head-only deck model: no userIndex manipulation needed.
+      setExitDirection("right");
+      popLast();
+      setPhotoIndex(0);
     }
-    // TODO(decision-undo): at photoIndex 0 with prev, currently no-ops.
-    // The previous "walk back to last candidate" path manipulated
-    // userIndex against a moving filter set — meaningless under the
-    // head-only deck model. If product wants an "undo last skip"
-    // affordance, implement by popping the most recent decision from
-    // useDecisions, not by stepping userIndex backward.
   };
 
 

@@ -8,6 +8,7 @@ import {
   recordDecision,
   getDecision as getDecisionPure,
   hasDecided as hasDecidedPure,
+  popLastDecision,
 } from "@/lib/decision-engine";
 import {
   loadDecisions,
@@ -52,6 +53,14 @@ export function useDecisions() {
     clearDecisions();
   }, []);
 
+  const popLast = useCallback(() => {
+    setDecisions((prev) => {
+      const { rest } = popLastDecision(prev);
+      saveDecisions(rest);
+      return rest;
+    });
+  }, []);
+
   const getDecision = useCallback(
     (subjectId: string) => getDecisionPure(decisions, subjectId),
     [decisions],
@@ -69,5 +78,6 @@ export function useDecisions() {
     getDecision,
     hasDecided,
     clearAll,
+    popLast,
   };
 }
