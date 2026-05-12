@@ -87,7 +87,7 @@ function InboxContent() {
     ) : state === "error" ? (
       <InboxErrorState />
     ) : chats.length === 0 ? (
-      query.length > 0 ? (
+      state !== "empty" && query.length > 0 ? (
         <InboxNoSearchResults query={query} />
       ) : (
         <InboxEmptyState />
@@ -108,11 +108,13 @@ function InboxContent() {
               </Button>
             }
           />
-          <SheetContent side="top" className="border-white/10 bg-bg-indigo">
+          <SheetContent side="top" className="rounded-b-3xl border-white/10 bg-bg-indigo">
             <SheetHeader>
               <SheetTitle>Search messages</SheetTitle>
             </SheetHeader>
             <div className="mt-4 px-1">
+              {/* autoFocus fires every open — SheetPortal unmounts content on close
+                  by Base UI default, so the Input re-mounts and autoFocus re-fires. */}
               <Input
                 autoFocus
                 size="lg"
