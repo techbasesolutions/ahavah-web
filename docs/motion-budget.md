@@ -180,3 +180,21 @@ duration to 0.2 to land at **460ms**, or remove the 0.1 header lead-in.
 - Don't mix entrance motion with `repeat: Infinity` decoration on the same
   element — they have different budgets and are evaluated separately by the
   audit script.
+
+## Celebration screens are exempt
+
+One-shot celebration moments (e.g. `/match` after a mutual like) follow a
+per-feature budget defined in the sub-plan that ships them, NOT this doc's
+≤500ms entrance-cascade rule. They are first-class hero moments where the
+choreography IS the product, not preamble to interaction.
+
+Current carve-outs:
+
+- `/match` — entrance cascade ≤1.0s end-to-end, confetti burst lifetime ≤1.4s
+  per `docs/superpowers/plans/2026-05-12-sub-plan-19-match-celebration-polish.md`.
+  The audit script will flag `/match` as FAIL on next run; that is expected.
+  When auditing, ignore `src/app/match/page.tsx` and re-verify the SP19 budget
+  by reading the file's existing transition values against SP19's spec.
+
+If a future feature ships a celebration screen, add it here with a link to its
+own budget definition before merging.

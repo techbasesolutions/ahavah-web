@@ -145,7 +145,7 @@ function MatchPageContent() {
                 type: "spring",
                 stiffness: 180,
                 damping: 18,
-                delay: 0.02,
+                delay: 0.05,
               }}
             >
               <Card
@@ -189,7 +189,7 @@ function MatchPageContent() {
                 type: "spring",
                 stiffness: 180,
                 damping: 18,
-                delay: 0.08,
+                delay: 0.15,
               }}
               className="-ml-8 -translate-y-4"
             >
@@ -248,7 +248,7 @@ function MatchPageContent() {
                 type: "spring",
                 stiffness: 280,
                 damping: 14,
-                delay: 0.14,
+                delay: 0.25,
               }}
               className="absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2"
             >
@@ -268,8 +268,8 @@ function MatchPageContent() {
             initial={{ opacity: 0, scale: 0.4 }}
             animate={{ opacity: 1, scale: [0.4, 1, 1.05, 1] }}
             transition={{
-              duration: 0.45,
-              delay: 0.05,
+              duration: 1.0,
+              delay: 0.3,
               times: [0, 0.5, 0.75, 1],
               ease: "easeOut",
             }}
@@ -286,7 +286,7 @@ function MatchPageContent() {
 
         <motion.p
           {...fadeUp}
-          transition={{ duration: 0.25, delay: 0.18 }}
+          transition={{ duration: 0.4, delay: 0.5 }}
           className="text-center text-meta text-white/85"
         >
           You and{" "}
@@ -305,7 +305,7 @@ function MatchPageContent() {
           immediately below the celebration cluster (no flex-1 void). */}
       <motion.div
         {...fadeUp}
-        transition={{ duration: 0.25, delay: 0.25 }}
+        transition={{ duration: 0.4, delay: 0.7 }}
         className="flex flex-col gap-3"
       >
         <InputGroup tone="elevated" className="h-input rounded-2xl px-4">
