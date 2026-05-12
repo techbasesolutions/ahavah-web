@@ -2505,3 +2505,119 @@ src/app/onboarding/marital-status: page.tsx
 ### Lesson reinforced
 
 Implementer agents catching real bugs (the `isFilled` truthy-check on numbers, which would have looped users on `/onboarding/children` forever when they answered "0") is the value of having explicit edge-case coverage in test fixtures + spec ("`children: 0` must be valid"). Writing tests FIRST surfaced the bug before any user could hit it. The fix (`ZERO_ALLOWED_FIELDS` Set + parallel `isAnswered`) preserves the historical `isFilled` semantics for `age` while opening a documented escape hatch for `children` — a model that scales to future zero-valid fields (e.g. `divorces`, `marriages_count`) without touching the global predicate.
+
+## 26. 2026-05-12 Sub-plan 19 closure — /match celebration polish (paper-and-sticker aesthetic)
+
+Sub-plan 19 closes the visual gap that §25 left wide open: `/match` was a functional handoff screen, not a celebration. User direction in the SP19 kickoff: "[/match] could use the frontend-design treatment now that we're invoking the skill properly" + "Invoke more than just that one skill, but yeah ok proceed." So the controller invoked `frontend-design` via Skill call before drafting the spec, then absorbed `accessibility` / `mobile-responsive` / `ui-design-system` patterns into the spec text. By the time implementer agents read the spec, every visual decision — color tokens, motion budgets, reduce-motion fallbacks, exact rotate/scale/duration values — was prescribed. This is the corrected pattern for the failure mode logged in §15 R5 (loading/empty/error/happy four-state rubric): when implementers have placement discretion, they freestyle. SP19 removed that discretion. SP18 (§25) was the last sub-plan shipped before this one; SP19 inherited its 270-test / 48-route baseline.
+
+### Per-task commit table
+
+| Commit | Task | What |
+|---|---|---|
+| `6649048` | spec | SP19 plan — design direction baked in via frontend-design skill invocation BEFORE drafting |
+| `0cfd14c` | T1 | `confetti-pieces.ts` pure helper (seeded PRNG → deterministic pieces) + 4 vitest cases |
+| `55294df` | T2 | `<Confetti>` presentational primitive (14 paper-shape SVG, GPU-only motion, `useReducedMotion` → null) |
+| `b749a8d` | T3 | `@keyframes ahavah-halo-pulse` in globals.css (+ reduce-motion override) |
+| `89f8ef4` | T4 | /match composition — 7 enhancements integrated (vibration, gradient mesh, halo pulse, corner tape, mid-sparkle, confetti, badge heartbeat + lime drop-shadow) |
+
+### Design direction summary
+
+Refined-playful sticker-and-paper aesthetic. Lime brand-pop reserved for the climax beat (badge + halo glow); lavender, pink, peach as the confetti supporting cast and corner-tape accents. NO hearts. NO fire emojis. NO red. The audience is Torah-observant, marriage-intent — the visual vocabulary is scrapbook, not Tinder. Cards spring in from opposite sides with a slight rotate-in, then settle into a paper-collage overlap. The Sparkles dot sits at the seam where the two cards overlap — "two souls recognized" without explicit symbology.
+
+### The 7 enhancement layers
+
+| # | Enhancement | Implementation |
+|---|---|---|
+| 1 | Triple-pulse vibration on mount | `navigator.vibrate([50, 30, 80])` in useEffect with `matchMedia('(prefers-reduced-motion: reduce)')` guard. `match/page.tsx:61-70` |
+| 2 | Gradient mesh background | Fixed `inset-0 -z-10 aria-hidden` div, two radial gradients (lime top 0.06, pink bottom 0.04). `match/page.tsx:77-86` |
+| 3 | Halo pulse | `.ahavah-halo--pulse` class on existing `bg-lime/20 blur-3xl` halo. `@keyframes ahavah-halo-pulse` in `globals.css:551-562` with reduce-motion `animation: none` override |
+| 4 | Corner-tape detail | `h-2 w-6 rotate-12 rounded-sm` spans — `bg-lavender/70` on self card, `bg-pink/70` on matched card. `match/page.tsx:138-141, 175-178` |
+| 5 | Mid-cards Sparkle | Spring-pop `motion.div` with lucide Sparkles, lime drop-shadow `drop-shadow-[0_0_8px_rgba(200,255,136,0.6)]`. `match/page.tsx:186-199` |
+| 6 | Confetti burst | `<Confetti>` at badge climax — 14 brand-color SVG pieces radiating, motion library GPU props only. `match/page.tsx:209` |
+| 7 | Badge heartbeat + lime glow | Keyframe `scale: [0.4, 1, 1.05, 1]` over `times: [0, 0.5, 0.75, 1]` + `shadow-[0_4px_20px_rgba(200,255,136,0.4)]`. `match/page.tsx:210-227` |
+
+### Final verification — every claim cites a re-runnable query
+
+Test counts + verification gates:
+
+- `npx tsc --noEmit` → EXIT=0 (clean)
+- `pnpm exec eslint --max-warnings=0 .` → EXIT=0 (clean)
+- `npx vitest run` → 274 passed (was 270; +4 from SP19 T1)
+- `pnpm build` → 48 routes (no change from §25 — SP19 added no pages)
+
+Citable greps:
+
+1. `grep -n "Confetti\|generatePieces" src/app/match/page.tsx src/components/app/confetti.tsx src/lib/confetti-pieces.ts`:
+
+```
+src/app/match/page.tsx:18:import { Confetti } from "@/components/app/confetti";
+src/app/match/page.tsx:209:          <Confetti className="-translate-x-1/2 -translate-y-1/2" />
+src/components/app/confetti.tsx:5:import { generatePieces, type ConfettiPiece } from "@/lib/confetti-pieces";
+src/components/app/confetti.tsx:34:export function Confetti({
+src/components/app/confetti.tsx:41:  const items = generatePieces(pieces, seed);
+src/lib/confetti-pieces.ts:54:export function generatePieces(count = 14, seed = 1): ConfettiPiece[] {
+```
+
+2. `grep -n "ahavah-halo-pulse\|ahavah-halo--pulse" src/app/globals.css src/app/match/page.tsx`:
+
+```
+src/app/globals.css:551:@keyframes ahavah-halo-pulse {
+src/app/globals.css:557:.ahavah-halo--pulse {
+src/app/globals.css:558:  animation: ahavah-halo-pulse 3.5s ease-in-out infinite;
+src/app/globals.css:562:  .ahavah-halo--pulse {
+src/app/match/page.tsx:112:            className="ahavah-halo--pulse pointer-events-none absolute inset-0 -z-10 scale-125 rounded-full bg-lime/20 blur-3xl"
+```
+
+3. `grep -n "navigator.vibrate\|prefers-reduced-motion" src/app/match/page.tsx`:
+
+```
+64:    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+66:      navigator.vibrate([50, 30, 80]);
+```
+
+4. `grep -n "useReducedMotion" src/components/app/confetti.tsx`:
+
+```
+3:import { motion, useReducedMotion } from "motion/react";
+40:  const reduceMotion = useReducedMotion();
+```
+
+5. `grep -n "shadow-\[0_4px_20px_rgba(200" src/app/match/page.tsx`:
+
+```
+223:              className="-rotate-3 px-6 py-3 text-display shadow-[0_4px_20px_rgba(200,255,136,0.4)]"
+```
+
+6. `grep -n "rotate-12\|bg-lavender/70\|bg-pink/70" src/app/match/page.tsx`:
+
+```
+140:                  className="pointer-events-none absolute right-2 top-2 z-10 h-2 w-6 rotate-12 rounded-sm bg-lavender/70"
+177:                    className="pointer-events-none absolute right-2 top-2 z-10 h-2 w-6 rotate-12 rounded-sm bg-pink/70"
+```
+
+**Smoke-walk verifications (414×896, dev server :3000):**
+
+- **Walk A — PASS** Default celebration. Fresh profile → `/match` direct. DOM probe: gradient mesh found (`background-image:radial-gradient(ellipse 60% 40% at 50% 15%, rgba(200, 255, 136, 0.06)...` confirmed via `getAttribute('style')`), `.ahavah-halo--pulse` class present on halo span, 14 absolute-positioned SVG confetti pieces rendered (`viewBox="0 0 24 24"`, width 8 or 12), lime drop-shadow badge found, mid-cards Sparkles found (`.lucide-sparkles`), lavender + pink corner-tape spans both found, 2 photo cards. 0 console errors.
+- **Walk B — PASS** `/match?id=adina`. Subtitle: `"You and Adina liked each other."`. Profile link: `/profile/adina`. Send anchor href: `/chat/adina`.
+- **Walk C — PASS** Reduce-motion (via `page.emulateMedia({ reducedMotion: 'reduce' })`). `window.matchMedia('(prefers-reduced-motion: reduce)').matches === true`. Confetti SVG count: **0** (`<Confetti>` returned null per `useReducedMotion` guard at `confetti.tsx:40-45`). Halo computed `animation-name: none` (the `@media (prefers-reduced-motion: reduce)` override in `globals.css:561-563` wins). Vibration not fired (matchMedia early-return at `page.tsx:64`). NOTE: a hydration mismatch error is logged in this path — see Concerns below.
+- **Walk D — PASS** Tap targets via `getBoundingClientRect`: Close 44×44 (anchor — Button renders `<Link>`), Send 48×48, Keep swiping 374×56. All ≥44px.
+
+### Test counts + route counts
+
+- vitest: 270 → **274 passed** (+4 from T1 `confetti-pieces` suite — deterministic seed, count clamping, color distribution, angle range)
+- routes: 48 → **48** (no new pages; SP19 added a component + a CSS rule + a /match composition refactor)
+
+### Outstanding sub-plans (carry-forward)
+
+- SP20 — Onboarding flow QA (re-audit all 16 steps now that SP18 reshaped the order)
+- SP21 — Photo upload MVP
+- Legal pages — awaiting copy
+- Widened 12-axis audit — deferred until all pages complete
+
+### Concerns
+
+- **Hydration mismatch when reduce-motion is active.** Walk C surfaces a single React hydration error: `motion.div` renders different `style` / `className` on server (no reduce-motion known at SSR time) vs client (`useReducedMotion()` returns true after mount), and `<Confetti>` early-returns `null` on the client but emits the SVG nodes on the server. React notes "this tree will be regenerated on the client", so the UX is correct — but the warning is noisy. Fix is a follow-up: gate `<Confetti>` + the motion `style` props behind a `useEffect`-set `mounted` flag so SSR always renders the reduce-motion-safe variant, then upgrades on mount. Not blocking; logging here so SP20 (or a tiny SP19.5) can pick it up.
+
+### Lesson reinforced
+
+Invoking multiple skills (`frontend-design` via Skill call, plus `accessibility` / `mobile-responsive` / `ui-design-system` absorbed from the session) BEFORE writing the spec produced exact pixel values, color tokens, motion budgets, and reduce-motion patterns baked into the spec text. Implementers had no design discretion left — the spec prescribed every visual decision. Compare to SP15 T4's Reset button placement where the controller dispatched without invoking design skills first and the implementer slapped a Reset button below the EmptyState arbitrarily (wrong placement, called out by the user as a regression). SP19's process — *invoke design skills, draft the spec from their output, then dispatch* — is the corrected pattern. Adopt this for every future visual-polish sub-plan.
