@@ -126,7 +126,7 @@ export function OnboardingShell({
             href={skipHref}
             prefetch={false}
             className={cn(
-              buttonVariants({ variant: "link", size: "sm" }),
+              buttonVariants({ variant: "link", size: "tap" }),
               "shrink-0 text-text-secondary",
             )}
           >

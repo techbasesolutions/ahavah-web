@@ -111,7 +111,7 @@ export default function CountryStep() {
           primary navigation, so its placeholder advertises the count. */}
       <motion.div
         {...fadeUp}
-        transition={{ duration: 0.4, delay: 0.1 }}
+        transition={{ duration: 0.4, delay: 0.05 }}
         className="relative mt-6"
       >
         <Search
@@ -148,7 +148,7 @@ export default function CountryStep() {
           smaller lists. */}
       <motion.div
         {...fadeUp}
-        transition={{ duration: 0.4, delay: 0.2 }}
+        transition={{ duration: 0.4, delay: 0.1 }}
         className="mt-3 flex min-h-0 flex-1 flex-col"
         aria-busy={false}
       >

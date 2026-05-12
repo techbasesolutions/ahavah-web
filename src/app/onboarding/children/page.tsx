@@ -82,6 +82,7 @@ export default function ChildrenStep() {
           onChange={(e) => handleChange(e.target.value)}
           placeholder="0"
           aria-describedby="children-help"
+          aria-invalid={raw.length > 0 && !isValidInt}
         />
         <p id="children-help" className="text-caption text-text-muted">
           Whole number from 0 to 20.

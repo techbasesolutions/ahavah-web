@@ -44,6 +44,7 @@ export default function RelocationStep() {
         <RadioGroup
           value={selected}
           onValueChange={(v) => update({ relocation: v as Relocation })}
+          aria-label="Relocation openness"
           className="grid gap-3"
         >
           {RELOCATIONS.map((opt, i) => {
@@ -52,7 +53,7 @@ export default function RelocationStep() {
               <motion.div
                 key={opt.value}
                 {...fadeUp}
-                transition={{ duration: 0.35, delay: 0.2 + i * 0.05 }}
+                transition={{ duration: 0.35, delay: 0.1 + i * 0.03 }}
               >
                 <Label
                   htmlFor={`relocation-${opt.value}`}

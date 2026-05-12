@@ -47,6 +47,7 @@ export default function PolygynyStep() {
         <RadioGroup
           value={profile.polygyny ?? ""}
           onValueChange={(v) => update({ polygyny: v as Polygyny })}
+          aria-label="Your view on biblical polygyny"
           className="grid gap-3"
         >
           {POLYGYNY_VIEWS.map((opt, i) => {
@@ -55,7 +56,7 @@ export default function PolygynyStep() {
               <motion.div
                 key={opt.value}
                 {...fadeUp}
-                transition={{ duration: 0.35, delay: 0.2 + i * 0.05 }}
+                transition={{ duration: 0.35, delay: 0.1 + i * 0.03 }}
               >
                 <Label
                   htmlFor={`polygyny-${opt.value}`}
