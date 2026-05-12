@@ -2248,3 +2248,105 @@ Invoking `frontend-design` BEFORE writing the spec is the correct pattern. The S
 Two closeout-specific lessons:
 1. Closeout briefs that include precomputed score claims should be re-verified against current scoring code before relying on them. The "Adina vs Daniel = 54" assertion in the T6 brief was wrong; a 30-second vitest probe established the actual score (47) and shifted Walk B to Rivka. Future closeout authors: run the probe; don't trust your previous arithmetic.
 2. When leaflet places a marker off the viewport, in-DOM verification (aria-label, classes, computed styles) is the load-bearing proof, not the screenshot. Don't move the smoke walk goalposts when the screenshot can't capture a verified DOM state.
+
+## 24. 2026-05-12 Sub-plan 17 closure — Map zoom drives the country filter (+ kit consolidation)
+
+User feedback that drove the sub-plan, verbatim: *"Remember that the discover options should reflex the area of the map zoomed in on and the available matches within that geography. I am not sure if i made that clear before"*, then *"Option 1 [map always overrides] and remove the countries filter in the filters list"*, then *"for languages, there are too many options and the ones there arent even exhaustive. that is bad UX, you can remove it"*, and finally *"consolidate the highlighted/selected option style to the one without the extra border (why are there two? any other instances of similar inconsistencies?)"*. What shipped: /map zoom IS the country filter (live, debounced); Country + Languages dropped from FiltersSheet entirely; MultiSelectField's outlier `ring-2 ring-lime ring-offset-2` outline was dropped so every selected-pill in the kit shares one pattern. This continues the trajectory of §21 (SP14 introduced Leaflet + bbox plumbing but deferred map-driven filtering) and §23 (SP16 marker state badges — same map surface, complementary).
+
+### Per-task commit table
+
+| Commit | Task | What |
+|---|---|---|
+| `5c08ccf` | spec | SP17 plan committed; originally 5 tasks. |
+| `9190aa9` | T1 | `countriesInBounds(bbox)` pure helper in `src/lib/country-centroids.ts` + 5 vitest cases. |
+| `cc53ac3` | T2 | `/map` `onBoundsChange` writes `filters.country` via `useFilters` shared store. |
+| `0359a63` | T3 EXPANDED | Drop `<FilterSection label="Country" />` and `<FilterSection label="Languages" />` from `FiltersSheet`; drop `COUNTRY_FILTER_OPTIONS` + `LANGUAGE_FILTER_OPTIONS`; drop MultiSelectField ring-offset outlier; add "Filter by location on the Map tab." helper paragraph. |
+| `23edc49` | T4 | `/discover` renders a dismissible "Filtered by map view · N regions" motion pill near the header when `filters.country` is non-empty. |
+
+### Architecture summary
+
+The map is now the sole country-filtering surface in the product. `/map`'s `handleBoundsChange` (src/app/map/page.tsx:128-137) converts every `moveend` Leaflet event into an ISO array via `countriesInBounds` and writes `filters.country` (or `undefined` when zero centroids fit). `/discover` reads the same `useFilters` store via `applyHardFilters` and renders a dismissible pill (src/app/discover/page.tsx:274-295) as the escape hatch when the deck is silently narrowed by the map. Selected-pill style is now consistent across `FiltersSheet` (PillGrid via Toggle), `MultiSelectField` in `profile-field.tsx` (now plain `variant="pill"` ToggleGroupItem, no overlay), onboarding `SingleSelectField`, and onboarding pill grids — all share `data-[state=on]:bg-lime data-[state=on]:text-black` from `toggle.tsx`'s pill variant. No more two-pattern split.
+
+### User-flow update
+
+| Action | Before | After |
+|---|---|---|
+| Set country filter | Open FiltersSheet on /discover or /map → tap pills in a long Country section → Apply | Open /map → pan/zoom to region → filter set automatically; visit /discover → narrowed deck |
+| See why deck is narrow | No indicator on /discover | "Filtered by map view · N regions" pill near the header, motion-faded in |
+| Widen back to global | Open FiltersSheet → tap Reset (or deselect country pills) | Tap the pill on /discover OR pan the map back to a wider view |
+| Filter by language | Manual pill grid in FiltersSheet (~70 non-exhaustive options) | Language remains a compatibility-scoring signal (SP13 T3), not a hard filter; UI removed |
+| Selected pill visual | Two patterns: MultiSelectField had outer `ring-2 ring-lime ring-offset-2`; FiltersSheet / SingleSelectField / onboarding pills had clean fill | Single pattern: clean lime fill everywhere |
+
+### Final verification — every claim cites a re-runnable query
+
+**Verification gates** (all re-run from `d:/Antigravity/ahavah-web` on commit `23edc49`):
+
+- `npx tsc --noEmit` → exit 0, zero output
+- `pnpm exec eslint --max-warnings=0 .` → exit 0, zero output
+- `npx vitest run` → **23 test files, 263 tests pass** in 7.36s
+- `pnpm build` → ✓ **46 routes generated** (all expected onboarding + app routes present)
+
+**Citable greps**:
+
+```
+$ grep -n "countriesInBounds" src/lib/country-centroids.ts src/app/map/page.tsx
+src/lib/country-centroids.ts:312:    *   countriesInBounds({ north: 85, south: -85, east: 180, west: -180 });
+src/lib/country-centroids.ts:315:    export function countriesInBounds(bbox: {
+src/app/map/page.tsx:61:    import { countriesInBounds } from "@/lib/country-centroids";
+src/app/map/page.tsx:130:           const countriesVisible = countriesInBounds(bbox);
+```
+
+```
+$ grep -n "COUNTRY_FILTER_OPTIONS\|LANGUAGE_FILTER_OPTIONS\|<FilterSection label=\"Country\"\|<FilterSection label=\"Languages\"" src/components/app/filters-sheet.tsx
+(zero matches — both option arrays and both FilterSection nodes removed from FiltersSheet)
+```
+
+```
+$ grep -n "Filter by location on the Map tab" src/components/app/filters-sheet.tsx
+289:            Filter by location on the Map tab.
+```
+
+```
+$ grep -n "Filtered by map view" src/app/discover/page.tsx
+266:      {/* "Filtered by map view" pill — escape hatch when /map's
+285:            aria-label={`Filtered by map view, ${filters.country.length} ${filters.country.length === 1 ? "region" : "regions"}. Tap to clear.`}
+289:              Filtered by map view · {filters.country.length}{" "}
+```
+
+```
+$ grep -n "ring-2 ring-lime ring-offset-2\|ring-offset-bg-indigo" src/components/app/profile-field.tsx
+580:          // field overlaid a `ring-2 ring-lime ring-offset-2` outline on
+```
+
+The lone match is inside a code comment explaining why the pattern was removed; no className applies it. Verified by reading lines 575-600 — the `<ToggleGroupItem>` rendered uses only `variant="pill" size="tap"` + a transform-on-active className, no ring overlay.
+
+```
+$ grep -cE "^  [A-Z]{2}: \{ lat:" src/lib/country-centroids.ts
+250
+```
+
+250 country centroids registered (244 from world-countries-centroids CSV + 6 manual fills for AX/EH/HK/MO/TW/XK). The original brief's grep `grep -c "code:"` returned 0 because this file uses `AD: { lat: ..., lng: ... }` shape, not a `{ code: "AD", ... }` array shape. Substituted the structurally equivalent count above.
+
+**Smoke walks** (all at 414×896, manual seed `TestViewer` + cleared filters/decisions):
+
+- **Walk 1 (cold start full deck)**: `/discover` → head card **Yosef, 41, JM**; no pill visible. `localStorage["ahavah.filters.v1"]` was `null` after seed. PASS.
+- **Walk 2 (FiltersSheet has neither Country nor Languages)**: opened FiltersSheet; sections present in snapshot: *Age range, I identify as, Torah observance stage, Polygyny stance, Intent, Calendar, Education, Health & lifestyle, Verified only*. **No Country section. No Languages section.** Helper paragraph "Filter by location on the Map tab." present at ref=e148. PASS.
+- **Walk 3 (/map zoom → /discover deck narrows)**: dispatched synthetic `WheelEvent`s on `.leaflet-container` to pan to a Europe+Africa view. Post-debounce `localStorage["ahavah.filters.v1"]` contained `country: [60 ISOs]` including NG, GH, EG, ZA, DE, FR, IT and **not** BB, JM, US, CA, MX. Navigated to /discover → head card became **Ezekiel, 47, NG** and the "Filtered by map view · 60 regions" pill rendered with the correct aria-label. PASS. Screenshot: `sub-plan-17-walk3-discover-pill.png`.
+- **Walk 4 (tap pill clears)**: clicked the pill → pill disappeared from the next snapshot, deck restored to **Yosef, 41, JM**, `localStorage["ahavah.filters.v1"]` became `"{}"` (i.e. `country: undefined`). PASS.
+- **Walk 5 (selected-pill style consistent)**: tapped "Afro-Caribbean" on `/profile/edit` → clean lime fill, no outer ring; screenshot `sub-plan-17-walk5-ethnicities-pill.png` shows the flat style. Cross-checked `/onboarding/looking-for` ("First wife") → identical clean fill; screenshot `sub-plan-17-walk5-onboarding-looking-for.png`. PASS.
+
+### Honest constraints surfaced
+
+- **Initial /map load does not write `filters.country`.** Leaflet's `moveend` does not fire on the initial `setView` render; the bbox-→country pipeline only starts after the first user pan/zoom. Effect: a user who lands directly on /discover from a cold start sees the full deck even if their session previously had a narrowed view. Acceptable for now — the persisted localStorage from a prior /map visit is honored, so the only gap is the very first session.
+- **`DiscoverFiltersState` type retains `country` and `languages` fields** even though their UI is gone. `country` is still written by /map (must stay), and `languages` persists from prior sessions but is no longer editable. The spec mentioned removing both; the implementer chose to retain the type shape to avoid breaking persisted-state read paths. Documented in the T3 commit message.
+
+### Outstanding sub-plans (carry-forward)
+
+- Widened 12-axis audit — deferred until all pages complete (still).
+- Legal pages — awaiting copy.
+- SP14 "Show me on Map" CTA / Warp / Boost premium features — out of MVP.
+- Match-threshold revisit (carried from §23) — `LIKE_THRESHOLD = 50` still produces zero matches with the spec's default `TestViewer` seed; either lower the threshold, adjust the seed, or both.
+
+### Lesson reinforced
+
+User mid-task scope expansion (T3 grew from "drop Country" to "drop Country + Languages + kit consolidation") was handled cleanly because the controller can dispatch a single fix-up that covers all three coordinated changes when they share a file boundary (`filters-sheet.tsx` for the first two, `profile-field.tsx` for the third — both edited in the same commit). SDD doesn't preclude scope flexibility — but mid-task expansion should still be explicit. The T3 commit message names every change ("drop Country + Languages + consolidate selected-pill style"), and the controller's dispatch prompt enumerated them up front; that's the discipline that keeps "scope flexibility" from becoming "scope creep."
