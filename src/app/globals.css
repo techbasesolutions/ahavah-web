@@ -544,4 +544,24 @@
     animation: none;
   }
 }
+
+/* /match celebration halo — slow ambient pulse on the lime backdrop
+   blur. Decorative; respects prefers-reduced-motion via the @media
+   block. SP19 T3. */
+@keyframes ahavah-halo-pulse {
+  0%   { opacity: 0.2; }
+  50%  { opacity: 0.4; }
+  100% { opacity: 0.2; }
+}
+
+.ahavah-halo--pulse {
+  animation: ahavah-halo-pulse 3.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ahavah-halo--pulse {
+    animation: none;
+    opacity: 0.3;
+  }
+}
 }
