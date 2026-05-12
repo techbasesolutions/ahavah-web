@@ -22,6 +22,8 @@ import { useProfile } from "@/lib/use-profile";
 import { firstMissingStepFor, isDiscoverEligible } from "@/lib/profile-completeness";
 import { buildDiscoverDeck, type DiscoverFilters, type DiscoverCandidate } from "@/lib/discover-engine";
 import { SAMPLE_PROFILES } from "@/lib/profile-sample";
+import { useDecisions } from "@/lib/use-decisions";
+import { simulateLikesBack } from "@/lib/decision-engine";
 
 // Gradient palette for candidate photos (stable per firstName).
 // Until profile.photos[] ships, we use a 3-gradient sequence per candidate
@@ -59,6 +61,7 @@ const SAMPLE_AS_CANDIDATES: DiscoverCandidate[] = SAMPLE_PROFILES.map((profile) 
 export default function DiscoverPage() {
   const router = useRouter();
   const { profile: userProfile, loaded } = useProfile();
+  const { recordPass, recordLike, hasDecided } = useDecisions();
   const [userIndex, setUserIndex] = useState(0);
   const [photoIndex, setPhotoIndex] = useState(0);
   const [filters, setFilters] = useState<DiscoverFilters>({});
@@ -87,8 +90,11 @@ export default function DiscoverPage() {
   const filteredDeck = useMemo(() => {
     if (!userProfile?.firstName) return deck;
     const viewerFirstName = userProfile.firstName.toLowerCase();
-    return deck.filter((candidate) => candidate.id !== viewerFirstName);
-  }, [deck, userProfile]);
+    return deck.filter(
+      (candidate) =>
+        candidate.id !== viewerFirstName && !hasDecided(candidate.id),
+    );
+  }, [deck, userProfile, hasDecided]);
 
   const profile = filteredDeck[userIndex];
 
@@ -333,7 +339,10 @@ export default function DiscoverPage() {
                   tone="brand"
                   lift="float"
                   aria-label="Skip user"
-                  onClick={() => advanceUser("skip")}
+                  onClick={() => {
+                    recordPass(profile.id);
+                    advanceUser("skip");
+                  }}
                 >
                   <X className="text-black" />
                 </Button>
@@ -346,11 +355,18 @@ export default function DiscoverPage() {
                   <Pause className="text-black" fill="currentColor" />
                 </Button>
                 <Button
-                  size="circle"
+                  size="circle-lg"
                   tone="action"
                   lift="float"
                   aria-label="Like user"
-                  onClick={() => advanceUser("like")}
+                  onClick={() => {
+                    recordLike(profile.id);
+                    if (userProfile && simulateLikesBack(userProfile, profile)) {
+                      router.push(`/match?id=${profile.id}`);
+                    } else {
+                      advanceUser("like");
+                    }
+                  }}
                 >
                   <Heart className="text-white" fill="currentColor" />
                 </Button>
