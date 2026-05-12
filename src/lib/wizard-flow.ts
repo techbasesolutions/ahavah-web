@@ -34,7 +34,7 @@ export const WIZARD_STEPS: ReadonlyArray<WizardStep> = [
   { href: "/onboarding/polygyny",       label: "Polygyny" },
   { href: "/onboarding/assembly",       label: "Assembly",       requiredField: "assembly" },
   { href: "/onboarding/relocation",     label: "Relocation",     requiredField: "relocation" },
-  { href: "/onboarding/verification",   label: "Verification",   requiredField: "verificationTags" },
+  { href: "/onboarding/verification",   label: "Verification" },
 ];
 
 const TOTAL = WIZARD_STEPS.length;
