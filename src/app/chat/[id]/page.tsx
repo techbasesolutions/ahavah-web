@@ -27,10 +27,24 @@ const SUBJECT_BY_ID: Record<string, { name: string; age: number; online: boolean
   tirzah:  { name: "Tirzah",  age: 22, online: true  },
 };
 
+type SentMessage = { id: string; text: string };
+
 export default function ChatThreadPage({ params }: Props) {
   const { id } = use(params);
   const subject = SUBJECT_BY_ID[id] ?? { name: "Adina", age: 24, online: true };
   const [reportOpen, setReportOpen] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [sent, setSent] = useState<SentMessage[]>([]);
+
+  const handleSend = () => {
+    const text = draft.trim();
+    if (!text) return;
+    setSent((prev) => [
+      ...prev,
+      { id: `${Date.now()}-${prev.length}`, text },
+    ]);
+    setDraft("");
+  };
 
   return (
     // `h-screen` (not `h-full`) so the chat layout is locked to viewport:
@@ -82,12 +96,22 @@ export default function ChatThreadPage({ params }: Props) {
         <TextBubble side="them" avatar={subject.name[0]} delay={0.24}>
           So let&apos;s go out of town?
         </TextBubble>
+        {sent.map((m, i) => (
+          <TextBubble
+            key={m.id}
+            side="me"
+            delay={0.05 + i * 0.05}
+          >
+            {m.text}
+          </TextBubble>
+        ))}
       </div>
 
-      {/* TODO(chat-send): ChatInput defaults onSend to undefined here, so
-          tap-send is a no-op. Real backend will wire a send handler that
-          pushes the typed message into the thread + persists. */}
-      <ChatInput />
+      <ChatInput
+        value={draft}
+        onChange={setDraft}
+        onSend={handleSend}
+      />
 
       <BlockReportSheet
         open={reportOpen}
