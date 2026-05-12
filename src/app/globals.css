@@ -525,4 +525,23 @@
     line-height: var(--text-5xl--line-height);
     }
   }
+
+/* Marker state badge: one-time pulse on mount when state === "match".
+   Applied via inline HTML in Leaflet divIcon (see src/components/app/
+   map-avatar.tsx and the SP16 spec). Respects prefers-reduced-motion. */
+@keyframes ahavah-marker-pulse {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+.ahavah-marker-badge--match {
+  animation: ahavah-marker-pulse 600ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ahavah-marker-badge--match {
+    animation: none;
+  }
+}
 }

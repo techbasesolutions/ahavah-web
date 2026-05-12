@@ -2154,3 +2154,97 @@ The 2026-05-11/12 sessions specifically: §15 rubber-stamped 7 routes (caught by
 - SDD is the default execution mode for non-trivial sub-plans.
 - Self-review-only paths get inline scrutiny commensurate to the pattern they're vulnerable to.
 - Any "X is closed/complete" claim in PROJECT-STATUS must be anchored to a specific verification query (grep pattern, test assertion, smoke-walk step) that future readers can re-run.
+
+---
+
+## 23. 2026-05-12 Sub-plan 16 closure — Marker state badges on /map (Bumpy parity)
+
+User direction was to add marker badges on `/map` matching the Bumpy reference screenshots: a small badge at the top-right corner of each avatar marker indicating the viewer-relationship state (match / active chat / liked / passed). The `frontend-design` skill was invoked BEFORE writing the sub-plan spec — explicit lesson from SP15 T4 where the implementer was given freedom to pick badge placement and ended up choosing a center-overlay that obscured the avatar. SP16 baked the exact pixel values (18×18, 2px white border, top-right offset of -2px/-2px), the color tokens (`--color-lime` for match, `--color-lavender` for active-chat, `--color-pink` for liked), the icon set (Sparkles / MessageCircle / Heart from lucide), and the one-time 600ms `ease-out` scale pulse on first paint into the prompts. Implementers had no placement discretion left. What shipped: a 5-state resolver with documented priority order, 3 badge styles plus a no-badge grayscale wrapper for `passed`, and a reduce-motion-aware pulse for the match badge.
+
+### Per-task commit table
+
+| Commit | Task | What |
+|---|---|---|
+| `534aded` | spec | SP16 plan |
+| `69ad5e5` | T1 | `resolveMarkerState` pure function + 7 vitest cases (priority + edge cases) |
+| `59497a2` | T2 | Extracted inbox seed → `src/lib/inbox-seed.ts` + `ACTIVE_CHAT_IDS` export |
+| `2acb4ce` | T3 | `@keyframes ahavah-marker-pulse` + reduce-motion override in `globals.css` |
+| `89601c5` | T4 | `MapAvatar` accepts `state` prop, renders badges in divIcon HTML, grayscale wrapper for `passed` |
+| `f69b0b5` | T5 | `/map` page integration: `resolveMarkerState` + `simulateLikesBack` wired per-candidate |
+
+### Design rationale (summary)
+
+Lime (`--color-lime`) is reserved for `match` — the load-bearing visual signal of the screen, matching the existing match ring on liked-back avatars. Lavender (`--color-lavender`) is the chat thread indicator, reusing the brand's secondary accent. Pink (`--color-pink`) is the "you liked" signal, deliberately quieter than match. `passed` is signaled by absence (no badge) plus a grayscale + 50% opacity wrapper around the avatar itself — a candidate the viewer has rejected recedes visually instead of carrying a "rejected" badge. Top-right placement mirrors the existing 18×18 flag bubble at bottom-right, giving the marker two diagonal corners of metadata without crowding the center. Pure CSS pulse via `@keyframes`, no animation library; 600ms duration is short enough to read as "ping" not "loop".
+
+### Honest constraints surfaced during T5 + T6
+
+1. **Caleb's "passed" state is not visually demoable on `/map`.** Caleb is the only sample profile NOT in `ACTIVE_CHAT_IDS` (the inbox seed). He's also the only candidate who could show a clean `passed` state without `active-chat` overriding via priority. But his `showOnMap: false` (set in SP14 T7 to demo the privacy filter) removes him from `visibleSamples` BEFORE the resolver runs. The grayscale wrapper added in T4 is unit-test-covered by T1's `state === "passed"` case, and the rendering path is provable by code inspection of `map-avatar.tsx` lines 174-178. A full visual demo would require either flipping Caleb's `showOnMap` back to `true` (loses SP14 T7's demo) or adding a 9th sample profile — both out of SP16 scope.
+
+2. **The closeout brief's claim "Adina-against-Daniel = 54" was wrong.** A diagnostic vitest probe run during T6 (since deleted) printed actual scores for Adina-as-viewer:
+   - `Daniel = 47 (likesBack=false)`
+   - `Esther = 64 (likesBack=true)`
+   - `Yosef = 43 (likesBack=false)`
+   - `Caleb = 53 (likesBack=true)` — but `showOnMap:false`
+   - `Rivka = 54 (likesBack=true)`
+   - `Ezekiel = 46 (likesBack=false)`
+   - `Tirzah = 56 (likesBack=true)`
+
+   So the brief-specified `like: daniel` decision would resolve to `active-chat`, not `match`, because `simulateLikesBack(Adina, Daniel)` returns false at threshold 50. The T6 smoke walk used `like: rivka` instead — Rivka's score against Adina is 54, crosses the threshold, and her UK position is within the 414×896 viewport. TestViewer's scores against every sample are below 50 (Daniel=43, Esther=29, etc.), confirming TestViewer cannot produce a match — same conclusion the brief reached but for a different sample. Future sub-plan should either lower `LIKE_THRESHOLD`, revise the spec's recommended TestViewer profile to include affinity-strong fields, or revise the brief seed.
+
+### Cross-screen functionality
+
+- `/map`: candidates with seeded chats show lavender active-chat badges by default. Like decision + mutual interest → lime sparkles badge with one-time 600ms pulse on mount. Pass on a candidate not in `ACTIVE_CHAT_IDS` → grayscale + 50% opacity (resolver path proven, visual demo blocked by Caleb's `showOnMap:false`).
+- `/inbox`: unchanged (chat seed extracted to a shared module; both `/inbox` and `/map` now import from `src/lib/inbox-seed.ts`).
+- `/profile/[uuid]`: unchanged.
+- `/discover`: unchanged.
+
+### Final verification — every claim cites a re-runnable query
+
+- **Resolver shipped**: `grep -n "resolveMarkerState\|MarkerState" src/lib/map-avatar-state.ts src/components/app/map-avatar.tsx src/app/map/page.tsx` →
+  - `src/lib/map-avatar-state.ts:8` exports the `MarkerState` type union
+  - `src/lib/map-avatar-state.ts:34` exports the `resolveMarkerState` function
+  - `src/components/app/map-avatar.tsx:43,49,53,74` consume the type + drive badge HTML
+  - `src/app/map/page.tsx:64,166` import + invoke per-candidate
+- **Inbox seed extracted**: `grep -n "ACTIVE_CHAT_IDS" src/lib/inbox-seed.ts src/app/map/page.tsx` →
+  - `src/lib/inbox-seed.ts:35` exports `ACTIVE_CHAT_IDS: ReadonlySet<string>`
+  - `src/app/map/page.tsx:63,170` import + pass into resolver
+- **Pulse keyframes + reduce-motion override**: `grep -n "ahavah-marker-pulse\|ahavah-marker-badge--match" src/app/globals.css src/components/app/map-avatar.tsx` →
+  - `src/app/globals.css:532` `@keyframes ahavah-marker-pulse`
+  - `src/app/globals.css:538-540` `.ahavah-marker-badge--match { animation: ahavah-marker-pulse 600ms ease-out; }`
+  - `src/app/globals.css:542-546` `@media (prefers-reduced-motion: reduce) { .ahavah-marker-badge--match { animation: none; } }`
+  - `src/components/app/map-avatar.tsx:68,81` class applied only on `state === "match"` branch
+- **Match path uses `simulateLikesBack`**: `grep -n "simulateLikesBack" src/app/map/page.tsx src/lib/decision-engine.ts` →
+  - `src/lib/decision-engine.ts:64` defines the function (score ≥ 50)
+  - `src/app/map/page.tsx:61,165` imports + pre-computes `matched` per candidate
+- **Passed wrapper grayscales**: `grep -n "grayscale\|filter:" src/components/app/map-avatar.tsx` →
+  - `src/components/app/map-avatar.tsx:174-177` `state === "passed" ? "filter:grayscale(100%);opacity:0.5;" : ""`
+- **Lime reserved for match**: `grep -n "var(--color-lime\|var(--color-lavender\|var(--color-pink" src/components/app/map-avatar.tsx` →
+  - line 81 — `var(--color-lime,#c8ff88)` inside `badgeHtml` for `state==='match'` branch only
+  - line 84 — `var(--color-lavender,#9f76ea)` for `state==='active-chat'`
+  - line 87 — `var(--color-pink,#ffc0cb)` for `state==='liked'`
+  - line 188 — `--color-lime` reused as the existing match ring (3px box-shadow) — pre-SP16 and still correct
+- **Test count**: 258 tests pass across 23 files (was 251 pre-SP16; +7 for T1's `resolveMarkerState` cases).
+- **Build**: 46 static + dynamic routes compile clean (`pnpm build` → "Compiled successfully in 6.1s").
+
+### Smoke walk results (414×896, dev port 3000)
+
+- **Walk A — Default (TestViewer, no decisions)**: 7 visible candidates (Daniel/Esther/Yosef/Adina/Rivka/Ezekiel/Tirzah) all show lavender active-chat badges with white MessageCircle SVG. Caleb correctly filtered off by `showOnMap:false`. Screenshot: `docs/screenshots/sub-plan-16-t6-default-active-chat.png`. PASS.
+- **Walk B — Match (Adina-as-viewer, like:rivka)**: Rivka in UK shows lime sparkles match badge (DOM-verified: class `ahavah-marker-badge--match`, `background:var(--color-lime,#c8ff88)`, Sparkles SVG). All other candidates retain lavender. aria-label switches from "Active chat. Rivka, 31, in United Kingdom" → "Matched. Rivka, 31, in United Kingdom". Note: spec specified `like:daniel` but Daniel's actual `computeCompatibility` score against Adina is 47 (< 50 threshold), so Daniel resolves to `active-chat` not `match`; Rivka (54) was used instead. Screenshot: `docs/screenshots/sub-plan-16-t6-match-pulse.png`. PASS.
+- **Walk C — Reduce-motion (same seed + `emulateMedia({reducedMotion:'reduce'})`)**: `getComputedStyle(.ahavah-marker-badge--match)` returns `animationName: "none"`, `animationDuration: "1e-05s"` — pulse suppressed. Badge still visually present (lime + sparkles) but static. Screenshot: `docs/screenshots/sub-plan-16-t6-reduce-motion.png`. PASS.
+- **Walk D — Marker click navigates (regression check)**: Clicking Daniel's marker via DOM navigates to `/profile/daniel?from=map`. Zero console errors (32 messages, 0 errors, 0 warnings). PASS.
+
+### Outstanding sub-plans (carry-forward)
+
+- Legal pages (awaiting copy).
+- Widened 12-axis audit (deferred from §22 until all surfaces complete).
+- Real photo avatars (Tier-4 backend).
+- Match-threshold revisit — surfaced during SP16: either lower `LIKE_THRESHOLD` (currently 50), or revise the spec's recommended `TestViewer` profile to include affinity-strong fields, or both. The current configuration means the brief's default smoke-walk seed produces zero matches; this is a pattern that will trip future closeouts unless fixed at the source.
+- Stale `/onboarding/looking-for` copy reference (carried over from §22).
+
+### Lesson reinforced
+
+Invoking `frontend-design` BEFORE writing the spec is the correct pattern. The SP16 spec prescribed exact 18×18 dimensions, 2px white border, specific color tokens, animation timing (600ms ease-out), and corner placement (top-right offset -2px/-2px). Implementers had zero placement discretion left. Contrast with the SP15 T4 failure mode, where the implementer freestyled the badge position and put it in a place that obscured the avatar — fixed only on review. The design-first prompt closes that whole class of bug.
+
+Two closeout-specific lessons:
+1. Closeout briefs that include precomputed score claims should be re-verified against current scoring code before relying on them. The "Adina vs Daniel = 54" assertion in the T6 brief was wrong; a 30-second vitest probe established the actual score (47) and shifted Walk B to Rivka. Future closeout authors: run the probe; don't trust your previous arithmetic.
+2. When leaflet places a marker off the viewport, in-DOM verification (aria-label, classes, computed styles) is the load-bearing proof, not the screenshot. Don't move the smoke walk goalposts when the screenshot can't capture a verified DOM state.

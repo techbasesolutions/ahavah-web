@@ -40,10 +40,53 @@ import L from "leaflet";
 import { ALL_COUNTRIES, flagFromCC } from "@/lib/countries";
 import { centroidOf } from "@/lib/country-centroids";
 import { gradientsFor } from "@/lib/profile-gradients";
+import type { MarkerState } from "@/lib/map-avatar-state";
 import type { Profile } from "@/lib/profile-schema";
 
 export interface MapAvatarProps {
   candidate: Profile & { id?: string };
+  /**
+   * Optional marker state from `resolveMarkerState`. Drives an 18×18 top-
+   * right badge (match / active-chat / liked) and/or a grayscale+opacity
+   * wrapper (passed). Defaults to `"none"` — no badge, normal marker.
+   */
+  state?: MarkerState;
+}
+
+// Lucide SVG paths inlined for Leaflet divIcon (can't use React inside).
+// 10×10 rendered at viewBox=24 to fit the 18×18 badge bubble with the
+// 2px white border + ~2px breathing room.
+const SVG_SPARKLES = `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>`;
+const SVG_MESSAGE_CIRCLE = `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22z"/></svg>`;
+const SVG_HEART = `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>`;
+
+/**
+ * Build the 18×18 top-right badge HTML for a given marker state.
+ *
+ * Returns "" for `"none"` and `"passed"` (passed is handled separately
+ * via a grayscale filter on the wrapper, not a badge). `match` uses
+ * the `.ahavah-marker-badge--match` class to trigger a one-time
+ * mount-pulse animation (defined in `src/app/globals.css`).
+ *
+ * `pointer-events: none` keeps the badge from intercepting taps — the
+ * marker's 44×44 click target is preserved.
+ */
+function badgeHtml(state: MarkerState): string {
+  const base =
+    `position:absolute;top:-2px;right:-2px;width:18px;height:18px;` +
+    `border-radius:50%;border:2px solid white;display:flex;` +
+    `align-items:center;justify-content:center;color:#000;` +
+    `box-shadow:0 1px 3px rgba(0,0,0,0.4);pointer-events:none;`;
+  if (state === "match") {
+    return `<div class="ahavah-marker-badge--match" aria-hidden="true" style="${base}background:var(--color-lime,#c8ff88);">${SVG_SPARKLES}</div>`;
+  }
+  if (state === "active-chat") {
+    return `<div aria-hidden="true" style="${base}background:var(--color-lavender,#9f76ea);">${SVG_MESSAGE_CIRCLE}</div>`;
+  }
+  if (state === "liked") {
+    return `<div aria-hidden="true" style="${base}background:var(--color-pink,#ffc0cb);">${SVG_HEART}</div>`;
+  }
+  return "";
 }
 
 /** Inline lookup — `labelForCountry` does not exist in @/lib/countries. */
@@ -66,7 +109,7 @@ function escapeAttr(s: string): string {
   );
 }
 
-export function MapAvatar({ candidate }: MapAvatarProps) {
+export function MapAvatar({ candidate, state = "none" }: MapAvatarProps) {
   const router = useRouter();
 
   const iso = candidate.country;
@@ -84,12 +127,26 @@ export function MapAvatar({ candidate }: MapAvatarProps) {
   const href = `/profile/${slug}?from=map`;
 
   const countryLabel = labelForCountry(iso) ?? iso;
+  // SR users hear marker state context first ("Matched. Adina, 24, in
+  // Israel") so blind/low-vision users can triage matches/chats without
+  // visiting each marker. Empty for "none" — no extra noise on neutral
+  // markers.
+  const stateLabel =
+    state === "match"
+      ? "Matched. "
+      : state === "active-chat"
+        ? "Active chat. "
+        : state === "liked"
+          ? "Liked. "
+          : state === "passed"
+            ? "Passed. "
+            : "";
   // "Adina, 24, in Israel" — drop the empty segment when age is missing
   // so SR users don't hear a stray comma.
   const ariaLabel =
     candidate.age != null
-      ? `${name}, ${candidate.age}, in ${countryLabel}`
-      : `${name}, in ${countryLabel}`;
+      ? `${stateLabel}${name}, ${candidate.age}, in ${countryLabel}`
+      : `${stateLabel}${name}, in ${countryLabel}`;
 
   // Seed gradient pool by id when present (matches /profile/[uuid] which
   // seeds by uuid), otherwise by lowercased first name so the same
@@ -113,12 +170,18 @@ export function MapAvatar({ candidate }: MapAvatarProps) {
   const safeGradient = escapeAttr(primaryGradient);
   const flag = flagFromCC(iso);
   const safeFlag = escapeAttr(flag);
+  // state === "passed" → entire marker (gradient circle + flag bubble +
+  // any future overlays) recedes via grayscale + half-opacity. Applied
+  // to the same relative wrapper so it cascades to all children.
+  const passedFilter =
+    state === "passed" ? "filter:grayscale(100%);opacity:0.5;" : "";
+  const badge = badgeHtml(state);
   const icon = L.divIcon({
     className: "ahavah-map-avatar", // disable Leaflet's default leaflet-div-icon border/bg
     iconSize: [44, 44],
     iconAnchor: [22, 22],
     html:
-      `<div role="img" aria-label="${safeAria}" style="position:relative;width:44px;height:44px;cursor:pointer;">` +
+      `<div role="img" aria-label="${safeAria}" style="position:relative;width:44px;height:44px;cursor:pointer;${passedFilter}">` +
       `<div style="` +
       `width:44px;height:44px;border-radius:9999px;` +
       `background:${safeGradient};` +
@@ -132,6 +195,7 @@ export function MapAvatar({ candidate }: MapAvatarProps) {
       `box-shadow:0 1px 3px rgba(0,0,0,0.4);` +
       `pointer-events:none;` +
       `">${safeFlag}</div>` +
+      badge +
       `</div>`,
   });
 
