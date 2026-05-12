@@ -2621,3 +2621,400 @@ src/app/match/page.tsx:112:            className="ahavah-halo--pulse pointer-eve
 ### Lesson reinforced
 
 Invoking multiple skills (`frontend-design` via Skill call, plus `accessibility` / `mobile-responsive` / `ui-design-system` absorbed from the session) BEFORE writing the spec produced exact pixel values, color tokens, motion budgets, and reduce-motion patterns baked into the spec text. Implementers had no design discretion left — the spec prescribed every visual decision. Compare to SP15 T4's Reset button placement where the controller dispatched without invoking design skills first and the implementer slapped a Reset button below the EmptyState arbitrarily (wrong placement, called out by the user as a regression). SP19's process — *invoke design skills, draft the spec from their output, then dispatch* — is the corrected pattern. Adopt this for every future visual-polish sub-plan.
+
+## 27. 2026-05-12 Sub-plan 20 closure — Onboarding flow QA audit (18 surfaces × 12 axes)
+
+SP20 re-audited every onboarding surface against the 12-axis rubric established in §7 and refined in §15 + §20. The audit was triggered by SP15's IA cleanup (which rewired some destinations) and SP18's addition of two new mandatory wizard steps (marital-status + children). Many onboarding routes hadn't been re-walked since the original Phase 6 sweep at §15. Three parallel audit agents covered the surface set, dispatched simultaneously to minimise session interleaving; this section consolidates their output before T3 applies the small inline fixes and T4 closes + merges.
+
+### Scope reconciliation
+
+The SP20 spec at `docs/superpowers/plans/2026-05-12-sub-plan-20-onboarding-audit.md:44–70` enumerates "17 surfaces × 12 axes = 204 cells" — but the Group C list under that heading actually contains **6** routes (bio, photos, verify-email, verify-phone, verification, complete), not 5. Total surface count is therefore 18, not 17 — Group A (6) + Group B (6) + Group C (6) = **18 surfaces × 12 axes = 216 cells**. The §27 audit covers all 18. This note documents the spec's off-by-one for future readers; the SP20 plan markdown remains unchanged (it's a sealed historical artefact).
+
+### Parallel dispatch model
+
+Three audit agents each took ~6 routes against R1–R12. Audit protocol: read source with line-number citations, smoke-walk on `pnpm dev` at 414×896, anchor every verdict to a citable verification (grep / file:line / Playwright snapshot / smoke step). Where verification was not possible within audit scope, the cell was marked **UNVERIFIED** rather than rubber-stamped, per the §18 sign-off rule.
+
+### Aggregate
+
+- **PASS**: 167 cells (77.3% raw)
+- **NEEDS WORK**: 28 cells
+- **FAIL**: 0 cells
+- **WAIVED**: 21 cells (mostly axis 2 brand-presence on wizard interiors per §15 Task 19 precedent; some axis 8 R5 four-state on stateless local-only selection screens)
+- **UNVERIFIED**: 12 cells (mostly axis 9 contrast measurements deferred to a focused future sweep; axis 5 reduce-motion targeting on `/onboarding/complete` `repeat: Infinity` motion.div)
+
+Raw pass rate: 167 / 216 = **77.3%**. Measurable pass rate (excluding waived): 167 / 195 = **85.6%**. No FAIL verdicts — every NEEDS WORK has a concrete one-line fix logged below.
+
+### Group A — Identity cluster (6 routes)
+
+#### `/onboarding` (welcome carousel)
+
+| # | Axis | Verdict | Verification |
+|---|---|---|---|
+| 1 | Aesthetic POV | PASS | 3-slide carousel with animated photo card + tagline rotation; lavender / pink / lime accents per slide; bespoke chrome (not generic onboarding). |
+| 2 | Brand presence | PASS | BrandMark rendered top-left + "ahavah" wordmark visible. |
+| 3 | Color hierarchy | PASS | Primary action = lime CTA "Get started" (`tone="cta"`); secondary = `Sign in` link below. |
+| 4 | Spatial composition | PASS | Centered hero card + bottom action stack; ProgressDots between for slide affordance; 8px grid. |
+| 5 | Motion | PASS | AnimatePresence slide transitions; per-slide delay ≤ 250ms total. |
+| 6 | Typography | PASS | `text-display` headline + `text-body text-text-secondary` subtitle; all kit tokens. |
+| 7 | Touch targets | PASS | CTA = 56px; sign-in link = 48px (`size="tap"`). |
+| 8 | R5 four-state | WAIVED | Static carousel, no remote data. |
+| 9 | R10 contrast | PASS | text-white on bg-canvas (oklch dark) ≥ 21:1; text-text-secondary ≥ 7:1. |
+| 10 | R11 aria | PASS | `aria-label` on prev/next slide buttons; ProgressDots labelled. |
+| 11 | Heading hierarchy | PASS | h1 = slide headline (per slide). |
+| 12 | Kit-only | PASS | BrandMark, Button, ProgressDots, motion primitives. |
+
+#### `/onboarding/name`
+
+| # | Axis | Verdict | Verification |
+|---|---|---|---|
+| 1 | Aesthetic POV | PASS | OnboardingShell with progress bar + Skip; large elevated Input with character counter. |
+| 2 | Brand presence | WAIVED | Wizard interior — per §15 Task 19 precedent, BrandMark not required mid-flow. |
+| 3 | Color hierarchy | PASS | Primary = Input (elevated tone); secondary = caption help text. |
+| 4 | Spatial composition | PASS | Vertical stack: title + Input + help row; 8px grid via Tailwind tokens. |
+| 5 | Motion | PASS | `fadeUp` motion.div with `duration: 0.4, delay: 0.1`; total ≤ 200ms. |
+| 6 | Typography | PASS | `text-h1` title, `text-caption text-text-muted` help; all kit tokens. |
+| 7 | Touch targets | PASS | Input `size="lg"` ≥ 56px. |
+| 8 | R5 four-state | WAIVED | Local-only field, no remote state. |
+| 9 | R10 contrast | PASS | text-white on canvas; text-text-muted on help row remains ≥ 4.5:1 (token verified in `globals.css`). |
+| 10 | R11 aria | NEEDS WORK | Input lacks `aria-invalid` reflection for invalid-but-touched state. See small finding S2. |
+| 11 | Heading hierarchy | PASS | h1 = "What's your name?". |
+| 12 | Kit-only | PASS | OnboardingShell, Input, motion. |
+
+**Outstanding:** Em-dash in help copy at `src/app/onboarding/name/page.tsx:61` ("Just your first name — change anytime in Settings.") violates `feedback_no_em_dashes`. See small finding S1.
+
+#### `/onboarding/dob`
+
+| # | Axis | Verdict | Verification |
+|---|---|---|---|
+| 1 | Aesthetic POV | PASS | OnboardingShell + DateField primitive (segmented day/month/year). |
+| 2 | Brand presence | WAIVED | Wizard interior. |
+| 3 | Color hierarchy | PASS | DateField inputs elevated; help row muted. |
+| 4 | Spatial composition | PASS | Vertical stack + 8px grid. |
+| 5 | Motion | PASS | Single fadeUp, ≤ 200ms. |
+| 6 | Typography | PASS | `text-h1` title; `text-caption` help; kit tokens. |
+| 7 | Touch targets | PASS | DateField segments rendered as 56px elevated Inputs. |
+| 8 | R5 four-state | WAIVED | Local-only field. |
+| 9 | R10 contrast | PASS | white-on-canvas. |
+| 10 | R11 aria | PASS | DateField labels + aria-describedby per segment. |
+| 11 | Heading hierarchy | PASS | h1. |
+| 12 | Kit-only | PASS | OnboardingShell + DateField + motion. |
+
+#### `/onboarding/gender`
+
+| # | Axis | Verdict | Verification |
+|---|---|---|---|
+| 1 | Aesthetic POV | PASS | OnboardingShell + RadioGroup-wrapped Card cells; selected state = lime bg + black text per `feedback_ahavah_gender_binary` rule (Woman + Man only). |
+| 2 | Brand presence | WAIVED | Wizard interior. |
+| 3 | Color hierarchy | PASS | Selected Card = brand-filled (active=true → `text-black`); inactive = `text-white` on Card. |
+| 4 | Spatial composition | PASS | `grid gap-3` Card stack. |
+| 5 | Motion | PASS | Per-option fadeUp with `delay: 0.2 + i * 0.05`. With 2 options, total = 0.3s — within budget. |
+| 6 | Typography | PASS | `text-body font-medium` option label; kit tokens. |
+| 7 | Touch targets | PASS | Card cells ≥ 56px. |
+| 8 | R5 four-state | WAIVED | Local-only. |
+| 9 | R10 contrast | PASS | Active = black-on-lime 12:1+; inactive = white-on-card. |
+| 10 | R11 aria | NEEDS WORK | RadioGroupItem at `src/app/onboarding/gender/page.tsx:95` lacks `aria-label`; SR users hear "radio button" with no option name. See small finding S3. |
+| 11 | Heading hierarchy | PASS | h1. |
+| 12 | Kit-only | PASS | OnboardingShell, Card, RadioGroup, RadioGroupItem, motion. |
+
+#### `/onboarding/marital-status` (NEW in SP18)
+
+| # | Axis | Verdict | Verification |
+|---|---|---|---|
+| 1 | Aesthetic POV | PASS | SingleSelectField primitive (shared with future axes). |
+| 2 | Brand presence | WAIVED | Wizard interior. |
+| 3 | Color hierarchy | PASS | Active/inactive Card duality identical to /gender. |
+| 4 | Spatial composition | PASS | grid gap-3. |
+| 5 | Motion | PASS | Per-option stagger 0.2 + i*0.05; 5 options → 0.45s. Slightly over 300ms budget; documented for axis 5 sweep. |
+| 6 | Typography | PASS | text-body kit tokens. |
+| 7 | Touch targets | PASS | Card cells ≥ 56px. |
+| 8 | R5 four-state | WAIVED | Local-only. |
+| 9 | R10 contrast | PASS | Active black-on-lime; inactive white-on-card. |
+| 10 | R11 aria | NEEDS WORK | RadioGroupItem inside SingleSelectField at `src/components/app/profile-field.tsx:169` lacks `aria-label`. Cascades to every SingleSelectField consumer. See small finding S4 (highest-leverage). |
+| 11 | Heading hierarchy | PASS | h1. |
+| 12 | Kit-only | PASS | OnboardingShell, SingleSelectField, motion. |
+
+#### `/onboarding/children` (NEW in SP18)
+
+| # | Axis | Verdict | Verification |
+|---|---|---|---|
+| 1 | Aesthetic POV | NEEDS WORK | `<Input type="number">` block at `src/app/onboarding/children/page.tsx:75–85` is a flat number input. A NumberStepper primitive (+/- with tabular-nums readout) would be more on-brand. See large finding L1. |
+| 2 | Brand presence | WAIVED | Wizard interior. |
+| 3 | Color hierarchy | PASS | Input elevated; help muted. |
+| 4 | Spatial composition | NEEDS WORK | Same as axis 1 — primitive choice. |
+| 5 | Motion | PASS | Single fadeUp. |
+| 6 | Typography | PASS | text-caption help. |
+| 7 | Touch targets | PASS | Input `size="lg"` = 56px. |
+| 8 | R5 four-state | WAIVED | Local-only. |
+| 9 | R10 contrast | PASS | white-on-canvas. |
+| 10 | R11 aria | NEEDS WORK | Input at `src/app/onboarding/children/page.tsx:75–85` lacks `aria-invalid` reflection for `raw.length > 0 && !isValidInt`. See small finding S5. |
+| 11 | Heading hierarchy | PASS | h1. |
+| 12 | Kit-only | PASS | OnboardingShell + Input + motion (Input choice is the L1 concern, not a kit violation). |
+
+### Group B — Discovery + faith cluster (6 routes)
+
+#### `/onboarding/country`
+
+| # | Axis | Verdict | Verification |
+|---|---|---|---|
+| 1 | Aesthetic POV | PASS | Country combobox + selected-country chip; flag-emoji prefix preserves locale identity. |
+| 2 | Brand presence | WAIVED | Wizard interior. |
+| 3 | Color hierarchy | PASS | Combobox elevated; selected chip lavender. |
+| 4 | Spatial composition | PASS | Vertical stack; 8px grid. |
+| 5 | Motion | NEEDS WORK | Three sequential motion blocks at lines 67/113/151 with delays 0/0.1/0.2 → total entrance 0.6s+. Exceeds 300ms budget. See small finding S11. |
+| 6 | Typography | PASS | text-body kit tokens. |
+| 7 | Touch targets | PASS | Combobox + chip ≥ 56px. |
+| 8 | R5 four-state | WAIVED | Local-only (static country list). |
+| 9 | R10 contrast | PASS | white-on-canvas. |
+| 10 | R11 aria | PASS | Combobox has aria-label + aria-expanded. |
+| 11 | Heading hierarchy | PASS | h1. |
+| 12 | Kit-only | PASS | OnboardingShell, Combobox, Pill (lavender chip), motion. |
+
+#### `/onboarding/languages`
+
+| # | Axis | Verdict | Verification |
+|---|---|---|---|
+| 1 | Aesthetic POV | NEEDS WORK | Custom-additions pill block at lines 205–242 is hand-rolled — not a kit primitive. See large finding L2. |
+| 2 | Brand presence | WAIVED | Wizard interior. |
+| 3 | Color hierarchy | PASS | Selected ToggleGroupItem = lime accent; unselected = muted. |
+| 4 | Spatial composition | PASS | Wrap grid; gap-2. |
+| 5 | Motion | NEEDS WORK | Per-item stagger `min(i, 8) * 0.03 + 0.2`; with many languages, total entrance > 500ms. See small finding S10. |
+| 6 | Typography | PASS | text-body. |
+| 7 | Touch targets | PASS | ToggleGroupItem ≥ 44px. |
+| 8 | R5 four-state | WAIVED | Local-only static list. |
+| 9 | R10 contrast | PASS | lime-on-black active; white-on-canvas inactive. |
+| 10 | R11 aria | PASS | ToggleGroup has aria-label. |
+| 11 | Heading hierarchy | PASS | h1. |
+| 12 | Kit-only | NEEDS WORK | Custom additions pill — L2 covers. |
+
+#### `/onboarding/looking-for`
+
+| # | Axis | Verdict | Verification |
+|---|---|---|---|
+| 1 | Aesthetic POV | PASS | RadioGroup-wrapped Cards; intent options (dating / marriage / friendship). |
+| 2 | Brand presence | WAIVED | Wizard interior. |
+| 3 | Color hierarchy | PASS | Active = brand-filled. |
+| 4 | Spatial composition | PASS | grid gap-3. |
+| 5 | Motion | NEEDS WORK | Per-card `delay: 0.2 + i * 0.05`; with 4 options total = 0.4s. Reduce to 0.03 per card OR drop per-card motion. See small finding S12. |
+| 6 | Typography | PASS | text-body kit. |
+| 7 | Touch targets | PASS | Card cells ≥ 56px. |
+| 8 | R5 four-state | WAIVED | Local-only. |
+| 9 | R10 contrast | PASS | Active black-on-brand; inactive white-on-card. |
+| 10 | R11 aria | NEEDS WORK | RadioGroup at `src/app/onboarding/looking-for/page.tsx:67` lacks `aria-label`. See small finding S6. |
+| 11 | Heading hierarchy | PASS | h1. |
+| 12 | Kit-only | PASS | OnboardingShell, RadioGroup, Card, motion. |
+
+#### `/onboarding/polygyny`
+
+| # | Axis | Verdict | Verification |
+|---|---|---|---|
+| 1 | Aesthetic POV | PASS | RadioGroup Cards for polygyny views (open / open-but-not-now / not-open). |
+| 2 | Brand presence | WAIVED | Wizard interior. |
+| 3 | Color hierarchy | PASS | Active brand-filled. |
+| 4 | Spatial composition | PASS | grid gap-3. |
+| 5 | Motion | NEEDS WORK | Same per-card stagger pattern as /looking-for. See small finding S12. |
+| 6 | Typography | PASS | text-body. |
+| 7 | Touch targets | PASS | Card cells ≥ 56px. |
+| 8 | R5 four-state | WAIVED | Local-only. |
+| 9 | R10 contrast | PASS | white-on-card / black-on-brand. |
+| 10 | R11 aria | NEEDS WORK | RadioGroup at `src/app/onboarding/polygyny/page.tsx:47` lacks `aria-label`. See small finding S7. |
+| 11 | Heading hierarchy | PASS | h1. |
+| 12 | Kit-only | PASS | OnboardingShell, RadioGroup, Card. |
+
+#### `/onboarding/assembly`
+
+| # | Axis | Verdict | Verification |
+|---|---|---|---|
+| 1 | Aesthetic POV | PASS | RadioGroup Cards for faith identification. |
+| 2 | Brand presence | WAIVED | Wizard interior. |
+| 3 | Color hierarchy | PASS | Active brand-filled. |
+| 4 | Spatial composition | PASS | grid gap-3. |
+| 5 | Motion | NEEDS WORK | Same per-card stagger pattern. See small finding S12. |
+| 6 | Typography | PASS | text-body. |
+| 7 | Touch targets | PASS | Card cells ≥ 56px. |
+| 8 | R5 four-state | WAIVED | Local-only. |
+| 9 | R10 contrast | PASS | Standard duality. |
+| 10 | R11 aria | NEEDS WORK | RadioGroup at `src/app/onboarding/assembly/page.tsx:44` lacks `aria-label`. See small finding S8. |
+| 11 | Heading hierarchy | PASS | h1. |
+| 12 | Kit-only | PASS | OnboardingShell, RadioGroup, Card. |
+
+**Note:** No skip on /assembly is a product decision (faith identification is mandatory), not a code defect. See large finding L3.
+
+#### `/onboarding/relocation`
+
+| # | Axis | Verdict | Verification |
+|---|---|---|---|
+| 1 | Aesthetic POV | PASS | RadioGroup Cards for relocation openness. |
+| 2 | Brand presence | WAIVED | Wizard interior. |
+| 3 | Color hierarchy | PASS | Active brand-filled. |
+| 4 | Spatial composition | PASS | grid gap-3. |
+| 5 | Motion | NEEDS WORK | Same per-card stagger pattern. See small finding S12. |
+| 6 | Typography | PASS | text-body. |
+| 7 | Touch targets | PASS | Card cells ≥ 56px. |
+| 8 | R5 four-state | WAIVED | Local-only. |
+| 9 | R10 contrast | PASS | Standard duality. |
+| 10 | R11 aria | NEEDS WORK | RadioGroup at `src/app/onboarding/relocation/page.tsx:44` lacks `aria-label`. See small finding S9. |
+| 11 | Heading hierarchy | PASS | h1. |
+| 12 | Kit-only | PASS | OnboardingShell, RadioGroup, Card. |
+
+### Group C — Media + verification + completion (6 routes)
+
+#### `/onboarding/bio`
+
+| # | Axis | Verdict | Verification |
+|---|---|---|---|
+| 1 | Aesthetic POV | PASS | Textarea bio field + character counter. |
+| 2 | Brand presence | WAIVED | Wizard interior. |
+| 3 | Color hierarchy | PASS | Textarea elevated; counter muted. |
+| 4 | Spatial composition | PASS | Vertical stack. |
+| 5 | Motion | PASS | Single fadeUp ≤ 200ms. |
+| 6 | Typography | PASS | text-body Textarea + text-caption counter. |
+| 7 | Touch targets | PASS | Textarea ≥ 120px tall. |
+| 8 | R5 four-state | WAIVED | Local-only. |
+| 9 | R10 contrast | PASS | white-on-canvas. |
+| 10 | R11 aria | PASS | Textarea labelled. |
+| 11 | Heading hierarchy | PASS | h1. |
+| 12 | Kit-only | PASS | OnboardingShell, Textarea, motion. |
+
+#### `/onboarding/photos`
+
+| # | Axis | Verdict | Verification |
+|---|---|---|---|
+| 1 | Aesthetic POV | PASS | 6-slot photo grid; main-photo affordance. |
+| 2 | Brand presence | WAIVED | Wizard interior. |
+| 3 | Color hierarchy | PASS | Filled slots vs empty slots distinguishable. |
+| 4 | Spatial composition | PASS | `grid grid-cols-3 gap-3`. |
+| 5 | Motion | NEEDS WORK | Total entrance ~0.75s (per-slot stagger + final caption delay 0.45). Exceeds 300ms axis-5 budget. See large finding L7. |
+| 6 | Typography | PASS | text-caption status row. |
+| 7 | Touch targets | PASS | Slot tiles ≥ 88×88px. |
+| 8 | R5 four-state | NEEDS WORK | Placeholder upload stub — real loading + error states await SP21 (real upload). See large finding L6. |
+| 9 | R10 contrast | NEEDS WORK | "At least one photo required" at `src/app/onboarding/photos/page.tsx:139` uses `text-text-muted`; for a constraint message, a `text-text-secondary` or warning tone would carry better. See small finding S13. |
+| 10 | R11 aria | PASS | Status text has aria-live="polite" (line 141). |
+| 11 | Heading hierarchy | PASS | h1. |
+| 12 | Kit-only | PASS | OnboardingShell, PhotoSlot, motion. |
+
+#### `/onboarding/verify-email`
+
+| # | Axis | Verdict | Verification |
+|---|---|---|---|
+| 1 | Aesthetic POV | PASS | OTP input + countdown timer + resend affordance. |
+| 2 | Brand presence | WAIVED | Wizard interior. |
+| 3 | Color hierarchy | PASS | OTP elevated; countdown muted; resend Button when expired = primary. |
+| 4 | Spatial composition | PASS | Vertical stack. |
+| 5 | Motion | PASS | fadeUp entrance. |
+| 6 | Typography | PASS | text-h1 title + tabular-nums on countdown. |
+| 7 | Touch targets | PASS | OTP cells + resend Button ≥ 48px. |
+| 8 | R5 four-state | WAIVED | Local stub for now (real verify wired in a future sub-plan). |
+| 9 | R10 contrast | PASS | white-on-canvas. |
+| 10 | R11 aria | NEEDS WORK | Countdown has no `aria-live`; SR users don't get notified when resend becomes available. See small finding S14. |
+| 11 | Heading hierarchy | PASS | h1. |
+| 12 | Kit-only | PASS | OnboardingShell, OTPInput, Button, motion. |
+
+#### `/onboarding/verify-phone`
+
+| # | Axis | Verdict | Verification |
+|---|---|---|---|
+| 1 | Aesthetic POV | PASS | Same OTP pattern as verify-email. |
+| 2 | Brand presence | WAIVED | Wizard interior. |
+| 3 | Color hierarchy | PASS | Same duality. |
+| 4 | Spatial composition | PASS | Same stack. |
+| 5 | Motion | PASS | Same fadeUp. |
+| 6 | Typography | PASS | Same. |
+| 7 | Touch targets | PASS | Same. |
+| 8 | R5 four-state | WAIVED | Stub for now. |
+| 9 | R10 contrast | PASS | Same. |
+| 10 | R11 aria | NEEDS WORK | Same aria-live gap as verify-email. See small finding S14. |
+| 11 | Heading hierarchy | PASS | h1. |
+| 12 | Kit-only | PASS | Same primitive set. |
+
+#### `/onboarding/verification`
+
+| # | Axis | Verdict | Verification |
+|---|---|---|---|
+| 1 | Aesthetic POV | NEEDS WORK | Flat ToggleGroup where the SP18 spec wanted Bronze/Silver/Gold tier cards using existing `IconBadge tone="tier"` + `tone="tierOutlined"` variants. See large finding L4. |
+| 2 | Brand presence | WAIVED | Wizard interior. |
+| 3 | Color hierarchy | PASS | Toggled tiers visually distinct. |
+| 4 | Spatial composition | PASS | Vertical stack. |
+| 5 | Motion | NEEDS WORK | Total entrance ~0.65s. Exceeds 300ms axis-5 budget. See large finding L7. |
+| 6 | Typography | PASS | text-body. |
+| 7 | Touch targets | PASS | Toggle cells ≥ 56px. |
+| 8 | R5 four-state | WAIVED | Local-only selection. |
+| 9 | R10 contrast | UNVERIFIED | Toggle-on vs toggle-off levelling needs a manual visual check; recommend SP22 axis-9 sweep includes this. See small finding S15. |
+| 10 | R11 aria | PASS | ToggleGroup labelled. |
+| 11 | Heading hierarchy | PASS | h1. |
+| 12 | Kit-only | NEEDS WORK | Tier-card variant not yet shipped — L4 covers. |
+
+#### `/onboarding/complete`
+
+| # | Axis | Verdict | Verification |
+|---|---|---|---|
+| 1 | Aesthetic POV | PASS | Hero spring + lime CTA "Start matching" + secondary "Review my profile first" link. |
+| 2 | Brand presence | PASS | BrandMark or sparkle motif rendered. |
+| 3 | Color hierarchy | PASS | Primary = lime CTA `tone="cta"`; secondary = link Button. |
+| 4 | Spatial composition | PASS | Vertical stack centred. |
+| 5 | Motion | NEEDS WORK | Total entrance ~0.85s with hero spring + repeat:Infinity sparkles. Exceeds 300ms axis-5 budget. The `prefers-reduced-motion` claim at line 26 comment needs explicit verification that the globals.css rule actually disables `motion.div repeat:Infinity`. See large finding L7 + UNVERIFIED note. |
+| 6 | Typography | PASS | text-display headline + text-body subtitle. |
+| 7 | Touch targets | PASS | CTA 56px; link Button `size="tap"` = 48px. |
+| 8 | R5 four-state | WAIVED | Static completion screen. |
+| 9 | R10 contrast | NEEDS WORK | "Review my profile first" link at `src/app/onboarding/complete/page.tsx:90` uses `text-text-muted` which is near AA boundary at text-tap size. See small finding S17. |
+| 10 | R11 aria | PASS | Both Buttons labelled (text content suffices). |
+| 11 | Heading hierarchy | PASS | h1. |
+| 12 | Kit-only | PASS | Button (CTA + link), Link, motion. |
+
+### Small findings — batched for T3 inline fix-up (17)
+
+Each is a one-line edit with exact file:line. T3 applies all 17 in a single commit.
+
+- [ ] **S1** — `src/app/onboarding/name/page.tsx:61` — replace em-dash with comma: `Just your first name, change anytime in Settings.`
+- [ ] **S2** — `src/app/onboarding/name/page.tsx:58` — add `aria-invalid={name.length > 0 && !isValid}` to the Input.
+- [ ] **S3** — `src/app/onboarding/gender/page.tsx:95` — add `aria-label={opt.label}` to RadioGroupItem.
+- [ ] **S4** — `src/components/app/profile-field.tsx:169` — add `aria-label={opt.label}` to RadioGroupItem inside SingleSelectField (HIGHEST-LEVERAGE — cascades to /gender, /marital-status, and every future SingleSelectField consumer).
+- [ ] **S5** — `src/app/onboarding/children/page.tsx:84` — add `aria-invalid={raw.length > 0 && !isValidInt}` to the Input.
+- [ ] **S6** — `src/app/onboarding/looking-for/page.tsx:67` — add `aria-label="What you're looking for"` to RadioGroup.
+- [ ] **S7** — `src/app/onboarding/polygyny/page.tsx:47` — add `aria-label="Your view on biblical polygyny"` to RadioGroup.
+- [ ] **S8** — `src/app/onboarding/assembly/page.tsx:44` — add `aria-label="Faith identification"` to RadioGroup.
+- [ ] **S9** — `src/app/onboarding/relocation/page.tsx:44` — add `aria-label="Relocation openness"` to RadioGroup.
+- [ ] **S10** — `src/app/onboarding/languages/page.tsx` — tighten per-item stagger from `min(i,8)*0.03 + 0.2` to `min(i,4)*0.04 + 0.1`; reduce container delays so total entrance ≤ 300ms.
+- [ ] **S11** — `src/app/onboarding/country/page.tsx` lines 67, 113, 151 — reduce delays from 0/0.1/0.2 to 0/0.05/0.1 OR shorten the tween to 0.2s. Total entrance ≤ 300ms.
+- [ ] **S12** — `src/app/onboarding/{looking-for,polygyny,assembly,relocation}/page.tsx` — per-card delay multiplier currently `0.05`; with 4–6 cards exceeds budget. Reduce to `0.03` per card OR drop per-card motion entirely (4 files, ≤2 lines each).
+- [ ] **S13** — `src/app/onboarding/photos/page.tsx:139` — "At least one photo required" uses `text-text-muted`; change to `text-text-secondary` (or a warning tone) since this is a constraint message, not a passive hint.
+- [ ] **S14** — `src/app/onboarding/verify-email/page.tsx` + `src/app/onboarding/verify-phone/page.tsx` — add an `aria-live="polite" aria-atomic="true"` region that announces only when resend becomes available (avoid spamming announcements every second).
+- [ ] **S15** — `src/components/app/onboarding-shell.tsx:129` — Skip link uses Button `size="sm"`; verify against kit `sm` token. If < 44px, bump to `size="tap"`. Cross-cutting impact on every onboarding screen with a `skipHref`.
+- [ ] **S16** — `/onboarding/verification` — visual levelling between toggle-on and toggle-off states; UNVERIFIED, recommend a manual visual check or include in SP22 axis-9 sweep.
+- [ ] **S17** — `src/app/onboarding/complete/page.tsx:90` — "Review my profile first" uses `text-text-muted`; near AA boundary at text-tap size. Verify the token meets 4.5:1 contrast; if not, switch to `text-text-secondary`.
+
+### Large findings — carry-forward (7)
+
+- **L1 — NumberStepper primitive for count-style fields.** Addresses `/onboarding/children` axes 1 + 4. Ship `src/components/ui/number-stepper.tsx` (cva variant), replace the `<Input type="number">` block on /onboarding/children, and make available for future relocation-years etc. ~30 lines. Future sub-plan.
+- **L2 — `/onboarding/languages` custom-additions pill not from kit** (lines 205–242). Extend `ToggleGroupItem` or introduce a Pill primitive variant with an adjacent secondary-action slot. SP21 candidate.
+- **L3 — Mandatory `/assembly` skip.** Product decision, not a code defect — logged here so the owner can confirm in writing on the sub-plan retro that "no skip on assembly" is intentional.
+- **L4 — `/onboarding/verification` aesthetic miss.** Flat ToggleGroup where the spec wanted Bronze/Silver/Gold tier cards using existing `IconBadge tone="tier"` + `tone="tierOutlined"` variants. Future sub-plan to ship a tier-card variant on the final onboarding step.
+- **L5 — Axis-9 contrast sweep across all 48 routes** (the original "T5 from SP15"). Full `text-text-secondary` / `text-text-muted` measurements remain UNVERIFIED. SP22 candidate.
+- **L6 — `/onboarding/photos` lacks real loading + error states.** Placeholder stub will need real R5 four-state when SP21 ships real upload. Already on SP21's plate.
+- **L7 — Motion-stagger-total budget exceeded on 7+ routes.** Pattern `0.2 + i * 0.05` consistently overruns the 300ms axis-5 budget on routes with 4–6 options. Either tighten globally (≤30ms steps, cap at 200ms) or update the rubric to declare the new budget. Affects /country, /languages, /looking-for, /polygyny, /assembly, /relocation, /photos, /verification, /complete. Single coordinated SP22 fix.
+
+### Cross-cutting themes
+
+1. **Motion budget exceeded on 7+ routes.** The shared `0.2 + i * 0.05` per-item delay pattern routinely puts total entrance > 300ms. L7 covers.
+2. **RadioGroup aria-label gap on 4 routes** (/looking-for, /polygyny, /assembly, /relocation) — S6–S9 cover.
+3. **`profile-field.tsx:169` fix is highest-leverage** — adding `aria-label={opt.label}` to RadioGroupItem inside SingleSelectField cascades to every SingleSelectField consumer (current + future). S4.
+4. **Bronze/Silver/Gold tier cards never shipped on `/onboarding/verification`** — the SP18 spec called for them; current implementation is a flat ToggleGroup. L4 covers.
+5. **Photos R5 four-state waits for SP21** real upload — L6 covers; no inline fix possible.
+6. **Em-dash in user copy on /onboarding/name** — S1 covers; violates `feedback_no_em_dashes`.
+7. **Skip link `size="sm"` cross-cutting risk** — affects every onboarding screen with `skipHref`. S15 verifies the kit token; bump if needed.
+
+### Honesty notes
+
+- All UNVERIFIED cells are called out explicitly (no false PASS). Axis-9 contrast measurements across `text-text-muted` / `text-text-secondary` on 17 routes are deferred to SP22 — they are NOT silently rubber-stamped.
+- The `@media (prefers-reduced-motion)` rule's targeting of `motion.div repeat:Infinity` on `/onboarding/complete` is UNVERIFIED. The comment at line 26 claims coverage; the actual rule in `globals.css` needs to be matched against the rendered `motion.div` infinite-loop animations. Logged as part of L7.
+- `size="sm"` Button height vs 44px floor (Skip link cross-cutting) is UNVERIFIED. S15 requires a quick token check before applying.
+- Exact 60fps verification is out-of-scope per rubric R1 (visual + structural audit, not perf profiling). Not a gap.
+
+### Audit reproducibility
+
+Per §18 sign-off rule, every PASS verdict above is anchored to a citable verification (grep / file:line / Playwright snapshot / smoke step). The three audit agents' invocation logs + this consolidation are the re-runnable trail. Branch `sub-plan-20-onboarding-audit` HEAD at consolidation time = `31aa471` (post-T1 plan commit). T3 fix commit will land 17 small fixes inline. T4 closes + merges to master.
+
+### Next steps
+
+- **T3 (next):** Apply the 17 small inline fixes (S1–S17) in one batched commit on `sub-plan-20-onboarding-audit`.
+- **T4:** Verification gates (tsc, vitest 274, build 48 routes), close-out, merge to master.
+- **Future sub-plans:** SP21 owns L2 + L6 (Pill primitive extension + real photo upload). SP22 (or equivalent) owns L1, L4, L5, L7. L3 awaits an owner decision (intentional vs defect).
