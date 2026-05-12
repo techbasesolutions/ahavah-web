@@ -43,11 +43,13 @@ import {
   LIVING_PREFERENCES,
   HEALTH_TAGS,
   INTERESTS,
+  NATIONALITIES,
   PERSONALITY_TRAITS,
   VERIFICATION_TAGS,
   RELOCATIONS,
   intentOptionsForSex,
 } from "@/lib/profile-schema";
+import { labelForLanguage } from "@/lib/languages";
 import { sampleByName } from "@/lib/profile-sample";
 
 type Props = { params: Promise<{ uuid: string }> };
@@ -230,12 +232,35 @@ export default function ProfileDetailPage({ params }: Props) {
                   <MapPin className="size-3" /> {profile.country}
                 </p>
               )}
+              {profile.nationality && (
+                <Pill variant="lavender" size="sm" className="mt-2">
+                  {labelOf(profile.nationality, NATIONALITIES) ?? profile.nationality}
+                </Pill>
+              )}
             </div>
 
             {/* Bio paragraph (conditional) */}
             {profile.bio && (
               <p className="text-body leading-relaxed text-white/85">{profile.bio}</p>
             )}
+
+            {/* Languages cluster — Pill rows (lavender). Identity/about-me
+                bucket, mirrors Lifestyle/Personality. labelForLanguage
+                resolves canonical codes (en, he) and custom: entries. */}
+            {profile.languages?.length ? (
+              <div className="flex flex-col gap-2 border-t border-white/10 pt-4">
+                <h2 className="text-meta font-semibold uppercase text-text-secondary">
+                  Languages
+                </h2>
+                <div className="flex flex-wrap gap-2">
+                  {profile.languages.map((code) => (
+                    <Pill key={code} variant="lavender" size="sm">
+                      {labelForLanguage(code)}
+                    </Pill>
+                  ))}
+                </div>
+              </div>
+            ) : null}
 
             {/* Looking for — intent is the primary matching signal, NOT a
                 doctrinal item. Sits right under the bio so it lands before
