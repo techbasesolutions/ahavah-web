@@ -26,6 +26,14 @@ const fadeUp = {
   animate: { opacity: 1, y: 0 },
 };
 
+// Hardcoded match subject until real match flow surfaces a uuid in the route.
+// Esther is one of the SAMPLE_PROFILES; her /profile/esther + /chat/esther
+// routes both exist and render real content.
+const MATCH_SUBJECT = {
+  id: "esther",
+  name: "Esther",
+};
+
 export default function MatchPage() {
   return (
     <PageShell bottomPad="default" className="px-5 pt-6">
@@ -90,18 +98,26 @@ export default function MatchPage() {
               }}
               className="-ml-8 -translate-y-4"
             >
-              <Card
-                tone="flat"
-                className="size-44 h-56 overflow-hidden rounded-3xl border-[3px] border-white p-0 shadow-2xl"
+              {/* Matched subject photo is tappable to view their full profile. */}
+              <Link
+                href={`/profile/${MATCH_SUBJECT.id}`}
+                prefetch={false}
+                aria-label={`View ${MATCH_SUBJECT.name}'s profile`}
+                className="block rounded-3xl outline-none focus-visible:ring-2 focus-visible:ring-lavender"
               >
-                <PhotoTile
-                  aspect="square"
-                  radius="lg"
-                  surface="none"
-                  bg={PROFILE_GRADIENTS.matched}
-                  className="size-full"
-                />
-              </Card>
+                <Card
+                  tone="flat"
+                  className="size-44 h-56 overflow-hidden rounded-3xl border-[3px] border-white p-0 shadow-2xl"
+                >
+                  <PhotoTile
+                    aspect="square"
+                    radius="lg"
+                    surface="none"
+                    bg={PROFILE_GRADIENTS.matched}
+                    className="size-full"
+                  />
+                </Card>
+              </Link>
             </motion.div>
           </div>
         </div>
@@ -131,7 +147,15 @@ export default function MatchPage() {
           transition={{ duration: 0.4, delay: 0.5 }}
           className="text-center text-meta text-white/85"
         >
-          You and Esther liked each other.
+          You and{" "}
+          <Link
+            href={`/profile/${MATCH_SUBJECT.id}`}
+            prefetch={false}
+            className="text-lime underline-offset-2 hover:underline focus-visible:underline"
+          >
+            {MATCH_SUBJECT.name}
+          </Link>{" "}
+          liked each other.
         </motion.p>
       </div>
 
@@ -149,7 +173,17 @@ export default function MatchPage() {
             className="text-body text-white placeholder:text-text-muted"
           />
           <InputGroupAddon align="inline-end" className="pr-0">
-            <Button size="circle" tone="cta" aria-label="Send">
+            {/* Send navigates to the new chat with the matched subject.
+                Real backend-send wires up when chat is server-backed; for
+                now this lands the user on /chat/[id] where their typed
+                'Say hi' message starts the conversation. */}
+            <Button
+              nativeButton={false}
+              size="circle"
+              tone="cta"
+              aria-label="Send"
+              render={<Link href={`/chat/${MATCH_SUBJECT.id}`} prefetch={false} />}
+            >
               <Send className="text-black" />
             </Button>
           </InputGroupAddon>
