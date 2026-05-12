@@ -17,7 +17,13 @@ import { cn } from "@/lib/utils";
 export interface CompatPillProps {
   score: number;
   breakdown?: CompatibilityBreakdown;
-  size?: "sm" | "md";
+  /**
+   * Maps directly to Pill's cva size. "sm" for in-card overlays (discover
+   * caption, profile-photo chip); "default" for standalone status pills
+   * elsewhere. Padding + text size live in the Pill primitive — no
+   * className overrides here (was the kit-only violation fixed in 044f033).
+   */
+  size?: "sm" | "default";
   className?: string;
 }
 
@@ -41,28 +47,22 @@ const AXIS_LABELS: Record<keyof CompatibilityBreakdown, string> = {
 export function CompatPill({
   score,
   breakdown,
-  size = "md",
+  size = "default",
   className,
 }: CompatPillProps) {
   const [open, setOpen] = useState(false);
   const variant = getVariant(score);
-  const sizeClass = size === "sm" ? "text-xs" : "text-sm";
 
   const pillContent = (
     <div className="flex items-center gap-1.5">
       <Sparkles className={cn("text-current", size === "sm" ? "size-3" : "size-4")} />
-      <span className={cn("font-bold tabular-nums", sizeClass)}>
-        {score}%
-      </span>
+      <span className="font-bold tabular-nums">{score}%</span>
     </div>
   );
 
   if (!breakdown) {
     return (
-      <Pill
-        variant={variant}
-        className={cn(size === "sm" ? "px-2 py-1" : "px-3 py-1.5", className)}
-      >
+      <Pill variant={variant} size={size} className={className}>
         {pillContent}
       </Pill>
     );
@@ -71,13 +71,7 @@ export function CompatPill({
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger className="cursor-pointer border-none bg-transparent p-0">
-        <Pill
-          variant={variant}
-          className={cn(
-            size === "sm" ? "px-2 py-1" : "px-3 py-1.5",
-            className
-          )}
-        >
+        <Pill variant={variant} size={size} className={className}>
           {pillContent}
         </Pill>
       </SheetTrigger>

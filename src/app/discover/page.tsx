@@ -299,19 +299,30 @@ export default function DiscoverPage() {
               />
 
               <PhotoCaption className="px-6 pb-20">
-                <h2 className="text-h2 leading-tight text-white">
-                  {profile.firstName}, {profile.age}
-                </h2>
-                {profile.city && profile.country ? (
-                  <p className="mt-1 flex items-center gap-1 text-caption text-white/85">
-                    <MapPin className="size-3" /> {profile.city}, {profile.country}
-                  </p>
-                ) : profile.country ? (
-                  <p className="mt-1 flex items-center gap-1 text-caption text-white/85">
-                    <MapPin className="size-3" /> {profile.country}
-                  </p>
-                ) : null}
-                <div className="mt-3">
+                {/* Name + location form a tap zone to the full profile.
+                    Sits z-20 above the prev/next photo tap zones (z-10)
+                    so the link wins the hit-test. Compat pill stays
+                    outside the Link because it owns its own Sheet trigger. */}
+                <Link
+                  href={`/profile/${profile.id}`}
+                  prefetch={false}
+                  aria-label={`View ${profile.firstName}'s profile`}
+                  className="relative z-20 -mx-1 -my-1 inline-block rounded-xl px-1 py-1 outline-none focus-visible:ring-2 focus-visible:ring-lavender"
+                >
+                  <h2 className="text-h2 leading-tight text-white">
+                    {profile.firstName}, {profile.age}
+                  </h2>
+                  {profile.city && profile.country ? (
+                    <p className="mt-1 flex items-center gap-1 text-caption text-white/85">
+                      <MapPin className="size-3" /> {profile.city}, {profile.country}
+                    </p>
+                  ) : profile.country ? (
+                    <p className="mt-1 flex items-center gap-1 text-caption text-white/85">
+                      <MapPin className="size-3" /> {profile.country}
+                    </p>
+                  ) : null}
+                </Link>
+                <div className="relative z-20 mt-3">
                   <CompatPill score={profile.compatScore} size="sm" />
                 </div>
               </PhotoCaption>

@@ -23,6 +23,7 @@ import { PageShell } from "@/components/app/page-shell";
 import { PhotoTile } from "@/components/app/photo-tile";
 import { ProgressDots } from "@/components/app/progress-dots";
 import { CompatPill } from "@/components/app/compat-pill";
+import { BlockReportSheet } from "@/components/app/block-report-sheet";
 import { useProfile } from "@/lib/use-profile";
 import { computeCompatibility } from "@/lib/scoring/compute-compatibility";
 import { gradientsFor } from "@/lib/profile-gradients";
@@ -69,6 +70,9 @@ export default function ProfileDetailPage({ params }: Props) {
     setPhotoIndex((i) => (i + 1) % photos.length);
   const prevPhoto = () =>
     setPhotoIndex((i) => (i - 1 + photos.length) % photos.length);
+
+  // BlockReportSheet wiring for the kebab — same pattern as /chat.
+  const [reportOpen, setReportOpen] = useState(false);
 
   // Compute compatibility between viewer and sample profile
   const compatResult = userProfile && profile
@@ -164,7 +168,12 @@ export default function ProfileDetailPage({ params }: Props) {
             >
               <ChevronLeft className="text-white" />
             </Link>
-            <Button size="circle" tone="overlay" aria-label="More">
+            <Button
+              size="circle"
+              tone="overlay"
+              aria-label="More"
+              onClick={() => setReportOpen(true)}
+            >
               <MoreHorizontal className="text-white" />
             </Button>
           </div>
@@ -428,6 +437,15 @@ export default function ProfileDetailPage({ params }: Props) {
           </CardContent>
         </Card>
       </motion.div>
+
+      <BlockReportSheet
+        open={reportOpen}
+        onOpenChange={setReportOpen}
+        subjectName={profile.firstName ?? "this person"}
+        onSubmit={(payload) => {
+          console.log("REPORT", profile.firstName, payload);
+        }}
+      />
     </PageShell>
   );
 }
