@@ -22,6 +22,7 @@ import {
   ASSEMBLIES,
   CALENDARS,
   EDUCATIONS,
+  MARITAL_STATUSES,
   POLYGYNY_VIEWS,
   TORAH_LEVELS,
   type Assembly,
@@ -29,6 +30,7 @@ import {
   type EducationLevel,
   type HealthTag,
   type Intent,
+  type MaritalStatus,
   type Polygyny,
   type TorahLevel,
 } from "@/lib/profile-schema";
@@ -62,6 +64,11 @@ const INTENT_FILTER_OPTIONS: ReadonlyArray<{ value: Intent; label: string }> = [
   { value: "local-only",              label: "Local only" },
 ];
 
+const HAS_CHILDREN_OPTIONS: ReadonlyArray<{ value: "has" | "none"; label: string }> = [
+  { value: "has",  label: "Has children" },
+  { value: "none", label: "No children" },
+];
+
 const HEALTH_TAG_FILTER_OPTIONS: ReadonlyArray<{ value: HealthTag; label: string }> = [
   { value: "non-smoker",       label: "Non-smoker" },
   { value: "no-alcohol",       label: "No alcohol" },
@@ -82,6 +89,8 @@ export type DiscoverFiltersState = {
   calendars?: ReadonlyArray<Calendar>;
   healthTags?: ReadonlyArray<HealthTag>;
   educations?: ReadonlyArray<EducationLevel>;
+  maritalStatuses?: ReadonlyArray<MaritalStatus>;
+  hasChildrenBuckets?: ReadonlyArray<"has" | "none">;
   country?: ReadonlyArray<string>;
   languages?: ReadonlyArray<string>;
   verifiedOnly?: boolean;
@@ -332,6 +341,28 @@ export function FiltersSheet({
               value={filters.intents ?? []}
               onValueChange={(v) =>
                 update("intents", v.length > 0 ? (v as Intent[]) : undefined)
+              }
+            />
+          </FilterSection>
+
+          <FilterSection label="Marital status">
+            <PillGrid
+              ariaLabel="Filter by marital status"
+              options={MARITAL_STATUSES}
+              value={filters.maritalStatuses ?? []}
+              onValueChange={(v) =>
+                update("maritalStatuses", v.length > 0 ? (v as MaritalStatus[]) : undefined)
+              }
+            />
+          </FilterSection>
+
+          <FilterSection label="Children">
+            <PillGrid
+              ariaLabel="Filter by parental status"
+              options={HAS_CHILDREN_OPTIONS}
+              value={filters.hasChildrenBuckets ?? []}
+              onValueChange={(v) =>
+                update("hasChildrenBuckets", v.length > 0 ? (v as Array<"has" | "none">) : undefined)
               }
             />
           </FilterSection>
