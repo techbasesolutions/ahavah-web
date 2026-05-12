@@ -41,6 +41,9 @@ describe("decision-engine", () => {
   });
 
   it("simulateLikesBack is deterministic — same viewer + subject => same answer", () => {
+    // Sparse viewer — only the 8 minimum fields. computeCompatibility's
+    // per-axis rules handle missing optional fields, so determinism still
+    // holds; we're exercising the no-randomness contract, not full coverage.
     const viewer: Profile = {
       firstName: "Test",
       age: 30, sex: "male", country: "BB",
@@ -55,5 +58,50 @@ describe("decision-engine", () => {
   it("simulateLikesBack matches the LIKE_THRESHOLD contract", () => {
     expect(LIKE_THRESHOLD).toBeGreaterThanOrEqual(0);
     expect(LIKE_THRESHOLD).toBeLessThanOrEqual(100);
+  });
+
+  it("recordDecision returns a new array, never mutates input", () => {
+    const start: Decision[] = [
+      { subjectId: "yosef", action: "like", timestamp: 1 },
+    ];
+    const frozen = Object.freeze([...start]) as ReadonlyArray<Decision>;
+    const after = recordDecision(frozen, { subjectId: "esther", action: "like" });
+    expect(after).not.toBe(frozen);
+    expect(frozen).toEqual([
+      { subjectId: "yosef", action: "like", timestamp: 1 },
+    ]);
+  });
+
+  it("recordDecision moves a replaced subject to the tail and preserves others' order", () => {
+    const start: Decision[] = [
+      { subjectId: "a", action: "like", timestamp: 1 },
+      { subjectId: "b", action: "pass", timestamp: 2 },
+      { subjectId: "c", action: "like", timestamp: 3 },
+    ];
+    const after = recordDecision(start, { subjectId: "a", action: "pass", timestamp: 4 });
+    expect(after.map((d) => d.subjectId)).toEqual(["b", "c", "a"]);
+  });
+
+  it("recordDecision preserves timestamp: 0 instead of replacing with Date.now()", () => {
+    const start: Decision[] = [];
+    const after = recordDecision(start, {
+      subjectId: "esther",
+      action: "like",
+      timestamp: 0,
+    });
+    expect(after[0].timestamp).toBe(0);
+  });
+
+  it("LIKE_THRESHOLD is pinned at 50", () => {
+    expect(LIKE_THRESHOLD).toBe(50);
+  });
+
+  it("simulateLikesBack against SAMPLE_PROFILES yields 1-4 mutuals for a typical viewer", () => {
+    const viewer: Profile = SAMPLE_PROFILES[1]; // Esther — full-shape sample
+    const mutuals = SAMPLE_PROFILES.filter((s) => simulateLikesBack(viewer, s));
+    // Self-mutual is fine; the assertion is "non-empty" — if scoring drifts
+    // and produces zero mutuals, the deck is dead.
+    expect(mutuals.length).toBeGreaterThanOrEqual(1);
+    expect(mutuals.length).toBeLessThanOrEqual(4);
   });
 });

@@ -37,6 +37,11 @@ export function recordDecision(
   return [...withoutExisting, stamped];
 }
 
+/**
+ * Returns the recorded decision for the given subject, or null if none.
+ * `null` (not undefined) matches the codebase convention from
+ * `wizard-flow.ts#routeForField` for "absent record" lookups.
+ */
 export function getDecision(
   decisions: ReadonlyArray<Decision>,
   subjectId: string,
