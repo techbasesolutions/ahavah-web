@@ -7,6 +7,7 @@ import type {
   Intent,
   HealthTag,
   EducationLevel,
+  MaritalStatus,
 } from "@/lib/profile-schema";
 import { computeCompatibility } from "@/lib/scoring/compute-compatibility";
 import type { Weights } from "@/lib/scoring/weights";
@@ -54,6 +55,10 @@ export interface DiscoverFilters {
   healthTags?: readonly HealthTag[];
   educations?: readonly EducationLevel[];
   verifiedOnly?: boolean;
+  /** SP23: filter by marital status. Empty/undefined = no filter. */
+  maritalStatuses?: ReadonlyArray<MaritalStatus>;
+  /** SP23: filter by parental status via 2-bucket multi-select. */
+  hasChildrenBuckets?: ReadonlyArray<"has" | "none">;
 }
 
 /**
@@ -162,6 +167,28 @@ function passesAllFilters(candidate: DiscoverCandidate, filters: DiscoverFilters
     if (!candidate.verificationTags || candidate.verificationTags.length === 0) {
       return false;
     }
+  }
+
+  // SP23: marital status filter
+  if (filters.maritalStatuses && filters.maritalStatuses.length > 0) {
+    if (!candidate.maritalStatus) return false;
+    if (!filters.maritalStatuses.includes(candidate.maritalStatus)) return false;
+  }
+
+  // SP23: has-children bucket filter — only filters when exactly 1 bucket
+  // selected. Both selected (length === 2) or neither selected (length === 0)
+  // = no filter (symmetric with the empty-selection pattern across all
+  // multi-select filters).
+  if (
+    filters.hasChildrenBuckets &&
+    filters.hasChildrenBuckets.length > 0 &&
+    filters.hasChildrenBuckets.length < 2
+  ) {
+    if (candidate.children === undefined) return false;
+    const wantsHas = filters.hasChildrenBuckets.includes("has");
+    const wantsNone = filters.hasChildrenBuckets.includes("none");
+    if (wantsHas && !wantsNone && candidate.children < 1) return false;
+    if (wantsNone && !wantsHas && candidate.children !== 0) return false;
   }
 
   return true;

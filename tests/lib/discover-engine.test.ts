@@ -7,6 +7,7 @@ import type {
   Calendar,
   Intent,
   HealthTag,
+  MaritalStatus,
 } from "@/lib/profile-schema";
 import { SAMPLE_PROFILES } from "@/lib/profile-sample";
 import {
@@ -336,6 +337,128 @@ describe("discover-engine", () => {
 
       const result = applyHardFilters(viewer, candidates, filters);
       expect(result.map((c) => c.firstName)).toEqual(["Daniel"]);
+    });
+  });
+
+  // ------- filter: maritalStatuses (SP23) -------
+
+  describe("passesAllFilters — marital status (SP23)", () => {
+    it("no filter set → all marital statuses pass", () => {
+      const viewer: Profile = { firstName: "Sarah" };
+      const candidates: DiscoverCandidate[] = [
+        makeCandidate({ firstName: "Daniel", maritalStatus: "never-married" }),
+        makeCandidate({ firstName: "Yosef", maritalStatus: "married" }),
+        makeCandidate({ firstName: "Caleb", maritalStatus: "widowed" }),
+        makeCandidate({ firstName: "Adam", maritalStatus: "divorced" }),
+      ];
+      const filters: DiscoverFilters = {};
+
+      const result = applyHardFilters(viewer, candidates, filters);
+      expect(result).toHaveLength(4);
+    });
+
+    it("single selected → only matching candidate passes", () => {
+      const viewer: Profile = { firstName: "Sarah" };
+      const candidates: DiscoverCandidate[] = [
+        makeCandidate({ firstName: "Daniel", maritalStatus: "never-married" }),
+        makeCandidate({ firstName: "Yosef", maritalStatus: "married" }),
+      ];
+      const filters: DiscoverFilters = {
+        maritalStatuses: ["never-married"] as readonly MaritalStatus[],
+      };
+
+      const result = applyHardFilters(viewer, candidates, filters);
+      expect(result.map((c) => c.firstName)).toEqual(["Daniel"]);
+    });
+
+    it("multi selected → union", () => {
+      const viewer: Profile = { firstName: "Sarah" };
+      const candidates: DiscoverCandidate[] = [
+        makeCandidate({ firstName: "Daniel", maritalStatus: "never-married" }),
+        makeCandidate({ firstName: "Adam", maritalStatus: "divorced" }),
+        makeCandidate({ firstName: "Caleb", maritalStatus: "widowed" }),
+      ];
+      const filters: DiscoverFilters = {
+        maritalStatuses: ["divorced", "widowed"] as readonly MaritalStatus[],
+      };
+
+      const result = applyHardFilters(viewer, candidates, filters);
+      expect(result.map((c) => c.firstName)).toEqual(["Adam", "Caleb"]);
+    });
+
+    it("candidate missing maritalStatus → fails when filter active", () => {
+      const viewer: Profile = { firstName: "Sarah" };
+      const candidates: DiscoverCandidate[] = [
+        makeCandidate({ firstName: "NoMarital" }),
+        makeCandidate({ firstName: "Daniel", maritalStatus: "never-married" }),
+      ];
+      const filters: DiscoverFilters = {
+        maritalStatuses: ["never-married"] as readonly MaritalStatus[],
+      };
+
+      const result = applyHardFilters(viewer, candidates, filters);
+      expect(result.map((c) => c.firstName)).toEqual(["Daniel"]);
+    });
+  });
+
+  // ------- filter: hasChildrenBuckets (SP23) -------
+
+  describe("passesAllFilters — has-kids buckets (SP23)", () => {
+    it("'has' only → children >= 1 passes, 0 fails", () => {
+      const viewer: Profile = { firstName: "Sarah" };
+      const candidates: DiscoverCandidate[] = [
+        makeCandidate({ firstName: "Daniel", children: 0 }),
+        makeCandidate({ firstName: "Yosef", children: 3 }),
+        makeCandidate({ firstName: "Ezekiel", children: 5 }),
+      ];
+      const filters: DiscoverFilters = { hasChildrenBuckets: ["has"] };
+
+      const result = applyHardFilters(viewer, candidates, filters);
+      expect(result.map((c) => c.firstName)).toEqual(["Yosef", "Ezekiel"]);
+    });
+
+    it("'none' only → children === 0 passes, >= 1 fails", () => {
+      const viewer: Profile = { firstName: "Sarah" };
+      const candidates: DiscoverCandidate[] = [
+        makeCandidate({ firstName: "Daniel", children: 0 }),
+        makeCandidate({ firstName: "Yosef", children: 3 }),
+        makeCandidate({ firstName: "Esther", children: 0 }),
+      ];
+      const filters: DiscoverFilters = { hasChildrenBuckets: ["none"] };
+
+      const result = applyHardFilters(viewer, candidates, filters);
+      expect(result.map((c) => c.firstName)).toEqual(["Daniel", "Esther"]);
+    });
+
+    it("both buckets selected → equivalent to no filter", () => {
+      const viewer: Profile = { firstName: "Sarah" };
+      const candidates: DiscoverCandidate[] = [
+        makeCandidate({ firstName: "Daniel", children: 0 }),
+        makeCandidate({ firstName: "Yosef", children: 3 }),
+        makeCandidate({ firstName: "Esther", children: 0 }),
+        makeCandidate({ firstName: "Ezekiel", children: 5 }),
+      ];
+      const filters: DiscoverFilters = { hasChildrenBuckets: ["has", "none"] };
+
+      const result = applyHardFilters(viewer, candidates, filters);
+      expect(result).toHaveLength(4);
+    });
+
+    it("undefined children → fails when bucket filter active", () => {
+      const viewer: Profile = { firstName: "Sarah" };
+      const candidates: DiscoverCandidate[] = [
+        makeCandidate({ firstName: "NoChildren" }),
+        makeCandidate({ firstName: "Daniel", children: 0 }),
+        makeCandidate({ firstName: "Yosef", children: 3 }),
+      ];
+      const noneOnly: DiscoverFilters = { hasChildrenBuckets: ["none"] };
+      const hasOnly: DiscoverFilters = { hasChildrenBuckets: ["has"] };
+
+      const noneResult = applyHardFilters(viewer, candidates, noneOnly);
+      expect(noneResult.map((c) => c.firstName)).toEqual(["Daniel"]);
+
+      const hasResult = applyHardFilters(viewer, candidates, hasOnly);
+      expect(hasResult.map((c) => c.firstName)).toEqual(["Yosef"]);
     });
   });
 
