@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
@@ -15,7 +16,18 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 
-import { Confetti } from "@/components/app/confetti";
+// Confetti uses motion/react's useReducedMotion hook which evaluates
+// `matchMedia("(prefers-reduced-motion: reduce)")` at render time. The
+// server can't read the user's OS pref, so SSR + first-client-render
+// disagree on whether to render the pieces — produces a hydration
+// mismatch warning. dynamic({ssr:false}) defers the component to
+// post-mount, eliminating the divergence at the cost of one frame's
+// invisibility (acceptable for a decorative burst that fires at delay
+// 0.3s anyway). Same pattern SP14 uses for WorldMap + MapAvatar.
+const Confetti = dynamic(
+  () => import("@/components/app/confetti").then((m) => m.Confetti),
+  { ssr: false },
+);
 import { PageShell } from "@/components/app/page-shell";
 import { PhotoTile } from "@/components/app/photo-tile";
 import { sampleByName } from "@/lib/profile-sample";
