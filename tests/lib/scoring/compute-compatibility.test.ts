@@ -53,3 +53,52 @@ describe("computeCompatibility - language axis", () => {
     );
   });
 });
+
+// Regression coverage for the NaN% bug surfaced during SP21 T8 smoke walk
+// on /matches: a minimal-data viewer compared against a fully-populated
+// sample produced NaN% on the CompatPill. Each axis rule guards its own
+// undefined-input case, but the composite math additionally skips any
+// non-finite axis and floors the final score at 0 if anything still
+// escapes.
+describe("computeCompatibility - finite-score guard", () => {
+  it("empty viewer + empty candidate returns a finite score", () => {
+    const result = computeCompatibility({}, {});
+    expect(Number.isFinite(result.score)).toBe(true);
+    expect(result.score).toBeGreaterThanOrEqual(0);
+    expect(result.score).toBeLessThanOrEqual(100);
+  });
+
+  it("minimal viewer + populated candidate returns a finite score", () => {
+    const viewer: Profile = {
+      firstName: "TestViewer",
+      age: 32,
+      sex: "male",
+      country: "BB",
+      intent: "first-wife",
+      assembly: "torah-observant",
+      polygyny: "supports",
+      relocation: "wants-partner-willing",
+      verificationTags: ["government-id"],
+      healthTags: ["non-smoker"],
+    };
+    const candidate: Profile = {
+      firstName: "Adina",
+      age: 24,
+      sex: "female",
+      country: "IL",
+      torahLevel: "experienced",
+      shabbat: "friday-sunset-saturday-sunset",
+      feastDays: ["passover", "shavuot"],
+      calendar: "rabbinic",
+      polygyny: "monogamy-only",
+      familyViews: ["wants-children"],
+      livingPreferences: ["urban"],
+      healthTags: ["non-smoker", "fitness"],
+      communicationPrefs: ["video-calls"],
+      relocation: "international-open",
+      languages: ["en", "he"],
+    };
+    const result = computeCompatibility(viewer, candidate);
+    expect(Number.isFinite(result.score)).toBe(true);
+  });
+});

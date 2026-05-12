@@ -70,13 +70,21 @@ export function computeCompatibility(
   for (const axis of AXES) {
     const w = weights[axis];
     if (w <= 0) continue;
-    weightedSum += w * breakdown[axis];
+    const axisScore = breakdown[axis];
+    // Defensive: any axis returning NaN (e.g. a rule with an edge case
+    // that escapes its early-return guards) would poison the composite.
+    // Skip non-finite axes so the score remains a finite percentage —
+    // the user sees a real number, not "NaN%". Surfaced in SP21 T8
+    // matches grid smoke walk with a minimal-data viewer.
+    if (!Number.isFinite(axisScore)) continue;
+    weightedSum += w * axisScore;
     weightTotal += w;
   }
 
   const normalized = weightTotal > 0 ? weightedSum / weightTotal : 0;
+  const score = Math.round(normalized * 100);
   return {
-    score: Math.round(normalized * 100),
+    score: Number.isFinite(score) ? score : 0,
     breakdown,
   };
 }
