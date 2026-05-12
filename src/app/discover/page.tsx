@@ -19,8 +19,7 @@ import { PhotoCaption } from "@/components/app/photo-caption";
 import { ProgressDots } from "@/components/app/progress-dots";
 import { CompatPill } from "@/components/app/compat-pill";
 import { useProfile } from "@/lib/use-profile";
-import { isDiscoverEligible } from "@/lib/profile-completeness";
-import { firstMissingStepFor } from "@/lib/profile-completeness";
+import { firstMissingStepFor, isDiscoverEligible } from "@/lib/profile-completeness";
 import { buildDiscoverDeck, type DiscoverFilters, type DiscoverCandidate } from "@/lib/discover-engine";
 import { SAMPLE_PROFILES } from "@/lib/profile-sample";
 

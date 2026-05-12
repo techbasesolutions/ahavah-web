@@ -438,6 +438,11 @@ export default function ProfileDetailPage({ params }: Props) {
               transition={{ duration: 0.3, delay: 0.3, ease: "easeOut" }}
               className="mt-2 flex items-center justify-center gap-5"
             >
+              {/* TODO(decision-engine): Pass + Like need real handlers.
+                  Pass: mark candidate as skipped (persist), navigate /discover.
+                  Like: send like, check mutual, navigate /match (mutual)
+                  or /discover (one-way). Message is wired below. Spec these
+                  alongside the discover swipe-deck decision persistence. */}
               <Button size="circle" tone="brand" lift="float" aria-label="Pass">
                 <X className="text-black" />
               </Button>

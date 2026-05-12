@@ -129,7 +129,7 @@ export default function PrivacySettingsPage() {
                     <ItemTitle className="flex items-center gap-2 text-meta text-white">
                       {item.title}
                       {item.premium ? (
-                        <Pill variant="lime" className="text-caption font-semibold">
+                        <Pill variant="lime" size="sm">
                           Premium
                         </Pill>
                       ) : null}

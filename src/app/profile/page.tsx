@@ -117,7 +117,7 @@ export default function ProfilePage() {
             <Button
               nativeButton={false}
               size="cta"
-              className="bg-lime text-black hover:bg-lime/90"
+              tone="cta"
               render={<Link href="/paywall" prefetch={false} />}
             >
               <Sparkles size={14} className="mr-2" />
