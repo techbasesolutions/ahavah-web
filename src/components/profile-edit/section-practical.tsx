@@ -23,8 +23,10 @@ import { Card } from "@/components/ui/card";
  * PracticalSection — Practical compatibility profile cluster (Sub-plan 03).
  * 3 fields: intent (gender-conditional), relocation, communicationPrefs.
  *
- * Intent requires profile.sex to be set first. If not set, renders a fallback
- * Card with a link to /onboarding/gender.
+ * Intent requires profile.sex to be set first. If not set, renders a
+ * fallback Card with an in-page anchor to the Gender field in IdentitySection
+ * (id="field-sex"). The previous version drilled out to /onboarding/gender
+ * — same anti-pattern eliminated for country + languages.
  *
  * Uses useProfile to read + write. Composes ProfileField helpers.
  */
@@ -50,12 +52,12 @@ export default function PracticalSection() {
       ) : (
         <Card tone="elevated" className="rounded-xl px-4 py-3">
           <p className="text-meta text-text-muted">
-            Set your sex first to edit intent —{" "}
+            Set your gender first to edit intent —{" "}
             <Link
-              href="/onboarding/gender"
+              href="#field-sex"
               className="text-lime underline hover:text-lime/80"
             >
-              go to gender step →
+              set it above →
             </Link>
           </p>
         </Card>

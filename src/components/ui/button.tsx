@@ -20,12 +20,13 @@ const buttonVariants = cva(
         // ad-hoc `border-white/15 bg-transparent text-white hover:bg-white/5`.
         outlineSubtle:
           "border-white/15 bg-transparent text-white hover:bg-white/5",
-        // Outline that reads its colour from the nearest `--tier-color` CSS
-        // variable (set by Card.tone="tier"/"tierInactive"). Replaces the
-        // verify-tier `style={{ borderColor: tier.color, color: tier.color }}`
-        // inline override. Use inside a Card that sets --tier-color.
+        // Tier-coloured BORDER + white body text. Use inside a Card that
+        // sets --tier-color. The previous version painted body text in
+        // --tier-color too, which made silver and gold buttons read as
+        // disabled (text identical to background on dark surfaces).
+        // Keeping tier signal via the ring; body stays alive in white.
         outlineTier:
-          "border bg-transparent border-(--tier-color) text-(--tier-color) hover:bg-(--tier-color)/10",
+          "border bg-transparent border-(--tier-color) text-white hover:bg-(--tier-color)/10",
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-secondary/80 aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
         ghost:

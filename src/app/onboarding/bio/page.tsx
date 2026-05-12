@@ -41,10 +41,7 @@ export default function BioStep() {
 
   return (
     <OnboardingShell
-      step={10}
-      totalSteps={14}
-      back="/onboarding/languages"
-      next="/onboarding/polygyny"
+      href="/onboarding/bio"
       skipHref="/onboarding/polygyny"
     >
       <motion.div

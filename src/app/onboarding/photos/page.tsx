@@ -52,13 +52,7 @@ export default function PhotosStep() {
   };
 
   return (
-    <OnboardingShell
-      step={7}
-      totalSteps={14}
-      back="/onboarding/looking-for"
-      next="/onboarding/country"
-      ctaDisabled={!hasMain}
-    >
+    <OnboardingShell href="/onboarding/photos" ctaDisabled={!hasMain}>
       <motion.div
         {...fadeUp}
         transition={{ duration: 0.4 }}

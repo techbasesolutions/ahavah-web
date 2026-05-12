@@ -54,10 +54,7 @@ export default function VerifyPhoneStep() {
 
   return (
     <OnboardingShell
-      step={2}
-      totalSteps={14}
-      back="/onboarding/verify-email"
-      next="/onboarding/name"
+      href="/onboarding/verify-phone"
       ctaLabel="Continue"
       ctaLoadingLabel="Verifying…"
       ctaDisabled={!isComplete}

@@ -52,9 +52,7 @@ export default function VerifyEmailStep() {
 
   return (
     <OnboardingShell
-      step={1}
-      totalSteps={14}
-      next="/onboarding/verify-phone"
+      href="/onboarding/verify-email"
       ctaLabel="Continue"
       ctaLoadingLabel="Verifying…"
       ctaDisabled={!isComplete}

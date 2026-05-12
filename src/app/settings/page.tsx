@@ -42,50 +42,62 @@ const fadeUp = {
   animate: { opacity: 1, y: 0 },
 };
 
+// Mirrors the /profile own-profile rhythm: each group gets a coloured
+// dot accent + IconBadge tones vary by purpose so the eye can find
+// Billing / Account actions faster (was 9x identical lavender = flat).
+type IconBadgeTone = "brand" | "muted" | "success" | "destructive";
+
 const SETTINGS_GROUPS: ReadonlyArray<{
   label: string;
+  accent: string;
   items: ReadonlyArray<{
     Icon: typeof Bell;
     title: string;
     subtitle?: string;
     href: string;
+    tone?: IconBadgeTone;
     destructive?: boolean;
   }>;
 }> = [
   {
     label: "Account",
+    accent: "bg-lavender",
     items: [
-      { Icon: UserPen,    title: "Edit profile",          subtitle: "Photos, bio, basics", href: "/profile/edit" },
-      { Icon: Globe,      title: "Discovery preferences", subtitle: "Country, language, range", href: "/discover" },
-      { Icon: ShieldCheck,title: "Verification",          subtitle: "Bronze · upgrade to Silver", href: "/verify" },
+      { Icon: UserPen,    title: "Edit profile",          subtitle: "Photos, bio, basics",         href: "/profile/edit", tone: "brand" },
+      { Icon: Globe,      title: "Discovery preferences", subtitle: "Country, language, range",    href: "/discover",     tone: "brand" },
+      { Icon: ShieldCheck,title: "Verification",          subtitle: "Bronze · upgrade to Silver",  href: "/verify",       tone: "success" },
     ],
   },
   {
     label: "App",
+    accent: "bg-lavender/60",
     items: [
-      { Icon: Bell,      title: "Notifications", subtitle: "Push, sounds, sync", href: "/settings/notifications" },
-      { Icon: ShieldAlert,title: "Privacy",      subtitle: "What others see about you", href: "/settings/privacy" },
-      { Icon: UserX,     title: "Blocked users", subtitle: "People you've blocked", href: "/settings/blocked" },
-      { Icon: ShieldCheck,title:"Safety center", subtitle: "Tips, reports, emergencies", href: "/settings/safety" },
-      { Icon: Sparkles,  title: "Auto-translate",subtitle: "On · English", href: "/settings/account" },
+      { Icon: Bell,        title: "Notifications",  subtitle: "Push, sounds, sync",         href: "/settings/notifications", tone: "muted" },
+      { Icon: ShieldAlert, title: "Privacy",        subtitle: "What others see about you",  href: "/settings/privacy",       tone: "muted" },
+      { Icon: UserX,       title: "Blocked users",  subtitle: "People you've blocked",      href: "/settings/blocked",       tone: "muted" },
+      { Icon: ShieldCheck, title: "Safety center",  subtitle: "Tips, reports, emergencies", href: "/settings/safety",        tone: "muted" },
+      { Icon: Sparkles,    title: "Auto-translate", subtitle: "On · English",               href: "/settings/account",       tone: "muted" },
     ],
   },
   {
     label: "Billing",
+    accent: "bg-lime",
     items: [
-      { Icon: CreditCard, title: "Subscription", subtitle: "Upgrade to Premium →", href: "/paywall" },
+      { Icon: CreditCard, title: "Subscription", subtitle: "Upgrade to Premium →", href: "/paywall", tone: "success" },
     ],
   },
   {
     label: "Support",
+    accent: "bg-lavender/60",
     items: [
-      { Icon: HelpCircle, title: "Help center", subtitle: "FAQ, contact, bug report", href: "/settings/account" },
+      { Icon: HelpCircle, title: "Help center", subtitle: "FAQ, contact, bug report", href: "/settings/account", tone: "muted" },
     ],
   },
   {
     label: "Account actions",
+    accent: "bg-pink",
     items: [
-      { Icon: LogOut, title: "Log out",        href: "/settings/account" },
+      { Icon: LogOut, title: "Log out",        href: "/settings/account", tone: "muted" },
       { Icon: Trash2, title: "Delete account", href: "/settings/account", destructive: true },
     ],
   },
@@ -115,7 +127,13 @@ export default function SettingsPage() {
             transition={{ duration: 0.4, delay: 0.05 + gi * 0.08 }}
             className="flex flex-col gap-2"
           >
-            <h2 className="px-3 text-overline text-text-muted">{group.label}</h2>
+            <h2 className="flex items-center gap-2 px-3 text-overline text-text-muted">
+              <span
+                aria-hidden
+                className={`size-1.5 rounded-full ${group.accent}`}
+              />
+              {group.label}
+            </h2>
             <ItemGroup className="gap-1">
               {group.items.map((item) => (
                 <Item
@@ -130,7 +148,13 @@ export default function SettingsPage() {
                   }
                 >
                   <ItemMedia>
-                    <IconBadge tone={item.destructive ? "destructive" : "brand"}>
+                    <IconBadge
+                      tone={
+                        item.destructive
+                          ? "destructive"
+                          : item.tone ?? "brand"
+                      }
+                    >
                       <item.Icon />
                     </IconBadge>
                   </ItemMedia>

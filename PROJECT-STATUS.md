@@ -1419,6 +1419,81 @@ The 39-route per-screen design audit is complete. R8 / R9 / R11 newly cleanly pa
 
 ---
 
+## 16. 2026-05-12 Sub-plan 8 closure + audit gap remediation
+
+Continuation of §15. Closed Sub-plan 8 (Navigation Map) end-to-end and remediated the rubber-stamped routes from §15.
+
+### Sub-plan 8 — all 5 tasks complete
+
+- **Task 1** (`7751747`) — `src/lib/wizard-flow.ts` central module: `WIZARD_STEPS` (14 entries), `positionOf`, `nextOf`, `backOf`, `routeForField`, `firstMissingStepFor`. 10 tests in `tests/lib/wizard-flow.test.ts`.
+- **Task 2** (`1eceb23`) — 14 onboarding screens migrated to `positionOf(href)` via a new `OnboardingShell.href` prop. Net −97/+45. No more hardcoded `step={N}` / `totalSteps={14}` / `back` / `next` in any page file. `/onboarding/verification` keeps explicit `next="/onboarding/complete"` since complete is outside the wizard map.
+- **Task 3** (`a29cd54`) — `profile-completeness.ts` re-exports `firstMissingStepFor` from wizard-flow. Removed the parallel `FIELD_TO_ROUTE` map that drifted across the country/languages/Reset-all bug cycle.
+- **Task 4** — absorbed into audit Task 22 (`436e68f`). `/profile/edit` Practical section's drill-out to `/onboarding/gender` replaced with in-page anchor `#field-sex`.
+- **Task 5** — browser smoke walk: all 14 step indicators report correct "Step N of 14" via positionOf. Production build (`pnpm build`) clean: 37 routes prerendered static, 1 dynamic, zero compile errors.
+
+### Audit gap remediation — rubber-stamped routes re-walked
+
+§15 marked 7 routes "PASS via existing implementation" without doing a structured 12-axis walk: `/inbox`, `/chat/[id]`, and the 5 edge-case pages. An independent `superpowers:code-reviewer` agent caught it. Honest re-walk produced 5 real fixes:
+
+- **`/inbox`** (`789b8b7`):
+  - Axis 8: empty state had no CTA → added "Start discovering" → `/discover`.
+  - Axis 10: "is typing…" silent to SR → `aria-live="polite"` on dynamic descriptions.
+  - Axis 12: Search button had aria-label but no `onClick` → `TODO(inbox-search)`.
+- **`/chat/[id]`** (`789b8b7`):
+  - Axis 10: message scroll region silent to SR → `role="log"` + `aria-live="polite"` + `aria-label="Conversation with {name}"`.
+  - Axis 12: ChatInput Send unwired → `TODO(chat-send)`.
+- **Tasks 34–38 edge cases** — read end-to-end this time. All 5 genuinely pass 12 axes via `EdgeStateShell`. Observation: 4-of-5 use hand-rolled `<Empty>` while `/offline` uses the `EmptyState` atom — kit-refactor opportunity, not an audit failure.
+
+### Code-review-driven fixes (`da7f9f1`)
+
+Independent reviewer surfaced 6 concerns I'd missed; all closed:
+
+1. `settings/privacy/page.tsx:132` — Pill className override survived the cva refactor → `size="sm"`.
+2. `8f6ab76` redirected `/settings/safety` Resources self-loops to `/legal/*` routes that don't exist → reverted to non-Link "(coming soon)" muted text + `TODO(legal-pages)`.
+3. `discover/page.tsx:22-23` — double import from same module → collapsed.
+4. `profile/page.tsx:120` — raw `className="bg-lime text-black hover:bg-lime/90"` on Upgrade button → `tone="cta"` (closes failure pattern #2).
+5. `profile/[uuid]/page.tsx:427-432` — Pass + Like buttons dead-coded → `TODO(decision-engine)` block.
+6. `src/lib/profile-gradients.ts` had no tests → added 5 (determinism, distribution, shape).
+
+### Cross-screen navigation graph closed
+
+Every user-visible entry point has a real destination:
+
+- `/discover` → `/profile/[id]` (name link), kebab → BlockReportSheet
+- `/matches` → `/profile/[id]` (card tap)
+- `/match` → `/profile/[id]` (photo + name) + `/chat/[id]` (send)
+- `/inbox` → `/chat/[id]` (row tap)
+- `/chat/[id]` → `/profile/[id]` (header tap)
+- `/profile/[id]` → `/chat/[id]` (Message button)
+- `/profile/[id]` → BlockReportSheet (kebab)
+
+### Outstanding sub-plans (deferred, not audit fixes)
+
+Real product features that need their own specs:
+
+- **Sub-plan 9 Photos** — schema field, upload pipeline, real per-match images. Today's gradient carousel + own-profile photo grid are placeholders.
+- **Auth feature** — real `/auth/sign-in` route + flow. Currently both "Create account" and "Sign in" route to `/auth/sign-up`.
+- **Legal pages** — `/legal/terms`, `/legal/privacy`, `/legal/community-guidelines`, `/legal/trust-safety`, `/legal/emergency-numbers`. Referenced from `/welcome`, `/auth/sign-up`, `/settings/safety`, `/paywall`.
+- **Settings shell-out routes** — `/settings/discovery`, `/settings/translate`, `/help`. Currently those rows route to other pages.
+- **Decision engine** — Pass / Like wiring on `/profile/[uuid]` action row + `/discover` swipe persistence.
+- **Inbox + Chat send wiring** — `/inbox` Search and `/chat/[id]` ChatInput.onSend.
+
+### Final verification
+
+- Tests: **192/192** pass (5 new for `profile-gradients`, 10 existing for `wizard-flow`).
+- Lint: clean across all touched files.
+- TypeCheck: clean.
+- Production build: `pnpm build` succeeds; all 38 implemented routes resolve.
+- Console: clean on every audited surface.
+
+### Branch: `sub-plan-08-navigation-map` (19 commits ahead of master)
+
+Ready for merge review.
+
+---
+
 ## Sign-off
 
 This audit is honest. Where it disagrees with `SESSION-SUMMARY.md`, this document supersedes. Future sessions: read this first, update it last. Don't pretend.
+
+The 2026-05-11/12 sessions specifically: §15 rubber-stamped 7 routes (caught by code review) → §16 re-walked them with real verdicts and shipped 5 fixes. The pattern of marking PASS without observing is recurring failure §9 #1. **Going forward:** a "PASS via existing implementation" claim is not a verdict. It must be supported by an explicit 12-axis verdict in the commit message or PROJECT-STATUS entry, OR honestly marked deferred from this pass.

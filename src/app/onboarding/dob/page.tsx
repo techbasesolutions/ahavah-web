@@ -79,13 +79,7 @@ export default function DOBStep() {
   };
 
   return (
-    <OnboardingShell
-      step={4}
-      totalSteps={14}
-      back="/onboarding/name"
-      next="/onboarding/gender"
-      ctaDisabled={!isValid}
-    >
+    <OnboardingShell href="/onboarding/dob" ctaDisabled={!isValid}>
       <motion.div
         {...fadeUp}
         transition={{ duration: 0.4 }}

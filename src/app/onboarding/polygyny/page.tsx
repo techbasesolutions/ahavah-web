@@ -22,10 +22,7 @@ export default function PolygynyStep() {
 
   return (
     <OnboardingShell
-      step={11}
-      totalSteps={14}
-      back="/onboarding/bio"
-      next="/onboarding/assembly"
+      href="/onboarding/polygyny"
       skipHref="/onboarding/assembly"
       ctaDisabled={!profile.polygyny}
     >

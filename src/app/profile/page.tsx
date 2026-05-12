@@ -4,11 +4,10 @@ import Link from "next/link";
 import { motion } from "motion/react";
 import {
   Bell, ChevronRight, CreditCard, Globe, LogOut,
-  Settings, Shield, Sparkles, Star, Trash2,
+  Settings, ShieldCheck, Sparkles, Trash2,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { IconBadge } from "@/components/ui/icon-badge";
@@ -21,6 +20,7 @@ import {
   ItemMedia,
   ItemTitle,
 } from "@/components/ui/item";
+import { Pill } from "@/components/kibo-ui/pill";
 
 import { BottomNav } from "@/components/app/bottom-nav";
 import { PageShell } from "@/components/app/page-shell";
@@ -30,41 +30,53 @@ const fadeUp = {
   animate: { opacity: 1, y: 0 },
 };
 
+// Group accent dot colours — break the stack-of-lists rhythm so the eye
+// can find Billing / Other faster (Account/App share lavender on purpose:
+// they're the everyday rows).
+type IconBadgeTone = "brand" | "muted" | "success" | "destructive";
+
 const SETTINGS_GROUPS: ReadonlyArray<{
   label: string;
+  /** Tailwind bg-* class for the dot accent before the group label. */
+  accent: string;
   items: ReadonlyArray<{
     Icon: typeof Bell;
     title: string;
     subtitle?: string;
     href: string;
+    tone?: IconBadgeTone;
     destructive?: boolean;
   }>;
 }> = [
   {
     label: "Account",
+    accent: "bg-lavender",
     items: [
-      { Icon: Settings, title: "Edit profile",          subtitle: "Photos, bio, basics",         href: "/profile/edit" },
-      { Icon: Globe,    title: "Discovery preferences", subtitle: "Country, language, range",    href: "/settings" },
-      { Icon: Shield,   title: "Verification",          subtitle: "Bronze · upgrade to Silver",  href: "/verify" },
+      { Icon: Settings, title: "Edit profile",          subtitle: "Photos, bio, basics",         href: "/profile/edit",  tone: "brand" },
+      { Icon: Globe,    title: "Discovery preferences", subtitle: "Country, language, range",    href: "/settings",      tone: "brand" },
+      { Icon: ShieldCheck, title: "Verification",       subtitle: "Bronze · upgrade to Silver",  href: "/verify",        tone: "success" },
     ],
   },
   {
     label: "App",
+    accent: "bg-lavender/60",
     items: [
-      { Icon: Bell,     title: "Notifications",  subtitle: "Push, sounds, sync", href: "/settings/notifications" },
-      { Icon: Sparkles, title: "Auto-translate", subtitle: "On · English",       href: "/settings" },
+      { Icon: Bell,     title: "Notifications",  subtitle: "Push, sounds, sync", href: "/settings/notifications", tone: "muted" },
+      { Icon: Sparkles, title: "Auto-translate", subtitle: "On · English",       href: "/settings",                tone: "muted" },
     ],
   },
   {
     label: "Billing",
+    accent: "bg-lime",
     items: [
-      { Icon: CreditCard, title: "Subscription", subtitle: "Upgrade to Premium →", href: "/paywall" },
+      { Icon: CreditCard, title: "Subscription", subtitle: "Upgrade to Premium →", href: "/paywall", tone: "success" },
     ],
   },
   {
     label: "Other",
+    accent: "bg-pink",
     items: [
-      { Icon: LogOut, title: "Log out",        href: "/settings/account" },
+      { Icon: LogOut, title: "Log out",        href: "/settings/account", tone: "muted" },
       { Icon: Trash2, title: "Delete account", href: "/settings/account", destructive: true },
     ],
   },
@@ -82,26 +94,30 @@ export default function ProfilePage() {
         <Card tone="gradient" className="overflow-hidden gap-0 py-0">
           <CardHeader className="px-5 pt-5 pb-4">
             <div className="flex items-center gap-4">
-              <Avatar size="tap-2xl" className="ring-2 ring-white/40">
+              <Avatar
+                size="tap-2xl"
+                aria-label="Your profile"
+                className="ring-2 ring-white/40"
+              >
                 <AvatarFallback variant="brand">E</AvatarFallback>
               </Avatar>
-              <div className="flex-1">
-                {/* h1 — visible page title (was a `<p>`, which left the
-                    page with no h1 anchor and the section h2s orphaned). */}
-                <h1 className="text-h3 leading-tight text-white">Ehud, 30</h1>
-                <p className="mt-0.5 text-caption text-white/85">Bronze verified</p>
+              <div className="flex-1 min-w-0">
+                {/* Hero name — text-h1 (was text-h3, which read as caption
+                    on the "this is YOU" screen). Verification status is a
+                    Pill chip, not a paragraph caption. */}
+                <h1 className="text-h1 leading-tight text-white">Ehud, 30</h1>
+                <Pill variant="lavenderOutline" className="mt-2">
+                  <ShieldCheck size={12} />
+                  Bronze verified
+                </Pill>
               </div>
-              <Badge variant="lime" size="md" className="font-bold tabular-nums">
-                <Star size={11} className="mr-1" fill="currentColor" />
-                Free
-              </Badge>
             </div>
           </CardHeader>
           <CardContent className="px-5 pb-5">
             <Button
               nativeButton={false}
               size="cta"
-              className="bg-lime text-black hover:bg-lime/90"
+              tone="cta"
               render={<Link href="/paywall" prefetch={false} />}
             >
               <Sparkles size={14} className="mr-2" />
@@ -119,7 +135,13 @@ export default function ProfilePage() {
             transition={{ duration: 0.4, delay: 0.1 + gi * 0.08 }}
             className="flex flex-col gap-2"
           >
-            <h2 className="px-3 text-overline text-text-muted">{group.label}</h2>
+            <h2 className="flex items-center gap-2 px-3 text-overline text-text-muted">
+              <span
+                aria-hidden
+                className={`size-1.5 rounded-full ${group.accent}`}
+              />
+              {group.label}
+            </h2>
             <ItemGroup className="gap-1">
               {group.items.map((item) => (
                 <Item
@@ -134,7 +156,13 @@ export default function ProfilePage() {
                   }
                 >
                   <ItemMedia>
-                    <IconBadge tone={item.destructive ? "destructive" : "brand"}>
+                    <IconBadge
+                      tone={
+                        item.destructive
+                          ? "destructive"
+                          : item.tone ?? "brand"
+                      }
+                    >
                       <item.Icon />
                     </IconBadge>
                   </ItemMedia>

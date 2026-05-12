@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import {
   AlertTriangle,
   Heart,
@@ -106,8 +107,9 @@ type EmptyStateProps = {
   title?: string;
   /** Override preset description. */
   description?: string;
-  /** Optional CTA — if provided, renders a Button below the description. */
-  action?: { label: string; onClick?: () => void };
+  /** Optional CTA — if provided, renders a Button below the description.
+      Navigation case: pass `href`. Action case: pass `onClick`. */
+  action?: { label: string; onClick?: () => void; href?: string };
   /** Wrapper className override (gutter / margin tweaks per page). */
   className?: string;
 };
@@ -141,9 +143,20 @@ export function EmptyState({
       </EmptyHeader>
       {action ? (
         <EmptyContent>
-          <Button variant="outlineSubtle" size="lg" onClick={action.onClick}>
-            {action.label}
-          </Button>
+          {action.href ? (
+            <Button
+              nativeButton={false}
+              variant="outlineSubtle"
+              size="lg"
+              render={<Link href={action.href} prefetch={false} />}
+            >
+              {action.label}
+            </Button>
+          ) : (
+            <Button variant="outlineSubtle" size="lg" onClick={action.onClick}>
+              {action.label}
+            </Button>
+          )}
         </EmptyContent>
       ) : null}
     </Empty>

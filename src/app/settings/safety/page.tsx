@@ -77,11 +77,17 @@ const SAFETY_TIPS: ReadonlyArray<{
 const RESOURCES: ReadonlyArray<{
   Icon: typeof BookOpen;
   title: string;
-  href: string;
+  /** null = render as plain text (no destination yet — see TODO below). */
+  href: string | null;
 }> = [
-  { Icon: BookOpen,    title: "Community guidelines", href: "/settings/safety" },
-  { Icon: ShieldCheck, title: "Trust & safety policies", href: "/settings/safety" },
-  { Icon: PhoneCall,   title: "Local emergency numbers", href: "/settings/safety" },
+  // TODO(legal-pages): real destinations don't exist yet — /legal/* routes
+  // are referenced in /welcome and /auth/sign-up footer links but have NO
+  // pages built. Linking here would 404. Linking back to /settings/safety
+  // would self-loop. Both options are worse than rendering plain text;
+  // promoting these to interactive links only once real legal pages ship.
+  { Icon: BookOpen,    title: "Community guidelines",    href: null },
+  { Icon: ShieldCheck, title: "Trust & safety policies", href: null },
+  { Icon: PhoneCall,   title: "Local emergency numbers", href: null },
 ];
 
 export default function SafetyCenterPage() {
@@ -211,25 +217,41 @@ export default function SafetyCenterPage() {
                 key={item.title}
                 variant="muted"
                 render={
-                  <Link
-                    href={item.href}
-                    prefetch={false}
-                    className="rounded-2xl"
-                  />
+                  item.href != null ? (
+                    <Link
+                      href={item.href}
+                      prefetch={false}
+                      className="rounded-2xl"
+                    />
+                  ) : undefined
                 }
+                aria-disabled={item.href == null ? true : undefined}
               >
                 <ItemMedia>
-                  <IconBadge tone="brand">
+                  <IconBadge tone={item.href == null ? "muted" : "brand"}>
                     <item.Icon />
                   </IconBadge>
                 </ItemMedia>
                 <ItemContent>
-                  <ItemTitle className="text-meta text-white">
+                  <ItemTitle
+                    className={
+                      item.href == null
+                        ? "text-meta text-text-muted"
+                        : "text-meta text-white"
+                    }
+                  >
                     {item.title}
+                    {item.href == null ? (
+                      <span className="ml-2 text-caption text-text-muted">
+                        (coming soon)
+                      </span>
+                    ) : null}
                   </ItemTitle>
                 </ItemContent>
                 <ItemActions>
-                  <ChevronRight className="size-4 text-text-muted" />
+                  {item.href != null ? (
+                    <ChevronRight className="size-4 text-text-muted" />
+                  ) : null}
                 </ItemActions>
               </Item>
             ))}
