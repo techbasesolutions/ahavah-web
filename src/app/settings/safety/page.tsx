@@ -79,9 +79,13 @@ const RESOURCES: ReadonlyArray<{
   title: string;
   href: string;
 }> = [
-  { Icon: BookOpen,    title: "Community guidelines", href: "/settings/safety" },
-  { Icon: ShieldCheck, title: "Trust & safety policies", href: "/settings/safety" },
-  { Icon: PhoneCall,   title: "Local emergency numbers", href: "/settings/safety" },
+  // Point at the same /legal/* paths that /welcome and /auth/sign-up
+  // footer links use — these are placeholder routes until real legal
+  // pages are created. Was self-looping to /settings/safety (refresh the
+  // page on click), worse than a 404.
+  { Icon: BookOpen,    title: "Community guidelines",     href: "/legal/community-guidelines" },
+  { Icon: ShieldCheck, title: "Trust & safety policies",  href: "/legal/trust-safety" },
+  { Icon: PhoneCall,   title: "Local emergency numbers",  href: "/legal/emergency-numbers" },
 ];
 
 export default function SafetyCenterPage() {
