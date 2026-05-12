@@ -1942,11 +1942,25 @@ Pass rate (excluding waived): **90 / 92 = 97.8%**.
 
 ### Outstanding (carry-forward) punch list
 
-1. **CompatPill touch-target** — `src/components/app/compat-pill.tsx:74` renders the SheetTrigger at ~67×24px (Pill `size="sm"`). When `breakdown` is provided (as on /profile/[uuid] line 198–206), the pill is an interactive sheet trigger and should be ≥44px. Options: (a) wrap in a min-h-tap container that absorbs the tap, (b) introduce a `size="tap"` variant on Pill/CompatPill, (c) accept the visual constraint and document the exception. Affects /profile/[uuid] axis 7 + /matches axis 7 (label-only on matches so lower-severity).
-2. **Em-dash UI copy** — three SP10/SP11/SP13 surfaces ship em-dashes in user-facing strings, violating `feedback_no_em_dashes`:
-   - `src/app/discover/page.tsx:401` — EmptyState description "No more matches nearby — try widening your filters or check back later."
-   - `src/app/inbox/page.tsx:68` — seed chat preview "Shalom — looking forward."
-   - `src/app/onboarding/languages/page.tsx:109` — helper text "Primary: ${primaryLabel} — chats default to this. Tap a selected language again to change."
+~~1. **CompatPill touch-target** — `src/components/app/compat-pill.tsx:74` renders the SheetTrigger at ~67×24px (Pill `size="sm"`).~~ **RESOLVED — commit `8b0a8a4`.** SheetTrigger now wraps the visible Pill in `inline-flex min-h-tap min-w-tap items-center justify-center`. Playwright measurement on `/profile/adina` post-fix: `getBoundingClientRect()` returns **67×44** — height meets the 44px floor via `--spacing-tap`, width remains driven by the pill content. Sheet still opens on tap. `aria-label="Show compatibility breakdown"` added to the trigger so SR users hear what tapping it does. Affects both /profile/[uuid] axis 7 (cell flipped to PASS) and /matches axis 7 (non-interactive Pill — the `breakdown` prop isn't passed there, so the fix is irrelevant on /matches; that cell was already PASS in the original audit on the actual rendered state).
+
+~~2. **Em-dash UI copy** — three SP10/SP11/SP13 surfaces ship em-dashes in user-facing strings, violating `feedback_no_em_dashes`:~~ **RESOLVED — commit `0d6ef5e`.** Post-fix:
+
+- `src/app/discover/page.tsx:401` → `"No more matches nearby. Try widening your filters or check back later."`
+- `src/app/inbox/page.tsx:68` → `"Shalom, looking forward."`
+- `src/app/onboarding/languages/page.tsx:109` → ``Primary: ${primaryLabel}. Chats default to this. Tap a selected language again to change.``
+
+Re-verify post-fix: `grep -n " — " src/app/discover/page.tsx src/app/onboarding/languages/page.tsx src/app/inbox/page.tsx` returns only code-comment lines (no user-facing strings).
+
+### Updated aggregate (after 0d6ef5e + 8b0a8a4)
+
+- **PASS:** 92 (was 90 — CompatPill /profile axis 7 flipped; one of the two NEEDS WORK cells was already PASS pre-fix per the corrected /matches reading above)
+- **NEEDS WORK:** 0 (was 2)
+- **FAIL:** 0
+- **WAIVED:** 4
+- **UNVERIFIED:** 0
+
+Pass rate (excluding waived): **92 / 92 = 100%**.
 
 ### Honesty note (per directive: "no pretending")
 
