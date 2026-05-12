@@ -28,6 +28,10 @@ const badgeVariants = cva(
         lime:            "bg-lime text-black",
         lavender:        "bg-lavender text-black",
         lavenderOutline: "border-lavender bg-transparent text-lavender hover:bg-white/5",
+        // Bronze verified pill on /profile gradient hero — translucent dark
+        // fill + white text so it stays AA-readable against the lavender
+        // gradient (#5524F5 → #BC96FF) where `lavenderOutline` failed.
+        glassDark:       "border-white/20 bg-black/30 text-white backdrop-blur-sm hover:bg-black/40",
         pink:            "bg-pink text-black",
         success:         "bg-success text-black",
         // Reads its bg from the nearest `--tier-color` CSS variable
