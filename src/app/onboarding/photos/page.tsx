@@ -2,148 +2,125 @@
 
 import { useState } from "react";
 import { motion } from "motion/react";
-import { Plus, X } from "lucide-react";
-
-import { Button } from "@/components/ui/button";
-import { Pill } from "@/components/kibo-ui/pill";
 
 import { OnboardingShell } from "@/components/app/onboarding-shell";
-import { PhotoTile } from "@/components/app/photo-tile";
+import { PhotoSlot } from "@/components/app/photo-slot";
+import { compressImage } from "@/lib/image-compress";
+import { canAddPhoto } from "@/lib/photo-storage";
+import { useProfile } from "@/lib/use-profile";
 
-const SLOTS = 6;
+const SLOT_COUNT = 6;
 
-// Placeholder gradients — cycle these on tap so the audit can demonstrate
-// the filled-state UI. Real implementation will hand off to a file picker
-// + camera capture + upload flow.
-const PLACEHOLDER_GRADIENTS = [
-  "linear-gradient(135deg,#FFB088,#FF7A53)",
-  "linear-gradient(135deg,#9F76EA,#3A1F4F)",
-  "linear-gradient(135deg,#F9D976,#A87E1E)",
-  "linear-gradient(135deg,#6CB7FF,#1A1340)",
-];
-
-const fadeUp = {
-  initial: { opacity: 0, y: 12 },
-  animate: { opacity: 1, y: 0 },
-};
+type SlotState = "empty" | "loading" | "filled" | "error";
 
 export default function PhotosStep() {
-  const [photos, setPhotos] = useState<(string | null)[]>(() =>
-    Array.from({ length: SLOTS }, () => null),
-  );
+  const { profile, update } = useProfile();
+  const photos = profile.photos ?? [];
+  // Per-slot transient state (loading / error). Indexed 0..5.
+  // Filled state is derived from photos[i] directly so it survives reload;
+  // only loading/error are session-local.
+  const [slotStates, setSlotStates] = useState<
+    Record<number, { state: SlotState; error?: string }>
+  >({});
 
-  const filledCount = photos.filter(Boolean).length;
-  const hasMain = photos[0] != null;
+  const hasMain = (photos[0] ?? "") !== "";
+  const isComplete = hasMain;
 
-  const addPhoto = (i: number) => {
-    setPhotos((prev) => {
-      const next = [...prev];
-      // Stub — cycle through placeholders by current filled count so each
-      // upload looks distinct. Real flow will receive a File + URL.createObjectURL.
-      next[i] = PLACEHOLDER_GRADIENTS[
-        next.filter(Boolean).length % PLACEHOLDER_GRADIENTS.length
-      ];
-      return next;
+  const handlePick = async (slotIndex: number, file: File) => {
+    setSlotStates((s) => ({ ...s, [slotIndex]: { state: "loading" } }));
+    try {
+      const compressed = await compressImage(file);
+      // Exclude this slot from the quota baseline so a re-upload doesn't
+      // double-count the photo we're about to overwrite.
+      const baseline = photos.filter((_, i) => i !== slotIndex);
+      const quota = canAddPhoto(baseline, compressed.bytes);
+      if (!quota.ok) {
+        setSlotStates((s) => ({
+          ...s,
+          [slotIndex]: { state: "error", error: quota.reason },
+        }));
+        return;
+      }
+      const nextPhotos = [...photos];
+      nextPhotos[slotIndex] = compressed.dataUrl;
+      // Compact: filter empty entries so the main slot is always populated
+      // first. If the user fills slot 2 before slots 0+1, the photo moves
+      // into slot 0 on save. This matches the "first non-empty is main"
+      // invariant the consumer surfaces (T8) expect.
+      const compacted = nextPhotos.filter((p) => p && p.length > 0);
+      update({ photos: compacted });
+      setSlotStates((s) => {
+        const copy = { ...s };
+        delete copy[slotIndex];
+        return copy;
+      });
+    } catch (err) {
+      setSlotStates((s) => ({
+        ...s,
+        [slotIndex]: {
+          state: "error",
+          error:
+            err instanceof Error ? err.message : "Couldn't read this file.",
+        },
+      }));
+    }
+  };
+
+  const handleRemove = (slotIndex: number) => {
+    const next = [...photos];
+    next.splice(slotIndex, 1);
+    update({ photos: next });
+    setSlotStates((s) => {
+      const copy = { ...s };
+      delete copy[slotIndex];
+      return copy;
     });
   };
 
-  const removePhoto = (i: number) => {
-    setPhotos((prev) => prev.map((p, idx) => (idx === i ? null : p)));
-  };
-
   return (
-    <OnboardingShell href="/onboarding/photos" ctaDisabled={!hasMain}>
+    <OnboardingShell href="/onboarding/photos" ctaDisabled={!isComplete}>
       <motion.div
-        {...fadeUp}
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
         className="flex flex-col gap-2"
       >
         <h1 className="text-display text-white">
-          Add a few photos<span className="text-lime">.</span>
+          Add your photos<span className="text-lime">.</span>
         </h1>
         <p className="text-body text-text-secondary">
-          Your first photo is what people see in the deck.
+          Pick at least one photo. Your first photo is your main, it shows up on Discover and Map.
         </p>
       </motion.div>
 
-      {/* 3-column grid of 3:4 photo slots. Slot 0 carries a "Main" pill so
-          the deck-photo rule is communicated spatially, not just in copy. */}
-      <motion.div
-        {...fadeUp}
-        transition={{ duration: 0.4, delay: 0.15 }}
-        className="mt-8 grid grid-cols-3 gap-3"
-      >
-        {photos.map((photo, i) => (
-          <motion.div
-            key={i}
-            {...fadeUp}
-            transition={{ duration: 0.35, delay: 0.2 + i * 0.04 }}
-            className="relative"
-          >
-            {photo ? (
-              <PhotoTile bg={photo}>
-                {/* "Main" pill at bottom-3 left-3 keeps it from colliding
-                    with the X remove control in the top-right and matches
-                    the project's `Pill bottom-12 left-5` photo-overlay
-                    norm from /profile/[uuid]. */}
-                {i === 0 && (
-                  <Pill
-                    variant="lime"
-                    className="pointer-events-none absolute bottom-3 left-3 px-2.5 py-1 text-caption font-semibold shadow-sm"
-                  >
-                    Main
-                  </Pill>
-                )}
-                {/* 44px touch target per mobile-responsive rule 1.
-                    Inset top-3 right-3 (12px) clears the rounded-2xl corner
-                    curve (~16px radius). */}
-                <Button
-                  size="circle"
-                  tone="overlay"
-                  className="absolute top-3 right-3 transition-transform active:scale-95"
-                  aria-label={`Remove photo ${i + 1}`}
-                  onClick={() => removePhoto(i)}
-                >
-                  <X className="size-5" />
-                </Button>
-              </PhotoTile>
-            ) : (
-              <Button
-                variant="ghost"
-                size="dashedTile"
-                className="relative transition-transform active:scale-[0.97]"
-                aria-label={`Add photo ${i + 1}`}
-                onClick={() => addPhoto(i)}
-              >
-                {i === 0 && (
-                  <Pill
-                    variant="lime"
-                    className="pointer-events-none absolute bottom-3 left-3 px-2.5 py-1 text-caption font-semibold shadow-sm"
-                  >
-                    Main
-                  </Pill>
-                )}
-                <Plus />
-              </Button>
-            )}
-          </motion.div>
-        ))}
-      </motion.div>
+      <div className="mt-8 grid grid-cols-3 gap-3">
+        {Array.from({ length: SLOT_COUNT }).map((_, i) => {
+          const photo = photos[i];
+          const localState = slotStates[i];
+          const state: SlotState = localState?.state ?? (photo ? "filled" : "empty");
+          return (
+            <PhotoSlot
+              key={i}
+              index={i}
+              isMain={i === 0}
+              state={state}
+              src={photo}
+              errorMessage={localState?.error}
+              onPick={(file) => handlePick(i, file)}
+              onRemove={photo ? () => handleRemove(i) : undefined}
+            />
+          );
+        })}
+      </div>
 
-      <motion.p
-        {...fadeUp}
-        transition={{ duration: 0.4, delay: 0.45 }}
-        className={
-          hasMain
-            ? "mt-6 text-center text-caption text-lime"
-            : "mt-6 text-center text-caption text-text-secondary"
-        }
-        aria-live="polite"
-      >
+      <p className="mt-4 text-caption text-text-secondary" aria-live="polite">
         {hasMain
-          ? `${filledCount} ${filledCount === 1 ? "photo" : "photos"} added — your main photo is set.`
+          ? `${photos.length} of ${SLOT_COUNT} added. Your main photo is set.`
           : "At least one photo required."}
-      </motion.p>
+      </p>
+      <p className="mt-1 text-caption text-text-muted">
+        JPEG, PNG, or WebP up to 10MB each. Photos are compressed before saving.
+      </p>
     </OnboardingShell>
   );
 }
