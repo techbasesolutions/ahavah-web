@@ -430,7 +430,14 @@ export default function ProfileDetailPage({ params }: Props) {
               <Button size="circle-lg" tone="action" lift="float" aria-label="Like">
                 <Heart className="text-white" fill="currentColor" />
               </Button>
-              <Button size="circle" tone="brand" lift="float" aria-label="Message">
+              <Button
+                nativeButton={false}
+                size="circle"
+                tone="brand"
+                lift="float"
+                aria-label="Message"
+                render={<Link href={`/chat/${uuid}`} prefetch={false} />}
+              >
                 <MessageCircle className="text-black" />
               </Button>
             </motion.div>

@@ -124,8 +124,11 @@ function MatchesGrid({ matches }: { matches: Array<(typeof MATCHES_DISPLAY)[numb
           {...fadeUp}
           transition={{ duration: 0.3, delay: staggerDelay(i) }}
         >
+          {/* Tap goes to the match's profile (mirrors /discover → profile).
+              Profile is the natural review surface; the Message button on
+              /profile/[uuid] then opens /chat/[id] for the conversation. */}
           <Link
-            href={`/chat/${m.id}`}
+            href={`/profile/${m.id}`}
             prefetch={false}
             className={cn(
               buttonVariants({ variant: "ghost", size: "block" }),
