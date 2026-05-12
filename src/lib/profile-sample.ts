@@ -143,7 +143,11 @@ export const SAMPLE_PROFILES: ReadonlyArray<Profile> = [
     firstName: "Caleb",
     age: 36,
     sex: "male",
-    maritalStatus: "divorced",
+    // SP23 T1: Caleb changed from "divorced" to "widowed" so each of the
+    // 5 marital pills has at least one demoable sample candidate. The
+    // smallholding-farmer / "values land and quiet" narrative below
+    // reads naturally as widowed-and-rebuilding.
+    maritalStatus: "widowed",
     children: 2,
     country: "ZA",
     nationality: "south-african",
