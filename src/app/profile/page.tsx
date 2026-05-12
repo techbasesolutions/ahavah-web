@@ -1,15 +1,26 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
 import {
-  Bell, ChevronRight, CreditCard, Globe, LogOut,
-  Settings, ShieldCheck, Sparkles, Trash2,
+  ChevronRight, CreditCard, LogOut, Settings,
+  ShieldCheck, Sparkles, UserPen,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { IconBadge } from "@/components/ui/icon-badge";
 import {
   Item,
@@ -30,59 +41,28 @@ const fadeUp = {
   animate: { opacity: 1, y: 0 },
 };
 
-// Group accent dot colours — break the stack-of-lists rhythm so the eye
-// can find Billing / Other faster (Account/App share lavender on purpose:
-// they're the everyday rows).
-type IconBadgeTone = "brand" | "muted" | "success" | "destructive";
-
-const SETTINGS_GROUPS: ReadonlyArray<{
-  label: string;
-  /** Tailwind bg-* class for the dot accent before the group label. */
-  accent: string;
-  items: ReadonlyArray<{
-    Icon: typeof Bell;
-    title: string;
-    subtitle?: string;
-    href: string;
-    tone?: IconBadgeTone;
-    destructive?: boolean;
-  }>;
+// /profile is identity-only: hero card + 4 drill-down rows + a single
+// inline Sign-out section at the bottom. NO Log out / Delete account
+// nav-rows that redirect to /settings/account — that was a three-tap
+// log-out, plus the same duplication for delete. Delete account now
+// lives only at Profile → Settings → Account (3 deliberate steps —
+// appropriate friction for an irreversible action).
+const PROFILE_LINKS: ReadonlyArray<{
+  Icon: typeof UserPen;
+  title: string;
+  subtitle?: string;
+  href: string;
+  tone: "brand" | "success" | "muted";
 }> = [
-  {
-    label: "Account",
-    accent: "bg-lavender",
-    items: [
-      { Icon: Settings, title: "Edit profile",          subtitle: "Photos, bio, basics",         href: "/profile/edit",  tone: "brand" },
-      { Icon: Globe,    title: "Discovery preferences", subtitle: "Country, language, range",    href: "/settings",      tone: "brand" },
-      { Icon: ShieldCheck, title: "Verification",       subtitle: "Bronze · upgrade to Silver",  href: "/verify",        tone: "success" },
-    ],
-  },
-  {
-    label: "App",
-    accent: "bg-lavender/60",
-    items: [
-      { Icon: Bell,     title: "Notifications",  subtitle: "Push, sounds, sync", href: "/settings/notifications", tone: "muted" },
-      { Icon: Sparkles, title: "Auto-translate", subtitle: "On · English",       href: "/settings",                tone: "muted" },
-    ],
-  },
-  {
-    label: "Billing",
-    accent: "bg-lime",
-    items: [
-      { Icon: CreditCard, title: "Subscription", subtitle: "Upgrade to Premium →", href: "/paywall", tone: "success" },
-    ],
-  },
-  {
-    label: "Other",
-    accent: "bg-pink",
-    items: [
-      { Icon: LogOut, title: "Log out",        href: "/settings/account", tone: "muted" },
-      { Icon: Trash2, title: "Delete account", href: "/settings/account", destructive: true },
-    ],
-  },
+  { Icon: UserPen,     title: "Edit profile", subtitle: "Photos, bio, basics",             href: "/profile/edit", tone: "brand" },
+  { Icon: ShieldCheck, title: "Verification", subtitle: "Bronze · upgrade to Silver",      href: "/verify",       tone: "success" },
+  { Icon: CreditCard,  title: "Subscription", subtitle: "Upgrade to Premium →",            href: "/paywall",      tone: "success" },
+  { Icon: Settings,    title: "Settings",     subtitle: "Notifications, privacy, account", href: "/settings",     tone: "muted" },
 ];
 
 export default function ProfilePage() {
+  const [signOutOpen, setSignOutOpen] = useState(false);
+
   return (
     <PageShell bottomPad="nav">
       {/* Hero card — own profile + free badge + Upgrade CTA */}
@@ -132,70 +112,88 @@ export default function ProfilePage() {
         </Card>
       </motion.div>
 
-      <div className="flex flex-col gap-6 px-3 pt-8">
-        {SETTINGS_GROUPS.map((group, gi) => (
-          <motion.section
-            key={group.label}
-            {...fadeUp}
-            transition={{ duration: 0.4, delay: 0.1 + gi * 0.08 }}
-            className="flex flex-col gap-2"
-          >
-            <h2 className="flex items-center gap-2 px-3 text-overline text-text-muted">
-              <span
-                aria-hidden
-                className={`size-1.5 rounded-full ${group.accent}`}
+      <motion.div
+        {...fadeUp}
+        transition={{ duration: 0.4, delay: 0.1 }}
+        className="px-3 pt-8"
+      >
+        <ItemGroup className="gap-1">
+          {PROFILE_LINKS.map((item) => (
+            <Item
+              key={item.title}
+              variant="muted"
+              render={
+                <Link
+                  href={item.href}
+                  prefetch={false}
+                  className="rounded-2xl"
+                />
+              }
+            >
+              <ItemMedia>
+                <IconBadge tone={item.tone}>
+                  <item.Icon />
+                </IconBadge>
+              </ItemMedia>
+              <ItemContent>
+                <ItemTitle className="text-meta text-white">
+                  {item.title}
+                </ItemTitle>
+                {item.subtitle ? (
+                  <ItemDescription className="text-caption text-text-muted">
+                    {item.subtitle}
+                  </ItemDescription>
+                ) : null}
+              </ItemContent>
+              <ItemActions>
+                <ChevronRight className="size-4 text-text-muted" />
+              </ItemActions>
+            </Item>
+          ))}
+        </ItemGroup>
+      </motion.div>
+
+      <motion.div
+        {...fadeUp}
+        transition={{ duration: 0.4, delay: 0.18 }}
+        className="px-5 pt-6 pb-2"
+      >
+        <Dialog open={signOutOpen} onOpenChange={setSignOutOpen}>
+          <DialogTrigger
+            nativeButton={false}
+            render={
+              <Button
+                variant="outlineSubtle"
+                size="lg"
+                className="w-full justify-center"
+              >
+                <LogOut size={16} className="mr-2" />
+                Sign out
+              </Button>
+            }
+          />
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Sign out of Ahavah?</DialogTitle>
+              <DialogDescription>
+                You&apos;ll need to sign back in to see your matches and messages.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <DialogClose
+                render={<Button variant="outlineSubtle" size="lg">Cancel</Button>}
               />
-              {group.label}
-            </h2>
-            <ItemGroup className="gap-1">
-              {group.items.map((item) => (
-                <Item
-                  key={item.title}
-                  variant="muted"
-                  render={
-                    <Link
-                      href={item.href}
-                      prefetch={false}
-                      className="rounded-2xl"
-                    />
-                  }
-                >
-                  <ItemMedia>
-                    <IconBadge
-                      tone={
-                        item.destructive
-                          ? "destructive"
-                          : item.tone ?? "brand"
-                      }
-                    >
-                      <item.Icon />
-                    </IconBadge>
-                  </ItemMedia>
-                  <ItemContent>
-                    <ItemTitle
-                      className={
-                        item.destructive
-                          ? "text-meta text-pink"
-                          : "text-meta text-white"
-                      }
-                    >
-                      {item.title}
-                    </ItemTitle>
-                    {item.subtitle ? (
-                      <ItemDescription className="text-caption text-text-muted">
-                        {item.subtitle}
-                      </ItemDescription>
-                    ) : null}
-                  </ItemContent>
-                  <ItemActions>
-                    <ChevronRight className="size-4 text-text-muted" />
-                  </ItemActions>
-                </Item>
-              ))}
-            </ItemGroup>
-          </motion.section>
-        ))}
-      </div>
+              <DialogClose
+                render={
+                  <Button size="lg" tone="brand">
+                    Sign out
+                  </Button>
+                }
+              />
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </motion.div>
 
       <BottomNav />
     </PageShell>

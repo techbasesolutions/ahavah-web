@@ -2072,6 +2072,78 @@ Branch `sub-plan-14-map-discovery` at head `086c531`. Merge to `master` via `git
 
 ---
 
+## 22. 2026-05-12 Sub-plan 15 closure — IA cleanup + dev reset + broken-target fixes
+
+Sub-plan 15 closes the IA debt the user surfaced verbatim on 2026-05-12: *"Why does the log out button take me to another screen with another log out button again? what kind of navigation route is that?"* and *"there is also two places where a user can delete their account as well"* and *"i have exhausted my options on the discover page on the local server, how do i get it to reset so i can keep testing?"*. SP15 ships IA cleanup on `/profile` + `/settings`, a dev-only "Reset all decisions" affordance on `/discover`'s empty state, and 2 new minimal-stub routes (`/settings/translate`, `/help`) to fix 2 of the 3 broken nav targets that lived on `/settings` (the 3rd target, "Discovery preferences" → `/discover`, was dropped because the preferences belong inside `FiltersSheet`). Per user direction at task plan time, T5 (widened 12-axis audit) is DEFERRED — auditing while still shipping new surfaces wastes effort. SP15 is the IA-half of §18's sign-off rule lineage: §19 corrected a Bumpy misread, §20 caught visual issues, §21 shipped the map view, §22 cleans up the duplicated navigation that §20's R1-R12 scope missed.
+
+### Per-task commit table
+
+| Commit | Task | What shipped |
+|---|---|---|
+| `e92c980` | spec | SP15 plan committed (6 tasks; T4 first to unblock dev testing; T5 deferred) |
+| `229c9c3` | T4 | "Reset all decisions" outlineSubtle button on `/discover` empty state — calls `useDecisions().clearAll()` + resets `userIndex`/`photoIndex` |
+| `0345eba` | T1 | `/profile` IA cleanup — dropped duplicate Log out + Delete account rows + the "Other" group accent + dot pattern; replaced `SETTINGS_GROUPS` with flat `PROFILE_LINKS` (4 rows); inline Sign-out Dialog at the bottom |
+| `cb2fc46` | T3b + T3c | Built `/settings/translate` (Switch + 5-language radio list + localStorage `ahavah.auto_translate.v1`) and `/help` (FAQ accordion via semantic `<details>/<summary>` + Email-support + Bug-report mailto Items) |
+| `4759cd5` | T2 + T3a | `/settings` IA cleanup — dropped the entire "Account actions" group (Log out + Delete account rows gone); dropped "Discovery preferences" row (T3a); fixed Auto-translate href `/settings/account` → `/settings/translate`; fixed Help center href `/settings/account` → `/help`; added explicit Account row at top of Account group as the entry point to credentials + Delete account |
+
+### Architecture summary
+
+`/profile` is now identity-only — hero card (avatar + "Ehud, 30" + glassDark Bronze-verified Pill + Upgrade-to-Premium CTA) above a flat `ItemGroup` of 4 rows (Edit profile / Verification / Subscription / Settings) with an inline Sign-out Dialog at the bottom. `/settings` is the full configuration hub — 4 groups (Account / App / Billing / Support) with NO Log out / Delete account rows. `/settings/account` is the single source of truth for both Log out + Delete account Dialogs (unchanged by SP15 — the existing Dialogs there are canonical; `/profile`'s inline Sign-out Dialog is a sibling rendering, not a re-route). Sign-out is now 1 tap + confirm from `/profile` (was: 3 taps + confirm — `/profile` row → land on `/settings/account` → tap Log out → confirm). Delete account is now reachable through 3 deliberate steps only (`/profile` → tap Settings → tap Account → tap Delete account → confirm), down from 3 entry points to 1 — the friction is intentional for an irreversible action.
+
+### Cross-screen IA update — user-flow map
+
+| Action | Before SP15 | After SP15 |
+|---|---|---|
+| Log out | 3 taps + confirm (`/profile` Log-out row → `/settings/account` → tap Log out → Dialog confirm) | 1 tap + confirm (`/profile` bottom Sign-out button → Dialog confirm, inline; URL stays `/profile`) |
+| Delete account | Reachable from 3 places (`/profile`, `/settings`, `/settings/account`) | Reachable only via Profile → Settings → Account → Delete → confirm |
+| Auto-translate row | `/settings/account` (broken — wrong target) | `/settings/translate` (real stub: Switch persists to `ahavah.auto_translate.v1` + 5-lang radio list + honest helper text about backend dependency) |
+| Help center row | `/settings/account` (broken — wrong target) | `/help` (5-entry FAQ accordion via `<details>/<summary>` + Email support + Report a bug mailto Items) |
+| Discovery preferences row | Routed to `/discover` (misleading — that's the swipe deck, not preferences) | Row removed; filters live in `FiltersSheet` on `/discover` + `/map` |
+| Reset deck | DevTools `localStorage.removeItem("ahavah.decisions.v1")` required | "Reset all decisions" button on `/discover` empty state — outlineSubtle, secondary to "Adjust filters" |
+
+### Final verification — every claim cites a re-runnable query
+
+- **TypeCheck clean:** `cd d:/Antigravity/ahavah-web && npx tsc --noEmit` exits 0 with no output.
+- **Lint clean:** `cd d:/Antigravity/ahavah-web && pnpm exec eslint --max-warnings=0 .` exits 0 with no output.
+- **Vitest 251/251 pass (unchanged from SP14):** `cd d:/Antigravity/ahavah-web && npx vitest run` returns `Test Files 22 passed (22), Tests 251 passed (251)` in 10.11s. SP15 added no new test files (T5 deferred; existing 251 cover the touched logic).
+- **Production build 46 routes (was 44 before SP15; +1 for `/settings/translate`, +1 for `/help`):** `cd d:/Antigravity/ahavah-web && pnpm build` finishes with `✓ Generating static pages using 5 workers (46/46) in 927ms`. The route list enumerates `/help` between `/discover` and `/inbox`, and `/settings/translate` between `/settings/safety` and `/update-required`.
+- **Log out / Delete account fully removed from `/profile`:** `grep -n "Log out\|Delete account" src/app/profile/page.tsx` returns only 2 doc-comment lines (45, 47) explaining the removal — no JSX matches.
+- **Log out / Delete account fully removed from `/settings`:** `grep -n "Log out\|Delete account" src/app/settings/page.tsx` returns zero matches.
+- **Single source of truth for both Dialogs at `/settings/account`:** `grep -n "Log out\|Delete account" src/app/settings/account/page.tsx` returns 4 matches — line 134 (Log out Item title), line 145 (Log out DialogTitle), line 157 (Log out button in DialogFooter), line 180 (Delete account Item title).
+- **Discovery preferences row dropped from `/settings`:** `grep -rn "Discovery preferences" src/app/` returns 1 hit at `src/app/onboarding/looking-for/page.tsx:58` — a stale copy line *"You can change this anytime in Discovery preferences."* The `/settings` row is gone but the onboarding copy still references the removed surface. See "Honesty note" below — flagged as a future-sub-plan copy fix.
+- **Fixed nav targets on `/settings`:** `grep -n "/settings/translate\|/help\|/settings/account\|/discover" src/app/settings/page.tsx` returns 3 hits — line 64 (Account row → `/settings/account`, intentional), line 77 (Auto-translate → `/settings/translate`), line 91 (Help center → `/help`). No `/discover` href in the settings nav; no Auto-translate or Help-center row pointing at `/settings/account` anymore.
+- **`/discover` reset-deck affordance wired:** `grep -n "Reset all decisions\|clearAll" src/app/discover/page.tsx` returns 3 hits — line 65 (destructured from `useDecisions()`), line 126 (called inside `handleResetDeck`), line 436 (button label JSX).
+- **All 6 SP15-touched routes return HTTP 200 on the dev server:** `curl -s -o /dev/null -w "%{http_code}"` against `http://localhost:3000` for `/discover`, `/profile`, `/settings`, `/settings/account`, `/settings/translate`, `/help` — all return 200.
+- **`/settings/translate` localStorage key wired:** the stub persists `{ enabled, targetLang }` to `ahavah.auto_translate.v1` (declared at `src/app/settings/translate/page.tsx:33`).
+- **`/help` FAQ accordion uses semantic `<details>/<summary>`:** chosen over the kit Accordion per the in-file comment at `src/app/help/page.tsx:101-106` ("the kit Accordion has minimal styling tuned for docs, not for the tinted card list we want here") — built-in keyboard + screen-reader handling preserved.
+
+A real interactive smoke walk in a browser (real mouse/keyboard, real localStorage round-trip on the Switch, real Dialog open/close on the Sign-out button) was not performed for this closeout pass — the smoke walk above was code-level structural verification (grep + curl + verification gates) consistent with §21's closeout approach. The browser-driven walk should be the user's first action post-merge.
+
+### Outstanding sub-plans (carry-forward)
+
+- ~~Sub-plan 15 (IA cleanup + dev reset + broken-target fixes)~~ — **shipped (this sub-plan, §22).**
+- Legal pages — `/legal/terms`, `/legal/privacy`, `/legal/community-guidelines`, `/legal/trust-safety`, `/legal/emergency-numbers`. Awaiting user copy.
+- Marker state badges on `/map` (deferred from SP14, §21).
+- Marker sizing by activity on `/map` (deferred from SP14, §21).
+- Real Google Maps / Mapbox tiles, real auth + delete-account backend wiring, real auto-translate backend integration — all Tier-4 (post-MVP backend).
+- Stale "Discovery preferences" string at `src/app/onboarding/looking-for/page.tsx:58` — small copy fix; rephrase to "in Settings" or to the actual mechanism users will reach (FiltersSheet on `/discover`).
+
+### T5 widened 12-axis audit — DEFERRED
+
+T5 (run §20's 12-axis QA audit across all current routes, not just SP10-14 surfaces) is **DEFERRED per user direction** — *"we can do t5 when all pages/screens/surfaces are finished."* This is the carry-forward task that will become SP16+ once the route inventory is closed. Until then, R1-R12 violations on routes outside SP10-14 (notably the entire onboarding flow, settings sub-routes, auth/landing screens, and the new `/help` + `/settings/translate` routes themselves) remain unaudited.
+
+### Honesty note (per §18 sign-off rule)
+
+- §20's audit scope was explicitly narrow — "SP10/SP11/SP12/SP13 surface sweep" — and missed both the IA duplication addressed by SP15 (Log out / Delete account each duplicated 3 places; 3 broken nav targets on `/settings`) and the `/verify` phantom pill + `/profile` bronze-badge contrast bugs fixed in `de937d8` between SP14 and SP15. The widened audit deferred from T5 will cover the entire route inventory once the surfaces are complete, and is the appropriate place to catch this class of issue (IA / flow / cross-screen consistency) rather than R1-R12 on individual screens.
+- One stale copy reference remains: `src/app/onboarding/looking-for/page.tsx:58` still says *"You can change this anytime in Discovery preferences."* SP15 removed the "Discovery preferences" row from `/settings`, but the closeout brief said "do NOT modify any source code beyond §22 addition to PROJECT-STATUS.md", so this string was not touched. Logged as a carry-forward copy fix above.
+- The smoke walk for this closeout was code-level (grep + curl + verification gates), not browser-driven. Per the §21 precedent, that's acceptable for IA changes whose behaviour is determined by JSX structure (`PROFILE_LINKS` table; Dialog wiring; route file existence) — but the browser-driven walk on the smoke-walk checklist in the SP15 spec (9 steps) should still be the user's first action post-merge to confirm the React render matches the source-level assertions.
+
+### Branch + merge
+
+Branch `sub-plan-15-ia-cleanup` at head `4759cd5`. Merge to `master` via `git merge --no-ff` so the SP15 iteration history is preserved as a sub-graph on master, matching the SP14 merge pattern.
+
+---
+
 ## Sign-off
 
 This audit is honest. Where it disagrees with `SESSION-SUMMARY.md`, this document supersedes. Future sessions: read this first, update it last. Don't pretend.
