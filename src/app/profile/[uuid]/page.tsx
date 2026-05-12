@@ -232,6 +232,28 @@ export default function ProfileDetailPage({ params }: Props) {
               <p className="text-body leading-relaxed text-white/85">{profile.bio}</p>
             )}
 
+            {/* Looking for — intent is the primary matching signal, NOT a
+                doctrinal item. Sits right under the bio so it lands before
+                the faith / practice clusters. Matches the editor's
+                'Practical compatibility' cluster placement. */}
+            {profile.intent && (
+              <div className="flex flex-col gap-2 border-t border-white/10 pt-4">
+                <h2 className="text-meta font-semibold uppercase text-text-secondary">
+                  Looking for
+                </h2>
+                <dl className="space-y-2">
+                  <div className="flex gap-2">
+                    <dt className="text-meta text-text-secondary">Intent:</dt>
+                    <dd className="text-meta text-white">
+                      {profile.sex
+                        ? labelOf(profile.intent, intentOptionsForSex(profile.sex))
+                        : profile.intent}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            )}
+
             {/* Faith cluster — dl/dt/dd fact rows */}
             {(profile.assembly || profile.torahLevel || profile.shabbat || profile.calendar) && (
               <div className="flex flex-col gap-2 border-t border-white/10 pt-4">
@@ -275,23 +297,15 @@ export default function ProfileDetailPage({ params }: Props) {
               </div>
             )}
 
-            {/* Doctrine cluster — fact rows */}
-            {(profile.intent || profile.polygyny || profile.headCovering || profile.tzitzit) && (
+            {/* Doctrine cluster — Torah-keeping practice items. Intent moved
+                out to a 'Looking for' cluster above the bio since it's a
+                marriage-intent signal, not a doctrinal stance. */}
+            {(profile.polygyny || profile.headCovering || profile.tzitzit) && (
               <div className="flex flex-col gap-2 border-t border-white/10 pt-4">
                 <h2 className="text-meta font-semibold uppercase text-text-secondary">
                   Doctrine
                 </h2>
                 <dl className="space-y-2">
-                  {profile.intent && (
-                    <div className="flex gap-2">
-                      <dt className="text-meta text-text-secondary">Intent:</dt>
-                      <dd className="text-meta text-white">
-                        {profile.sex
-                          ? labelOf(profile.intent, intentOptionsForSex(profile.sex))
-                          : profile.intent}
-                      </dd>
-                    </div>
-                  )}
                   {profile.polygyny && (
                     <div className="flex gap-2">
                       <dt className="text-meta text-text-secondary">Polygyny:</dt>
