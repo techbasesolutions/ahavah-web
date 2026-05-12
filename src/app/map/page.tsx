@@ -47,7 +47,7 @@
  * profiles.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { SlidersHorizontal } from "lucide-react";
@@ -58,6 +58,7 @@ import { PageShell } from "@/components/app/page-shell";
 import { BrandMark } from "@/components/brand/sparkle-mark";
 import { Button } from "@/components/ui/button";
 
+import { countriesInBounds } from "@/lib/country-centroids";
 import { simulateLikesBack } from "@/lib/decision-engine";
 import { applyHardFilters, type DiscoverCandidate } from "@/lib/discover-engine";
 import { ACTIVE_CHAT_IDS } from "@/lib/inbox-seed";
@@ -109,6 +110,32 @@ export default function MapPage() {
     }
   }, [loaded, viewer, router]);
 
+  // SP17 T2: map-driven country filter. Every Leaflet pan/zoom-settle
+  // fires moveend → onBoundsChange(bbox); we convert the visible bbox
+  // into the ISO list of countries whose centroid sits inside the view
+  // and write it to the shared filters store. /discover deck mirrors
+  // this immediately via useFilters() in-tab broadcast.
+  //
+  // Functional setState avoids closing over `filters` so the callback
+  // identity stays stable; useCallback's empty deps + the stable
+  // `setFilters` reference together mean the WorldMap useEffect that
+  // binds the moveend listener never re-runs. No re-render loop risk.
+  //
+  // `undefined` (not `[]`) when zero centroids fit — the discover
+  // engine treats `undefined` as "no filter," whereas `[]` is ambiguous
+  // (could read as "zero countries match"). Use undefined for the
+  // unambiguous "no filter" signal.
+  const handleBoundsChange = useCallback(
+    (bbox: { north: number; south: number; east: number; west: number }) => {
+      const countriesVisible = countriesInBounds(bbox);
+      setFilters((prev) => ({
+        ...prev,
+        country: countriesVisible.length > 0 ? countriesVisible : undefined,
+      }));
+    },
+    [setFilters],
+  );
+
   // Marker pool — start from SAMPLE_PROFILES, drop candidate-side
   // opt-outs (`showOnMap === false`, e.g. Caleb), then run the SAME
   // applyHardFilters() the /discover deck uses so the two surfaces
@@ -150,7 +177,7 @@ export default function MapPage() {
           and country/region filtering happens through FiltersSheet's
           Country pill grid (shared with /discover). */}
       <div className="absolute inset-0">
-        <WorldMap className="size-full">
+        <WorldMap className="size-full" onBoundsChange={handleBoundsChange}>
           {visibleSamples.map((p) => {
             // SP16 T5: resolve per-candidate marker state.
             //   - `id` is the lowercased firstName slug used everywhere

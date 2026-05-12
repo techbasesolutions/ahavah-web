@@ -542,7 +542,7 @@ export function MultiComboboxField<T extends string>({
   );
 }
 
-// --- MultiSelectField (ToggleGroup pill+tap with lime-ring selected) --------
+// --- MultiSelectField (ToggleGroup pill+tap, selected handled by primitive) -
 
 export function MultiSelectField<T extends string>({
   label,
@@ -573,25 +573,27 @@ export function MultiSelectField<T extends string>({
         className="flex-wrap"
         aria-label={label}
       >
-        {options.map((opt) => {
-          const active = (value as ReadonlyArray<string>).includes(opt.value);
-          return (
-            <ToggleGroupItem
-              key={opt.value}
-              value={opt.value}
-              variant="pill"
-              size="tap"
-              aria-label={opt.label}
-              className={cn(
-                "transition-transform active:scale-95",
-                active &&
-                  "ring-2 ring-lime ring-offset-2 ring-offset-bg-indigo",
-              )}
-            >
-              {opt.label}
-            </ToggleGroupItem>
-          );
-        })}
+        {options.map((opt) => (
+          // Selected styling (lime fill + black text) is provided by the
+          // pill variant's `data-[state=on]:bg-lime data-[state=on]:text-
+          // black` cva entry in src/components/ui/toggle.tsx. Earlier this
+          // field overlaid a `ring-2 ring-lime ring-offset-2` outline on
+          // top of the fill — an outlier no other selected-pill in the app
+          // used (FiltersSheet PillGrid, onboarding pills, SingleSelectField
+          // radio-cards all show just the fill). Dropped per SP17 T3 user
+          // feedback "consolidate the highlighted/selected option style to
+          // the one without the extra border".
+          <ToggleGroupItem
+            key={opt.value}
+            value={opt.value}
+            variant="pill"
+            size="tap"
+            aria-label={opt.label}
+            className="transition-transform active:scale-95"
+          >
+            {opt.label}
+          </ToggleGroupItem>
+        ))}
       </ToggleGroup>
     </div>
   );

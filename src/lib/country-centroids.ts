@@ -287,3 +287,49 @@ export function centroidOf(iso2: string): Centroid | null {
   const key = iso2.toUpperCase();
   return COUNTRY_CENTROIDS[key] ?? null;
 }
+
+/**
+ * Return the ISO-2 codes whose country centroids fall inside the given
+ * map bounding box.
+ *
+ * Bbox semantics:
+ *   - `north`/`south` are latitudes; `north` must be greater than `south`.
+ *     A point is "inside" if `south <= lat <= north`.
+ *   - `east`/`west` are longitudes. A point is "inside" if
+ *     `west <= lng <= east`. Antimeridian wrap (a bbox that crosses the
+ *     180/-180 line, where `west > east`) is NOT handled — such a bbox
+ *     will return an empty/wrong result. Pin/map UIs should avoid
+ *     emitting wrapped bboxes.
+ *
+ * Iteration is O(N) over the ~250 entries of {@link COUNTRY_CENTROIDS}.
+ * The returned array is in object-key insertion order (alphabetical by
+ * ISO-2 in the current data file).
+ *
+ * Consumed by the Discover Map (sub-plan 17) `onBoundsChange` handler
+ * to drive country-filter selection from map zoom/pan.
+ *
+ * @example
+ *   countriesInBounds({ north: 85, south: -85, east: 180, west: -180 });
+ *   // → ["AD", "AE", "AF", ... ] (most of the 250-entry set)
+ */
+export function countriesInBounds(bbox: {
+  north: number;
+  south: number;
+  east: number;
+  west: number;
+}): string[] {
+  const result: string[] = [];
+  for (const [iso, centroid] of Object.entries(COUNTRY_CENTROIDS)) {
+    if (centroid == null) continue;
+    const { lat, lng } = centroid;
+    if (
+      lat <= bbox.north &&
+      lat >= bbox.south &&
+      lng >= bbox.west &&
+      lng <= bbox.east
+    ) {
+      result.push(iso);
+    }
+  }
+  return result;
+}

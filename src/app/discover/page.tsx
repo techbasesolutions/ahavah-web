@@ -263,6 +263,37 @@ export default function DiscoverPage() {
         </div>
       </PageHeader>
 
+      {/* "Filtered by map view" pill — escape hatch when /map's
+          onBoundsChange wrote filters.country to narrow the deck. Without
+          this, a user who panned to a narrow region and then opened
+          /discover would see a shrunken deck with no visual explanation
+          and no way to widen without going back to /map. Tap clears the
+          filter; deck restores immediately. Subtle visual treatment
+          (text-caption + bg-bg-elevated/80 + backdrop-blur) so the pill
+          doesn't compete with the primary header chrome above. */}
+      {filters.country && filters.country.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2 }}
+          className="flex justify-center px-3 pt-1"
+        >
+          <button
+            type="button"
+            onClick={() => setFilters({ ...filters, country: undefined })}
+            className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-bg-elevated/80 px-3 py-1.5 text-caption text-white backdrop-blur-sm transition-colors hover:bg-bg-elevated"
+            aria-label={`Filtered by map view, ${filters.country.length} ${filters.country.length === 1 ? "region" : "regions"}. Tap to clear.`}
+          >
+            <MapPin className="size-3" aria-hidden />
+            <span>
+              Filtered by map view · {filters.country.length}{" "}
+              {filters.country.length === 1 ? "region" : "regions"}
+            </span>
+            <X className="size-3" aria-hidden />
+          </button>
+        </motion.div>
+      )}
+
       {/* Profile card — Stories model with slide transition on user-swap.
           AnimatePresence + keyed motion.div: card slides out in the
           chosen exit direction (skip → left, like → right) and the new
