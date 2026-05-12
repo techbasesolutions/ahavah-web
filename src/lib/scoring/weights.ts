@@ -66,6 +66,9 @@ export const STRICT_DOCTRINAL: Weights = {
  * family) weighted heavier than doctrine. Use when a wider faith net
  * is acceptable.
  */
+// OPEN weights practical axes (lifestyle, communication, language) at 2x
+// doctrine; the commit msg's 'equal weight' (45c69d9) refers to BALANCED
+// and STRICT_DOCTRINAL across all 9 axes, not OPEN's intentional skew.
 export const OPEN: Weights = {
   calendar: 1,
   polygyny: 1,
