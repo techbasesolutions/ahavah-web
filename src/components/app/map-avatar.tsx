@@ -39,7 +39,7 @@ import L from "leaflet";
 
 import { ALL_COUNTRIES, flagFromCC } from "@/lib/countries";
 import { centroidOf } from "@/lib/country-centroids";
-import { gradientsFor } from "@/lib/profile-gradients";
+import { photoOrGradient } from "@/lib/photo-or-gradient";
 import type { MarkerState } from "@/lib/map-avatar-state";
 import type { Profile } from "@/lib/profile-schema";
 
@@ -148,11 +148,14 @@ export function MapAvatar({ candidate, state = "none" }: MapAvatarProps) {
       ? `${stateLabel}${name}, ${candidate.age}, in ${countryLabel}`
       : `${stateLabel}${name}, in ${countryLabel}`;
 
-  // Seed gradient pool by id when present (matches /profile/[uuid] which
-  // seeds by uuid), otherwise by lowercased first name so the same
-  // person stays visually stable across renders.
-  const seed = candidate.id ?? slug;
-  const primaryGradient = gradientsFor(seed)[0];
+  // SP21 T8: photoOrGradient seeded by lowercased firstName so the gradient
+  // stamp is stable across renders. When a candidate has `photos[0]`, an
+  // <img> renders in the 44px circle; otherwise the gradient fallback paints
+  // the disc directly.
+  const photoSource = photoOrGradient(
+    { firstName: candidate.firstName ?? slug, photos: candidate.photos },
+    0,
+  );
 
   // Build the divIcon. The wrapping container is `position: relative`
   // so the flag bubble can be absolutely anchored to the gradient
@@ -167,10 +170,24 @@ export function MapAvatar({ candidate, state = "none" }: MapAvatarProps) {
   //     flagFromCC(); same emoji glyphs are already in use across the
   //     onboarding language list, so font availability is proven.
   const safeAria = escapeAttr(ariaLabel);
-  const safeGradient = escapeAttr(primaryGradient);
+  // SP21 T8: render <img> when a real photo exists, gradient <div> otherwise.
+  // The lime ring + drop shadow apply to BOTH branches so the marker chrome
+  // stays identical across the photo/gradient swap.
+  const discInnerHtml =
+    photoSource.kind === "photo"
+      ? `<img src="${escapeAttr(photoSource.src)}" alt="" style="` +
+        `width:44px;height:44px;border-radius:9999px;` +
+        `object-fit:cover;display:block;` +
+        `box-shadow:0 0 0 3px var(--color-lime, #c8ff88),0 2px 8px rgba(0,0,0,0.35);` +
+        `" />`
+      : `<div style="` +
+        `width:44px;height:44px;border-radius:9999px;` +
+        `background:${escapeAttr(photoSource.css)};` +
+        `box-shadow:0 0 0 3px var(--color-lime, #c8ff88),0 2px 8px rgba(0,0,0,0.35);` +
+        `"></div>`;
   const flag = flagFromCC(iso);
   const safeFlag = escapeAttr(flag);
-  // state === "passed" → entire marker (gradient circle + flag bubble +
+  // state === "passed" → entire marker (photo/gradient circle + flag bubble +
   // any future overlays) recedes via grayscale + half-opacity. Applied
   // to the same relative wrapper so it cascades to all children.
   const passedFilter =
@@ -182,11 +199,7 @@ export function MapAvatar({ candidate, state = "none" }: MapAvatarProps) {
     iconAnchor: [22, 22],
     html:
       `<div role="img" aria-label="${safeAria}" style="position:relative;width:44px;height:44px;cursor:pointer;${passedFilter}">` +
-      `<div style="` +
-      `width:44px;height:44px;border-radius:9999px;` +
-      `background:${safeGradient};` +
-      `box-shadow:0 0 0 3px var(--color-lime, #c8ff88),0 2px 8px rgba(0,0,0,0.35);` +
-      `"></div>` +
+      discInnerHtml +
       `<div aria-hidden="true" style="` +
       `position:absolute;bottom:-2px;right:-2px;` +
       `width:18px;height:18px;border-radius:9999px;background:#fff;` +

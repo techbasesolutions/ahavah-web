@@ -11,6 +11,8 @@ import {
 } from "@/components/app/chat-bubble";
 import { ChatHeader } from "@/components/app/chat-header";
 import { ChatInput } from "@/components/app/chat-input";
+import { sampleByName } from "@/lib/profile-sample";
+import { photoOrGradient } from "@/lib/photo-or-gradient";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -32,6 +34,15 @@ type SentMessage = { id: string; text: string };
 export default function ChatThreadPage({ params }: Props) {
   const { id } = use(params);
   const subject = SUBJECT_BY_ID[id] ?? { name: "Adina", age: 24, online: true };
+  // SP21 T8: resolve the subject's photo source (real photo when present,
+  // gradient fallback otherwise). Sample profiles ship without photos so
+  // gradient/initial fallback paints; if a future backend seeds a sample
+  // with photos[0], the chat header avatar will pick it up automatically.
+  const subjectProfile = sampleByName(id);
+  const subjectPhotoSource = photoOrGradient(
+    subjectProfile ?? { firstName: subject.name },
+    0,
+  );
   const [reportOpen, setReportOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [sent, setSent] = useState<SentMessage[]>([]);
@@ -69,6 +80,7 @@ export default function ChatThreadPage({ params }: Props) {
         age={subject.age}
         online={subject.online}
         onMoreClick={() => setReportOpen(true)}
+        photoSource={subjectPhotoSource}
       />
 
       {/* Messages — seeded bubbles cascade in on mount with explicit delays

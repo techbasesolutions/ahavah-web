@@ -25,31 +25,9 @@ import { SAMPLE_PROFILES } from "@/lib/profile-sample";
 import { useDecisions } from "@/lib/use-decisions";
 import { useFilters } from "@/lib/use-filters";
 import { simulateLikesBack } from "@/lib/decision-engine";
-
-// Gradient palette for candidate photos (stable per firstName).
-// Until profile.photos[] ships, we use a 3-gradient sequence per candidate
-// so the timeline (multi-photo carousel) has something to walk through.
-const PHOTO_GRADIENTS = [
-  "linear-gradient(160deg,#FFB088 0%,#FF7A53 60%,#3D1A45 100%)",
-  "linear-gradient(160deg,#9F76EA 0%,#5524F5 60%,#1A1340 100%)",
-  "linear-gradient(160deg,#F9D976 0%,#A87E1E 60%,#3D2410 100%)",
-  "linear-gradient(160deg,#6CB7FF 0%,#1A1340 60%,#000 100%)",
-];
+import { photoOrGradient } from "@/lib/photo-or-gradient";
 
 const PHOTOS_PER_CANDIDATE = 3;
-
-/**
- * Stable 3-photo gradient sequence per candidate. Indexed off firstName's
- * char code so the same candidate always shows the same sequence across
- * remounts (no flicker on swipe + re-enter).
- */
-function photosFor(firstName: string | undefined): string[] {
-  const seed = firstName ? firstName.charCodeAt(0) : 0;
-  return Array.from(
-    { length: PHOTOS_PER_CANDIDATE },
-    (_, i) => PHOTO_GRADIENTS[(seed + i) % PHOTO_GRADIENTS.length],
-  );
-}
 
 /**
  * Convert SAMPLE_PROFILES to DiscoverCandidates with gradients.
@@ -106,15 +84,20 @@ export default function DiscoverPage() {
   const profile = filteredDeck[userIndex];
 
   /**
-   * 3-photo gradient sequence for the current candidate. Stable per
-   * firstName so the same candidate always shows the same photos.
+   * 3-slot photo source list for the current candidate. SP21 T8: each
+   * slot maps to photos[i] when present, gradient fallback otherwise.
+   * Sample profiles ship without photos so the carousel renders 3
+   * deterministic gradients. Once a candidate has real photos, those
+   * render via <img> with object-cover.
    */
-  const candidatePhotos = useMemo(
-    () => photosFor(profile?.firstName),
-    [profile?.firstName],
-  );
+  const candidatePhotos = useMemo(() => {
+    if (!profile) return [];
+    return Array.from({ length: PHOTOS_PER_CANDIDATE }, (_, i) =>
+      photoOrGradient(profile, i),
+    );
+  }, [profile]);
 
-  const currentPhoto = candidatePhotos[photoIndex] ?? candidatePhotos[0];
+  const currentPhotoSource = candidatePhotos[photoIndex] ?? candidatePhotos[0];
 
   /**
    * Reset deck affordance for the empty state. Clears all locally-recorded
@@ -327,14 +310,28 @@ export default function DiscoverPage() {
               animate="animate"
               exit="exit"
               transition={{ duration: 0.3, ease: "easeOut" }}
-              className="relative w-full flex-1 overflow-hidden rounded-2xl bg-cover bg-center shadow-2xl"
+              className="relative w-full flex-1 overflow-hidden rounded-2xl shadow-2xl"
               style={
-                {
-                  "--photo-bg": currentPhoto,
-                  backgroundImage: "var(--photo-bg)",
-                } as React.CSSProperties
+                currentPhotoSource?.kind === "gradient"
+                  ? ({
+                      backgroundImage: currentPhotoSource.css,
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                    } as React.CSSProperties)
+                  : undefined
               }
             >
+              {/* SP21 T8: real photo via <img> when present, gradient
+                  rendered via inline style above otherwise. <img> sits at
+                  z-0 so tap zones (z-10) + caption (z-20) overlay correctly. */}
+              {currentPhotoSource?.kind === "photo" && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={currentPhotoSource.src}
+                  alt={`${profile.firstName ?? "Profile"} photo ${photoIndex + 1}`}
+                  className="absolute inset-0 z-0 size-full object-cover"
+                />
+              )}
               {/* Timeline — one segment per photo, stories-style. Bar mode
                   fills reached segments and dims upcoming ones. */}
               <div className="absolute top-5 right-5 left-5 z-20">
