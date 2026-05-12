@@ -131,13 +131,7 @@ export default function LanguagesStep() {
     selected.length === 0 ? "text-pink" : "text-text-secondary";
 
   return (
-    <OnboardingShell
-      step={9}
-      totalSteps={14}
-      back="/onboarding/country"
-      next="/onboarding/bio"
-      ctaDisabled={!isComplete}
-    >
+    <OnboardingShell href="/onboarding/languages" ctaDisabled={!isComplete}>
       <motion.div
         {...fadeUp}
         transition={{ duration: 0.4 }}

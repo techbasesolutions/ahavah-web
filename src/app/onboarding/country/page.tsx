@@ -61,13 +61,7 @@ export default function CountryStep() {
     : undefined;
 
   return (
-    <OnboardingShell
-      step={8}
-      totalSteps={14}
-      back="/onboarding/photos"
-      next="/onboarding/languages"
-      ctaDisabled={!selected}
-    >
+    <OnboardingShell href="/onboarding/country" ctaDisabled={!selected}>
       <motion.div
         {...fadeUp}
         transition={{ duration: 0.4 }}

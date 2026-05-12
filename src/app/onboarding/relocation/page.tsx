@@ -22,13 +22,7 @@ export default function RelocationStep() {
   const selected = profile.relocation ?? "";
 
   return (
-    <OnboardingShell
-      step={13}
-      totalSteps={14}
-      back="/onboarding/assembly"
-      next="/onboarding/verification"
-      ctaDisabled={!selected}
-    >
+    <OnboardingShell href="/onboarding/relocation" ctaDisabled={!selected}>
       <motion.div
         {...fadeUp}
         transition={{ duration: 0.4 }}

@@ -23,13 +23,7 @@ export default function NameStep() {
   const isValid = trimmed.length >= MIN_NAME && trimmed.length <= MAX_NAME;
 
   return (
-    <OnboardingShell
-      step={3}
-      totalSteps={14}
-      back="/onboarding/verify-phone"
-      next="/onboarding/dob"
-      ctaDisabled={!isValid}
-    >
+    <OnboardingShell href="/onboarding/name" ctaDisabled={!isValid}>
       <motion.div
         {...fadeUp}
         transition={{ duration: 0.4 }}

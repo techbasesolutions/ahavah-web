@@ -21,13 +21,7 @@ export default function AssemblyStep() {
   const { profile, update } = useProfile();
 
   return (
-    <OnboardingShell
-      step={12}
-      totalSteps={14}
-      back="/onboarding/polygyny"
-      next="/onboarding/relocation"
-      ctaDisabled={!profile.assembly}
-    >
+    <OnboardingShell href="/onboarding/assembly" ctaDisabled={!profile.assembly}>
       <motion.div
         {...fadeUp}
         transition={{ duration: 0.4 }}

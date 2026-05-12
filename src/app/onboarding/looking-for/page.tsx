@@ -33,13 +33,7 @@ export default function LookingForStep() {
 
   if (!profile.sex) {
     return (
-      <OnboardingShell
-        step={6}
-        totalSteps={14}
-        back="/onboarding/gender"
-        next="/onboarding/photos"
-        ctaDisabled
-      >
+      <OnboardingShell href="/onboarding/looking-for" ctaDisabled>
         <p className="text-body text-text-muted" aria-live="polite">
           Loading…
         </p>
@@ -51,13 +45,7 @@ export default function LookingForStep() {
   const selected = profile.intent ?? "";
 
   return (
-    <OnboardingShell
-      step={6}
-      totalSteps={14}
-      back="/onboarding/gender"
-      next="/onboarding/photos"
-      ctaDisabled={!selected}
-    >
+    <OnboardingShell href="/onboarding/looking-for" ctaDisabled={!selected}>
       <motion.div
         {...fadeUp}
         transition={{ duration: 0.4 }}

@@ -10,13 +10,23 @@ import { cn } from "@/lib/utils";
 
 import { PageShell } from "@/components/app/page-shell";
 import { ProgressDots } from "@/components/app/progress-dots";
+import { positionOf } from "@/lib/wizard-flow";
 
 type Props = {
-  step: number;
-  totalSteps: number;
+  /**
+   * Wizard route (e.g. "/onboarding/name"). When provided, positionOf(href)
+   * supplies step / totalSteps / back / next from the canonical
+   * wizard-flow.ts map — call sites stop hardcoding these. Individual
+   * step / totalSteps / back / next props (below) remain available as
+   * overrides for non-wizard consumers, but no production screen uses
+   * them anymore.
+   */
+  href?: string;
+  step?: number;
+  totalSteps?: number;
   back?: string;
   /** Destination route when CTA is tapped and `onNext` is not provided. */
-  next: string;
+  next?: string;
   ctaLabel?: string;
   ctaDisabled?: boolean;
   /** When true, CTA renders Loader2 + ctaLoadingLabel and is disabled. */
@@ -51,10 +61,21 @@ type Props = {
  *     and disables the button (used during verification / submission)
  */
 export function OnboardingShell({
-  step, totalSteps, back, next, ctaLabel = "Continue",
+  href,
+  step, totalSteps, back, next,
+  ctaLabel = "Continue",
   ctaDisabled, ctaLoading, ctaLoadingLabel = "Verifying…",
   onNext, children, skipHref,
 }: Props) {
+  // Position resolution: prefer explicit props, fall back to positionOf(href).
+  // If neither is provided we fail loud — every onboarding screen should be
+  // discoverable in wizard-flow.ts's WIZARD_STEPS.
+  const pos = href ? positionOf(href) : null;
+  const resolvedStep = step ?? pos?.step ?? 1;
+  const resolvedTotal = totalSteps ?? pos?.totalSteps ?? 1;
+  const resolvedBack = back !== undefined ? back : pos?.back ?? undefined;
+  const resolvedNext = next ?? pos?.next ?? "/";
+
   const renderCtaContent = () =>
     ctaLoading ? (
       <>
@@ -76,9 +97,9 @@ export function OnboardingShell({
     // CTA naturally pins the CTA at the viewport bottom.
     <PageShell bottomPad="default" className="h-screen overflow-hidden px-5 pt-5">
       <header className="mb-6 flex items-center justify-between gap-3">
-        {back ? (
+        {resolvedBack ? (
           <Link
-            href={back}
+            href={resolvedBack}
             prefetch={false}
             aria-label="Back"
             className={cn(
@@ -95,8 +116,8 @@ export function OnboardingShell({
         <ProgressDots
           mode="bar"
           tone="lime"
-          count={totalSteps}
-          active={step - 1}
+          count={resolvedTotal}
+          active={resolvedStep - 1}
           className="flex-1"
         />
 
@@ -166,7 +187,7 @@ export function OnboardingShell({
           </span>
         ) : (
           <Link
-            href={next}
+            href={resolvedNext}
             prefetch={false}
             className={cn(buttonVariants({ size: "cta" }), "w-full")}
           >

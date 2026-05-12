@@ -38,13 +38,7 @@ export default function GenderStep() {
   const selected = sexToDisplay(profile.sex);
 
   return (
-    <OnboardingShell
-      step={5}
-      totalSteps={14}
-      back="/onboarding/dob"
-      next="/onboarding/looking-for"
-      ctaDisabled={!selected}
-    >
+    <OnboardingShell href="/onboarding/gender" ctaDisabled={!selected}>
       <motion.div
         {...fadeUp}
         transition={{ duration: 0.4 }}

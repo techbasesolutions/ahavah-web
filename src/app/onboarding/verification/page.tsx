@@ -23,9 +23,7 @@ export default function VerificationStep() {
 
   return (
     <OnboardingShell
-      step={14}
-      totalSteps={14}
-      back="/onboarding/relocation"
+      href="/onboarding/verification"
       next="/onboarding/complete"
       ctaDisabled={selected.length === 0}
     >
