@@ -1,6 +1,8 @@
 "use client";
 
+import { Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
 import { Send, X } from "lucide-react";
 
@@ -15,6 +17,7 @@ import {
 
 import { PageShell } from "@/components/app/page-shell";
 import { PhotoTile } from "@/components/app/photo-tile";
+import { sampleByName } from "@/lib/profile-sample";
 
 const PROFILE_GRADIENTS = {
   self:    "linear-gradient(135deg,#FFB088,#FF7A53)",
@@ -26,15 +29,21 @@ const fadeUp = {
   animate: { opacity: 1, y: 0 },
 };
 
-// Hardcoded match subject until real match flow surfaces a uuid in the route.
+// Fallback match subject when no id is provided or profile lookup fails.
 // Esther is one of the SAMPLE_PROFILES; her /profile/esther + /chat/esther
 // routes both exist and render real content.
-const MATCH_SUBJECT = {
+const FALLBACK_SUBJECT = {
   id: "esther",
   name: "Esther",
 };
 
-export default function MatchPage() {
+function MatchPageContent() {
+  const params = useSearchParams();
+  const id = params.get("id") ?? FALLBACK_SUBJECT.id;
+  const profile = sampleByName(id);
+  const subject = profile?.firstName
+    ? { id: id.toLowerCase(), name: profile.firstName }
+    : FALLBACK_SUBJECT;
   return (
     <PageShell bottomPad="default" className="px-5 pt-6">
       {/* sr-only h1 — visible Badge below is the celebration mark, but SRs
@@ -100,9 +109,9 @@ export default function MatchPage() {
             >
               {/* Matched subject photo is tappable to view their full profile. */}
               <Link
-                href={`/profile/${MATCH_SUBJECT.id}`}
+                href={`/profile/${subject.id}`}
                 prefetch={false}
-                aria-label={`View ${MATCH_SUBJECT.name}'s profile`}
+                aria-label={`View ${subject.name}'s profile`}
                 className="block rounded-3xl outline-none focus-visible:ring-2 focus-visible:ring-lavender"
               >
                 <Card
@@ -149,11 +158,11 @@ export default function MatchPage() {
         >
           You and{" "}
           <Link
-            href={`/profile/${MATCH_SUBJECT.id}`}
+            href={`/profile/${subject.id}`}
             prefetch={false}
             className="text-lime underline-offset-2 hover:underline focus-visible:underline"
           >
-            {MATCH_SUBJECT.name}
+            {subject.name}
           </Link>{" "}
           liked each other.
         </motion.p>
@@ -182,7 +191,7 @@ export default function MatchPage() {
               size="circle"
               tone="cta"
               aria-label="Send"
-              render={<Link href={`/chat/${MATCH_SUBJECT.id}`} prefetch={false} />}
+              render={<Link href={`/chat/${subject.id}`} prefetch={false} />}
             >
               <Send className="text-black" />
             </Button>
@@ -199,5 +208,13 @@ export default function MatchPage() {
         </Button>
       </motion.div>
     </PageShell>
+  );
+}
+
+export default function MatchPage() {
+  return (
+    <Suspense fallback={null}>
+      <MatchPageContent />
+    </Suspense>
   );
 }
