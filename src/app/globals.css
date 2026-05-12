@@ -56,7 +56,23 @@
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
 
-  /* Brand semantic tokens */
+  /* Brand semantic tokens.
+   *
+   * Contrast pairings (sub-plan 25 audit, 2026-05-12 — see
+   * docs/contrast-audit-2026-05-12.md):
+   *   - bg-lime / bg-lavender / bg-pink: ONLY pair with text-black.
+   *     text-white on any of these brand surfaces fails WCAG AA (1.12 / 2.72
+   *     / 3.66 respectively). Codified in Button.tone='brand'/cta, Badge,
+   *     chat-bubble surfaces — text-black throughout.
+   *   - bg-indigo / bg-elevated / bg-canvas: any of text-white, text-secondary,
+   *     text-muted, text-lavender, text-lime, text-pink, text-success pass at
+   *     both body (4.5) and UI (3.0) thresholds.
+   *   - Tier-color (#CD7F32 bronze / #C0C0C0 silver / #FFD700 gold): pair with
+   *     text-black (IconBadge tone='tier'). Black-on-bronze = 6.55, the
+   *     tightest of the three but still well above the 3.0 UI threshold. Do
+   *     not swap to text-white — white-on-gold is 1.40 (fail), white-on-silver
+   *     is 1.82 (fail).
+   */
   --color-indigo:        oklch(0.46 0.30 270);
   --color-lime:          oklch(0.95 0.18 119);
   --color-lavender:      oklch(0.71 0.16 295);
@@ -65,8 +81,10 @@
   --color-bg-indigo:     oklch(0.18 0.11 280);
   --color-bg-elevated:   oklch(0.13 0.06 280);
   --color-text-secondary: oklch(0.75 0.04 280);
-  /* Bumped from 0.53 → 0.66 to clear WCAG AA 4.5:1 on bg-indigo / bg-elevated
-     for body-min (12px caption) text. Verified via Playwright contrast audit. */
+  /* Bumped from 0.53 → 0.66 (SP20 L3 prep) to clear WCAG AA 4.5:1 on
+     bg-indigo / bg-elevated for body-min (12px caption) text. Re-verified
+     by the sub-plan 25 contrast sweep: 6.13 on indigo, 6.45 on elevated,
+     6.69 on canvas. Script: scripts/audit-contrast.mjs. */
   --color-text-muted:    oklch(0.66 0.05 280);
 
   /* Semantic state colors */
