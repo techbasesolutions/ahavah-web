@@ -7,13 +7,11 @@ import {
   Bell,
   ChevronRight,
   CreditCard,
-  Globe,
   HelpCircle,
-  LogOut,
   ShieldAlert,
   ShieldCheck,
   Sparkles,
-  Trash2,
+  UserCog,
   UserPen,
   UserX,
 } from "lucide-react";
@@ -44,7 +42,7 @@ const fadeUp = {
 
 // Mirrors the /profile own-profile rhythm: each group gets a coloured
 // dot accent + IconBadge tones vary by purpose so the eye can find
-// Billing / Account actions faster (was 9x identical lavender = flat).
+// Billing faster (was 9x identical lavender = flat).
 type IconBadgeTone = "brand" | "muted" | "success" | "destructive";
 
 const SETTINGS_GROUPS: ReadonlyArray<{
@@ -63,9 +61,9 @@ const SETTINGS_GROUPS: ReadonlyArray<{
     label: "Account",
     accent: "bg-lavender",
     items: [
-      { Icon: UserPen,    title: "Edit profile",          subtitle: "Photos, bio, basics",         href: "/profile/edit", tone: "brand" },
-      { Icon: Globe,      title: "Discovery preferences", subtitle: "Country, language, range",    href: "/discover",     tone: "brand" },
-      { Icon: ShieldCheck,title: "Verification",          subtitle: "Bronze · upgrade to Silver",  href: "/verify",       tone: "success" },
+      { Icon: UserCog,    title: "Account",      subtitle: "Email, password, sign out",   href: "/settings/account", tone: "muted" },
+      { Icon: UserPen,    title: "Edit profile", subtitle: "Photos, bio, basics",         href: "/profile/edit",     tone: "brand" },
+      { Icon: ShieldCheck,title: "Verification", subtitle: "Bronze · upgrade to Silver",  href: "/verify",           tone: "success" },
     ],
   },
   {
@@ -76,7 +74,7 @@ const SETTINGS_GROUPS: ReadonlyArray<{
       { Icon: ShieldAlert, title: "Privacy",        subtitle: "What others see about you",  href: "/settings/privacy",       tone: "muted" },
       { Icon: UserX,       title: "Blocked users",  subtitle: "People you've blocked",      href: "/settings/blocked",       tone: "muted" },
       { Icon: ShieldCheck, title: "Safety center",  subtitle: "Tips, reports, emergencies", href: "/settings/safety",        tone: "muted" },
-      { Icon: Sparkles,    title: "Auto-translate", subtitle: "On · English",               href: "/settings/account",       tone: "muted" },
+      { Icon: Sparkles,    title: "Auto-translate", subtitle: "On · English",               href: "/settings/translate",     tone: "muted" },
     ],
   },
   {
@@ -90,15 +88,7 @@ const SETTINGS_GROUPS: ReadonlyArray<{
     label: "Support",
     accent: "bg-lavender/60",
     items: [
-      { Icon: HelpCircle, title: "Help center", subtitle: "FAQ, contact, bug report", href: "/settings/account", tone: "muted" },
-    ],
-  },
-  {
-    label: "Account actions",
-    accent: "bg-pink",
-    items: [
-      { Icon: LogOut, title: "Log out",        href: "/settings/account", tone: "muted" },
-      { Icon: Trash2, title: "Delete account", href: "/settings/account", destructive: true },
+      { Icon: HelpCircle, title: "Help center", subtitle: "FAQ, contact, bug report", href: "/help", tone: "muted" },
     ],
   },
 ];
