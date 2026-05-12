@@ -37,12 +37,21 @@ const FALLBACK_SUBJECT = {
   name: "Esther",
 };
 
+// Assert the fallback resolves at module load. If sample-profiles renames
+// or removes 'esther', this throws loudly instead of silently 404ing
+// the Send/Photo destinations.
+if (!sampleByName(FALLBACK_SUBJECT.id)) {
+  throw new Error(
+    `FALLBACK_SUBJECT.id "${FALLBACK_SUBJECT.id}" not found in SAMPLE_PROFILES`,
+  );
+}
+
 function MatchPageContent() {
   const params = useSearchParams();
-  const id = params.get("id") ?? FALLBACK_SUBJECT.id;
-  const profile = sampleByName(id);
+  const rawId = params.get("id")?.toLowerCase().trim() || FALLBACK_SUBJECT.id;
+  const profile = sampleByName(rawId);
   const subject = profile?.firstName
-    ? { id: id.toLowerCase(), name: profile.firstName }
+    ? { id: rawId, name: profile.firstName }
     : FALLBACK_SUBJECT;
   return (
     <PageShell bottomPad="default" className="px-5 pt-6">
