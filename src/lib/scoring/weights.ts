@@ -4,8 +4,8 @@
  * final composite. Weights are normalized at compute time so the
  * final score is always in [0, 1] regardless of weight magnitudes.
  *
- * 8 axes per the 2026-05-11 product spec ("Advanced Compatibility
- * Scoring"):
+ * 9 axes per the 2026-05-11 product spec ("Advanced Compatibility
+ * Scoring") + sub-plan 13 worldwide-search language axis:
  *   - calendar      — same/compatible calendar system
  *   - polygyny      — viewer + candidate polygyny stances align
  *   - family        — familyViews overlap (Jaccard-like)
@@ -14,6 +14,7 @@
  *   - communication — communicationPrefs overlap
  *   - observance    — torahLevel proximity
  *   - feast         — feastDays overlap (Jaccard-like)
+ *   - language      — shared spoken languages (intersection / viewer size)
  */
 export type Weights = {
   calendar: number;
@@ -24,6 +25,7 @@ export type Weights = {
   communication: number;
   observance: number;
   feast: number;
+  language: number;
 };
 
 /**
@@ -39,6 +41,7 @@ export const BALANCED: Weights = {
   communication: 1,
   observance: 1,
   feast: 1,
+  language: 1,
 };
 
 /**
@@ -55,6 +58,7 @@ export const STRICT_DOCTRINAL: Weights = {
   communication: 1,
   observance: 3,
   feast: 3,
+  language: 1,
 };
 
 /**
@@ -62,6 +66,9 @@ export const STRICT_DOCTRINAL: Weights = {
  * family) weighted heavier than doctrine. Use when a wider faith net
  * is acceptable.
  */
+// OPEN weights practical axes (lifestyle, communication, language) at 2x
+// doctrine; the commit msg's 'equal weight' (45c69d9) refers to BALANCED
+// and STRICT_DOCTRINAL across all 9 axes, not OPEN's intentional skew.
 export const OPEN: Weights = {
   calendar: 1,
   polygyny: 1,
@@ -71,4 +78,5 @@ export const OPEN: Weights = {
   communication: 2,
   observance: 1,
   feast: 1,
+  language: 2,
 };

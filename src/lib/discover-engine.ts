@@ -23,11 +23,14 @@ export interface DiscoverCandidate extends Profile {
  * ("show me candidates who match these"), no separate persistent
  * boundary-tag concept.
  *
- * Country filtering removed: the product spec is map-zoom-driven
- * (Bumpy-style) and needs profile.lat/lng + a map view that don't
- * exist yet. A fixed POPULAR_COUNTRIES pill list mismatches that
- * design; reintroducing location filtering belongs to the future
- * map-view feature.
+ * International discovery is filter-first per Bumpy spec (docs/specs/bumpy_dating_app_product_feature_breakdown.md) lines 47 + 130:
+ * "Local dating apps constrain users to nearby pools... Bumpy promotes
+ * finding people across countries, cultures, and languages." Not
+ * map-based — Bumpy contrasts itself with Tinder's local-first model
+ * (spec line 518). Country filter is multi-select; empty selection =
+ * "Anywhere" (no filter applied). Distance/lat-lng remain Tier-4
+ * backend (docs/BUILD-PLAN.md:226-229); a map view MAY come post-MVP
+ * as a refinement, NOT as the primary discovery mechanic.
  *
  * Feast-day filtering removed per the 2026-05-11 product call —
  * day-by-day overlap is too granular at the filter layer and
@@ -41,6 +44,8 @@ export interface DiscoverFilters {
   polygynyStances?: readonly Polygyny[];
   intents?: readonly Intent[];
   calendars?: readonly Calendar[];
+  country?: readonly string[];
+  languages?: readonly string[];
   healthTags?: readonly HealthTag[];
   educations?: readonly EducationLevel[];
   verifiedOnly?: boolean;
@@ -53,10 +58,8 @@ export interface DiscoverFilters {
  *
  * Filter rules:
  * - ageMin/ageMax: candidate.age must be defined and within the range
- * - countries / assemblies / torahLevels / polygynyStances / intents /
+ * - country / assemblies / torahLevels / polygynyStances / intents /
  *   calendars: candidate field must be in the selected set
- * - feastDays: at least ONE overlap between filter and candidate's
- *   feastDays (multi-select overlap, not subset)
  * - healthTags: candidate.healthTags must include EVERY selected tag
  *   (AND semantics — picking "non-smoker" + "fitness" requires both)
  * - verifiedOnly: candidate must have at least one verificationTag
@@ -110,6 +113,25 @@ function passesAllFilters(candidate: DiscoverCandidate, filters: DiscoverFilters
   // Calendars
   if (filters.calendars && filters.calendars.length > 0) {
     if (!candidate.calendar || !filters.calendars.includes(candidate.calendar)) {
+      return false;
+    }
+  }
+
+  // Country
+  if (filters.country && filters.country.length > 0) {
+    if (!candidate.country || !filters.country.includes(candidate.country)) {
+      return false;
+    }
+  }
+
+  // Languages (intersection semantics: candidate must have at least ONE
+  // of the selected languages).
+  if (filters.languages && filters.languages.length > 0) {
+    if (
+      !candidate.languages ||
+      candidate.languages.length === 0 ||
+      !candidate.languages.some((lang) => filters.languages!.includes(lang))
+    ) {
       return false;
     }
   }

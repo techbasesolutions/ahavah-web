@@ -9,6 +9,7 @@ import { scoreLifestyle } from "@/lib/scoring/rules/lifestyle";
 import { scoreCommunication } from "@/lib/scoring/rules/communication";
 import { scoreObservance } from "@/lib/scoring/rules/observance";
 import { scoreFeast } from "@/lib/scoring/rules/feast";
+import { scoreLanguage } from "@/lib/scoring/rules/language";
 
 /**
  * Per-axis breakdown of a compatibility computation. Each value is in
@@ -24,6 +25,7 @@ export type CompatibilityBreakdown = {
   communication: number;
   observance: number;
   feast: number;
+  language: number;
 };
 
 export type CompatibilityResult = {
@@ -60,6 +62,7 @@ export function computeCompatibility(
     communication: scoreCommunication(a, b),
     observance: scoreObservance(a, b),
     feast: scoreFeast(a, b),
+    language: scoreLanguage(a, b),
   };
 
   let weightedSum = 0;
@@ -87,4 +90,5 @@ const AXES: ReadonlyArray<keyof Weights> = [
   "communication",
   "observance",
   "feast",
+  "language",
 ];
