@@ -1,10 +1,10 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
-import { Send, X } from "lucide-react";
+import { Send, Sparkles, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 
+import { Confetti } from "@/components/app/confetti";
 import { PageShell } from "@/components/app/page-shell";
 import { PhotoTile } from "@/components/app/photo-tile";
 import { sampleByName } from "@/lib/profile-sample";
@@ -53,8 +54,37 @@ function MatchPageContent() {
   const subject = profile?.firstName
     ? { id: rawId, name: profile.firstName }
     : FALLBACK_SUBJECT;
+
+  // Triple-pulse haptic on mount — PWA users on mobile get a real
+  // physical "tap-tap-tap" for the match moment. Skipped if API absent
+  // or prefers-reduced-motion is set. Silent on errors.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!("vibrate" in navigator)) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    try {
+      navigator.vibrate([50, 30, 80]);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   return (
     <PageShell bottomPad="default" className="px-5 pt-6">
+      {/* Gradient mesh backdrop — fixed-positioned radial gradients (lime
+          top + pink bottom) paint a soft, brand-color atmospheric wash
+          behind the celebration. Decorative; aria-hidden. SP19 T4. */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 -z-10"
+        style={{
+          backgroundImage: `
+            radial-gradient(ellipse 60% 40% at 50% 15%, rgba(200, 255, 136, 0.06), transparent 70%),
+            radial-gradient(ellipse 70% 50% at 50% 90%, rgba(255, 192, 203, 0.04), transparent 75%)
+          `,
+        }}
+      />
+
       {/* sr-only h1 — visible Badge below is the celebration mark, but SRs
           need a heading to land on so the page has structure. */}
       <h1 className="sr-only">It&apos;s a match</h1>
@@ -79,9 +109,9 @@ function MatchPageContent() {
         <div className="relative">
           <span
             aria-hidden
-            className="pointer-events-none absolute inset-0 -z-10 scale-125 rounded-full bg-lime/20 blur-3xl"
+            className="ahavah-halo--pulse pointer-events-none absolute inset-0 -z-10 scale-125 rounded-full bg-lime/20 blur-3xl"
           />
-          <div className="flex items-center justify-center">
+          <div className="relative flex items-center justify-center">
             <motion.div
               initial={{ opacity: 0, x: -30, rotate: -12 }}
               animate={{ opacity: 1, x: 0, rotate: 0 }}
@@ -94,7 +124,7 @@ function MatchPageContent() {
             >
               <Card
                 tone="flat"
-                className="size-44 h-56 overflow-hidden rounded-3xl border-[3px] border-white p-0 shadow-2xl"
+                className="relative size-44 h-56 overflow-hidden rounded-3xl border-[3px] border-white p-0 shadow-2xl"
               >
                 <PhotoTile
                   aspect="square"
@@ -102,6 +132,12 @@ function MatchPageContent() {
                   surface="none"
                   bg={PROFILE_GRADIENTS.self}
                   className="size-full"
+                />
+                {/* Corner-tape detail — lavender bubble at top-right
+                    suggests scrapbook/paper aesthetic. SP19 T4. */}
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute right-2 top-2 z-10 h-2 w-6 rotate-12 rounded-sm bg-lavender/70"
                 />
               </Card>
             </motion.div>
@@ -125,7 +161,7 @@ function MatchPageContent() {
               >
                 <Card
                   tone="flat"
-                  className="size-44 h-56 overflow-hidden rounded-3xl border-[3px] border-white p-0 shadow-2xl"
+                  className="relative size-44 h-56 overflow-hidden rounded-3xl border-[3px] border-white p-0 shadow-2xl"
                 >
                   <PhotoTile
                     aspect="square"
@@ -134,31 +170,62 @@ function MatchPageContent() {
                     bg={PROFILE_GRADIENTS.matched}
                     className="size-full"
                   />
+                  {/* Corner-tape detail — pink bubble mirrors the self
+                      card's lavender. SP19 T4. */}
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute right-2 top-2 z-10 h-2 w-6 rotate-12 rounded-sm bg-pink/70"
+                  />
                 </Card>
               </Link>
+            </motion.div>
+
+            {/* Mid-cards Sparkle dot — spring-pops at the seam between
+                the two photos. Represents "two souls recognized". Lime
+                color + lime drop-shadow glow. SP19 T4. */}
+            <motion.div
+              aria-hidden
+              initial={{ opacity: 0, scale: 0 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{
+                type: "spring",
+                stiffness: 280,
+                damping: 14,
+                delay: 0.25,
+              }}
+              className="absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2"
+            >
+              <Sparkles className="size-3 text-lime drop-shadow-[0_0_8px_rgba(200,255,136,0.6)]" />
             </motion.div>
           </div>
         </div>
 
-        {/* Badge spring-pops in AFTER cards have settled — the climax beat. */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.4 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{
-            type: "spring",
-            stiffness: 200,
-            damping: 12,
-            delay: 0.3,
-          }}
-        >
-          <Badge
-            variant="lime"
-            size="lg"
-            className="-rotate-3 px-6 py-3 text-display shadow-lg"
+        {/* Badge appears AFTER cards have settled — the climax beat.
+            Wrapped in `relative` so <Confetti> (absolute left-1/2 top-1/2)
+            anchors at the badge center. Keyframe-array animation adds a
+            heartbeat pulse after the initial pop. Lime drop-shadow glow
+            replaces the default shadow-lg. SP19 T4. */}
+        <div className="relative">
+          <Confetti className="-translate-x-1/2 -translate-y-1/2" />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.4 }}
+            animate={{ opacity: 1, scale: [0.4, 1, 1.05, 1] }}
+            transition={{
+              duration: 1.0,
+              delay: 0.3,
+              times: [0, 0.5, 0.75, 1],
+              ease: "easeOut",
+            }}
           >
-            It&apos;s a match!
-          </Badge>
-        </motion.div>
+            <Badge
+              variant="lime"
+              size="lg"
+              className="-rotate-3 px-6 py-3 text-display shadow-[0_4px_20px_rgba(200,255,136,0.4)]"
+            >
+              It&apos;s a match!
+            </Badge>
+          </motion.div>
+        </div>
 
         <motion.p
           {...fadeUp}
