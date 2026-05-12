@@ -45,6 +45,7 @@ export interface DiscoverFilters {
   intents?: readonly Intent[];
   calendars?: readonly Calendar[];
   country?: string[];
+  languages?: string[];
   healthTags?: readonly HealthTag[];
   educations?: readonly EducationLevel[];
   verifiedOnly?: boolean;
@@ -119,6 +120,18 @@ function passesAllFilters(candidate: DiscoverCandidate, filters: DiscoverFilters
   // Country
   if (filters.country && filters.country.length > 0) {
     if (!candidate.country || !filters.country.includes(candidate.country)) {
+      return false;
+    }
+  }
+
+  // Languages (intersection semantics: candidate must have at least ONE
+  // of the selected languages).
+  if (filters.languages && filters.languages.length > 0) {
+    if (
+      !candidate.languages ||
+      candidate.languages.length === 0 ||
+      !candidate.languages.some((lang) => filters.languages!.includes(lang))
+    ) {
       return false;
     }
   }

@@ -232,6 +232,80 @@ describe("discover-engine", () => {
     });
   });
 
+  // ------- filter: languages -------
+
+  describe("filter: languages", () => {
+    it("undefined/empty languages filter returns all candidates", () => {
+      const viewer: Profile = { firstName: "Sarah" };
+      const candidates: DiscoverCandidate[] = [
+        makeCandidate({ firstName: "Daniel", languages: ["en"] }),
+        makeCandidate({ firstName: "Adina", languages: ["en", "he"] }),
+        makeCandidate({ firstName: "Rivka", languages: ["en", "fr"] }),
+      ];
+      const filters: DiscoverFilters = {};
+
+      const result = applyHardFilters(viewer, candidates, filters);
+      expect(result).toHaveLength(3);
+    });
+
+    it("empty array languages filter returns all candidates", () => {
+      const viewer: Profile = { firstName: "Sarah" };
+      const candidates: DiscoverCandidate[] = [
+        makeCandidate({ firstName: "Daniel", languages: ["en"] }),
+        makeCandidate({ firstName: "Adina", languages: ["en", "he"] }),
+      ];
+      const filters: DiscoverFilters = { languages: [] };
+
+      const result = applyHardFilters(viewer, candidates, filters);
+      expect(result).toHaveLength(2);
+    });
+
+    it("single language filter returns only candidates with that language", () => {
+      const viewer: Profile = { firstName: "Sarah" };
+      const candidates: DiscoverCandidate[] = [
+        makeCandidate({ firstName: "Daniel", languages: ["en"] }),
+        makeCandidate({ firstName: "Esther", languages: ["en"] }),
+        makeCandidate({ firstName: "Adina", languages: ["en", "he"] }),
+        makeCandidate({ firstName: "Caleb", languages: ["en"] }),
+        makeCandidate({ firstName: "Rivka", languages: ["en", "fr"] }),
+      ];
+      const filters: DiscoverFilters = { languages: ["he"] };
+
+      const result = applyHardFilters(viewer, candidates, filters);
+      expect(result.map((c) => c.firstName)).toEqual(["Adina"]);
+    });
+
+    it("multi-select languages filter uses OR semantics on the filter (intersection)", () => {
+      const viewer: Profile = { firstName: "Sarah" };
+      const candidates: DiscoverCandidate[] = [
+        makeCandidate({ firstName: "Daniel", languages: ["en"] }),
+        makeCandidate({ firstName: "Esther", languages: ["en"] }),
+        makeCandidate({ firstName: "Adina", languages: ["en", "he"] }),
+        makeCandidate({ firstName: "Caleb", languages: ["en"] }),
+        makeCandidate({ firstName: "Rivka", languages: ["en", "fr"] }),
+        makeCandidate({ firstName: "Ezekiel", languages: ["en"] }),
+        makeCandidate({ firstName: "Tirzah", languages: ["en"] }),
+        makeCandidate({ firstName: "Yosef", languages: ["en"] }),
+      ];
+      const filters: DiscoverFilters = { languages: ["he", "fr"] };
+
+      const result = applyHardFilters(viewer, candidates, filters);
+      expect(result.map((c) => c.firstName)).toEqual(["Adina", "Rivka"]);
+    });
+
+    it("languages filter with no matches returns empty", () => {
+      const viewer: Profile = { firstName: "Sarah" };
+      const candidates: DiscoverCandidate[] = [
+        makeCandidate({ firstName: "Daniel", languages: ["en"] }),
+        makeCandidate({ firstName: "Esther", languages: ["en"] }),
+      ];
+      const filters: DiscoverFilters = { languages: ["xx"] };
+
+      const result = applyHardFilters(viewer, candidates, filters);
+      expect(result).toHaveLength(0);
+    });
+  });
+
   // ------- filter: healthTags (NEW) -------
 
   describe("filter: healthTags", () => {
