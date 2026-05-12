@@ -106,7 +106,7 @@ export default function HelpPage() {
           dependency. ChevronDown rotates on group/faq open. */}
       <motion.section
         {...fadeUp}
-        transition={{ duration: 0.4, delay: 0.05 }}
+        transition={{ duration: 0.3, delay: 0.05 }}
         className="flex flex-col gap-2 px-5"
         aria-label="Frequently asked questions"
       >
@@ -138,7 +138,7 @@ export default function HelpPage() {
           inbox routing. */}
       <motion.section
         {...fadeUp}
-        transition={{ duration: 0.4, delay: 0.13 }}
+        transition={{ duration: 0.3, delay: 0.13 }}
         className="mt-6 flex flex-col gap-2 px-3"
         aria-label="Get in touch"
       >

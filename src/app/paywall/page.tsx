@@ -70,7 +70,7 @@ export default function PaywallPage() {
           feedback_ahavah_no_stickers.md (4th permitted use, 2026-05-11). */}
       <motion.div
         {...fadeUp}
-        transition={{ duration: 0.4, delay: 0.05 }}
+        transition={{ duration: 0.25, delay: 0.05 }}
         className="mt-2 flex flex-col items-center gap-3"
       >
         <SparkleMark size={48} color="#D7FF81" />
@@ -83,7 +83,7 @@ export default function PaywallPage() {
       {/* Features — Item composition (ItemGroup gives role="list") */}
       <motion.div
         {...fadeUp}
-        transition={{ duration: 0.4, delay: 0.18 }}
+        transition={{ duration: 0.25, delay: 0.11 }}
       >
         <ItemGroup className="mt-8 gap-3">
           {FEATURES.map((f) => (
@@ -104,7 +104,7 @@ export default function PaywallPage() {
       {/* Tier selector */}
       <motion.div
         {...fadeUp}
-        transition={{ duration: 0.4, delay: 0.32 }}
+        transition={{ duration: 0.25, delay: 0.17 }}
       >
         <Choicebox
           value={selected}
@@ -137,7 +137,7 @@ export default function PaywallPage() {
           project's existing stub convention for un-built routes. */}
       <motion.div
         {...fadeUp}
-        transition={{ duration: 0.4, delay: 0.46 }}
+        transition={{ duration: 0.25, delay: 0.23 }}
         className="mt-auto flex flex-col gap-4 pt-8"
       >
         <Button size="cta">Continue {activeTier.price}</Button>

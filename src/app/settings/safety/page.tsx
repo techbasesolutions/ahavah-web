@@ -110,7 +110,7 @@ export default function SafetyCenterPage() {
         {/* Hero card — friendly assurance */}
         <motion.div
           {...fadeUp}
-          transition={{ duration: 0.4, delay: 0.05 }}
+          transition={{ duration: 0.25, delay: 0.05 }}
         >
           <Card tone="gradient" className="mx-2 gap-3 px-5 py-5">
             <CardHeader className="flex-row items-center gap-3 px-0">
@@ -137,7 +137,7 @@ export default function SafetyCenterPage() {
         {/* Quick actions */}
         <motion.section
           {...fadeUp}
-          transition={{ duration: 0.4, delay: 0.13 }}
+          transition={{ duration: 0.25, delay: 0.11 }}
           className="flex flex-col gap-2"
         >
           <h2 className="px-3 text-overline text-text-muted">Quick actions</h2>
@@ -179,7 +179,7 @@ export default function SafetyCenterPage() {
             so each tip is a list item semantically (no raw ul/li needed). */}
         <motion.section
           {...fadeUp}
-          transition={{ duration: 0.4, delay: 0.21 }}
+          transition={{ duration: 0.25, delay: 0.17 }}
           className="flex flex-col gap-3"
         >
           <h2 className="px-3 text-overline text-text-muted">Safety tips</h2>
@@ -207,7 +207,7 @@ export default function SafetyCenterPage() {
         {/* Resources */}
         <motion.section
           {...fadeUp}
-          transition={{ duration: 0.4, delay: 0.29 }}
+          transition={{ duration: 0.25, delay: 0.23 }}
           className="flex flex-col gap-2"
         >
           <h2 className="px-3 text-overline text-text-muted">Resources</h2>

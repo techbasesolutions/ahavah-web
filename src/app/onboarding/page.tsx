@@ -52,7 +52,7 @@ export default function OnboardingIntroPage() {
     <PageShell bottomPad="default" className="px-5 pt-6">
       <motion.div
         {...fadeUp}
-        transition={{ duration: 0.4 }}
+        transition={{ duration: 0.25 }}
         className="flex items-center justify-between"
       >
         <BrandMark size="sm" />
@@ -103,7 +103,7 @@ export default function OnboardingIntroPage() {
 
       <motion.div
         {...fadeUp}
-        transition={{ duration: 0.4, delay: 0.2 }}
+        transition={{ duration: 0.25, delay: 0.13 }}
       >
         <ProgressDots
           count={SLIDES.length}
@@ -115,7 +115,7 @@ export default function OnboardingIntroPage() {
 
       <motion.div
         {...fadeUp}
-        transition={{ duration: 0.4, delay: 0.3 }}
+        transition={{ duration: 0.25, delay: 0.22 }}
       >
         {last ? (
           <Button

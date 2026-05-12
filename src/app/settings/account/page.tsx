@@ -81,7 +81,7 @@ export default function AccountSettingsPage() {
       <div className="flex flex-col gap-6 px-3 pt-4">
         <motion.section
           {...fadeUp}
-          transition={{ duration: 0.4, delay: 0.05 }}
+          transition={{ duration: 0.3, delay: 0.05 }}
           className="flex flex-col gap-2"
         >
           <h2 className="px-3 text-overline text-text-muted">Sign-in</h2>
@@ -111,7 +111,7 @@ export default function AccountSettingsPage() {
 
         <motion.section
           {...fadeUp}
-          transition={{ duration: 0.4, delay: 0.13 }}
+          transition={{ duration: 0.3, delay: 0.13 }}
           className="flex flex-col gap-2"
         >
           <h2 className="px-3 text-overline text-text-muted">Account actions</h2>

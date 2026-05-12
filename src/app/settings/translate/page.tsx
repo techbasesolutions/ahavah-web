@@ -109,7 +109,7 @@ export default function AutoTranslatePage() {
       <div className="flex flex-col gap-6 px-3 pt-4">
         <motion.section
           {...fadeUp}
-          transition={{ duration: 0.4, delay: 0.05 }}
+          transition={{ duration: 0.3, delay: 0.04 }}
           className="flex flex-col gap-2"
         >
           <ItemGroup className="gap-1">
@@ -140,7 +140,7 @@ export default function AutoTranslatePage() {
 
         <motion.section
           {...fadeUp}
-          transition={{ duration: 0.4, delay: 0.13 }}
+          transition={{ duration: 0.3, delay: 0.12 }}
           className="flex flex-col gap-2"
         >
           <h2 className="px-3 text-overline text-text-muted">Translate to</h2>
@@ -189,7 +189,7 @@ export default function AutoTranslatePage() {
 
         <motion.p
           {...fadeUp}
-          transition={{ duration: 0.4, delay: 0.21 }}
+          transition={{ duration: 0.3, delay: 0.2 }}
           className="px-3 pb-2 text-caption text-text-muted"
         >
           Auto-translate runs server-side and is currently in development.
