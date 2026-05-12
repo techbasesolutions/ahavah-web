@@ -1,36 +1,34 @@
 "use client";
 
 /**
- * /map — Discover Map screen (sub-plan 14 / Task 5 — fix-up pass).
+ * /map — Discover Map screen (sub-plan 14 / Task 5).
  *
- * Bumpy reference (screenshot shared by user 2026-05-12) shows:
- *   - The map is FULL-BLEED (no card wrapper, no inset).
- *   - The top bar is a thin BrandMark + filter-sliders icon row — NO
- *     "Map" page title.
- *   - The continent picker lives INSIDE a filter Sheet opened from the
- *     top-right filter icon — NOT inline above the map.
+ * Renderer swap (2026-05-12): swapped from d3-geo SVG to react-leaflet
+ * + OSM raster tiles. Layout (full-bleed map, thin top bar, filter
+ * sheet, BottomNav) is unchanged from commit 6834b16. Only the
+ * WorldMap renderer + the bbox plumbing changed.
  *
- * Implementation:
+ * Layout (Bumpy reference):
  *   - PageShell uses bottomPad="none" + relative positioning. The
  *     WorldMap absolutely fills the shell from top to bottom. The thin
  *     top bar and BottomNav float over it.
- *   - The top bar is `absolute inset-x-0 top-0` with a translucent
+ *   - Top bar is `absolute inset-x-0 top-0 z-20` with a translucent
  *     backdrop blur, so the map shows through.
- *   - BottomNav is `fixed` (its own primitive), so it sits over the map
- *     at the bottom regardless of shell padding.
+ *   - BottomNav is `fixed` (its own primitive), so it sits over the
+ *     map at the bottom regardless of shell padding.
  *   - The filter sheet uses the kit's <Sheet> primitive bottom-side;
  *     opening it reveals <ContinentPicker>. Picking a continent both
  *     pans/zooms the map AND closes the sheet so the result is
  *     immediately visible.
  *
- * The MapAvatar ring is bumped to lime brand accent so markers pop
- * against the dark country fill (Bumpy uses a green ring; lime is
- * Ahavah's analog).
+ * Dynamic import: Leaflet touches `window` at module load — bare
+ * imports would break the Next.js SSR build with
+ * "ReferenceError: window is not defined". We wrap WorldMap +
+ * MapAvatar in `next/dynamic({ ssr: false })`.
  *
- * MAP RENDERER NOTE: this is still d3-geo SVG. Bumpy uses Google Maps
- * raster tiles. Swapping to Mapbox / Google Maps requires an API key +
- * billing, which is Tier-4 backend-blocked per docs/BUILD-PLAN.md.
- * A future sub-plan handles the swap.
+ * Continent → bbox: the picker emits a `BBox` directly, and we pass
+ * it straight to WorldMap's `bbox` prop. Leaflet's `fitBounds` does
+ * the rest — no center/zoom arithmetic here.
  *
  * Soft-completeness gate mirrors /discover: incomplete profiles are
  * redirected to the first missing onboarding step. Pre-redirect the
@@ -39,14 +37,13 @@
  */
 
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { SlidersHorizontal } from "lucide-react";
 
 import { BottomNav } from "@/components/app/bottom-nav";
 import { ContinentPicker } from "@/components/app/continent-picker";
-import { MapAvatar } from "@/components/app/map-avatar";
 import { PageShell } from "@/components/app/page-shell";
-import { WorldMap, type Viewport } from "@/components/app/world-map";
 import { BrandMark } from "@/components/brand/sparkle-mark";
 import { Button } from "@/components/ui/button";
 import {
@@ -64,41 +61,37 @@ import {
 import { SAMPLE_PROFILES } from "@/lib/profile-sample";
 import { useProfile } from "@/lib/use-profile";
 
-/**
- * Heuristic: convert a continent bbox to a (center, zoom) Viewport for
- * <WorldMap>. The map's d3-zoom scaleExtent runs 1..10 (1 = whole world).
- *
- * We use the longitudinal span as the primary signal — at NaturalEarth1
- * the horizontal extent dominates the visible area. A 360° span maps to
- * zoom 1; a 30°-or-narrower bbox saturates to zoom 8 (which is plenty
- * tight without overshooting the projection's edge cases).
- *
- * Lower-bounded at 30° (so we always show some surrounding context, not
- * a coffee-cup-sized continent shoved against the edges) and
- * upper-bounded at 8 (so a single small continent doesn't snap to the
- * maximum zoom).
- */
-function viewportFromBbox(bbox: BBox): Viewport {
-  const centerLng = (bbox.east + bbox.west) / 2;
-  const centerLat = (bbox.north + bbox.south) / 2;
-  const lngSpan = Math.abs(bbox.east - bbox.west);
-  const zoom = Math.max(
-    1,
-    Math.min(8, Math.round(360 / Math.max(lngSpan, 30))),
-  );
-  return { center: [centerLng, centerLat], zoom };
-}
+// Leaflet uses `window` at module scope (it shims SVG/canvas APIs at
+// import time). Next.js SSR breaks if we don't dynamic-import with
+// `ssr: false` — the build fails with "ReferenceError: window is not
+// defined". This is intentional and documented in the WorldMap header.
+const WorldMap = dynamic(
+  () => import("@/components/app/world-map").then((m) => m.WorldMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="absolute inset-0 grid place-items-center bg-bg-elevated">
+        <span className="text-text-secondary">Loading map…</span>
+      </div>
+    ),
+  },
+);
+
+const MapAvatar = dynamic(
+  () => import("@/components/app/map-avatar").then((m) => m.MapAvatar),
+  { ssr: false },
+);
 
 export default function MapPage() {
   const router = useRouter();
   const { profile: viewer, loaded } = useProfile();
 
-  // Discarded: visibleBounds, the bbox returned by <WorldMap onBoundsChange>.
-  // T6 needs this to resolve "Like everyone visible" → set of candidates;
-  // for T5 we just keep the prop wired so the debounce + computation path
-  // exercises in the smoke walk.
+  // Discarded for now: visibleBounds, the bbox returned by
+  // <WorldMap onBoundsChange>. T6 needs it to resolve "Like everyone
+  // visible" → set of candidates; for T5 we keep the prop wired so the
+  // bounds path exercises in the smoke walk.
   const [, setVisibleBounds] = useState<BBox | null>(null);
-  const [viewport, setViewport] = useState<Viewport | undefined>(undefined);
+  const [bbox, setBbox] = useState<BBox | undefined>(undefined);
   const [activeContinent, setActiveContinent] = useState<
     Continent | undefined
   >(undefined);
@@ -114,9 +107,9 @@ export default function MapPage() {
     }
   }, [loaded, viewer, router]);
 
-  const handlePickContinent = (id: Continent, bbox: BBox) => {
+  const handlePickContinent = (id: Continent, b: BBox) => {
     setActiveContinent(id);
-    setViewport(viewportFromBbox(bbox));
+    setBbox(b);
     // Auto-close on pick — Bumpy does this implicitly, so the user sees
     // the map pan/zoom immediately instead of having to dismiss the
     // sheet first.
@@ -127,8 +120,8 @@ export default function MapPage() {
   //   const visibleSamples = SAMPLE_PROFILES.filter((p) => p.showOnMap !== false);
   const visibleSamples = SAMPLE_PROFILES;
 
-  // Pre-hydration or in-flight redirect — render minimal scaffold to keep
-  // the map from flashing for an ineligible viewer.
+  // Pre-hydration or in-flight redirect — render minimal scaffold to
+  // keep the map from flashing for an ineligible viewer.
   if (!loaded || (loaded && !isDiscoverEligible(viewer))) {
     return (
       <PageShell bottomPad="nav">
@@ -147,13 +140,10 @@ export default function MapPage() {
 
   return (
     <PageShell bottomPad="none" className="relative overflow-hidden">
-      {/* Full-bleed map — absolute-fills the shell. The country paths +
-          markers will project into the SVG's 800×450 viewBox and scale
-          to whatever pixel size the parent gives them
-          (preserveAspectRatio="xMidYMid meet"). */}
+      {/* Full-bleed map — absolute-fills the shell. */}
       <div className="absolute inset-0">
         <WorldMap
-          viewport={viewport}
+          bbox={bbox}
           onBoundsChange={setVisibleBounds}
           className="size-full"
         >
