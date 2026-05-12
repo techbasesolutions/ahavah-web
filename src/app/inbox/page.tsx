@@ -29,6 +29,7 @@ import { Pill, PillIndicator } from "@/components/kibo-ui/pill";
 
 import { cn } from "@/lib/utils";
 import { filterChats } from "@/lib/inbox-filter";
+import { SEED_CHATS } from "@/lib/inbox-seed";
 
 import { BottomNav } from "@/components/app/bottom-nav";
 import { EmptyState, ErrorState } from "@/components/app/empty-state";
@@ -60,15 +61,9 @@ const STORIES = [
   { id: "tirzah",  name: "Tirzah",    isAdd: false, ring: "none"   as const },
 ];
 
-const CHATS = [
-  { id: "adina",   name: "Adina",   age: 24, msg: "Say hi!",                 unread: 3, state: "count" as const, ring: "lime"   as const },
-  { id: "rivka",   name: "Rivka",   age: 31, msg: "Photo",                   unread: 0, state: "dot"   as const, ring: "online" as const },
-  { id: "esther",  name: "Esther",  age: 28, msg: "Hey, how are you?",       unread: 0, state: "dot"   as const, ring: "none"   as const },
-  { id: "tirzah",  name: "Tirzah",  age: 22, msg: "is typing…",              unread: 1, state: "count" as const, ring: "online" as const },
-  { id: "daniel",  name: "Daniel",  age: 32, msg: "Shalom, looking forward.", unread: 0, state: "none"  as const, ring: "none"   as const },
-  { id: "yosef",   name: "Yosef",   age: 41, msg: "Sounds good 💜",            unread: 0, state: "none"  as const, ring: "none"   as const },
-  { id: "ezekiel", name: "Ezekiel", age: 47, msg: "Thanks for the photos!",   unread: 0, state: "none"  as const, ring: "none"   as const },
-];
+// CHATS seed lives in src/lib/inbox-seed.ts (shared with /map for
+// `active-chat` marker state resolution — sub-plan 16 T2).
+const CHATS = SEED_CHATS;
 
 type State = "happy" | "loading" | "empty" | "error";
 
