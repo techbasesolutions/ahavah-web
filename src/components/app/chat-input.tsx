@@ -55,7 +55,12 @@ export function ChatInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey && value.trim().length > 0) {
+          if (
+            e.key === "Enter" &&
+            !e.shiftKey &&
+            !e.nativeEvent.isComposing &&
+            value.trim().length > 0
+          ) {
             e.preventDefault();
             onSend?.();
           }

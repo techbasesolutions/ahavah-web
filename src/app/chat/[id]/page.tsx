@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { use } from "react";
 
 import { BlockReportSheet } from "@/components/app/block-report-sheet";
@@ -35,6 +35,11 @@ export default function ChatThreadPage({ params }: Props) {
   const [reportOpen, setReportOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [sent, setSent] = useState<SentMessage[]>([]);
+  const endRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [sent.length]);
 
   const handleSend = () => {
     const text = draft.trim();
@@ -66,12 +71,11 @@ export default function ChatThreadPage({ params }: Props) {
         onMoreClick={() => setReportOpen(true)}
       />
 
-      {/* Messages — each bubble fades up + slides from its side on mount.
-          Stagger delay = 0.06s × i (already capped by the small message
-          count; for long threads a future virtualization layer would reset
-          delay to 0 for off-screen entries).
-          role="log" + aria-live="polite" so screen readers announce new
-          messages as they arrive without taking focus from the composer. */}
+      {/* Messages — seeded bubbles cascade in on mount with explicit delays
+          (0, 0.06, 0.12, 0.18, 0.24). Sent bubbles use delay=0 so user-typed
+          messages appear instantly on tap. role='log' + aria-live='polite'
+          so screen readers announce new messages as they arrive without
+          taking focus from the composer. */}
       <div
         role="log"
         aria-live="polite"
@@ -96,15 +100,16 @@ export default function ChatThreadPage({ params }: Props) {
         <TextBubble side="them" avatar={subject.name[0]} delay={0.24}>
           So let&apos;s go out of town?
         </TextBubble>
-        {sent.map((m, i) => (
+        {sent.map((m) => (
           <TextBubble
             key={m.id}
             side="me"
-            delay={0.05 + i * 0.05}
+            delay={0}
           >
             {m.text}
           </TextBubble>
         ))}
+        <div ref={endRef} aria-hidden />
       </div>
 
       <ChatInput
