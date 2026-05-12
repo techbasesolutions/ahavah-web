@@ -29,6 +29,7 @@ import { CompatPill } from "@/components/app/compat-pill";
 import { useProfile } from "@/lib/use-profile";
 import { computeCompatibility } from "@/lib/scoring/compute-compatibility";
 import { SAMPLE_PROFILES } from "@/lib/profile-sample";
+import { photoOrGradient, type PhotoSource } from "@/lib/photo-or-gradient";
 
 const fadeUp = {
   initial: { opacity: 0, y: 12 },
@@ -44,11 +45,13 @@ const staggerDelay = (i: number) => 0.05 + Math.min(i, 5) * 0.06;
 // list reads as a typical matches grid for a male viewer; the page
 // auto-recovers for female viewers (intent scoring will reflect the
 // gender-conditional rules).
+// SP21 T8: gradient field removed — each tile resolves via photoOrGradient
+// against the sample profile (photos[] if any, gradient fallback otherwise).
 const MATCHES_DISPLAY = [
-  { id: "esther", name: "Esther", age: 28, dist: "2 km away",   gradient: "linear-gradient(135deg,#FFB088,#7A4A4A)" },
-  { id: "adina",  name: "Adina",  age: 24, dist: "1 km away",   gradient: "linear-gradient(135deg,#9F76EA,#3A1F4F)" },
-  { id: "rivka",  name: "Rivka",  age: 31, dist: "1.5 km away", gradient: "linear-gradient(135deg,#F9D976,#A87E1E)" },
-  { id: "tirzah", name: "Tirzah", age: 22, dist: "3 km away",   gradient: "linear-gradient(135deg,#6CB7FF,#1A1340)" },
+  { id: "esther", name: "Esther", age: 28, dist: "2 km away" },
+  { id: "adina",  name: "Adina",  age: 24, dist: "1 km away" },
+  { id: "rivka",  name: "Rivka",  age: 31, dist: "1.5 km away" },
+  { id: "tirzah", name: "Tirzah", age: 22, dist: "3 km away" },
 ];
 
 type State = "happy" | "loading" | "empty" | "error";
@@ -58,18 +61,21 @@ function MatchesContent() {
   const state = (params.get("state") as State | null) ?? "happy";
   const { profile: userProfile } = useProfile();
 
-  // Compute compatibility scores for display matches
+  // Compute compatibility scores + resolve photo source per match. SP21 T8.
   const matchesWithCompat = useMemo(() => {
-    if (!userProfile) return MATCHES_DISPLAY.map(m => ({ ...m, compatScore: 0 }));
-    return MATCHES_DISPLAY.map(match => {
+    return MATCHES_DISPLAY.map((match) => {
       const sampleProfile = SAMPLE_PROFILES.find(
-        p => p.firstName?.toLowerCase() === match.id
+        (p) => p.firstName?.toLowerCase() === match.id,
       );
-      if (!sampleProfile) {
-        return { ...match, compatScore: 0 };
+      const photoSource: PhotoSource = photoOrGradient(
+        sampleProfile ?? { firstName: match.id },
+        0,
+      );
+      if (!userProfile || !sampleProfile) {
+        return { ...match, compatScore: 0, photoSource };
       }
       const { score } = computeCompatibility(userProfile, sampleProfile);
-      return { ...match, compatScore: score };
+      return { ...match, compatScore: score, photoSource };
     });
   }, [userProfile]);
 
@@ -115,7 +121,16 @@ export default function MatchesPage() {
 // State branches
 // ---------------------------------------------------------------------------
 
-function MatchesGrid({ matches }: { matches: Array<(typeof MATCHES_DISPLAY)[number] & { compatScore: number }> }) {
+function MatchesGrid({
+  matches,
+}: {
+  matches: Array<
+    (typeof MATCHES_DISPLAY)[number] & {
+      compatScore: number;
+      photoSource: PhotoSource;
+    }
+  >;
+}) {
   return (
     <div className="grid grid-cols-2 gap-4 px-5 pt-6">
       {matches.map((m, i) => (
@@ -136,7 +151,22 @@ function MatchesGrid({ matches }: { matches: Array<(typeof MATCHES_DISPLAY)[numb
             )}
           >
             <Card tone="flat" size="sm" className="w-full gap-2 p-0">
-              <PhotoTile aspect="4/5" radius="lg" surface="none" bg={m.gradient}>
+              <PhotoTile
+                aspect="4/5"
+                radius="lg"
+                surface="none"
+                bg={m.photoSource.kind === "gradient" ? m.photoSource.css : undefined}
+              >
+                {/* SP21 T8: real photo via <img> when present; gradient
+                    fallback flows through PhotoTile's `bg` prop above. */}
+                {m.photoSource.kind === "photo" && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={m.photoSource.src}
+                    alt={`${m.name}'s photo`}
+                    className="absolute inset-0 size-full object-cover"
+                  />
+                )}
                 <div className="absolute bottom-4 left-4">
                   <CompatPill score={m.compatScore} size="sm" />
                 </div>

@@ -31,11 +31,8 @@ const Confetti = dynamic(
 import { PageShell } from "@/components/app/page-shell";
 import { PhotoTile } from "@/components/app/photo-tile";
 import { sampleByName } from "@/lib/profile-sample";
-
-const PROFILE_GRADIENTS = {
-  self:    "linear-gradient(135deg,#FFB088,#FF7A53)",
-  matched: "linear-gradient(135deg,#9F76EA,#5524F5)",
-};
+import { useProfile } from "@/lib/use-profile";
+import { photoOrGradient, type PhotoSource } from "@/lib/photo-or-gradient";
 
 const fadeUp = {
   initial: { opacity: 0, y: 12 },
@@ -66,6 +63,23 @@ function MatchPageContent() {
   const subject = profile?.firstName
     ? { id: rawId, name: profile.firstName }
     : FALLBACK_SUBJECT;
+
+  // SP21 T8: self card resolves against the viewer's uploaded photo (if
+  // any) with a deterministic gradient fallback; matched card resolves
+  // against the sample profile (which today has no photos seeded, so
+  // gradient fallback paints).
+  const { profile: viewerProfile } = useProfile();
+  const selfPhotoSource: PhotoSource = photoOrGradient(
+    {
+      firstName: viewerProfile?.firstName ?? "you",
+      photos: viewerProfile?.photos,
+    },
+    0,
+  );
+  const matchedPhotoSource: PhotoSource = photoOrGradient(
+    profile ?? { firstName: subject.name },
+    0,
+  );
 
   // Triple-pulse haptic on mount — PWA users on mobile get a real
   // physical "tap-tap-tap" for the match moment. Skipped if API absent
@@ -142,9 +156,24 @@ function MatchPageContent() {
                   aspect="square"
                   radius="lg"
                   surface="none"
-                  bg={PROFILE_GRADIENTS.self}
+                  bg={
+                    selfPhotoSource.kind === "gradient"
+                      ? selfPhotoSource.css
+                      : undefined
+                  }
                   className="size-full"
-                />
+                >
+                  {/* SP21 T8: viewer's real photo via <img> when present;
+                      gradient fallback flows through `bg` above. */}
+                  {selfPhotoSource.kind === "photo" && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={selfPhotoSource.src}
+                      alt={`${viewerProfile?.firstName ?? "Your"} photo`}
+                      className="absolute inset-0 size-full object-cover"
+                    />
+                  )}
+                </PhotoTile>
                 {/* Corner-tape detail — lavender bubble at top-right
                     suggests scrapbook/paper aesthetic. SP19 T4. */}
                 <span
@@ -179,9 +208,25 @@ function MatchPageContent() {
                     aspect="square"
                     radius="lg"
                     surface="none"
-                    bg={PROFILE_GRADIENTS.matched}
+                    bg={
+                      matchedPhotoSource.kind === "gradient"
+                        ? matchedPhotoSource.css
+                        : undefined
+                    }
                     className="size-full"
-                  />
+                  >
+                    {/* SP21 T8: matched profile's real photo via <img> when
+                        present; gradient fallback (sample profiles ship
+                        without photos) flows through `bg` above. */}
+                    {matchedPhotoSource.kind === "photo" && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={matchedPhotoSource.src}
+                        alt={`${subject.name}'s photo`}
+                        className="absolute inset-0 size-full object-cover"
+                      />
+                    )}
+                  </PhotoTile>
                   {/* Corner-tape detail — pink bubble mirrors the self
                       card's lavender. SP19 T4. */}
                   <span

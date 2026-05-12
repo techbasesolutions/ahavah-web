@@ -29,7 +29,7 @@ import { useProfile } from "@/lib/use-profile";
 import { useDecisions } from "@/lib/use-decisions";
 import { simulateLikesBack } from "@/lib/decision-engine";
 import { computeCompatibility } from "@/lib/scoring/compute-compatibility";
-import { gradientsFor } from "@/lib/profile-gradients";
+import { photoOrGradient } from "@/lib/photo-or-gradient";
 
 import {
   ASSEMBLIES,
@@ -79,15 +79,28 @@ export default function ProfileDetailPage({ params }: Props) {
   const backHref = fromMap ? "/map" : "/discover";
   const backLabel = fromMap ? "Back to map" : "Back to discover";
 
-  // Deterministic 3-photo gradient stamp keyed off the uuid. Same uuid →
-  // same gradients across reloads. Replaced once Sub-plan 9 (real photos)
-  // lands; the carousel + ProgressDots wiring stays.
-  const photos = useMemo(() => gradientsFor(uuid), [uuid]);
+  // SP21 T8: photo carousel maps 3 slots to photos[0..2] with gradient
+  // fallback per slot. Real photos render via <img>; gradient fallback
+  // (sample profiles ship without photos) keeps the deterministic stamp.
+  // Profile lookup uses the actual profile when present so SP21 photos on
+  // sample-like records would render; gradient seed remains `uuid` for
+  // stability across reloads.
+  const photoSources = useMemo(
+    () =>
+      [0, 1, 2].map((i) =>
+        photoOrGradient(
+          { firstName: uuid, photos: profile?.photos },
+          i,
+        ),
+      ),
+    [uuid, profile?.photos],
+  );
   const [photoIndex, setPhotoIndex] = useState(0);
   const nextPhoto = () =>
-    setPhotoIndex((i) => (i + 1) % photos.length);
+    setPhotoIndex((i) => (i + 1) % photoSources.length);
   const prevPhoto = () =>
-    setPhotoIndex((i) => (i - 1 + photos.length) % photos.length);
+    setPhotoIndex((i) => (i - 1 + photoSources.length) % photoSources.length);
+  const currentPhotoSource = photoSources[photoIndex];
 
   // BlockReportSheet wiring for the kebab — same pattern as /chat.
   const [reportOpen, setReportOpen] = useState(false);
@@ -148,7 +161,9 @@ export default function ProfileDetailPage({ params }: Props) {
           bg="transparent"
           className="w-full"
         >
-          {/* Animated gradient layer — crossfade on photoIndex change. */}
+          {/* Animated photo layer — crossfade on photoIndex change.
+              SP21 T8: real photo via <img> when present, gradient
+              fallback otherwise. */}
           <AnimatePresence initial={false}>
             <motion.div
               key={photoIndex}
@@ -157,8 +172,21 @@ export default function ProfileDetailPage({ params }: Props) {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.25 }}
               className="absolute inset-0"
-              style={{ background: photos[photoIndex] }}
-            />
+              style={
+                currentPhotoSource.kind === "gradient"
+                  ? { background: currentPhotoSource.css }
+                  : undefined
+              }
+            >
+              {currentPhotoSource.kind === "photo" && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={currentPhotoSource.src}
+                  alt={`${profile?.firstName ?? "Profile"} photo ${photoIndex + 1}`}
+                  className="size-full object-cover"
+                />
+              )}
+            </motion.div>
           </AnimatePresence>
 
           {/* Tap zones — left half = prev, right half = next. Sit behind
@@ -198,7 +226,7 @@ export default function ProfileDetailPage({ params }: Props) {
           </div>
 
           <ProgressDots
-            count={photos.length}
+            count={photoSources.length}
             active={photoIndex}
             size="sm"
             tone="white"

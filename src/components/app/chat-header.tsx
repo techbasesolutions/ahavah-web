@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button, buttonVariants } from "@/components/ui/button";
 
 import { cn } from "@/lib/utils";
+import type { PhotoSource } from "@/lib/photo-or-gradient";
 
 /**
  * ChatHeader — top chrome of a chat thread per Phase 6 §6.1.
@@ -35,6 +36,13 @@ type ChatHeaderProps = {
   online: boolean;
   /** Callback for the kebab "More" button. */
   onMoreClick?: () => void;
+  /**
+   * SP21 T8: optional resolved PhotoSource for the subject — when this is
+   * a `{ kind: "photo" }` an <img> renders in the avatar slot; otherwise
+   * the AvatarFallback initial is shown. Sample profiles ship without
+   * photos so this defaults to `undefined` for backwards compatibility.
+   */
+  photoSource?: PhotoSource;
 };
 
 export function ChatHeader({
@@ -44,6 +52,7 @@ export function ChatHeader({
   age,
   online,
   onMoreClick,
+  photoSource,
 }: ChatHeaderProps) {
   return (
     <header className="flex items-center gap-3 border-b border-white/10 px-3 py-3">
@@ -62,7 +71,16 @@ export function ChatHeader({
         className="flex flex-1 items-center gap-3 rounded-xl px-1 py-1 -mx-1 -my-1 outline-none focus-visible:ring-2 focus-visible:ring-lavender hover:bg-white/5 active:bg-white/10 transition-colors"
       >
         <Avatar size="tap-lg">
-          <AvatarFallback variant="brand">{name[0]}</AvatarFallback>
+          {photoSource?.kind === "photo" ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={photoSource.src}
+              alt={`${name}'s photo`}
+              className="size-full object-cover"
+            />
+          ) : (
+            <AvatarFallback variant="brand">{name[0]}</AvatarFallback>
+          )}
         </Avatar>
         <div className="flex-1">
           <p className="text-meta font-medium leading-tight text-white">

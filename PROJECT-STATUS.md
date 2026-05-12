@@ -3038,3 +3038,159 @@ tightened, source diff verified). 5/5 specified spot-checks PASS plus Skip-link
 measurement. Em-dash absent from /onboarding/name copy.
 
 Large findings (7) remain carry-forward per spec scope fence. See SP21+ planning.
+
+---
+
+## 28. 2026-05-12 Sub-plan 21 closure — Photo upload MVP (frontend-only, base64)
+
+User direction (2026-05-12): "Real photo upload — Tier-4 backend prep
+(still gradient stamps everywhere)." MVP shipped as 8 tasks (T1-T8 over
+7 implementation commits) on branch `sub-plan-21-photo-upload`. This
+section closes SP21 and clears L2 of §27 (Photos R5 "four-state" finding
+on /onboarding/photos: empty / loading / filled / error is now native to
+the `<PhotoSlot>` primitive that powers both upload UIs). All other §27
+large-findings remain carry-forward.
+
+### 28.1 Per-task commit table
+
+| Task | Commit | Title | Scope |
+|------|--------|-------|-------|
+| spec | `8723e5f` | plan(sub-plan-21) | Spec doc at `docs/superpowers/plans/2026-05-12-sub-plan-21-photo-upload.md` |
+| T1 | `4953e63` | feat(sub-plan-21): T1 image-compress.ts | Pure helper: canvas resize 1080×1440 + JPEG 0.85, MAX_PHOTO_BYTES=1MB cap. +7 tests |
+| T2 | `8a7e5c6` | feat(sub-plan-21): T2 photo-or-gradient.ts | Pure helper `photoOrGradient(profile, slotIndex)` returning `{kind:"photo",src}` or `{kind:"gradient",css}`. +4 tests |
+| T3 | `d2eda49` | feat(sub-plan-21): T3 photo-storage.ts | `canAddPhoto(existing, additionalBytes)` quota guard. MAX_STORAGE_BYTES=4MB. +5 tests |
+| T4 | `fffd608` | feat(sub-plan-21): T4 Profile.photos | Schema field `photos?: string[]` (up to 6 data URLs) |
+| T5 | `6a5b083` | feat(sub-plan-21): T5 PhotoSlot primitive | cva 4-state: empty / loading / filled / error. Hidden `<input type=file>` per slot |
+| T6 | `d9d98e1` | feat(sub-plan-21): T6 /onboarding/photos | Real upload pipeline replacing SP14 placeholder |
+| T7 | `fc43a13` | feat(sub-plan-21): T7 /profile/edit Photos | `<PhotoEditSection>` mirroring onboarding logic in a ProfileSection shell |
+| T8 | (pending docs commit) | T8 6 consumer surfaces + §28 closeout | This section |
+
+### 28.2 Architecture summary
+
+**Pure helpers** (logic-only, no React, no DOM beyond `<canvas>`):
+- `src/lib/image-compress.ts` — `compressImage(file): Promise<{dataUrl,bytes}>`
+- `src/lib/photo-or-gradient.ts` — `photoOrGradient(profile, slotIndex)` returns discriminated union `PhotoSource`
+- `src/lib/photo-storage.ts` — `canAddPhoto(existing, additionalBytes)` returns `{ok, reason?}`
+
+**Primitive** (`src/components/app/photo-slot.tsx`):
+- `<PhotoSlot state={empty|loading|filled|error} src? onPick onRemove isMain index>`
+- cva variant per state (dashed border / spinner / 3px white border + Main pill / pink alert)
+- Hidden `<input type="file" accept="image/jpeg,image/png,image/webp">`; chooser opens on tap of empty or error state
+
+**Two upload UIs** wrapping `<PhotoSlot>`:
+- `/onboarding/photos` (T6) — 6-slot grid, Continue gated by `photos.length >= 1`
+- `/profile/edit` Photos section (T7) — same 6-slot grid via `<PhotoEditSection>`
+
+**Six consumer surfaces** (T8) reading `photoOrGradient(profile, 0)`:
+1. `src/app/profile/[uuid]/page.tsx` — 3-slot carousel (photos[0..2] with per-slot gradient fallback)
+2. `src/app/discover/page.tsx` — swipe card with photo via absolute-positioned `<img>` over gradient backstop
+3. `src/app/matches/page.tsx` — grid tiles via PhotoTile `bg` (gradient) or layered `<img>` (photo)
+4. `src/components/app/map-avatar.tsx` — Leaflet divIcon HTML with `<img>` swapped in when present
+5. `src/app/match/page.tsx` — self card (viewer photo) + matched card (sample → gradient)
+6. `src/components/app/chat-header.tsx` — `<img>` in Avatar when present, `AvatarFallback` initial otherwise
+
+### 28.3 Storage strategy
+
+- **Compression**: 1080×1440 JPEG quality 0.85 → typically 300-500 KB per photo
+- **Per-photo cap**: `MAX_PHOTO_BYTES = 1_000_000` (1 MB) — refuses oversized uploads
+- **Total cap**: `MAX_STORAGE_BYTES = 4_000_000` (4 MB) — leaves ~1 MB headroom under
+  localStorage's 5 MB quota for the rest of the profile JSON
+- **Worst case**: 6 photos × 500 KB = 3 MB — comfortably fits the budget
+- **Storage format**: base64 data URLs serialized inside the `ahavah.profile.v1`
+  localStorage key alongside the rest of the Profile JSON
+
+### 28.4 State machine
+
+Per-slot state transitions (handled in `PhotoEditSection` and the onboarding equivalent):
+
+- `empty → loading` on file picked
+- `loading → filled` on `compressImage` + `canAddPhoto` both succeed; photos[] updated via `update({photos})`
+- `loading → error` on compression throw OR quota refusal
+- `error → loading` on re-tap (chooser re-opens, fresh attempt)
+- `filled → empty` on X remove (with compact reorder — `photos.filter(p => p && p.length)`)
+
+The cva variants on `<PhotoSlot>` ensure each state has a distinct visual treatment without runtime className soup. Loading + error are native states of the primitive — §27 L2 closure cite.
+
+### 28.5 Verification cites
+
+**Gates** (all green):
+
+```
+$ npx tsc --noEmit                                            # exit 0, no output
+$ pnpm exec eslint --max-warnings=0 .                         # exit 0
+$ npx vitest run                                              # 27 files, 290 tests pass
+$ pnpm build                                                  # 48 routes, clean
+```
+
+Test delta: SP20 close-out had **274 tests**; T1+T2+T3 added **+16 tests**
+across compression / fallback / quota helpers, bringing the suite to **290**.
+T5+T6+T7+T8 added wiring/UI only — no new unit tests (smoke walks cover them).
+Routes unchanged at 48.
+
+**Smoke Walk A — Upload then verify renders** (414×896, seeded
+TestViewer + 1 photo via localStorage + a sample test JPEG made on-page):
+
+| # | Surface | Expectation | Result |
+|---|---------|-------------|--------|
+| 1 | /profile/edit | slot 0 shows uploaded TestViewer photo + Main pill + paper-tape | PASS — screenshot `docs/screenshots/sub-plan-21-t8-profile-edit-photo.png` |
+| 2 | /discover | swipe card shows sample (Daniel) gradient fallback | PASS — screenshot `docs/screenshots/sub-plan-21-t8-discover-gradient.png` |
+| 3 | /profile/esther | 3-slot carousel renders sample's 3 gradients | PASS (snapshot inspection) |
+| 4 | /map | gradient marker at Israel centroid (Adina) with lime ring + flag | PASS — screenshot `docs/screenshots/sub-plan-21-t8-map-gradient.png` |
+| 5 | /matches | 4-tile grid with seeded sample gradients | PASS — screenshot `docs/screenshots/sub-plan-21-t8-matches-grid.png` |
+| 6 | /match?id=esther | self card = viewer photo, matched card = Esther gradient | PASS — screenshot `docs/screenshots/sub-plan-21-t8-match-self-photo.png` |
+| 7 | /chat/adina | header avatar shows "A" initial fallback (Adina has no photo) | PASS (snapshot inspection) |
+
+**Smoke Walk B — Remove photo, gradient fallback restored** (414×896,
+photos cleared via storage):
+
+| # | Surface | Expectation | Result |
+|---|---------|-------------|--------|
+| 1 | /match?id=esther | BOTH cards now show gradient fallback (viewer's gradient + Esther's gradient) | PASS — screenshot `docs/screenshots/sub-plan-21-t8-match-both-gradient.png` |
+
+### 28.6 Honesty notes (verification limitations)
+
+- **Consumer-side coverage is asymmetric**. SAMPLE_PROFILES intentionally
+  ship without photos, so /discover, /matches, /map, /chat verify the
+  GRADIENT fallback path (not the real-photo path) for the 6 consumer
+  surfaces. The REAL-photo path is verified on /profile/edit (T7 upload
+  affordance) + /match self-card (viewer photo visible). A full "see
+  your photo on /discover" demo requires either a backend or seeding a
+  sample with photos — both out of MVP scope.
+- **Carousel multi-photo on /profile/[uuid]** maps slots 0-2 to photos
+  array indices 0-2 with per-slot gradient fallback. Today this means
+  sample profiles show 3 gradients (no photos seeded). Once a user has
+  multiple photos, viewing their own profile would show their carousel —
+  but the route currently 404s for non-sample names, so this code path
+  is dormant until profile-self-view lands (out of scope).
+- **Quota refusal cannot be smoke-walked through the UI alone** — a
+  ~1 MB photo would be needed. The unit test suite (T3 photo-storage)
+  covers the math; the UI surface (`error` state of `<PhotoSlot>` with
+  refusal reason copy) is type-checked + visually inspected on the
+  primitive in isolation.
+
+### 28.7 Outstanding sub-plans (carry-forward)
+
+From §27 (SP20 audit), still open:
+- **L1** — `<NumberStepper>` primitive for /onboarding/children (and reuse on /profile/edit)
+- **L3** — axis-9 contrast measurement sweep (intentional vs defect decision)
+- **L4** — motion-budget rubric reconciliation (≤300ms vs current 350ms entrance)
+- **L5** — widened 12-axis audit (deferred from SP20 scope fence)
+- **L7** — /onboarding/verification tier cards (the design-fidelity gap, not the L2 photo states fix)
+
+Outside the audit lineage:
+- Legal pages (Terms, Privacy, Community Guidelines) — awaiting client copy
+- SP21 deferred items: real backend storage (S3 / Supabase Storage), image cropping
+  before compression, HEIC ingestion, drag-to-reorder slots, fullscreen photo
+  preview, SAMPLE_PROFILES photo seed (for consumer-side demo coverage),
+  multi-file batch upload, photo-content verification (ML face / nudity check)
+
+### 28.8 Files modified in T8
+
+- `src/app/profile/[uuid]/page.tsx` — 3-slot photoOrGradient carousel (gradient → photo)
+- `src/app/discover/page.tsx` — swipe card photo render + photosFor helper deleted
+- `src/app/matches/page.tsx` — per-tile photoOrGradient resolution, hardcoded gradients deleted
+- `src/components/app/map-avatar.tsx` — divIcon HTML branches on photo vs gradient
+- `src/app/match/page.tsx` — self + matched cards via photoOrGradient, PROFILE_GRADIENTS deleted
+- `src/components/app/chat-header.tsx` — new optional `photoSource` prop on Avatar
+- `src/app/chat/[id]/page.tsx` — resolves subject's photoSource and passes to ChatHeader
+- `PROJECT-STATUS.md` — this section (§28)
