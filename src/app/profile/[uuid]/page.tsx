@@ -43,6 +43,7 @@ import {
   LIVING_PREFERENCES,
   HEALTH_TAGS,
   INTERESTS,
+  MARITAL_STATUSES,
   NATIONALITIES,
   PERSONALITY_TRAITS,
   VERIFICATION_TAGS,
@@ -246,6 +247,16 @@ export default function ProfileDetailPage({ params }: Props) {
               {profile.nationality && (
                 <Pill variant="lavender" size="sm" className="mt-2">
                   {labelOf(profile.nationality, NATIONALITIES) ?? profile.nationality}
+                </Pill>
+              )}
+              {profile.maritalStatus !== undefined && (
+                <Pill variant="lavender" size="sm" className="mt-2">
+                  {labelOf(profile.maritalStatus, MARITAL_STATUSES) ?? profile.maritalStatus}
+                </Pill>
+              )}
+              {profile.children !== undefined && (
+                <Pill variant="lavender" size="sm" className="mt-2">
+                  {profile.children === 1 ? "1 child" : `${profile.children} children`}
                 </Pill>
               )}
             </div>

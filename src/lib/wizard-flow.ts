@@ -24,6 +24,8 @@ export const WIZARD_STEPS: ReadonlyArray<WizardStep> = [
   { href: "/onboarding/name",           label: "Name",           requiredField: "firstName" },
   { href: "/onboarding/dob",            label: "Date of birth",  requiredField: "age" },
   { href: "/onboarding/gender",         label: "Gender",         requiredField: "sex" },
+  { href: "/onboarding/marital-status", label: "Marital status", requiredField: "maritalStatus" },
+  { href: "/onboarding/children",       label: "Children",       requiredField: "children" },
   { href: "/onboarding/looking-for",    label: "Looking for",    requiredField: "intent" },
   { href: "/onboarding/photos",         label: "Photos" },
   { href: "/onboarding/country",        label: "Country",        requiredField: "country" },
@@ -85,6 +87,24 @@ export function routeForField(field: keyof Profile): string | null {
   return FIELD_TO_HREF.get(field) ?? null;
 }
 
+/**
+ * Fields where a numeric `0` is a VALID complete answer (e.g. `children: 0`
+ * means "I have zero children"). For these, completeness uses an
+ * undefined/null/empty check, not a truthy check. Kept in sync with the same
+ * set in `profile-completeness.ts`.
+ */
+const ZERO_ALLOWED_FIELDS: ReadonlySet<keyof Profile> = new Set<keyof Profile>([
+  "children",
+]);
+
+const isAnswered = (value: unknown): boolean => {
+  if (value === undefined || value === null) return false;
+  if (typeof value === "string") return value.length > 0;
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === "object") return Object.keys(value).length > 0;
+  return true;
+};
+
 const isFilled = (value: unknown): boolean => {
   if (value === undefined || value === null) return false;
   if (typeof value === "string") return value.length > 0;
@@ -92,6 +112,11 @@ const isFilled = (value: unknown): boolean => {
   if (Array.isArray(value)) return value.length > 0;
   if (typeof value === "object") return Object.keys(value).length > 0;
   return true;
+};
+
+const fieldComplete = (profile: Profile, key: keyof Profile): boolean => {
+  const value = profile[key];
+  return ZERO_ALLOWED_FIELDS.has(key) ? isAnswered(value) : isFilled(value);
 };
 
 /**
@@ -102,7 +127,7 @@ const isFilled = (value: unknown): boolean => {
 export function firstMissingStepFor(profile: Profile): string | null {
   for (const step of WIZARD_STEPS) {
     if (!step.requiredField) continue;
-    if (!isFilled(profile[step.requiredField])) {
+    if (!fieldComplete(profile, step.requiredField)) {
       return step.href;
     }
   }

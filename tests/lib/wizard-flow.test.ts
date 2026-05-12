@@ -10,16 +10,28 @@ import {
 } from "@/lib/wizard-flow";
 
 describe("wizard-flow", () => {
-  it("WIZARD_STEPS has 14 entries in the canonical order", () => {
-    expect(WIZARD_STEPS).toHaveLength(14);
+  it("WIZARD_STEPS has 16 entries in the canonical order", () => {
+    expect(WIZARD_STEPS).toHaveLength(16);
     expect(WIZARD_STEPS[0].href).toBe("/onboarding/verify-email");
-    expect(WIZARD_STEPS[13].href).toBe("/onboarding/verification");
+    expect(WIZARD_STEPS[15].href).toBe("/onboarding/verification");
+  });
+
+  it("marital-status + children are slotted between gender and looking-for", () => {
+    const hrefs = WIZARD_STEPS.map((s) => s.href);
+    const genderIdx = hrefs.indexOf("/onboarding/gender");
+    const maritalIdx = hrefs.indexOf("/onboarding/marital-status");
+    const childrenIdx = hrefs.indexOf("/onboarding/children");
+    const lookingForIdx = hrefs.indexOf("/onboarding/looking-for");
+    expect(genderIdx).toBeGreaterThanOrEqual(0);
+    expect(maritalIdx).toBe(genderIdx + 1);
+    expect(childrenIdx).toBe(maritalIdx + 1);
+    expect(lookingForIdx).toBe(childrenIdx + 1);
   });
 
   it("positionOf returns 1-indexed step + total for an existing href", () => {
     const pos = positionOf("/onboarding/name");
     expect(pos.step).toBe(3);
-    expect(pos.totalSteps).toBe(14);
+    expect(pos.totalSteps).toBe(16);
   });
 
   it("positionOf wires back + next for a middle step", () => {
@@ -28,10 +40,20 @@ describe("wizard-flow", () => {
     expect(pos.next).toBe("/onboarding/gender");
   });
 
+  it("positionOf chains gender → marital-status → children → looking-for", () => {
+    expect(positionOf("/onboarding/gender").next).toBe("/onboarding/marital-status");
+    const marital = positionOf("/onboarding/marital-status");
+    expect(marital.back).toBe("/onboarding/gender");
+    expect(marital.next).toBe("/onboarding/children");
+    const children = positionOf("/onboarding/children");
+    expect(children.back).toBe("/onboarding/marital-status");
+    expect(children.next).toBe("/onboarding/looking-for");
+  });
+
   it("positionOf returns step=0 for an unknown href (does not throw)", () => {
     const pos = positionOf("/onboarding/nonexistent");
     expect(pos.step).toBe(0);
-    expect(pos.totalSteps).toBe(14);
+    expect(pos.totalSteps).toBe(16);
     expect(pos.back).toBeNull();
     expect(pos.next).toBeNull();
   });
@@ -69,6 +91,8 @@ describe("wizard-flow", () => {
       firstName: "Test",
       age: 30,
       sex: "male",
+      maritalStatus: "never-married",
+      children: 0,
       country: "BB",
       intent: "first-wife",
       assembly: "torah-observant",

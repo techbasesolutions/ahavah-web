@@ -11,13 +11,40 @@ export { firstMissingStepFor } from "@/lib/wizard-flow";
 export type CompletenessResult = {
   /** 0-100 — fraction of ALL schema fields populated. */
   percent: number;
-  /** How many of the 8 minimum-required fields are filled. */
+  /** How many of the 10 minimum-required fields are filled. */
   requiredFilled: number;
-  /** Total minimum-required fields (always 8 in v1). */
+  /** Total minimum-required fields (10 after sub-plan 18). */
   requiredTotal: number;
   /** True iff every minimum-required field is filled. */
   discoverEligible: boolean;
 };
+
+/**
+ * Fields where a numeric `0` is a VALID complete answer ("I have zero of X").
+ * For these, completeness uses an answered-check (undefined/null/empty only),
+ * not a truthy-check. `children: 0` means "I have zero children" — a valid
+ * answer; treating it as not-filled would loop the user back to the question
+ * forever.
+ */
+const ZERO_ALLOWED_FIELDS: ReadonlySet<keyof Profile> = new Set<keyof Profile>([
+  "children",
+]);
+
+/**
+ * Field-level "answered" check (allows numeric 0).
+ *   - undefined / null → not answered
+ *   - empty string     → not answered
+ *   - empty array      → not answered
+ *   - empty object     → not answered
+ *   - everything else  → answered (including 0)
+ */
+function isAnswered(value: unknown): boolean {
+  if (value === undefined || value === null) return false;
+  if (typeof value === "string") return value.length > 0;
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === "object") return Object.keys(value).length > 0;
+  return true;
+}
 
 /**
  * Field-level "filled" check.
@@ -37,11 +64,21 @@ function isFilled(value: unknown): boolean {
   return true;
 }
 
+/**
+ * Per-field completeness predicate. Uses `isAnswered` (0-allowed) for fields
+ * in ZERO_ALLOWED_FIELDS (e.g. `children`); `isFilled` otherwise.
+ */
+function fieldComplete(profile: Profile, key: keyof Profile): boolean {
+  const value = profile[key];
+  return ZERO_ALLOWED_FIELDS.has(key) ? isAnswered(value) : isFilled(value);
+}
+
 // All Profile keys, hard-coded for deterministic %-complete. If the schema
 // adds a field, add it here. (Could be derived via `keyof Profile` but
 // TypeScript can't iterate type keys at runtime.)
 const ALL_FIELDS: ReadonlyArray<keyof Profile> = [
   "firstName", "displayName", "age", "sex",
+  "maritalStatus", "children",
   "country", "stateOrProvince", "city",
   "nationality", "ethnicities", "languages",
   "occupation", "education", "bio",
@@ -57,10 +94,10 @@ const ALL_FIELDS: ReadonlyArray<keyof Profile> = [
 
 export function computeCompleteness(profile: Profile): CompletenessResult {
   const requiredFilled = MINIMUM_COMPLETE_FIELDS.filter((k) =>
-    isFilled(profile[k]),
+    fieldComplete(profile, k),
   ).length;
 
-  const allFilled = ALL_FIELDS.filter((k) => isFilled(profile[k])).length;
+  const allFilled = ALL_FIELDS.filter((k) => fieldComplete(profile, k)).length;
   const percent = Math.round((allFilled / ALL_FIELDS.length) * 100);
 
   return {

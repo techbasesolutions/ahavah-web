@@ -2350,3 +2350,158 @@ $ grep -cE "^  [A-Z]{2}: \{ lat:" src/lib/country-centroids.ts
 ### Lesson reinforced
 
 User mid-task scope expansion (T3 grew from "drop Country" to "drop Country + Languages + kit consolidation") was handled cleanly because the controller can dispatch a single fix-up that covers all three coordinated changes when they share a file boundary (`filters-sheet.tsx` for the first two, `profile-field.tsx` for the third — both edited in the same commit). SDD doesn't preclude scope flexibility — but mid-task expansion should still be explicit. The T3 commit message names every change ("drop Country + Languages + consolidate selected-pill style"), and the controller's dispatch prompt enumerated them up front; that's the discipline that keeps "scope flexibility" from becoming "scope creep."
+
+---
+
+## 25. 2026-05-12 Sub-plan 18 closure — Marital status + Children mandatory fields
+
+User direction (verbatim):
+
+> "I need to add marriage status to the onboarding mandatory field: Married / Re-married / Divorced / Never Married, and children: a user numerical input field"
+
+Both fields shipped end-to-end across the wizard, completeness gate, sample profiles, profile view, and profile editor. This closure builds on §24 (SP17 IA cleanup), inheriting the consolidated selected-pill style (`profile-field.tsx`) — used unchanged on the new `/onboarding/marital-status` screen. Spec: [`docs/superpowers/plans/2026-05-12-sub-plan-18-marital-status-children.md`](docs/superpowers/plans/2026-05-12-sub-plan-18-marital-status-children.md).
+
+### Per-task commits
+
+| Commit | Task | What |
+|---|---|---|
+| `3a70123` | spec | SP18 plan (4 tasks + closeout) |
+| `f3e069f` | T1 | Schema (`MaritalStatus` union, `MARITAL_STATUSES`, `isMaritalStatus`) + completeness gate + `ZERO_ALLOWED_FIELDS` Set + 8 enriched `SAMPLE_PROFILES` + 5 vitest cases |
+| `96a1090` | T2 | `/onboarding/marital-status` + `/onboarding/children` screens (46 → 48 routes) |
+| `174deac` | T3 | `WIZARD_STEPS` 14 → 16; insert marital-status + children between gender and looking-for; +2 ordering tests |
+| `616fe93` | T4 | `/profile/[uuid]` Identity cluster renders new Pills; `/profile/edit` Identity gains `SingleSelectField` (marital) + number `Input` (children) |
+
+### Architecture summary
+
+- **2 new Profile fields:** `maritalStatus: "never-married" | "married" | "re-married" | "divorced"` + `children: number` (0-20 whole).
+- **Wizard:** 14 → 16 steps. Step 6 = marital-status, step 7 = children, step 8 = looking-for (was step 6).
+- **Completeness gate:** `MINIMUM_COMPLETE_FIELDS` grew from 8 → 10 entries — now includes `maritalStatus` + `children` (see `src/lib/profile-schema.ts:697-708`).
+- **Zero-allowed semantics:** `ZERO_ALLOWED_FIELDS: ReadonlySet<keyof Profile> = new Set(["children"])` lets `children: 0` register as answered, while preserving `age: 0` → "not filled" semantics (age zero is invalid, children zero is valid).
+- **Surface coverage:** `/profile/[uuid]` Identity cluster + `/profile/edit` Identity section both updated.
+
+### Key correctness bug caught + fixed in T1
+
+The existing `isFilled(value)` at `src/lib/profile-completeness.ts:61` reads `if (typeof value === "number") return value !== 0` — a truthy-check on numbers that would have looped users on `/onboarding/children` forever when they entered the answer "0". T1's implementer caught this before user-facing harm.
+
+**Fix:** opt-in `ZERO_ALLOWED_FIELDS` Set in both `profile-completeness.ts` and `wizard-flow.ts` + parallel `isAnswered(value)` that allows 0 for whitelisted fields. `fieldComplete()` dispatches on Set membership:
+
+```ts
+function fieldComplete(profile: Profile, key: keyof Profile): boolean {
+  const value = profile[key];
+  return ZERO_ALLOWED_FIELDS.has(key) ? isAnswered(value) : isFilled(value);
+}
+```
+
+Age semantics preserved (`age: 0` still treated as missing → wizard re-asks DOB).
+
+### Cross-screen functionality update
+
+| Surface | Change |
+|---|---|
+| Onboarding wizard | 14 → 16 steps; marital-status + children inserted between gender (step 5) and looking-for (now step 8) |
+| `/discover`, `/map` | Existing legacy profiles get soft-redirected to fill new fields before access |
+| `/profile/[uuid]` | Identity cluster shows Marital + Children as lavender Pills (singular "1 child" branch; zero shown as "0 children") |
+| `/profile/edit` | Identity section gains `SingleSelectField` (marital) + number `Input` (children) |
+| `SAMPLE_PROFILES` | 8 samples enriched — Daniel/Sarah/Rachel/Joanna/Esther "never-married" + children 0; Yosef "married" + 3; Caleb "divorced" + 2; Miriam "re-married" |
+
+### Final verification — every claim cites a re-runnable query
+
+**Verification gates (re-runnable in `d:/Antigravity/ahavah-web`):**
+
+```
+npx tsc --noEmit                       → clean (exit 0)
+pnpm exec eslint --max-warnings=0 .    → clean (exit 0)
+npx vitest run                         → 23 files / 270 tests passed
+pnpm build                             → ✓ Compiled successfully / 48 routes
+```
+
+**Citable greps (each anchors a §25 claim):**
+
+1. Schema additions — `grep -n "MaritalStatus\|MARITAL_STATUSES\|isMaritalStatus" src/lib/profile-schema.ts`:
+
+```
+198:export type MaritalStatus =
+204:export const MARITAL_STATUSES: ReadonlyArray<{ value: MaritalStatus; label: string }> = [
+211:export function isMaritalStatus(value: unknown): value is MaritalStatus {
+212:  return typeof value === "string" && MARITAL_STATUSES.some((opt) => opt.value === value);
+642:  maritalStatus?: MaritalStatus;
+```
+
+2. ZERO_ALLOWED_FIELDS + isAnswered + fieldComplete — `grep -n "ZERO_ALLOWED_FIELDS\|isAnswered\|fieldComplete" src/lib/profile-completeness.ts src/lib/wizard-flow.ts`:
+
+```
+profile-completeness.ts:29:const ZERO_ALLOWED_FIELDS: ReadonlySet<keyof Profile> = new Set<keyof Profile>([
+profile-completeness.ts:41:function isAnswered(value: unknown): boolean {
+profile-completeness.ts:71:function fieldComplete(profile: Profile, key: keyof Profile): boolean {
+profile-completeness.ts:73:  return ZERO_ALLOWED_FIELDS.has(key) ? isAnswered(value) : isFilled(value);
+wizard-flow.ts:96:const ZERO_ALLOWED_FIELDS: ReadonlySet<keyof Profile> = new Set<keyof Profile>([
+wizard-flow.ts:117:const fieldComplete = (profile: Profile, key: keyof Profile): boolean => {
+wizard-flow.ts:130:    if (!fieldComplete(profile, step.requiredField)) {
+```
+
+3. Wizard ordering — `grep -n "marital-status\|/onboarding/children" src/lib/wizard-flow.ts` (returns the expected 2 entries):
+
+```
+27:  { href: "/onboarding/marital-status", label: "Marital status", requiredField: "maritalStatus" },
+28:  { href: "/onboarding/children",       label: "Children",       requiredField: "children" },
+```
+
+4. Route files — `grep -rn "/onboarding/marital-status\|/onboarding/children" src/app/`:
+
+```
+src/app/onboarding/children/page.tsx:48:      href="/onboarding/children"
+src/app/onboarding/marital-status/page.tsx:25:      href="/onboarding/marital-status"
+```
+
+5. Sample-profile enrichment — `grep -n "maritalStatus\|children" src/lib/profile-sample.ts | head -20`:
+
+```
+24:    maritalStatus: "never-married",
+25:    children: 0,
+55:    maritalStatus: "never-married",
+56:    children: 0,
+85:    maritalStatus: "married",
+86:    children: 3,
+116:    maritalStatus: "never-married",
+117:    children: 0,
+146:    maritalStatus: "divorced",
+147:    children: 2,
+181:    maritalStatus: "never-married",
+182:    children: 0,
+211:    maritalStatus: "re-married",
+```
+
+6. Route files on disk — `ls src/app/onboarding/marital-status src/app/onboarding/children`:
+
+```
+src/app/onboarding/children:       page.tsx
+src/app/onboarding/marital-status: page.tsx
+```
+
+**Smoke-walk verifications (414×896, dev server :3000):**
+
+- **Walk A — PASS** Fresh wizard surfaces both new steps. After gender (step 5), Continue → `/onboarding/marital-status` (step 6). Pick "Never Married" → Continue → `/onboarding/children` (step 7). Enter 0 → Continue → `/onboarding/looking-for` (step 8). Order confirmed by `tablist "Step N of 16"` ARIA labels.
+- **Walk B — PASS** Incomplete SP17-era profile (10-field seed missing `maritalStatus` + `children`) hitting `/discover` shows "Redirecting to complete your profile…" then bumps to `/onboarding/marital-status`. After fill-through, `localStorage["ahavah.profile.v1"]` contains both new fields and `/discover` loads with the Yosef card (deck rendered, no redirect loop).
+- **Walk C — PASS** Critical assertion: `children: 0` is valid + complete. Wizard accepts "0" → Continue enables → `localStorage["ahavah.profile.v1"].children === 0` (strict equality verified via `page.evaluate`). No redirect loop.
+- **Walk D — PASS** `/profile/[uuid]` surfaces — Yosef: "Married" + "3 children" pills (plural branch); Daniel: "Never Married" + "0 children" (zero rendered, not hidden); Caleb (direct URL): "Divorced" + "2 children".
+- **Walk E — PASS** `/profile/edit` Identity section persists. `SingleSelectField` (marital) + number `Input` (children) both render and pre-populate from localStorage. Toggling marital → "Re-married" writes through to `localStorage` (`maritalStatus: "re-married"`). After page reload, `input[value="re-married"]:checked === true` and children input value = `"0"`.
+- **Walk F — PASS** Selected-pill style consistency. On `/onboarding/marital-status` after Re-married selected, the card has clean lime fill `lab(95.7186 -24.924 68.0729)` with `2px inset` shadow in the same lime color (uniform fill, no outer ring). Matches SP17 T3 consolidation style — no regression.
+
+### Test counts + route counts
+
+- vitest: 263 → **270 passed** (+5 from T1 schema/completeness + 2 from T3 wizard ordering)
+- routes: 46 → **48** (verified in `pnpm build` output above)
+- WIZARD_STEPS: 14 → **16**
+- MINIMUM_COMPLETE_FIELDS: 8 → **10**
+
+### Outstanding sub-plans (carry-forward)
+
+- SP19 — `/match` celebration polish
+- SP20 — Onboarding flow QA (re-audit all 16 steps now that SP18 reshaped the order)
+- SP21 — Photo upload MVP
+- Legal pages — awaiting copy
+- Widened 12-axis audit — deferred until all pages complete
+
+### Lesson reinforced
+
+Implementer agents catching real bugs (the `isFilled` truthy-check on numbers, which would have looped users on `/onboarding/children` forever when they answered "0") is the value of having explicit edge-case coverage in test fixtures + spec ("`children: 0` must be valid"). Writing tests FIRST surfaced the bug before any user could hit it. The fix (`ZERO_ALLOWED_FIELDS` Set + parallel `isAnswered`) preserves the historical `isFilled` semantics for `age` while opening a documented escape hatch for `children` — a model that scales to future zero-valid fields (e.g. `divorces`, `marriages_count`) without touching the global predicate.

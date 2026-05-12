@@ -191,6 +191,27 @@ export function isCalendar(value: unknown): value is Calendar {
   return typeof value === "string" && CALENDARS.some((opt) => opt.value === value);
 }
 
+// Marital status (mandatory onboarding) ------------------------------------
+// Single-select. Picker order leads with "Never Married" (largest cohort
+// for a dating app — matches Bumpy convention).
+
+export type MaritalStatus =
+  | "never-married"
+  | "married"
+  | "re-married"
+  | "divorced";
+
+export const MARITAL_STATUSES: ReadonlyArray<{ value: MaritalStatus; label: string }> = [
+  { value: "never-married", label: "Never Married" },
+  { value: "married",       label: "Married" },
+  { value: "re-married",    label: "Re-married" },
+  { value: "divorced",      label: "Divorced" },
+];
+
+export function isMaritalStatus(value: unknown): value is MaritalStatus {
+  return typeof value === "string" && MARITAL_STATUSES.some((opt) => opt.value === value);
+}
+
 // Doctrine cluster --------------------------------------------------------
 
 export type Polygyny = "supports" | "open" | "monogamy-only" | "undecided";
@@ -615,6 +636,11 @@ export type Profile = {
   displayName?: string;
   age?: number;
   sex?: Sex;
+  // Mandatory onboarding (sub-plan 18). `children` is an integer 0..20;
+  // `children: 0` is a VALID complete answer — completeness uses an
+  // undefined/null check, not a truthy check.
+  maritalStatus?: MaritalStatus;
+  children?: number;
   country?: string;        // 2-letter ISO from src/lib/countries.ts
   stateOrProvince?: string;
   city?: string;
@@ -672,6 +698,8 @@ export const MINIMUM_COMPLETE_FIELDS: ReadonlyArray<keyof Profile> = [
   "firstName",
   "age",
   "sex",
+  "maritalStatus",
+  "children",
   "country",
   "intent",
   "assembly",
