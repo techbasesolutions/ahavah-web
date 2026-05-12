@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { ArrowLeft, Plus, X } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 import { Progress as ProgressPrimitive } from "@base-ui/react/progress";
 
@@ -16,11 +15,11 @@ import {
   PageHeaderTitle,
   PageShell,
 } from "@/components/app/page-shell";
-import { PhotoTile } from "@/components/app/photo-tile";
 
 import { useProfile } from "@/lib/use-profile";
 import { computeCompleteness } from "@/lib/profile-completeness";
 
+import { PhotoEditSection } from "@/components/profile-edit/section-photos";
 import IdentitySection from "@/components/profile-edit/section-identity";
 import FaithSection from "@/components/profile-edit/section-faith";
 import DoctrineSection from "@/components/profile-edit/section-doctrine";
@@ -28,16 +27,6 @@ import LifestyleSection from "@/components/profile-edit/section-lifestyle";
 import InterestsSection from "@/components/profile-edit/section-interests";
 import PracticalSection from "@/components/profile-edit/section-practical";
 import VerificationSection from "@/components/profile-edit/section-verification";
-
-// Photo placeholders — `profile.photos` doesn't exist on the schema yet.
-// Kept as ephemeral local state so the existing photo grid renders during
-// Sub-plan 3; real photo persistence is its own future task.
-const PHOTO_GRADIENTS: ReadonlyArray<string> = [
-  "linear-gradient(135deg,#FFB088,#FF7A53)",
-  "linear-gradient(135deg,#9F76EA,#3A1F4F)",
-  "linear-gradient(135deg,#F9D976,#A87E1E)",
-  "linear-gradient(135deg,#6CB7FF,#1A1340)",
-];
 
 const fadeUp = {
   initial: { opacity: 0, y: 12 },
@@ -47,22 +36,6 @@ const fadeUp = {
 export default function EditProfilePage() {
   const { profile } = useProfile();
   const completeness = computeCompleteness(profile);
-
-  const [photos, setPhotos] = useState<(string | null)[]>([
-    PHOTO_GRADIENTS[0],
-    PHOTO_GRADIENTS[1],
-    null,
-    null,
-    null,
-    null,
-  ]);
-
-  const removePhoto = (i: number) =>
-    setPhotos((prev) => prev.map((p, idx) => (idx === i ? null : p)));
-  const addPhoto = (i: number) => {
-    const next = PHOTO_GRADIENTS[i % PHOTO_GRADIENTS.length];
-    setPhotos((prev) => prev.map((p, idx) => (idx === i ? next : p)));
-  };
 
   const requiredMissing = completeness.requiredTotal - completeness.requiredFilled;
 
@@ -118,44 +91,13 @@ export default function EditProfilePage() {
           </Card>
         </motion.div>
 
-        {/* Photos — 3 col, 6 slots. Not yet schema-backed. */}
-        <motion.section
-          {...fadeUp}
-          transition={{ duration: 0.4, delay: 0.05 }}
-          className="flex flex-col gap-3"
-        >
-          <h2 className="text-h3 text-white">Photos</h2>
-          <div className="grid grid-cols-3 gap-3">
-            {photos.map((photo, i) =>
-              photo ? (
-                <PhotoTile key={i} bg={photo}>
-                  <Button
-                    size="circle"
-                    tone="overlay"
-                    className="absolute right-3 top-3"
-                    aria-label={`Remove photo ${i + 1}`}
-                    onClick={() => removePhoto(i)}
-                  >
-                    <X className="size-5" />
-                  </Button>
-                </PhotoTile>
-              ) : (
-                <Button
-                  key={i}
-                  variant="ghost"
-                  size="dashedTile"
-                  aria-label={`Add photo ${i + 1}`}
-                  onClick={() => addPhoto(i)}
-                >
-                  <Plus />
-                </Button>
-              ),
-            )}
-          </div>
-          <p className="text-caption text-text-muted">
-            Tap a slot to add a photo. Drag to reorder (coming soon).
-          </p>
-        </motion.section>
+        {/* Photos — real upload pipeline (SP21 T7). Mounted first because
+            photos are the headline of any profile. Uses PhotoEditSection
+            which wraps the same compressImage + canAddPhoto + PhotoSlot
+            stack as /onboarding/photos, but in a ProfileSection shell. */}
+        <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.05 }}>
+          <PhotoEditSection />
+        </motion.div>
 
         <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.1 }}>
           <IdentitySection />
