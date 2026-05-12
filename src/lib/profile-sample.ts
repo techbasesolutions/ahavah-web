@@ -3,8 +3,17 @@ import type { Profile } from "@/lib/profile-schema";
 /**
  * 8 seed sample profiles for development + sub-plan testing.
  * 4 male + 4 female; covers all 4 Torah levels; covers both polygyny
- * stances; varies country/ethnicity. Each profile passes
+ * stances; varies country/ethnicity. Most profiles pass
  * `computeCompleteness().discoverEligible` (all 6 minimum fields).
+ *
+ * Two intentional demo exceptions (sub-plan 14 / T6+T7):
+ *   - Caleb has `showOnMap: false` so the /map "filter out opt-outs"
+ *     path is observable (his marker is hidden).
+ *   - Tirzah has empty `verificationTags` so the /map "Verified only"
+ *     filter toggle has an observable effect (her marker disappears).
+ *     She is still rendered in /discover etc. (verificationTags is in
+ *     MINIMUM_COMPLETE_FIELDS — she fails discoverEligible — but
+ *     SAMPLE_PROFILES is itself the candidate pool, not a viewer.)
  */
 export const SAMPLE_PROFILES: ReadonlyArray<Profile> = [
   {
@@ -33,6 +42,7 @@ export const SAMPLE_PROFILES: ReadonlyArray<Profile> = [
     communicationPrefs: ["video-calls", "in-person"],
     verificationTags: ["government-id", "video-selfie"],
     boundaryTags: [],
+    showOnMap: true,
     bio: "Carpenter, homesteader, learning to live by Torah day-by-day. Looking to build a Torah-keeping household together.",
   },
   {
@@ -60,6 +70,7 @@ export const SAMPLE_PROFILES: ReadonlyArray<Profile> = [
     communicationPrefs: ["texting", "in-person"],
     verificationTags: ["government-id"],
     boundaryTags: ["monogamy-only", "no-smokers"],
+    showOnMap: true,
     bio: "Teacher and worshipper. Looking for a man of Torah who will lead a household.",
   },
   {
@@ -88,6 +99,7 @@ export const SAMPLE_PROFILES: ReadonlyArray<Profile> = [
     communicationPrefs: ["video-calls", "frequent"],
     verificationTags: ["government-id", "video-selfie", "community-references"],
     boundaryTags: [],
+    showOnMap: true,
     bio: "Father of three, ten years in the assembly, building toward a Torah-led house.",
   },
   {
@@ -115,6 +127,7 @@ export const SAMPLE_PROFILES: ReadonlyArray<Profile> = [
     communicationPrefs: ["video-calls"],
     verificationTags: ["government-id"],
     boundaryTags: ["monogamy-only", "serious-courtship-only"],
+    showOnMap: true,
     bio: "Born here, came back to Torah three years ago. Music ministry and scripture study fill my week.",
   },
   {
@@ -143,6 +156,11 @@ export const SAMPLE_PROFILES: ReadonlyArray<Profile> = [
     communicationPrefs: ["slow-paced-courtship"],
     verificationTags: ["government-id"],
     boundaryTags: ["no-long-distance"],
+    // Sub-plan 14 / T6+T7 demo: Caleb has opted out of the discovery
+    // map. The /map page filters him out via `showOnMap !== false`,
+    // and the "Show me on Map" CTA pattern is mirrored here for the
+    // viewer-side demo (toggle in /settings/privacy).
+    showOnMap: false,
     bio: "Smallholding farmer. Steady. Looking for a partner who values land and quiet.",
   },
   {
@@ -170,6 +188,7 @@ export const SAMPLE_PROFILES: ReadonlyArray<Profile> = [
     communicationPrefs: ["video-calls", "frequent"],
     verificationTags: ["government-id", "video-selfie"],
     boundaryTags: [],
+    showOnMap: true,
     bio: "Two years out of the church, two years into Torah. Curious, learning, ready for a partner who's a few steps ahead.",
   },
   {
@@ -198,6 +217,7 @@ export const SAMPLE_PROFILES: ReadonlyArray<Profile> = [
     communicationPrefs: ["video-calls", "slow-paced-courtship"],
     verificationTags: ["government-id", "video-selfie", "assembly", "community-references"],
     boundaryTags: [],
+    showOnMap: true,
     bio: "Husband, father, teacher. Polygyny-practicing 12 years. Open to a sincere co-wife who values family + community.",
   },
   {
@@ -223,8 +243,12 @@ export const SAMPLE_PROFILES: ReadonlyArray<Profile> = [
     personalityTraits: ["humorous", "nurturing", "adventurous"],
     relocation: "international-open",
     communicationPrefs: ["video-calls", "frequent"],
-    verificationTags: ["government-id"],
+    // Sub-plan 14 / T6 demo: Tirzah has no verification tags so the
+    // "Verified only" filter sheet toggle on /map has an observable
+    // effect (her marker disappears when the toggle is on).
+    verificationTags: [],
     boundaryTags: ["serious-courtship-only"],
+    showOnMap: true,
     bio: "Recently came into Torah observance. Joyful, growing, looking for a man rooted in his walk.",
   },
 ];

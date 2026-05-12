@@ -37,7 +37,7 @@ import { useRouter } from "next/navigation";
 import { Marker } from "react-leaflet";
 import L from "leaflet";
 
-import { ALL_COUNTRIES } from "@/lib/countries";
+import { ALL_COUNTRIES, flagFromCC } from "@/lib/countries";
 import { centroidOf } from "@/lib/country-centroids";
 import { gradientsFor } from "@/lib/profile-gradients";
 import type { Profile } from "@/lib/profile-schema";
@@ -93,24 +93,42 @@ export function MapAvatar({ candidate }: MapAvatarProps) {
   const seed = candidate.id ?? slug;
   const primaryGradient = gradientsFor(seed)[0];
 
-  // Build the divIcon. The wrapping div carries:
-  //   - 44px circle (Phase D tap-target floor + visual)
-  //   - gradient background from gradientsFor()
+  // Build the divIcon. The wrapping container is `position: relative`
+  // so the flag bubble can be absolutely anchored to the gradient
+  // circle's bottom-right corner. The gradient circle itself remains
+  // 44×44 — the canonical tap-target — and the 18×18 flag bubble is a
+  // decorative overlay (does not steal pointer events from the circle).
+  //
+  //   - 44×44 gradient circle (Phase D tap-target floor + visual)
   //   - lime outer ring + soft drop shadow via box-shadow
   //   - aria-label + role="img" so screen readers announce the marker
+  //   - flag emoji bubble in the bottom-right, ISO-derived via
+  //     flagFromCC(); same emoji glyphs are already in use across the
+  //     onboarding language list, so font availability is proven.
   const safeAria = escapeAttr(ariaLabel);
   const safeGradient = escapeAttr(primaryGradient);
+  const flag = flagFromCC(iso);
+  const safeFlag = escapeAttr(flag);
   const icon = L.divIcon({
     className: "ahavah-map-avatar", // disable Leaflet's default leaflet-div-icon border/bg
     iconSize: [44, 44],
     iconAnchor: [22, 22],
     html:
-      `<div role="img" aria-label="${safeAria}" style="` +
+      `<div role="img" aria-label="${safeAria}" style="position:relative;width:44px;height:44px;cursor:pointer;">` +
+      `<div style="` +
       `width:44px;height:44px;border-radius:9999px;` +
       `background:${safeGradient};` +
       `box-shadow:0 0 0 3px var(--color-lime, #c8ff88),0 2px 8px rgba(0,0,0,0.35);` +
-      `cursor:pointer;` +
-      `"></div>`,
+      `"></div>` +
+      `<div aria-hidden="true" style="` +
+      `position:absolute;bottom:-2px;right:-2px;` +
+      `width:18px;height:18px;border-radius:9999px;background:#fff;` +
+      `display:flex;align-items:center;justify-content:center;` +
+      `font-size:12px;line-height:1;` +
+      `box-shadow:0 1px 3px rgba(0,0,0,0.4);` +
+      `pointer-events:none;` +
+      `">${safeFlag}</div>` +
+      `</div>`,
   });
 
   return (

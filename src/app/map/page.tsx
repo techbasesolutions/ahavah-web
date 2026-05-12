@@ -36,7 +36,7 @@
  * profiles.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { SlidersHorizontal } from "lucide-react";
@@ -52,6 +52,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { Switch } from "@/components/ui/switch";
 
 import type { BBox, Continent } from "@/lib/continent-bbox";
 import {
@@ -60,6 +61,7 @@ import {
 } from "@/lib/profile-completeness";
 import { SAMPLE_PROFILES } from "@/lib/profile-sample";
 import { useProfile } from "@/lib/use-profile";
+import { useShowOnMap } from "@/lib/use-show-on-map";
 
 // Leaflet uses `window` at module scope (it shims SVG/canvas APIs at
 // import time). Next.js SSR breaks if we don't dynamic-import with
@@ -85,6 +87,11 @@ const MapAvatar = dynamic(
 export default function MapPage() {
   const router = useRouter();
   const { profile: viewer, loaded } = useProfile();
+  const {
+    value: showOnMap,
+    setValue: setShowOnMap,
+    loaded: showOnMapLoaded,
+  } = useShowOnMap();
 
   // Discarded for now: visibleBounds, the bbox returned by
   // <WorldMap onBoundsChange>. T6 needs it to resolve "Like everyone
@@ -96,6 +103,10 @@ export default function MapPage() {
     Continent | undefined
   >(undefined);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  // Sub-plan 14 / T6 — "Verified only" filter inside the bottom sheet.
+  // Off by default; toggling on excludes candidates whose verification
+  // badge set is empty. Tirzah is the demo sample.
+  const [verifiedOnly, setVerifiedOnly] = useState(false);
 
   // Soft-completeness gate — match /discover's pattern exactly.
   useEffect(() => {
@@ -116,9 +127,16 @@ export default function MapPage() {
     setFiltersOpen(false);
   };
 
-  // Until T7 adds `showOnMap`, every sample renders. After T7:
-  //   const visibleSamples = SAMPLE_PROFILES.filter((p) => p.showOnMap !== false);
-  const visibleSamples = SAMPLE_PROFILES;
+  // T7: drop opt-outs. T6: optionally drop unverified candidates.
+  // useMemo so a sheet toggle doesn't churn the marker keys harder
+  // than necessary.
+  const visibleSamples = useMemo(
+    () =>
+      SAMPLE_PROFILES.filter((p) => p.showOnMap !== false).filter(
+        (p) => !verifiedOnly || (p.verificationTags?.length ?? 0) > 0,
+      ),
+    [verifiedOnly],
+  );
 
   // Pre-hydration or in-flight redirect — render minimal scaffold to
   // keep the map from flashing for an ineligible viewer.
@@ -169,7 +187,10 @@ export default function MapPage() {
       </div>
 
       {/* Filter sheet — opens from the filter icon. Hosts the
-          ContinentPicker. Auto-closes on pick (handlePickContinent). */}
+          ContinentPicker + the "Verified only" toggle (sub-plan 14 /
+          T6). Continent pick auto-closes the sheet (handlePickContinent),
+          but the verified-only toggle stays open so the user can change
+          their mind without re-opening. */}
       <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
         <SheetContent
           side="bottom"
@@ -178,14 +199,48 @@ export default function MapPage() {
           <SheetHeader className="items-start px-5 pt-6 pb-3">
             <SheetTitle className="text-h2 text-white">Filter map</SheetTitle>
           </SheetHeader>
-          <div className="px-5 pb-6">
+          <div className="flex flex-col gap-4 px-5 pb-6">
             <ContinentPicker
               active={activeContinent}
               onPick={handlePickContinent}
             />
+            <div className="mt-2 flex items-center justify-between gap-3 px-1">
+              <div>
+                <p className="text-meta font-medium text-white">
+                  Verified only
+                </p>
+                <p className="text-caption text-text-muted">
+                  Only show profiles with at least one verification badge.
+                </p>
+              </div>
+              <Switch
+                checked={verifiedOnly}
+                onCheckedChange={setVerifiedOnly}
+                aria-label="Verified profiles only"
+              />
+            </div>
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* "Show me on Map" wide CTA — sub-plan 14 / T7. Visible only
+          when the viewer is opted out (showOnMap === false). The
+          BottomNav sits at `bottom-3` + `h-tap-xl` (~76px), so we
+          float this CTA at `bottom-24` (96px) — clear of the nav with
+          a comfortable gap. Hidden during pre-hydration so the button
+          doesn't flicker on first paint for opted-in users. */}
+      {showOnMapLoaded && !showOnMap && (
+        <div className="fixed inset-x-4 bottom-24 z-30">
+          <Button
+            size="cta"
+            tone="brand"
+            lift="float"
+            onClick={() => setShowOnMap(true)}
+          >
+            Show me on Map
+          </Button>
+        </div>
+      )}
 
       <BottomNav />
     </PageShell>
