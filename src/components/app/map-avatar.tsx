@@ -196,8 +196,12 @@ export function MapAvatar({ candidate, state = "none" }: MapAvatarProps) {
   // sub-region codes like ES-CT that ALL_COUNTRIES doesn't expose anyway —
   // belt-and-braces for future schema drift). escapeAttr wraps the emoji
   // glyph since it's still spliced into the HTML string.
+  // flagSvg() defaults to 18px (the bubble dimension) and uses object-fit:cover
+  // so the flag fills edge-to-edge inside the bubble's circular crop — no
+  // white margin. Emoji fallback covers ISO codes country-flag-icons doesn't
+  // ship; escapeAttr wraps the glyph since it's spliced into an HTML string.
   const flagMarkup =
-    flagSvg(iso, 14) ??
+    flagSvg(iso) ??
     `<span style="font-size:12px;line-height:1;">${escapeAttr(flagFromCC(iso))}</span>`;
   // state === "passed" → entire marker (photo/gradient circle + flag bubble +
   // any future overlays) recedes via grayscale + half-opacity. Applied
