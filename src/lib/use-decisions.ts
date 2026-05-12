@@ -6,8 +6,8 @@ import {
   type Decision,
   type DecisionAction,
   recordDecision,
-  getDecision,
-  hasDecided,
+  getDecision as getDecisionPure,
+  hasDecided as hasDecidedPure,
 } from "@/lib/decision-engine";
 import {
   loadDecisions,
@@ -52,13 +52,22 @@ export function useDecisions() {
     clearDecisions();
   }, []);
 
+  const getDecision = useCallback(
+    (subjectId: string) => getDecisionPure(decisions, subjectId),
+    [decisions],
+  );
+  const hasDecided = useCallback(
+    (subjectId: string) => hasDecidedPure(decisions, subjectId),
+    [decisions],
+  );
+
   return {
     decisions,
     loaded,
     recordPass,
     recordLike,
-    getDecision: (subjectId: string) => getDecision(decisions, subjectId),
-    hasDecided: (subjectId: string) => hasDecided(decisions, subjectId),
+    getDecision,
+    hasDecided,
     clearAll,
   };
 }

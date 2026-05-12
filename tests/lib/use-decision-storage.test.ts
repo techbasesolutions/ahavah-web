@@ -35,4 +35,14 @@ describe("use-decision-storage", () => {
     clearDecisions();
     expect(loadDecisions()).toEqual([]);
   });
+
+  it("loadDecisions returns [] when stored JSON is valid but not an array", () => {
+    window.localStorage.setItem(STORAGE_KEY, '{"not":"array"}');
+    expect(loadDecisions()).toEqual([]);
+  });
+
+  it("saveDecisions + loadDecisions round-trip an empty array", () => {
+    saveDecisions([]);
+    expect(loadDecisions()).toEqual([]);
+  });
 });
