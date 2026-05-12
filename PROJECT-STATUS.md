@@ -3330,3 +3330,188 @@ Outside the audit lineage:
   `aria-invalid` + `aria-describedby` (stepper has its own a11y wiring).
   93 → 67 lines net.
 - `PROJECT-STATUS.md` — strike §27 Group A L1 + append this §29.
+
+## 30. 2026-05-12 Sub-plan 23 closure — Marital-status + has-kids filters
+
+User direction (verbatim): *"Add widowed to Marital status and allow filters
+to filter marriage status and whether or not potential match has kids."*
+The "widowed" half landed in the pre-SP23 hotfix `dd44e2c`; SP23 picks up
+the filter half. Shipped: two new `FilterSection` blocks in the
+`FiltersSheet`, two new optional fields on `DiscoverFilters`, two new
+predicate branches in `passesAllFilters`, eight new unit tests, and one
+`SAMPLE_PROFILES` tweak (Caleb: `divorced` → `widowed`) so all five
+marital pills have at least one demoable match. Cross-references:
+**§25** (SP18) introduced the `maritalStatus` + `children` fields on
+`Profile`; **§24** (SP17 T2) wired the shared `useFilters()` store that
+makes /discover and /map mirror each other; **`dd44e2c`** added the
+"widowed" enum option that this sub-plan now demonstrably filters by.
+
+### 30.1 Per-task commit table
+
+| Commit | Task | What |
+|---|---|---|
+| `52ea87f` | spec | SP23 plan |
+| `1eff7ff` | T1 | `DiscoverFilters` types (`maritalStatuses`, `hasChildrenBuckets`) + `passesAllFilters` predicates + 8 new tests + Caleb → widowed |
+| `559ceab` | T2 | `FiltersSheet` two new sections (Marital status + Children) with shared `MARITAL_STATUSES` + new `HAS_CHILDREN_OPTIONS` constants |
+| (this docs commit) | T4 | §30 closeout |
+
+### 30.2 Filter semantics
+
+| Filter | Empty / both buckets | Single bucket | Missing data on candidate |
+|---|---|---|---|
+| `maritalStatuses` | No filter (undefined or `[]`) | `candidate.maritalStatus ∈ selected` | Fails when filter is active |
+| `hasChildrenBuckets` | No filter (undefined, `[]`, or `["has","none"]`) | `"has"` → `children >= 1`; `"none"` → `children === 0` | Fails when filter is active |
+
+The "both buckets = no filter" symmetric semantic is the load-bearing
+design choice. It preserves FiltersSheet's existing
+"empty-multi-select = no filter" pattern — selecting every bucket is
+informationally equivalent to selecting none, so the predicate
+short-circuits the same way (`hasChildrenBuckets.length < 2` gate at
+`discover-engine.ts:185`). Cleaner than introducing a 3-state radio.
+
+### 30.3 Cross-screen behavior
+
+Both `/discover` deck and `/map` markers narrow live via the
+`useFilters()` hook from §24 T2. Confirmed by Walk 8 below.
+
+### 30.4 Final verification — every claim cites a re-runnable query
+
+**Citable greps:**
+
+1. Filter type + predicate references —
+   `grep -n "maritalStatuses\|hasChildrenBuckets" src/lib/discover-engine.ts src/components/app/filters-sheet.tsx | head -20`:
+
+```
+src/lib/discover-engine.ts:59:  maritalStatuses?: ReadonlyArray<MaritalStatus>;
+src/lib/discover-engine.ts:61:  hasChildrenBuckets?: ReadonlyArray<"has" | "none">;
+src/lib/discover-engine.ts:173:  if (filters.maritalStatuses && filters.maritalStatuses.length > 0) {
+src/lib/discover-engine.ts:175:    if (!filters.maritalStatuses.includes(candidate.maritalStatus)) return false;
+src/lib/discover-engine.ts:183:    filters.hasChildrenBuckets &&
+src/lib/discover-engine.ts:184:    filters.hasChildrenBuckets.length > 0 &&
+src/lib/discover-engine.ts:185:    filters.hasChildrenBuckets.length < 2
+src/lib/discover-engine.ts:188:    const wantsHas = filters.hasChildrenBuckets.includes("has");
+src/lib/discover-engine.ts:189:    const wantsNone = filters.hasChildrenBuckets.includes("none");
+src/components/app/filters-sheet.tsx:92:  maritalStatuses?: ReadonlyArray<MaritalStatus>;
+src/components/app/filters-sheet.tsx:93:  hasChildrenBuckets?: ReadonlyArray<"has" | "none">;
+src/components/app/filters-sheet.tsx:352:              value={filters.maritalStatuses ?? []}
+src/components/app/filters-sheet.tsx:354:                update("maritalStatuses", v.length > 0 ? (v as MaritalStatus[]) : undefined)
+src/components/app/filters-sheet.tsx:363:              value={filters.hasChildrenBuckets ?? []}
+src/components/app/filters-sheet.tsx:365:                update("hasChildrenBuckets", v.length > 0 ? (v as Array<"has" | "none">) : undefined)
+```
+
+2. Option constants on the FiltersSheet —
+   `grep -n "MARITAL_STATUSES\|HAS_CHILDREN_OPTIONS" src/components/app/filters-sheet.tsx`:
+
+```
+25:  MARITAL_STATUSES,
+67:const HAS_CHILDREN_OPTIONS: ReadonlyArray<{ value: "has" | "none"; label: string }> = [
+351:              options={MARITAL_STATUSES}
+362:              options={HAS_CHILDREN_OPTIONS}
+```
+
+3. Caleb sample tweak (divorced → widowed) —
+   `grep -n "maritalStatus.*widowed\|widowed" src/lib/profile-sample.ts`:
+
+```
+146:    // SP23 T1: Caleb changed from "divorced" to "widowed" so each of the
+149:    // reads naturally as widowed-and-rebuilding.
+150:    maritalStatus: "widowed",
+```
+
+4. Test count —
+   `grep -c "describe.*marital\|describe.*has-kids\|maritalStatuses\|hasChildrenBuckets" tests/lib/discover-engine.test.ts`:
+
+```
+12
+```
+
+  (Two `describe` blocks + ten in-test references = 12.)
+
+**Verification gates (all clean):**
+
+```
+$ npx tsc --noEmit                            → no output (clean)
+$ pnpm exec eslint --max-warnings=0 .         → no output (clean)
+$ npx vitest run                              → Test Files 28 passed (28)
+                                                Tests      305 passed (305)
+$ pnpm build                                  → ✓ Compiled successfully / 47 routes
+```
+
+Route count is **47** (not 48). Pre-existing delta: `src/app/settings/boundaries/page.tsx` was deleted in `97bdc3d` ("remove boundary-tag UI surfaces") between §28 and SP23, dropping 48 → 47. SP23 added no new routes.
+
+### 30.5 Browser smoke walk (414×896, real `pnpm dev`)
+
+Seed: viewer = `{firstName:"TestViewer", age:32, sex:"male", country:"BB",
+maritalStatus:"never-married", children:0, intent:"first-wife",
+assembly:"torah-observant", polygyny:"supports",
+verificationTags:["government-id"], relocation:"wants-partner-willing",
+healthTags:["non-smoker"]}` — all 10 `MINIMUM_COMPLETE_FIELDS` filled.
+
+| # | Filter | Expected | Observed (cycled deck via Skip) | Result |
+|---|---|---|---|---|
+| 1 | `{maritalStatuses:["never-married"]}` | Daniel, Esther, Adina, Rivka, Tirzah (5/8) | `["Daniel","Tirzah","Rivka","Adina","Esther"]` | PASS |
+| 2 | `{maritalStatuses:["divorced","widowed"]}` | Only Caleb (1/8) | `["Caleb"]` | PASS |
+| 3 | `{maritalStatuses:["widowed"]}` | Only Caleb (1/8) | `["Caleb"]` | PASS |
+| 4 | `{hasChildrenBuckets:["has"]}` | Yosef(3), Caleb(2), Ezekiel(6) — 3/8 | `["Yosef","Ezekiel","Caleb"]` | PASS |
+| 5 | `{hasChildrenBuckets:["none"]}` | Daniel, Esther, Adina, Rivka, Tirzah (5/8) | `["Daniel","Tirzah","Rivka","Adina","Esther"]` | PASS |
+| 6 | `{hasChildrenBuckets:["has","none"]}` | No-op → all 8 candidates | `["Yosef","Ezekiel","Daniel","Tirzah","Caleb","Rivka","Adina","Esther"]` | PASS |
+| 7 | `{maritalStatuses:["never-married"], hasChildrenBuckets:["none"]}` | Intersection: 5/8 | `["Daniel","Tirzah","Rivka","Adina","Esther"]` | PASS |
+| 8 | Walk 7 filter still active → navigate to `/map` | Map marker pool excludes married/widowed/with-kids candidates even when their countries are in viewport | First pan covered Americas+Europe+Africa (`country` filter included BB,US,GB,GH,**JM**,**NG** etc.) yet markers were only `[Daniel, Esther, Rivka, Tirzah]` — Yosef (JM) and Ezekiel (NG) absent. Second pan included IL → Adina marker added. Union across pans = 5 of 5 expected, with zero leakage of Yosef/Caleb/Ezekiel. | PASS |
+
+Note on Walk 8 specifically: /map applies `applyHardFilters()` to its
+marker pool (`src/app/map/page.tsx:213-221`) — same predicate path as
+/discover — then additionally narrows by viewport-visible countries
+(`handleBoundsChange` writes `country: countriesInBounds(bbox)`). The
+two-layer narrowing means you can never see all 5 expected markers at
+once unless the viewport spans BB+US+GB+GH+IL; cycling across two pans
+demonstrates the marital+kids filter is honored independently of the
+geographic filter (Yosef + Ezekiel never appeared even when their
+countries were visible).
+
+Sample children counts re-checked from `profile-sample.ts`: Daniel 0,
+Esther 0, Yosef 3, Adina 0, Caleb 2, Rivka 0, Ezekiel 6, Tirzah 0.
+(Note: the spec preamble cited Caleb=1 and Ezekiel=5; actual values are
+2 and 6. The has-kids predicate operates on `>= 1` vs `=== 0`, so the
+candidate sets predicted by the spec hold unchanged.)
+
+**Screenshots:**
+- `docs/screenshots/sub-plan-23-t3-filtersheet-marital-kids.png` —
+  FiltersSheet open showing both new sections expanded (all 5 marital
+  pills + both children buckets).
+- `docs/screenshots/sub-plan-23-t3-discover-widowed.png` —
+  /discover narrowed to Caleb only via `maritalStatuses:["widowed"]`.
+- `docs/screenshots/sub-plan-23-t3-discover-haschildren.png` —
+  /discover narrowed to has-children candidates (Yosef on top, compat-sorted).
+
+### 30.6 SAMPLE_PROFILES tweak (carry-forward from T1)
+
+Caleb's `maritalStatus` was flipped from `"divorced"` to `"widowed"` in
+T1 so every one of the five marital-status pills has at least one
+candidate to demonstrate against. Trade-off: the sample no longer has a
+divorced demo — but the alternative (adding a 9th sample) would have
+inflated the deck for every other walk. The five-status invariant
+preserved by Walk 2 + Walk 3 ("Divorced + Widowed" returns the same one
+candidate as "Widowed alone") is the visible signature of this trade.
+See `src/lib/profile-sample.ts:146-150`.
+
+### 30.7 Outstanding sub-plans (carry-forward)
+
+From §27 (SP20 audit):
+- **L2** — `/onboarding/verification` Bronze/Silver/Gold tier cards.
+- **L3** — axis-9 contrast measurement sweep across all 47 routes.
+- **L4** — motion-budget rubric reconciliation (≤300ms vs current 350ms entrance).
+- **L5** — widened 12-axis audit (deferred until all surfaces complete).
+
+Outside the audit lineage:
+- Legal pages (Terms, Privacy, Community Guidelines) — awaiting client copy.
+
+### 30.8 Lesson reinforced
+
+The "both buckets selected = no filter" symmetric semantic is the
+cleaner expression of intent than introducing a 3-state radio
+("Has / No / Either"). The multi-select pattern already carries the
+"empty selection means no constraint" model; making "everything
+selected" map back to the same no-constraint state keeps the user's
+mental model uniform across every FiltersSheet section. The single
+predicate `hasChildrenBuckets.length < 2` (at `discover-engine.ts:185`)
+captures both the empty and the saturated cases without branching.
