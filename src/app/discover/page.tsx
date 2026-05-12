@@ -398,7 +398,7 @@ export default function DiscoverPage() {
               <EmptyState
                 variant="filter-too-narrow"
                 title="You're all caught up"
-                description="No more matches nearby — try widening your filters or check back later."
+                description="No more matches nearby. Try widening your filters or check back later."
                 action={{
                   label: "Adjust filters",
                   onClick: () => setFiltersOpen(true),

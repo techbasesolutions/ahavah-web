@@ -65,7 +65,7 @@ const CHATS = [
   { id: "rivka",   name: "Rivka",   age: 31, msg: "Photo",                   unread: 0, state: "dot"   as const, ring: "online" as const },
   { id: "esther",  name: "Esther",  age: 28, msg: "Hey, how are you?",       unread: 0, state: "dot"   as const, ring: "none"   as const },
   { id: "tirzah",  name: "Tirzah",  age: 22, msg: "is typing…",              unread: 1, state: "count" as const, ring: "online" as const },
-  { id: "daniel",  name: "Daniel",  age: 32, msg: "Shalom — looking forward.", unread: 0, state: "none"  as const, ring: "none"   as const },
+  { id: "daniel",  name: "Daniel",  age: 32, msg: "Shalom, looking forward.", unread: 0, state: "none"  as const, ring: "none"   as const },
   { id: "yosef",   name: "Yosef",   age: 41, msg: "Sounds good 💜",            unread: 0, state: "none"  as const, ring: "none"   as const },
   { id: "ezekiel", name: "Ezekiel", age: 47, msg: "Thanks for the photos!",   unread: 0, state: "none"  as const, ring: "none"   as const },
 ];

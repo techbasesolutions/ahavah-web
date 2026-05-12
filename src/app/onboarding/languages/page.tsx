@@ -106,7 +106,7 @@ export default function LanguagesStep() {
     selected.length === 0
       ? "Pick at least one language."
       : primary
-        ? `Primary: ${primaryLabel} — chats default to this. Tap a selected language again to change.`
+        ? `Primary: ${primaryLabel}. Chats default to this. Tap a selected language again to change.`
         : "Pick a language to set as your primary.";
   const helperTone =
     selected.length === 0 ? "text-pink" : "text-text-secondary";
