@@ -52,8 +52,73 @@ describe("discover-engine", () => {
     });
   });
 
-  // Country filter removed — future map-zoom-driven location filtering
-  // will replace it once profile.lat/lng + map view ship.
+  // ------- filter: country -------
+
+  describe("filter: country", () => {
+    it("empty/undefined country filter returns all candidates", () => {
+      const viewer: Profile = { firstName: "Sarah" };
+      const candidates: DiscoverCandidate[] = [
+        makeCandidate({ firstName: "Daniel", country: "BB" }),
+        makeCandidate({ firstName: "Esther", country: "JM" }),
+        makeCandidate({ firstName: "Yosef", country: "IL" }),
+      ];
+      const filters: DiscoverFilters = {};
+
+      const result = applyHardFilters(viewer, candidates, filters);
+      expect(result).toHaveLength(3);
+    });
+
+    it("empty array country filter returns all candidates", () => {
+      const viewer: Profile = { firstName: "Sarah" };
+      const candidates: DiscoverCandidate[] = [
+        makeCandidate({ firstName: "Daniel", country: "BB" }),
+        makeCandidate({ firstName: "Esther", country: "JM" }),
+      ];
+      const filters: DiscoverFilters = { country: [] };
+
+      const result = applyHardFilters(viewer, candidates, filters);
+      expect(result).toHaveLength(2);
+    });
+
+    it("single country filter returns only matching candidates", () => {
+      const viewer: Profile = { firstName: "Sarah" };
+      const candidates: DiscoverCandidate[] = [
+        makeCandidate({ firstName: "Daniel", country: "BB" }),
+        makeCandidate({ firstName: "Esther", country: "JM" }),
+        makeCandidate({ firstName: "Yosef", country: "IL" }),
+      ];
+      const filters: DiscoverFilters = { country: ["BB"] };
+
+      const result = applyHardFilters(viewer, candidates, filters);
+      expect(result.map((c) => c.firstName)).toEqual(["Daniel"]);
+    });
+
+    it("multi-select country filter uses OR semantics", () => {
+      const viewer: Profile = { firstName: "Sarah" };
+      const candidates: DiscoverCandidate[] = [
+        makeCandidate({ firstName: "Daniel", country: "BB" }),
+        makeCandidate({ firstName: "Esther", country: "JM" }),
+        makeCandidate({ firstName: "Yosef", country: "IL" }),
+        makeCandidate({ firstName: "Adam", country: "ZA" }),
+      ];
+      const filters: DiscoverFilters = { country: ["BB", "JM"] };
+
+      const result = applyHardFilters(viewer, candidates, filters);
+      expect(result.map((c) => c.firstName)).toEqual(["Daniel", "Esther"]);
+    });
+
+    it("country filter with no matches returns empty", () => {
+      const viewer: Profile = { firstName: "Sarah" };
+      const candidates: DiscoverCandidate[] = [
+        makeCandidate({ firstName: "Daniel", country: "BB" }),
+        makeCandidate({ firstName: "Esther", country: "JM" }),
+      ];
+      const filters: DiscoverFilters = { country: ["XX"] };
+
+      const result = applyHardFilters(viewer, candidates, filters);
+      expect(result).toHaveLength(0);
+    });
+  });
 
   // ------- filter: assemblies -------
 
