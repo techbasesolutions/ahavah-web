@@ -55,7 +55,7 @@ export default function LookingForStep() {
           What are you looking for<span className="text-lime">?</span>
         </h1>
         <p className="text-body text-text-secondary">
-          You can change this anytime in Discovery preferences.
+          You can change this anytime from your profile.
         </p>
       </motion.div>
 
