@@ -77,7 +77,11 @@ export function MapAvatar({ candidate }: MapAvatarProps) {
 
   const name = candidate.firstName ?? "Profile";
   const slug = name.toLowerCase();
-  const href = `/profile/${slug}`;
+  // ?from=map → /profile/[uuid] reads this and points its back button
+  // back at /map instead of the /discover default. Required because
+  // map markers are the second entry path into a profile, and Bumpy's
+  // UX expects returning to the surface the user came from.
+  const href = `/profile/${slug}?from=map`;
 
   const countryLabel = labelForCountry(iso) ?? iso;
   // "Adina, 24, in Israel" — drop the empty segment when age is missing

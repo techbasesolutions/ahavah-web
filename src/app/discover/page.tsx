@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Globe, Heart, MapPin, Pause, X } from "lucide-react";
+import { Heart, MapPin, Pause, SlidersHorizontal, X } from "lucide-react";
 
 import { Avatar, AvatarBadge, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -20,9 +20,10 @@ import { ProgressDots } from "@/components/app/progress-dots";
 import { CompatPill } from "@/components/app/compat-pill";
 import { useProfile } from "@/lib/use-profile";
 import { firstMissingStepFor, isDiscoverEligible } from "@/lib/profile-completeness";
-import { buildDiscoverDeck, type DiscoverFilters, type DiscoverCandidate } from "@/lib/discover-engine";
+import { buildDiscoverDeck, type DiscoverCandidate } from "@/lib/discover-engine";
 import { SAMPLE_PROFILES } from "@/lib/profile-sample";
 import { useDecisions } from "@/lib/use-decisions";
+import { useFilters } from "@/lib/use-filters";
 import { simulateLikesBack } from "@/lib/decision-engine";
 
 // Gradient palette for candidate photos (stable per firstName).
@@ -62,12 +63,15 @@ export default function DiscoverPage() {
   const router = useRouter();
   const { profile: userProfile, loaded } = useProfile();
   const { recordPass, recordLike, hasDecided, popLast } = useDecisions();
-  // Lifted FiltersSheet open state so both the Globe trigger AND the
-  // empty-deck "Adjust filters" CTA can open the same sheet.
+  // Lifted FiltersSheet open state so both the SlidersHorizontal trigger
+  // AND the empty-deck "Adjust filters" CTA can open the same sheet.
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [userIndex, setUserIndex] = useState(0);
   const [photoIndex, setPhotoIndex] = useState(0);
-  const [filters, setFilters] = useState<DiscoverFilters>({});
+  // Shared filter state — /map reads + writes the same store via
+  // useFilters() so picking Country:BB on one surface is reflected on
+  // the other immediately.
+  const { filters, setFilters } = useFilters();
   // Track last action so AnimatePresence can pick a direction (skip → left,
   // like → right). Reset on user advance.
   const [exitDirection, setExitDirection] = useState<"left" | "right">("left");
@@ -169,7 +173,7 @@ export default function DiscoverPage() {
               aria-label="Discovery filters"
               disabled
             >
-              <Globe className="text-lavender" />
+              <SlidersHorizontal className="text-lavender" />
             </Button>
             <Button
               size="circle"
@@ -216,13 +220,14 @@ export default function DiscoverPage() {
           <FiltersSheet
             open={filtersOpen}
             onOpenChange={setFiltersOpen}
+            initialFilters={filters}
             trigger={
               <Button
                 size="circle"
                 tone="elevated"
                 aria-label="Discovery filters"
               >
-                <Globe className="text-lavender" />
+                <SlidersHorizontal className="text-lavender" />
               </Button>
             }
             onApply={(f) => {
