@@ -23,6 +23,7 @@
     "@types/geojson": "^7946.0.16",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "country-flag-icons": "^1.6.17",
     "embla-carousel-react": "^8.6.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.14.0",

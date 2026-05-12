@@ -39,6 +39,7 @@ import L from "leaflet";
 
 import { ALL_COUNTRIES, flagFromCC } from "@/lib/countries";
 import { centroidOf } from "@/lib/country-centroids";
+import { flagSvg } from "@/lib/flag-svg";
 import { photoOrGradient } from "@/lib/photo-or-gradient";
 import type { MarkerState } from "@/lib/map-avatar-state";
 import type { Profile } from "@/lib/profile-schema";
@@ -166,9 +167,14 @@ export function MapAvatar({ candidate, state = "none" }: MapAvatarProps) {
   //   - 44×44 gradient circle (Phase D tap-target floor + visual)
   //   - lime outer ring + soft drop shadow via box-shadow
   //   - aria-label + role="img" so screen readers announce the marker
-  //   - flag emoji bubble in the bottom-right, ISO-derived via
-  //     flagFromCC(); same emoji glyphs are already in use across the
-  //     onboarding language list, so font availability is proven.
+  //   - SVG flag bubble in the bottom-right, ISO-derived via flagSvg() —
+  //     emoji-fallback path documented in fix/map-avatar-svg-flags.
+  //     Why SVG: Windows Chrome has no flag-emoji font, so the previous
+  //     Unicode-emoji approach rendered "BB"/"JM" letters at 12px inside
+  //     an 18px bubble. SVG renders identically across all OSes. If
+  //     flagSvg() returns null (unrecognised cc), we fall back to the
+  //     emoji glyph via flagFromCC() so the bubble still paints something
+  //     — better than a bare white circle that suggests a render bug.
   const safeAria = escapeAttr(ariaLabel);
   // SP21 T8: render <img> when a real photo exists, gradient <div> otherwise.
   // The lime ring + drop shadow apply to BOTH branches so the marker chrome
@@ -185,8 +191,14 @@ export function MapAvatar({ candidate, state = "none" }: MapAvatarProps) {
         `background:${escapeAttr(photoSource.css)};` +
         `box-shadow:0 0 0 3px var(--color-lime, #c8ff88),0 2px 8px rgba(0,0,0,0.35);` +
         `"></div>`;
-  const flag = flagFromCC(iso);
-  const safeFlag = escapeAttr(flag);
+  // SVG path is the primary renderer (works everywhere, including Windows).
+  // Emoji fallback covers ISO codes country-flag-icons doesn't ship (e.g.
+  // sub-region codes like ES-CT that ALL_COUNTRIES doesn't expose anyway —
+  // belt-and-braces for future schema drift). escapeAttr wraps the emoji
+  // glyph since it's still spliced into the HTML string.
+  const flagMarkup =
+    flagSvg(iso, 14) ??
+    `<span style="font-size:12px;line-height:1;">${escapeAttr(flagFromCC(iso))}</span>`;
   // state === "passed" → entire marker (photo/gradient circle + flag bubble +
   // any future overlays) recedes via grayscale + half-opacity. Applied
   // to the same relative wrapper so it cascades to all children.
@@ -204,10 +216,10 @@ export function MapAvatar({ candidate, state = "none" }: MapAvatarProps) {
       `position:absolute;bottom:-2px;right:-2px;` +
       `width:18px;height:18px;border-radius:9999px;background:#fff;` +
       `display:flex;align-items:center;justify-content:center;` +
-      `font-size:12px;line-height:1;` +
+      `overflow:hidden;` +
       `box-shadow:0 1px 3px rgba(0,0,0,0.4);` +
       `pointer-events:none;` +
-      `">${safeFlag}</div>` +
+      `">${flagMarkup}</div>` +
       badge +
       `</div>`,
   });
