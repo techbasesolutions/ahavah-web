@@ -650,6 +650,7 @@ export type Profile = {
   occupation?: string;
   education?: EducationLevel;
   bio?: string;            // also called "Testimony" in copy for this audience
+  photos?: string[];       // Up to 6 data URLs from /onboarding/photos. SP21.
   // Relationship intent (gender-conditional)
   intent?: Intent;
   // Faith cluster
