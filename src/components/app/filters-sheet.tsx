@@ -297,10 +297,16 @@ export function FiltersSheet({
             />
           </section>
 
-          {/* Country filter intentionally omitted. A fixed pill list of
-              POPULAR_COUNTRIES doesn't match the app's intended Bumpy-style
-              map-zoom-driven location filtering. Real location filtering
-              will arrive with the map view + profile.lat/lng. */}
+          {/* Country + Languages filters are rendered further below as
+              FilterSection groups. They are filter-first international per
+              Bumpy spec (docs/specs/bumpy_dating_app_product_feature_breakdown.md
+              lines 47 + 130 + 518). The earlier comment in this slot claimed
+              country filtering was deferred pending a Bumpy-style location
+              UI; that was a misread — Bumpy is explicitly a filter-first
+              global-pool model, not a location-zoom model. The Country
+              FilterSection (sub-plan 13 T4) and the language-aware
+              passesAllFilters branch in discover-engine.ts (sub-plan 13 T1)
+              are the canonical implementation. */}
 
           <FilterSection label="I identify as" defaultOpen>
             <PillGrid

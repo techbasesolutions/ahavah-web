@@ -1670,11 +1670,86 @@ Tier 4 (behind backend) items remain explicitly out of scope for `ahavah-web`:
 
 ---
 
+## 19. 2026-05-12 Sub-plan 13 closure — Worldwide Search Integration (filter-first international)
+
+Sub-plan 13 ships Ahavah's filter-first international discovery surface — country (multi-select), languages (multi-select with intersection semantics), and language as a 9th scoring axis on `computeCompatibility`. It also directionally corrects a misread of Bumpy that was sitting in the codebase as two stale comments: one in `src/lib/discover-engine.ts` (rewritten in T1, commit c095ba7) and a second one I caught in T8 verification inside `src/components/app/filters-sheet.tsx` (rewritten as part of this closeout). Both comments had previously claimed country/language filtering was "intentionally deferred pending a Bumpy-style map-zoom-driven UI". That was wrong: Bumpy is explicitly a filter-first global-pool model (bumpy_dating_app_product_feature_breakdown.md lines 47 + 130 + 518) and never described itself as map-based. Sub-plan 13 makes the runtime behaviour match the spec and rewrites the comments to cite the spec lines directly so this misread cannot recur.
+
+The other half of the directional correction was surfacing data Ahavah was already collecting but hiding: profiles store both `languages` and `nationality`, but `/profile/[uuid]` displayed neither until T5. T5 surfaces the language set as a Pill cluster after the bio and the nationality as a Pill under the country (MapPin) row. T6 then swapped the onboarding language picker from a 14-entry hardcoded list to the full canonical 74-entry list in `src/lib/languages.ts` (Caribbean Creoles, sub-Saharan African languages, Near East languages including Hebrew/Yiddish/Ladino/Aramaic, South Asian + East/SE Asian, and ASL/BSL). T7 then enriched `SAMPLE_PROFILES` with realistic multi-language sets per character so the new filter actually has discriminating data to work with.
+
+### Per-task commit table
+
+| Task | Commit | What shipped |
+|------|--------|--------------|
+| T1 country filter | `c095ba7` | `DiscoverFilters.country?: string[]`, `passesAllFilters` returns false when filter is set and `profile.country` is not in it. New comment block citing Bumpy spec lines 47 + 130 directly. |
+| T1 comment rewrite + spec name | `de2fb41` | Names `docs/specs/bumpy_dating_app_product_feature_breakdown.md` in the citation; scrubs the stale "filtering will arrive with map view" doc lines. |
+| T2 languages filter | `5577e1a` | `DiscoverFilters.languages?: string[]`, intersection semantics in `passesAllFilters` (a profile matches if ANY of its `languages` codes is in the filter set). |
+| T3 language scoring axis | `45c69d9` | 9th axis on `computeCompatibility` — `languagesAxis` proportional to size of `lhs.languages ∩ rhs.languages`. Weight added to all 6 IntentArchetype weight tables. |
+| T3 weight doc + test bound | `bca838b` | Documents OPEN archetype's language weight; tightens "mutuals" test upper bound to reflect the new 9-axis ceiling. |
+| T4 FiltersSheet Country + Languages | `797d53f` | `FilterSection` for Country (POPULAR_COUNTRIES + full alphabetical fallback, intersection with `filters.country`) and Languages (LANGUAGES list, intersection with `filters.languages`). Both render as multi-select PillGrids. |
+| T5 /profile/[uuid] surfaces | `8170427` | Languages cluster (Pills) under the bio. Nationality Pill in lavender under the MapPin row. Custom-prefix language codes (`custom:Bajan Creole` → "Bajan Creole") render via `labelForLanguage`. |
+| T6 canonical onboarding list | `9109a47` | `/onboarding/languages` swapped from 14-entry hardcoded list to import of `LANGUAGES` from `src/lib/languages.ts` (74 canonical entries). English pre-selected with Star icon. "Don't see yours?" textbox + Add button writes a `custom:<label>` code. |
+| T7 SAMPLE_PROFILES enrichment | `a7f278c` | Multi-language language sets on all sample profiles. Adina speaks `en`/`he`/`ar`; Daniel speaks `en`/`custom:Bajan Creole`; Yosef speaks `en`/`jam`; etc. |
+| T8 closeout (this commit) | (pending) | This §19 entry; rewrites the second stale "map-zoom-driven" comment block in `src/components/app/filters-sheet.tsx`. |
+
+### Architecture (~3 sentences)
+
+The filter-first model lives in two pure modules — `src/lib/discover-engine.ts` (`passesAllFilters` runs the country/language/age/assembly/etc. filters as ANDed predicates over the profile pool) and `src/lib/compute-compatibility.ts` (a 9-axis weighted sum that now treats shared languages as a first-class compatibility signal). The `FiltersSheet` component (`src/components/app/filters-sheet.tsx`) owns the user-facing multi-select UI and writes `DiscoverFilters` shape directly into the discover page's lifted filter state — no map view, no lat/lng, no proximity ring. The sample-data layer (`SAMPLE_PROFILES`) is the only thing standing in for what will eventually be a database query; everything above it is filter-first international as the Bumpy spec describes.
+
+### Cross-screen functionality update
+
+- **/discover** — Globe button opens FiltersSheet; Country (multi-select) and Languages (multi-select) collapsibles each apply intersection semantics. Combining country `[BB, JM]` with language `[en]` correctly narrows the sample deck to Daniel + Yosef. Empty-state "You're all caught up" surfaces when filters narrow the deck to zero remaining candidates, with an "Adjust filters" affordance that re-opens FiltersSheet.
+- **/profile/[uuid]** — Now renders nationality as a lavender Pill under the country row (e.g. Adina shows "Israeli", Daniel shows "Barbadian"), and Languages as a Pill cluster after the bio (e.g. Adina: English / Hebrew / Arabic; Daniel: English / Bajan Creole).
+- **/onboarding/languages** — Now exposes the 74-entry canonical list. English is pre-selected with a Star icon as the primary language. Free-text "Don't see yours? Add it." adds entries with `custom:` prefix and a Globe icon under "Your additions".
+
+### Final verification — every claim is anchored to a re-runnable query
+
+- **Country filter active in pure logic:** `grep -n "filters.country" src/lib/discover-engine.ts` returns the `!filters.country.includes(profile.country)` branch in `passesAllFilters`.
+- **Languages filter active with intersection semantics:** `grep -n "filters.languages" src/lib/discover-engine.ts` returns the `.some(lang => filters.languages!.includes(lang))` branch.
+- **Language scoring axis live:** `grep -n "languagesAxis\|languagesWeight" src/lib/compute-compatibility.ts` returns the 9th axis computation + weight lookup on every IntentArchetype.
+- **Canonical onboarding list size:** `grep -c "code:" src/lib/languages.ts` → 76 (= 74 array entries + 2 `code:` references in the type def + helper function). Browser-side: `document.querySelectorAll('[aria-label="Filter by languages"] button').length` → 74 (matches the 74 LANGUAGES array entries). Note: the master plan estimated "71"; the actual canonical list shipped at 74 because T6 surfaced a few that the plan-time enumeration missed (Khmer, Lao, Cantonese already in the file plus the two sign languages).
+- **Misleading "map-zoom-driven" comment removed:** `grep -rn "map-zoom-driven" src/` → 0 matches. (T1 caught the discover-engine.ts comment; T8 caught the second instance in filters-sheet.tsx during this closeout — both now reference Bumpy spec lines 47 + 130 + 518 by file path.)
+- **Adina shows 3 language Pills:** smoke walk `/profile/adina` step (Phase 1 walk 4) observed `generic [ref=e39]: English` + `generic [ref=e40]: Hebrew` + `generic [ref=e41]: Arabic` in the Languages cluster.
+- **Daniel shows 2 language Pills including custom-prefix render:** smoke walk `/profile/daniel` observed `generic: English` + `generic: Bajan Creole` — proves `labelForLanguage("custom:Bajan Creole")` strips the prefix.
+- **Adina is the only Hebrew speaker in the deck:** smoke walk Phase 1 walk 1 — selecting Hebrew → Apply showed only Adina, and skipping past her surfaced "You're all caught up".
+- **BB + JM country filter narrows the deck to Daniel + Yosef:** smoke walk Phase 1 walk 2 — Yosef then Daniel were the only two profiles before "all caught up".
+- **Combined country [BB, JM] + language [en] narrows correctly:** smoke walk Phase 1 walk 3 — same Daniel + Yosef pair. Bundled screenshot at `docs/screenshots/sub-plan-13-t8-discover-filtered.png`.
+- **Onboarding canonical list renders ≥ 60 entries:** smoke walk Phase 1 walk 5 — accessibility snapshot enumerated 74 language pill buttons, with Hebrew + Yoruba + Haitian Creole + Mandarin all present (none of those were in the old 14-entry hardcoded list).
+- **Custom-add flow works:** smoke walk Phase 1 walk 5 — typed "Klingon" → Add → appeared under "Your additions" with a Globe icon, status message "Added Klingon.".
+- **Test count:** `npx vitest run` → 18 test files / 229 tests pass. New tests in this sub-plan: `src/lib/__tests__/discover-engine.country-filter.test.ts` (T1, 4 cases), `src/lib/__tests__/discover-engine.languages-filter.test.ts` (T2, 4 cases), and the language-axis additions to `compute-compatibility.test.ts` (T3) which keep the existing assertion count intact while raising the mutuals upper bound.
+- **TypeCheck clean:** `npx tsc --noEmit` exits 0 (re-verified after the T8 filters-sheet.tsx comment edit).
+- **Lint clean:** `pnpm exec eslint --max-warnings=0 .` exits 0.
+- **Production build clean:** `pnpm build` compiles in 5.7s and prerenders 43 routes (matches §18 + 0 net new routes — this sub-plan ships data + filters, not new screens).
+
+### Outstanding sub-plans (carried forward; "Worldwide search" struck because this sub-plan ships it)
+
+Remaining web-only items:
+
+- **Settings shell-out routes** — `/settings/discovery`, `/settings/translate`, `/help`. Scope decision still pending; `/settings/discovery` may consolidate with FiltersSheet rather than duplicate.
+- **Decision-undo UX** — small follow-up; pop most-recent decision on photo-left-edge tap. Branch parked separately.
+- **Legal pages** — `/legal/terms`, `/legal/privacy`, `/legal/community-guidelines`, `/legal/trust-safety`, `/legal/emergency-numbers`. Awaiting your copy.
+
+✅ ~~Sub-plan: Worldwide Search Integration (filter-first international)~~ — **shipped (this sub-plan, §19)**
+
+Tier 4 (behind backend) items remain explicitly out of scope for `ahavah-web`:
+- Sub-plan 9 Photos (real photos replacing gradient placeholders)
+- Auth feature (real /auth/sign-in)
+- Monetization gating on country/languages filters (currently all filters are free — premium gating is deferred to the monetization sub-plan per the §19 scope decision).
+
+### Bumpy alignment
+
+This sub-plan is the directional correction §16/§17 flagged: prior to T1, the codebase had drifted toward generic Tinder-style discovery (one location, one age range, no language signal, country filter deliberately stubbed out behind a comment that misread Bumpy as map-based). The spec at `docs/specs/bumpy_dating_app_product_feature_breakdown.md` is explicit at lines 47 + 130 + 518 that Bumpy's premise is a global pool a user narrows with multi-select filters — country, languages, faith stance, etc. Sub-plan 13 makes the runtime behaviour match that premise, anchors the relevant source comments to the spec lines, and surfaces the profile data (languages, nationality) Ahavah was already collecting but hiding. The compatibility score now treats shared languages as a first-class signal, not a passive identity field.
+
+### Branch: `sub-plan-13-worldwide-search` (8 commits)
+
+Ready for merge to `master` via `git merge --no-ff`.
+
+---
+
 ## Sign-off
 
 This audit is honest. Where it disagrees with `SESSION-SUMMARY.md`, this document supersedes. Future sessions: read this first, update it last. Don't pretend.
 
-The 2026-05-11/12 sessions specifically: §15 rubber-stamped 7 routes (caught by code review) → §16 re-walked them with real verdicts and shipped 5 fixes. §17 shipped Sub-plan 10 entirely under the SDD workflow — fresh implementer per task, two-stage review between commits — and the structure caught 1 critical bug + 6 important concerns my self-review would have missed. §18 shipped Sub-plan 11 (Inbox Search + Chat Send) under the same SDD model, plus a mid-stream user-flagged dead-button sweep that corrected a false claim from §16 ("navigation graph closed" didn't verify `onClick` handlers, only Link `href`s).
+The 2026-05-11/12 sessions specifically: §15 rubber-stamped 7 routes (caught by code review) → §16 re-walked them with real verdicts and shipped 5 fixes. §17 shipped Sub-plan 10 entirely under the SDD workflow — fresh implementer per task, two-stage review between commits — and the structure caught 1 critical bug + 6 important concerns my self-review would have missed. §18 shipped Sub-plan 11 (Inbox Search + Chat Send) under the same SDD model, plus a mid-stream user-flagged dead-button sweep that corrected a false claim from §16 ("navigation graph closed" didn't verify `onClick` handlers, only Link `href`s). §19 shipped Sub-plan 13 (Worldwide Search Integration) under SDD and corrected the lingering "map-zoom-driven" misread of Bumpy that had been sitting in two comment blocks since the early scaffolding — both now cite Bumpy spec lines 47 + 130 + 518 directly so the misread cannot recur.
 
 **Going forward:**
 - SDD is the default execution mode for non-trivial sub-plans.
