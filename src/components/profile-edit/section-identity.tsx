@@ -3,9 +3,11 @@
 import {
   EDUCATIONS,
   ETHNICITIES,
+  MARITAL_STATUSES,
   NATIONALITIES,
   type EducationLevel,
   type Ethnicity,
+  type MaritalStatus,
   type Nationality,
   type Sex,
 } from "@/lib/profile-schema";
@@ -22,6 +24,8 @@ import {
   SingleSelectField,
   TextField,
 } from "@/components/app/profile-field";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const SEX_OPTIONS: ReadonlyArray<{ value: Sex; label: string }> = [
   { value: "male", label: "Man" },
@@ -91,6 +95,54 @@ export default function IdentitySection() {
           value={profile.sex}
           onValueChange={(v) => update({ sex: v })}
         />
+      </div>
+
+      {/* 4b. maritalStatus — Sub-plan 18 T4. Single-select between Never
+          Married / Married / Re-married / Divorced. Same SP17-consolidated
+          clean lime-fill active state via SingleSelectField. */}
+      <SingleSelectField<MaritalStatus>
+        id="edit-marital-status"
+        label="Marital status"
+        value={profile.maritalStatus}
+        onValueChange={(next) => update({ maritalStatus: next })}
+        options={MARITAL_STATUSES}
+      />
+
+      {/* 4c. children — Sub-plan 18 T4. Inline number input (no abstraction
+          warranted for a single int field). Sanitized: empty-string typing
+          doesn't clobber the saved value — user must type a number for it
+          to commit. 0 is a valid distinct value (kid-free). */}
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="edit-children" className="text-meta text-white">
+          Children
+        </Label>
+        <Input
+          id="edit-children"
+          size="lg"
+          tone="elevated"
+          type="number"
+          inputMode="numeric"
+          min={0}
+          max={20}
+          step={1}
+          value={profile.children !== undefined ? String(profile.children) : ""}
+          onChange={(e) => {
+            const sanitized = e.target.value.replace(/[^0-9]/g, "");
+            if (sanitized === "") {
+              // Don't write undefined — keep last valid value to avoid
+              // clobbering on a temporary empty input during edit.
+              return;
+            }
+            const n = Number.parseInt(sanitized, 10);
+            if (!Number.isNaN(n) && n >= 0 && n <= 20) {
+              update({ children: n });
+            }
+          }}
+          aria-describedby="edit-children-help"
+        />
+        <p id="edit-children-help" className="text-caption text-text-muted">
+          Whole number from 0 to 20.
+        </p>
       </div>
 
       {/* 5. country — ComboboxField (search-as-you-type) drawing from the
