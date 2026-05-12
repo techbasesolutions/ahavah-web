@@ -1580,8 +1580,103 @@ Remaining sub-plans (unchanged from §16):
 
 ---
 
+## 18. 2026-05-12 Sub-plan 11 closure — Audit TODO close-out + dead-button sweep
+
+Spec at `docs/superpowers/plans/2026-05-12-sub-plan-11-audit-todo-closeout.md`. Executed under SDD. Closes the two `TODO(*)` dead-button markers left by the 2026-05-11 audit (`TODO(inbox-search)` + `TODO(chat-send)`) and a mid-stream user report of 4 additional dead empty/error-state buttons that the original audit grep didn't catch.
+
+### Sub-plan 11 — 3 tasks complete (8 commits)
+
+| Commit | Layer | Purpose |
+|---|---|---|
+| `a9e36c2` | Pure logic | `inbox-filter.ts` + 5 tests |
+| `a3256a5` | Pure logic | Purity invariance test (parallel to decision-engine `7dbb2ba` pattern) |
+| `5b24274` | UI fix | **Mid-stream user-flagged**: 4 dead empty/error buttons closed across `/discover`, `/inbox`, `/matches`, `/settings/blocked` |
+| `ff2ee1b` | UI integration | `/inbox` Search Sheet wired with filter + no-search-results branch |
+| `f141f68` | UI integration | `rounded-b-3xl` sister parity + `state !== "empty"` gate + autoFocus comment |
+| `f1db13c` | UI integration | `/chat/[id]` controlled ChatInput + draft/sent state + bubble render |
+| `dbdb2db` | UI integration | IME guard + scroll-to-bottom + instant sent-bubble render + comment refresh |
+
+Tests grew 213 → 214 (Task 1's 6 inbox-filter tests; later tasks were integration into existing screens with no new test files).
+
+### Architecture
+
+Two-surface sub-plan:
+
+**Inbox Search:** pure `filterChats()` in `src/lib/inbox-filter.ts` (generic over `T extends ChatSummary`, case-insensitive substring on `name` OR `msg`, ReadonlyArray input + new-array return per the decision-engine purity pattern). `/inbox` consumes it via a Sheet overlay triggered from the existing Search button. Distinct empty-vs-no-results branches via the EmptyState `no-search-results` variant.
+
+**Chat Send:** controlled `ChatInput` (parent owns `value` + `onChange`). `/chat/[id]` owns `useState<SentMessage[]>` of session-local sent messages, renders them below the seeded thread with `delay={0}` (instant on tap, unlike the seeded cascade). `useEffect` + `scrollIntoView` auto-scrolls to the latest send. IME composition guard prevents accidental sends during CJK input. No persistence (refresh wipes — symmetric with how decision-engine state worked before its localStorage layer).
+
+### Mid-stream user catch (the "navigation graph closed" claim corrected)
+
+While Task 1 was under code review, the user surfaced a screenshot of the `/discover` empty-deck "Adjust filters" button doing nothing on tap. Investigation found the click handler called `setFilters({})` — clears the filter object but doesn't open the FiltersSheet AND already-decided candidates remain filtered via `hasDecided`. Net: silent no-op.
+
+Grep widened to all `EmptyState action` + `ErrorState retry` consumer sites: 3 more dead retry buttons surfaced (`/inbox` error, `/matches` error, `/settings/blocked` error — all had label without onClick). Shipped together in `5b24274` with `window.location.reload()` symmetric to `/offline`. Also required lifting `FiltersSheet` to a controlled-API (open + onOpenChange) so both the existing Globe trigger AND the empty-state CTA could open the same sheet.
+
+**Honest correction:** PROJECT-STATUS §16 claimed the "cross-screen navigation graph closed." That claim was based on a grep for Link `href` destinations. It did not verify button `onClick` handlers. Going forward: navigation closure requires both Link href reachability AND button-handler functionality.
+
+### SDD effectiveness on this sub-plan
+
+Total subagent invocations: 14 (3 implementers + 3 spec reviewers + 3 quality reviewers + 3 fix-ups + 1 mid-stream sweep + 1 final-task close).
+
+Code-review catches across the 3 tasks:
+
+- **Task 1:** reference-inequality purity test missing (added in `a3256a5`).
+- **Task 2:** SheetContent rounded-edge parity drift, `?state=empty` + query rendered wrong branch, autoFocus assumption undocumented (all 3 fixed in `f141f68`).
+- **Task 3:** IME composition unhandled, cumulative stagger on user-typed bubbles, missing scroll-to-bottom, stale comment (all 4 fixed in `dbdb2db`).
+
+8 distinct concerns surfaced + closed by the structured review. Self-review-only would have shipped past all 8.
+
+The mid-stream user catch (the screenshot of "this button goes nowhere") is the single most embarrassing reminder of why SDD's structure matters: even with SDD running, when I claim a property of the codebase ("navigation closed") without an exhaustive grep on the right shape (`onClick` not just `href`), I will be wrong. The fix is to anchor PROJECT-STATUS claims to specific verification queries, not summaries.
+
+### Cross-screen functionality (updated from §17)
+
+`/inbox`:
+- Tap Search → Sheet opens with autoFocus on the Input → typing filters the chat list in real time → empty result for non-empty query shows the "no-search-results" empty state with the query echoed → closing the Sheet preserves the query (Telegram-style).
+
+`/chat/[id]`:
+- Type in the composer → tap Send (or press Enter, with IME-composition guard) → new bubble appends below seeded thread → composer clears → view auto-scrolls to the latest send.
+
+`/discover`:
+- Empty-deck state's "Adjust filters" now opens the existing FiltersSheet (controlled API via lifted state).
+
+`/inbox`, `/matches`, `/settings/blocked` error states: "Try again" reloads the page.
+
+### Final verification
+
+- **Tests:** 208 master + 6 new in Task 1 = **214/214 pass**.
+- **TypeCheck:** clean.
+- **Lint:** clean on all touched files.
+- **Production build:** clean.
+- **End-to-end smoke walk:** Inbox Search (7 chats → 1 match for "esth"); Chat Send (typed → bubble appended → composer cleared → auto-scrolled).
+- **TODO sweep:** zero `TODO(inbox-search)` or `TODO(chat-send)` references remain in `src/`.
+
+### Branch: `sub-plan-11-audit-todo-closeout` (9 commits)
+
+Ready for merge.
+
+### Outstanding sub-plans (updated)
+
+Remaining web-only items:
+
+- **Settings shell-out routes** — `/settings/discovery`, `/settings/translate`, `/help`. Needs scope decision (does `/settings/discovery` duplicate `/discover` filters?).
+- **Decision-undo UX** — small follow-up; pop most-recent decision on photo-left-edge tap.
+- **Legal pages** — `/legal/terms`, `/legal/privacy`, `/legal/community-guidelines`, `/legal/trust-safety`, `/legal/emergency-numbers`. Needs your copy.
+
+✅ ~~Sub-plan: Inbox Search + Chat Send wiring~~ — **shipped (this sub-plan)**
+
+Tier 4 (behind backend) items remain explicitly out of scope for `ahavah-web`:
+- Sub-plan 9 Photos (real photos replacing gradient placeholders)
+- Auth feature (real /auth/sign-in)
+
+---
+
 ## Sign-off
 
 This audit is honest. Where it disagrees with `SESSION-SUMMARY.md`, this document supersedes. Future sessions: read this first, update it last. Don't pretend.
 
-The 2026-05-11/12 sessions specifically: §15 rubber-stamped 7 routes (caught by code review) → §16 re-walked them with real verdicts and shipped 5 fixes. §17 then shipped Sub-plan 10 entirely under the SDD workflow — fresh implementer per task, two-stage review between commits — and the structure caught 1 critical bug + 6 important concerns my self-review would have missed. **Going forward:** SDD is the default execution mode for non-trivial sub-plans. Self-review-only paths get inline scrutiny commensurate to the pattern they're vulnerable to.
+The 2026-05-11/12 sessions specifically: §15 rubber-stamped 7 routes (caught by code review) → §16 re-walked them with real verdicts and shipped 5 fixes. §17 shipped Sub-plan 10 entirely under the SDD workflow — fresh implementer per task, two-stage review between commits — and the structure caught 1 critical bug + 6 important concerns my self-review would have missed. §18 shipped Sub-plan 11 (Inbox Search + Chat Send) under the same SDD model, plus a mid-stream user-flagged dead-button sweep that corrected a false claim from §16 ("navigation graph closed" didn't verify `onClick` handlers, only Link `href`s).
+
+**Going forward:**
+- SDD is the default execution mode for non-trivial sub-plans.
+- Self-review-only paths get inline scrutiny commensurate to the pattern they're vulnerable to.
+- Any "X is closed/complete" claim in PROJECT-STATUS must be anchored to a specific verification query (grep pattern, test assertion, smoke-walk step) that future readers can re-run.
