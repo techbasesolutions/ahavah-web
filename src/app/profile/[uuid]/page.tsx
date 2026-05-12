@@ -62,7 +62,7 @@ function labelOf<T extends string>(
 export default function ProfileDetailPage({ params }: Props) {
   const { uuid } = use(params);
   const profile = sampleByName(uuid);
-  const { profile: userProfile } = useProfile();
+  const { profile: userProfile, loaded: profileLoaded } = useProfile();
   const router = useRouter();
   const { recordPass, recordLike } = useDecisions();
 
@@ -448,8 +448,10 @@ export default function ProfileDetailPage({ params }: Props) {
                 tone="brand"
                 lift="float"
                 aria-label="Pass"
+                disabled={!profileLoaded}
                 onClick={() => {
-                  recordPass(uuid);
+                  const subjectId = (profile.firstName ?? uuid).toLowerCase();
+                  recordPass(subjectId);
                   router.push("/discover");
                 }}
               >
@@ -460,10 +462,12 @@ export default function ProfileDetailPage({ params }: Props) {
                 tone="action"
                 lift="float"
                 aria-label="Like"
+                disabled={!profileLoaded}
                 onClick={() => {
-                  recordLike(uuid);
-                  if (userProfile && profile && simulateLikesBack(userProfile, profile)) {
-                    router.push(`/match?id=${uuid}`);
+                  const subjectId = (profile.firstName ?? uuid).toLowerCase();
+                  recordLike(subjectId);
+                  if (userProfile && simulateLikesBack(userProfile, profile)) {
+                    router.push(`/match?id=${subjectId}`);
                   } else {
                     router.push("/discover");
                   }
