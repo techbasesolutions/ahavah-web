@@ -58,12 +58,16 @@ import { PageShell } from "@/components/app/page-shell";
 import { BrandMark } from "@/components/brand/sparkle-mark";
 import { Button } from "@/components/ui/button";
 
+import { simulateLikesBack } from "@/lib/decision-engine";
 import { applyHardFilters, type DiscoverCandidate } from "@/lib/discover-engine";
+import { ACTIVE_CHAT_IDS } from "@/lib/inbox-seed";
+import { resolveMarkerState } from "@/lib/map-avatar-state";
 import {
   firstMissingStepFor,
   isDiscoverEligible,
 } from "@/lib/profile-completeness";
 import { SAMPLE_PROFILES } from "@/lib/profile-sample";
+import { useDecisions } from "@/lib/use-decisions";
 import { useFilters } from "@/lib/use-filters";
 import { useProfile } from "@/lib/use-profile";
 
@@ -91,6 +95,7 @@ const MapAvatar = dynamic(
 export default function MapPage() {
   const router = useRouter();
   const { profile: viewer, loaded } = useProfile();
+  const { decisions } = useDecisions();
   const { filters, setFilters } = useFilters();
   const [filtersOpen, setFiltersOpen] = useState(false);
 
@@ -146,9 +151,26 @@ export default function MapPage() {
           Country pill grid (shared with /discover). */}
       <div className="absolute inset-0">
         <WorldMap className="size-full">
-          {visibleSamples.map((p) => (
-            <MapAvatar key={p.id} candidate={p} />
-          ))}
+          {visibleSamples.map((p) => {
+            // SP16 T5: resolve per-candidate marker state.
+            //   - `id` is the lowercased firstName slug used everywhere
+            //     in the app (chat seed, decisions store, profile route).
+            //   - `matched` is pre-computed here so the resolver stays
+            //     free of decision-engine internals (cleaner unit tests).
+            //   - `viewer` may be undefined during hydration; `matched`
+            //     defaults to false in that window so a liked candidate
+            //     renders as "liked"/"active-chat" rather than a false
+            //     "match". Resolver re-runs once useProfile() loads.
+            const id = p.id;
+            const matched = !!viewer && simulateLikesBack(viewer, p);
+            const state = resolveMarkerState({
+              candidate: { id },
+              decisions,
+              matched,
+              activeChatIds: ACTIVE_CHAT_IDS,
+            });
+            return <MapAvatar key={id} candidate={p} state={state} />;
+          })}
         </WorldMap>
       </div>
 
