@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { use, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
@@ -25,6 +26,8 @@ import { ProgressDots } from "@/components/app/progress-dots";
 import { CompatPill } from "@/components/app/compat-pill";
 import { BlockReportSheet } from "@/components/app/block-report-sheet";
 import { useProfile } from "@/lib/use-profile";
+import { useDecisions } from "@/lib/use-decisions";
+import { simulateLikesBack } from "@/lib/decision-engine";
 import { computeCompatibility } from "@/lib/scoring/compute-compatibility";
 import { gradientsFor } from "@/lib/profile-gradients";
 
@@ -59,7 +62,9 @@ function labelOf<T extends string>(
 export default function ProfileDetailPage({ params }: Props) {
   const { uuid } = use(params);
   const profile = sampleByName(uuid);
-  const { profile: userProfile } = useProfile();
+  const { profile: userProfile, loaded: profileLoaded } = useProfile();
+  const router = useRouter();
+  const { recordPass, recordLike } = useDecisions();
 
   // Deterministic 3-photo gradient stamp keyed off the uuid. Same uuid →
   // same gradients across reloads. Replaced once Sub-plan 9 (real photos)
@@ -438,17 +443,39 @@ export default function ProfileDetailPage({ params }: Props) {
               transition={{ duration: 0.3, delay: 0.3, ease: "easeOut" }}
               className="mt-2 flex items-center justify-center gap-5"
             >
-              {/* TODO(decision-engine): Pass + Like need real handlers.
-                  Pass: mark candidate as skipped (persist), navigate /discover.
-                  Like: send like, check mutual, navigate /match (mutual)
-                  or /discover (one-way). Message is wired below. Spec these
-                  alongside the discover swipe-deck decision persistence. */}
-              <Button size="circle" tone="brand" lift="float" aria-label="Pass">
+              <Button
+                size="circle"
+                tone="brand"
+                lift="float"
+                aria-label="Pass"
+                disabled={!profileLoaded}
+                onClick={() => {
+                  const subjectId = (profile.firstName ?? uuid).toLowerCase();
+                  recordPass(subjectId);
+                  router.push("/discover");
+                }}
+              >
                 <X className="text-black" />
               </Button>
-              <Button size="circle-lg" tone="action" lift="float" aria-label="Like">
+              <Button
+                size="circle-lg"
+                tone="action"
+                lift="float"
+                aria-label="Like"
+                disabled={!profileLoaded}
+                onClick={() => {
+                  const subjectId = (profile.firstName ?? uuid).toLowerCase();
+                  recordLike(subjectId);
+                  if (userProfile && simulateLikesBack(userProfile, profile)) {
+                    router.push(`/match?id=${subjectId}`);
+                  } else {
+                    router.push("/discover");
+                  }
+                }}
+              >
                 <Heart className="text-white" fill="currentColor" />
               </Button>
+              {/* Message button: existing wiring stays — Link render to /chat/[id]. */}
               <Button
                 nativeButton={false}
                 size="circle"

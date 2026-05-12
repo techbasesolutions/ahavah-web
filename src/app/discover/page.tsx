@@ -22,6 +22,8 @@ import { useProfile } from "@/lib/use-profile";
 import { firstMissingStepFor, isDiscoverEligible } from "@/lib/profile-completeness";
 import { buildDiscoverDeck, type DiscoverFilters, type DiscoverCandidate } from "@/lib/discover-engine";
 import { SAMPLE_PROFILES } from "@/lib/profile-sample";
+import { useDecisions } from "@/lib/use-decisions";
+import { simulateLikesBack } from "@/lib/decision-engine";
 
 // Gradient palette for candidate photos (stable per firstName).
 // Until profile.photos[] ships, we use a 3-gradient sequence per candidate
@@ -59,6 +61,7 @@ const SAMPLE_AS_CANDIDATES: DiscoverCandidate[] = SAMPLE_PROFILES.map((profile) 
 export default function DiscoverPage() {
   const router = useRouter();
   const { profile: userProfile, loaded } = useProfile();
+  const { recordPass, recordLike, hasDecided } = useDecisions();
   const [userIndex, setUserIndex] = useState(0);
   const [photoIndex, setPhotoIndex] = useState(0);
   const [filters, setFilters] = useState<DiscoverFilters>({});
@@ -87,8 +90,11 @@ export default function DiscoverPage() {
   const filteredDeck = useMemo(() => {
     if (!userProfile?.firstName) return deck;
     const viewerFirstName = userProfile.firstName.toLowerCase();
-    return deck.filter((candidate) => candidate.id !== viewerFirstName);
-  }, [deck, userProfile]);
+    return deck.filter(
+      (candidate) =>
+        candidate.id !== viewerFirstName && !hasDecided(candidate.id),
+    );
+  }, [deck, userProfile, hasDecided]);
 
   const profile = filteredDeck[userIndex];
 
@@ -105,9 +111,13 @@ export default function DiscoverPage() {
 
   const advanceUser = (action: "skip" | "like") => {
     if (!profile) return;
-    // Stub: real impl POSTs to swipe service.
+    // The decision causes hasDecided(profile.id) to flip true on next
+    // render, so filteredDeck drops this candidate from its head.
+    // userIndex stays at 0 and naturally points at the new head.
+    // Bumping userIndex here would skip the candidate that takes the
+    // head slot after the filter shrinks — index drift bug fixed.
     setExitDirection(action === "like" ? "right" : "left");
-    setUserIndex((i) => i + 1);
+    setUserIndex(0);
     setPhotoIndex(0);
   };
 
@@ -121,17 +131,23 @@ export default function DiscoverPage() {
       if (photoIndex < candidatePhotos.length - 1) {
         setPhotoIndex((i) => i + 1);
       } else {
+        // Past the last photo → treat as a Skip on the current candidate.
+        // The recordPass is required: under the head-only deck model, the
+        // filter (hasDecided) is the sole driver of deck advancement. Without
+        // recording the decision, the candidate stays atop filteredDeck and
+        // the user loops on right-edge taps.
+        recordPass(profile.id);
         advanceUser("skip");
       }
-    } else {
-      if (photoIndex > 0) {
-        setPhotoIndex((i) => i - 1);
-      } else if (userIndex > 0) {
-        setExitDirection("right");
-        setUserIndex((i) => i - 1);
-        setPhotoIndex(0);
-      }
+    } else if (photoIndex > 0) {
+      setPhotoIndex((i) => i - 1);
     }
+    // TODO(decision-undo): at photoIndex 0 with prev, currently no-ops.
+    // The previous "walk back to last candidate" path manipulated
+    // userIndex against a moving filter set — meaningless under the
+    // head-only deck model. If product wants an "undo last skip"
+    // affordance, implement by popping the most recent decision from
+    // useDecisions, not by stepping userIndex backward.
   };
 
 
@@ -333,7 +349,10 @@ export default function DiscoverPage() {
                   tone="brand"
                   lift="float"
                   aria-label="Skip user"
-                  onClick={() => advanceUser("skip")}
+                  onClick={() => {
+                    recordPass(profile.id);
+                    advanceUser("skip");
+                  }}
                 >
                   <X className="text-black" />
                 </Button>
@@ -350,7 +369,14 @@ export default function DiscoverPage() {
                   tone="action"
                   lift="float"
                   aria-label="Like user"
-                  onClick={() => advanceUser("like")}
+                  onClick={() => {
+                    recordLike(profile.id);
+                    if (userProfile && simulateLikesBack(userProfile, profile)) {
+                      router.push(`/match?id=${profile.id}`);
+                    } else {
+                      advanceUser("like");
+                    }
+                  }}
                 >
                   <Heart className="text-white" fill="currentColor" />
                 </Button>

@@ -1492,8 +1492,96 @@ Ready for merge review.
 
 ---
 
+## 17. 2026-05-12 Sub-plan 10 closure — Decision Engine (Pass / Like / Mutual Match)
+
+Sub-plan 10 spec at `docs/superpowers/plans/2026-05-12-sub-plan-10-decision-engine.md`. Executed via the superpowers:subagent-driven-development workflow — fresh implementer subagent per task with two-stage review (spec compliance, then code quality) between every commit. Final pass also reviewed the branch holistically and caught one regression that all per-task reviews had missed.
+
+### What shipped (12 commits)
+
+| Commit | Layer | Purpose |
+|---|---|---|
+| `41718b4` | Pure logic | `decision-engine.ts` + 5 tests |
+| `7dbb2ba` | Pure logic | Code-review hardening: purity invariance, order preservation, threshold pin, mutuals sanity, sparse-viewer comment, getDecision JSDoc |
+| `a624831` | Storage + hook | `use-decision-storage.ts` + `useDecisions.ts` + 4 tests |
+| `142cabb` | Storage + hook | useCallback-wrap accessors; non-array + empty round-trip tests |
+| `9a90762` | UI integration | `/discover` Skip + Like wired |
+| `523997c` | UI integration | `/discover` Like button size restored (spec typo) |
+| `d3f3253` | UI integration | **CRITICAL FIX** — head-only deck. The original `userIndex++` + filter-shrinking-from-head pattern double-advanced the deck, silently skipping every other candidate. Caught by code review; verified by empirical smoke walk |
+| `f0d9f71` | UI integration | `/profile/[uuid]` Pass + Like wired; TODO(decision-engine) block removed |
+| `23112af` | UI integration | uuid casing normalization + hydration gate on Pass/Like buttons |
+| `cb9d308` | UI integration | `/match` accepts `?id=` query param; Suspense wrap added |
+| `1cfd54c` | UI integration | `/match` early id normalization + module-load assert that FALLBACK_SUBJECT resolves in SAMPLE_PROFILES |
+| `67aa096` | UI integration | Regression fix from final review: `advancePhoto("next")` past last photo now records a Skip before advancing |
+
+### Architecture (4 layers, clean boundaries)
+
+1. **Pure logic** — `src/lib/decision-engine.ts`. No React, no I/O. Exports `Decision`, `DecisionAction`, `LIKE_THRESHOLD = 50`, `recordDecision`, `getDecision`, `hasDecided`, `simulateLikesBack`. 10 tests pin invariants (purity, order, threshold, mutuals).
+2. **Storage adapter** — `src/lib/use-decision-storage.ts`. SSR-safe localStorage round-trip with corruption recovery. Mirrors `use-profile-storage.ts` shape exactly. 6 tests.
+3. **React hook** — `src/lib/use-decisions.ts`. Mount-hydration + `useCallback`-wrapped accessors + functional `setDecisions` updaters. Mirrors `useProfile`. Return shape: `{ decisions, loaded, recordPass, recordLike, getDecision, hasDecided, clearAll }`.
+4. **Page consumers** — `/discover` (Skip + Like + photo-edge), `/profile/[uuid]` (Pass + Like), `/match` (?id= resolver). All three use the same `useDecisions` hook + `simulateLikesBack` mutual check.
+
+Mutual-match simulation is compatibility-based (`computeCompatibility(viewer, sample).score >= 50`). Deterministic, no randomness, swappable for a real backend signal later.
+
+### Mid-task critical bug catch (the SDD model earning its keep)
+
+`d3f3253` fixed a real correctness bug that none of the per-task self-reviews surfaced. After Task 3 (Skip/Like wiring) shipped, the per-task code-quality reviewer traced through the state machine and noticed: `advanceUser` incremented `userIndex` AND the filter (`hasDecided(profile.id)` flip) shrunk `filteredDeck` from the head — so `profile = filteredDeck[userIndex]` skipped every other candidate. Empirical smoke walk confirmed: 5 Skip clicks → only 1 decision recorded, deck stuck on Yosef for 4 of 5 attempts.
+
+Fix: head-only deck. `advanceUser` resets `userIndex` to 0; the filter alone drives advancement. Post-fix smoke walk: 8 Skip clicks → 3 unique decisions (yosef, adina, rivka), every candidate gets exactly one decision opportunity.
+
+The final-branch reviewer then caught a *sister regression*: `advancePhoto("next")` past the last photo called `advanceUser("skip")` without `recordPass` first — under the head-only model the deck couldn't advance because the filter had nothing to drop. Fixed in `67aa096`.
+
+### Cross-screen navigation graph (updated from §16)
+
+The nav graph from §16 was a UX promise — Sub-plan 10 makes the Like/Pass decisions persist + drive the celebration screen:
+
+- `/discover` Like → mutual → `/match?id=<id>` → tap photo → `/profile/<id>` → Message → `/chat/<id>` (full round-trip)
+- `/discover` Like → non-mutual → recorded + deck advances
+- `/discover` Skip → recorded + deck advances
+- `/profile/<id>` Pass → recorded + → `/discover` (filtered)
+- `/profile/<id>` Like → mutual → `/match?id=<id>`; non-mutual → `/discover`
+- All decisions persist across page reloads (localStorage key `ahavah.decisions.v1`)
+- Already-decided candidates filtered out of `/discover` deck on subsequent visits
+
+### Final verification
+
+- **Tests:** 192 master + 16 new = **208/208 pass**
+- **TypeCheck:** clean
+- **Lint:** clean on all 13 touched files
+- **Production build:** clean — 39 routes resolve
+- **End-to-end smoke walk:** verified Skip recording, deck advancement, mutual-nav, query-param resolution, photo-edge advancement
+- **Outstanding `TODO(decision-*)` references after merge:** only `TODO(decision-undo)` at `src/app/discover/page.tsx:139` (the "undo last decision" UX affordance, intentionally deferred per spec)
+
+### SDD workflow effectiveness
+
+The recurring failure pattern §9 #1 (mark done before observing) — historically my biggest drift mode — was structurally blocked by SDD:
+
+- Per-task implementer didn't ship until self-review checklist passed.
+- Per-task spec-compliance review confirmed each commit matched the plan verbatim.
+- Per-task code-quality review caught **6 distinct concerns** across the 5 tasks (purity tests, useCallback-wrap, uuid casing, hydration gate, early-normalization, fallback assert) that my self-review would have shipped past.
+- The critical index-drift bug (`d3f3253`) was caught by code review, not by me. Final-branch review caught the carousel-edge regression (`67aa096`) that all per-task reviews missed.
+
+Two-stage review per task + final-branch review = three independent eyes on every change. Cost: 11 implementer dispatches + 11 reviewer dispatches + 1 final review = 23 subagent invocations to ship 5 tasks. Worth it given the bug count caught.
+
+### Branch: `sub-plan-10-decision-engine` (12 commits)
+
+Ready for merge.
+
+### Outstanding (struck from §16's "Outstanding sub-plans" list)
+
+✅ ~~Sub-plan: Decision engine — Pass / Like wiring on `/profile/[uuid]` + `/discover` swipe persistence~~ — **shipped**
+
+Remaining sub-plans (unchanged from §16):
+- **Sub-plan 9 Photos** — schema field, upload pipeline, real per-match images.
+- **Auth feature** — real `/auth/sign-in` route + flow.
+- **Legal pages** — `/legal/terms`, `/legal/privacy`, `/legal/community-guidelines`, `/legal/trust-safety`, `/legal/emergency-numbers`.
+- **Settings shell-out routes** — `/settings/discovery`, `/settings/translate`, `/help`.
+- **Inbox + Chat send wiring** — `/inbox` Search button and `/chat/[id]` ChatInput.onSend.
+- **Decision-undo UX affordance** (NEW, low-pri) — `advancePhoto("prev")` at photoIndex 0 currently no-ops; consider pop-most-recent-decision as the gesture.
+
+---
+
 ## Sign-off
 
 This audit is honest. Where it disagrees with `SESSION-SUMMARY.md`, this document supersedes. Future sessions: read this first, update it last. Don't pretend.
 
-The 2026-05-11/12 sessions specifically: §15 rubber-stamped 7 routes (caught by code review) → §16 re-walked them with real verdicts and shipped 5 fixes. The pattern of marking PASS without observing is recurring failure §9 #1. **Going forward:** a "PASS via existing implementation" claim is not a verdict. It must be supported by an explicit 12-axis verdict in the commit message or PROJECT-STATUS entry, OR honestly marked deferred from this pass.
+The 2026-05-11/12 sessions specifically: §15 rubber-stamped 7 routes (caught by code review) → §16 re-walked them with real verdicts and shipped 5 fixes. §17 then shipped Sub-plan 10 entirely under the SDD workflow — fresh implementer per task, two-stage review between commits — and the structure caught 1 critical bug + 6 important concerns my self-review would have missed. **Going forward:** SDD is the default execution mode for non-trivial sub-plans. Self-review-only paths get inline scrutiny commensurate to the pattern they're vulnerable to.
