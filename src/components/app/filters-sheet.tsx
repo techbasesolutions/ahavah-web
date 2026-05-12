@@ -32,8 +32,6 @@ import {
   type Polygyny,
   type TorahLevel,
 } from "@/lib/profile-schema";
-import { ALL_COUNTRIES, POPULAR_COUNTRIES } from "@/lib/countries";
-import { LANGUAGES } from "@/lib/languages";
 
 /**
  * FiltersSheet — discovery filters drawer.
@@ -88,25 +86,6 @@ export type DiscoverFiltersState = {
   languages?: ReadonlyArray<string>;
   verifiedOnly?: boolean;
 };
-
-// Country options: POPULAR_COUNTRIES (Caribbean-first 19) FIRST, then
-// alphabetized rest of ALL_COUNTRIES (231 more). PillGrid renders each
-// option as `${flag} ${label}` — matches /profile/edit + /onboarding/
-// nationality. Filter value = ISO cc to match `profile.country`.
-const COUNTRY_FILTER_OPTIONS: ReadonlyArray<PillOption<string>> = [
-  ...POPULAR_COUNTRIES.map((c) => ({ value: c.cc, label: c.name, flag: c.flag })),
-  ...[...ALL_COUNTRIES]
-    .filter((c) => !POPULAR_COUNTRIES.some((p) => p.cc === c.cc))
-    .sort((a, b) => a.name.localeCompare(b.name))
-    .map((c) => ({ value: c.cc, label: c.name, flag: c.flag })),
-];
-
-// Language options: 71-entry curated list from src/lib/languages.ts,
-// preserves authored order (anglophone → European → Caribbean → African →
-// Middle East → South Asia → East/SE Asia → Sign). Value = code (e.g. "en").
-const LANGUAGE_FILTER_OPTIONS: ReadonlyArray<PillOption<string>> = LANGUAGES.map(
-  (l) => ({ value: l.code, label: l.label, flag: l.flag }),
-);
 
 const DEFAULT_FILTERS: DiscoverFiltersState = {
   ageMin: 18,
@@ -297,15 +276,18 @@ export function FiltersSheet({
             />
           </section>
 
-          {/* Country + Languages filters are rendered further below as
-              FilterSection groups. Bumpy ships BOTH a filter-first model
-              (this sheet) AND a world-map view where avatars pin to country
-              centroids and panning the map localises the swipe deck (sub-
-              plan 14). An earlier rewrite of this comment claimed Bumpy was
-              "filter-first not map-based" — that was wrong, verified against
-              the live app on 2026-05-12. The original anticipatory comment
-              ("pending map-zoom-driven Bumpy-style UI") was correct; these
-              filters are peer to, not replacement for, the map view. */}
+          {/* Country filter is driven by the /map tab — panning/zooming the
+              map writes `filters.country` from the visible bbox (sub-plan
+              17 T2). The manual Country pill grid that used to live here
+              was removed (T3) because dual control was confusing; the map
+              is the single country-filter UI. The Languages section was
+              also removed (T3): ~70 non-exhaustive options against a
+              250-country backdrop was bad UX. The language scoring axis
+              (sub-plan 13 T3) still influences deck order; it's just no
+              longer a hard filter via UI. */}
+          <p className="px-3 pt-2 text-caption text-text-muted">
+            Filter by location on the Map tab.
+          </p>
 
           <FilterSection label="I identify as" defaultOpen>
             <PillGrid
@@ -350,34 +332,6 @@ export function FiltersSheet({
               value={filters.intents ?? []}
               onValueChange={(v) =>
                 update("intents", v.length > 0 ? (v as Intent[]) : undefined)
-              }
-            />
-          </FilterSection>
-
-          <FilterSection
-            label="Country"
-            description="Caribbean & most-common destinations appear first."
-          >
-            <PillGrid
-              ariaLabel="Filter by country"
-              options={COUNTRY_FILTER_OPTIONS}
-              value={filters.country ?? []}
-              onValueChange={(v) =>
-                update("country", v.length > 0 ? v : undefined)
-              }
-            />
-          </FilterSection>
-
-          <FilterSection
-            label="Languages"
-            description="Match candidates who speak any of the languages you select."
-          >
-            <PillGrid
-              ariaLabel="Filter by languages"
-              options={LANGUAGE_FILTER_OPTIONS}
-              value={filters.languages ?? []}
-              onValueChange={(v) =>
-                update("languages", v.length > 0 ? v : undefined)
               }
             />
           </FilterSection>
