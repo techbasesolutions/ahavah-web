@@ -71,7 +71,15 @@ export function CompatPill({
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger className="cursor-pointer border-none bg-transparent p-0">
+      {/* Interactive trigger needs a 44px tap target (R-Phase-D / §20 audit
+          finding); the visible Pill stays size="sm"/"default" so its visual
+          density is unchanged. The trigger is a transparent inline-flex
+          centerer with min-h-tap min-w-tap so the touch surface extends
+          beyond the chip bounds without affecting layout. */}
+      <SheetTrigger
+        aria-label="Show compatibility breakdown"
+        className="inline-flex min-h-tap min-w-tap cursor-pointer items-center justify-center border-none bg-transparent p-0"
+      >
         <Pill variant={variant} size={size} className={className}>
           {pillContent}
         </Pill>
