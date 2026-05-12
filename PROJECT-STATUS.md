@@ -2984,7 +2984,7 @@ Each is a one-line edit with exact file:line. T3 applies all 17 in a single comm
 
 ### Large findings — carry-forward (7)
 
-- **L1 — NumberStepper primitive for count-style fields.** Addresses `/onboarding/children` axes 1 + 4. Ship `src/components/ui/number-stepper.tsx` (cva variant), replace the `<Input type="number">` block on /onboarding/children, and make available for future relocation-years etc. ~30 lines. Future sub-plan.
+- ~~**L1 — NumberStepper primitive for count-style fields.** Addresses `/onboarding/children` axes 1 + 4. Ship `src/components/ui/number-stepper.tsx` (cva variant), replace the `<Input type="number">` block on /onboarding/children, and make available for future relocation-years etc. ~30 lines. Future sub-plan.~~ — FIXED in SP22 (commits `297537e` + T2 below). See §29.
 - **L2 — `/onboarding/languages` custom-additions pill not from kit** (lines 205–242). Extend `ToggleGroupItem` or introduce a Pill primitive variant with an adjacent secondary-action slot. SP21 candidate.
 - **L3 — Mandatory `/assembly` skip.** Product decision, not a code defect — logged here so the owner can confirm in writing on the sub-plan retro that "no skip on assembly" is intentional.
 - **L4 — `/onboarding/verification` aesthetic miss.** Flat ToggleGroup where the spec wanted Bronze/Silver/Gold tier cards using existing `IconBadge tone="tier"` + `tone="tierOutlined"` variants. Future sub-plan to ship a tier-card variant on the final onboarding step.
@@ -3194,3 +3194,139 @@ Outside the audit lineage:
 - `src/components/app/chat-header.tsx` — new optional `photoSource` prop on Avatar
 - `src/app/chat/[id]/page.tsx` — resolves subject's photoSource and passes to ChatHeader
 - `PROJECT-STATUS.md` — this section (§28)
+
+## 29. 2026-05-12 Sub-plan 22 closure — NumberStepper primitive (closes SP20 §27 Group A L1)
+
+User direction at the top of the session was "proceed as recommended" after
+the NaN% composite-compatibility hotfix (`14e5693`) shipped on master. The
+queued recommendation was to convert SP20 §27 Group A L1 — the "/onboarding
+/children is a flat `<Input type="number">`, generic-form-feeling, off the
+Dateasy/Ahavah aesthetic" finding — into a real reusable kit primitive.
+`frontend-design` was invoked BEFORE drafting the spec (lesson reinforced
+through SP19 + SP21: invoke the design skill upfront so direction is encoded
+in spec, not improvised in implementation). The result is SP22: a polaroid
+sticker-paper stepper primitive at `src/components/ui/number-stepper.tsx`
+plus its wiring on `/onboarding/children`.
+
+### 29.1 Per-task commits
+
+| Task | Commit | Files |
+|---|---|---|
+| Plan | `90fce1a` | `docs/superpowers/plans/2026-05-12-sub-plan-22-number-stepper.md` |
+| T1 — primitive + clampStep tests | `297537e` | `src/components/ui/number-stepper.tsx` (CREATE, 157 lines) + `tests/components/ui/number-stepper.test.tsx` (CREATE, 5 cases on `clampStep` helper) |
+| T2 — wire `/onboarding/children` + §29 + merge | TBD | `src/app/onboarding/children/page.tsx` (−83 → +66 lines net; replaces Input block with NumberStepper) + this section + §27 L1 strike |
+
+### 29.2 Aesthetic summary
+
+Continues the SP19 (`/match` celebration) + SP21 (`/onboarding/photos`
+PhotoSlot) sticker-and-paper family. Composition:
+
+- **Polaroid readout card** — `h-24 w-20` (80×96 px), `rounded-2xl`,
+  `border-[3px] border-white`, `bg-bg-elevated`, `shadow-2xl`,
+  `overflow-hidden`. Paper-frame vibe consistent with SP19's photo holder.
+- **Number** — `text-h1 tabular-nums`. `font-bold` + `text-lime` when value
+  > 0; `font-medium` + `text-text-secondary` when value === 0. Tonal cue
+  rather than a colour-only signal — the bold/medium delta also encodes
+  "answered vs default" for non-colour-aware users.
+- **Minus button** — `Button size="circle" tone="elevated"` (dark fill),
+  `Minus` icon in `text-lavender`. Disabled at min via standard kit cva.
+- **Plus button** — `Button size="circle" tone="brand"` (lavender fill),
+  `Plus` icon in `text-black`. Matches the existing Pass/Like circle
+  button convention. Disabled at max.
+- **Motion** — `AnimatePresence mode="popLayout"` keyed on the value. Old
+  number fades + slides up 8px, new number fades in from 8px below, 200ms
+  ease-out. `useReducedMotion` collapses to instant opacity swap (verified
+  in smoke step 7: under prefers-reduced-motion, both spans report
+  `transform: "none"` and only the opacity crossfades).
+- **Tap target** — `Button size="circle"` enforces 44×44 minimum via the
+  kit's existing cva. Both buttons get `transition-transform active:scale-95`
+  for tactile feedback.
+
+### 29.3 Consumer-side change on `/onboarding/children`
+
+Old shape (deleted): `<Input type="number" size="lg" tone="elevated"
+inputMode="numeric" min={0} max={20}>` with a local `raw: string` state
+buffer, regex sanitization in `handleChange`, and `aria-invalid` /
+`aria-describedby` wiring patched in SP20 T3.
+
+New shape: `<NumberStepper value={value ?? 0} onChange={handleChange}
+min={0} max={20} step={1} ariaLabel="Number of children">`. The
+`profile.children` field is the single source of truth — no transient
+string buffer. The stepper itself owns clamping, keyboard, and the
+aria-live readout.
+
+The CTA-gating semantic is preserved: `isComplete = value !== undefined`.
+This honours the SP18 T1 `ZERO_ALLOWED_FIELDS` rule that "0 children is a
+valid + complete answer" — the user must tap at least once (which commits
+either 0 or a positive number to `profile.children`), but cannot proceed
+on the default-pre-interaction state. Visually, the readout shows "0" in
+muted before the first tap; functionally, the CTA is `aria-disabled="true"
+cursor-not-allowed opacity-90` until a tap commits.
+
+### 29.4 SP20 §27 link
+
+§27 Group A L1 is now struck:
+`~~L1 — NumberStepper primitive for count-style fields...~~ — FIXED in
+SP22 (commits 297537e + T2 below). See §29.` (line 2987 of this file.)
+
+### 29.5 Verification (re-runnable)
+
+- `npx tsc --noEmit` → clean (no errors).
+- `pnpm exec eslint --max-warnings=0 .` → clean (no errors / warnings).
+- `npx vitest run` → **297 passed** (28 files). Unchanged from T1
+  (no new tests in T2 — clamp logic already covered).
+- `pnpm build` → clean. **48 routes** (no new routes added).
+- `grep -n "NumberStepper" src/components/ui/number-stepper.tsx
+  src/app/onboarding/children/page.tsx` → returns the `export function
+  NumberStepper(` declaration in the primitive + the `import` + JSX usage
+  on the consumer. Both citable.
+- Browser smoke walk @ 414×896, cold storage, all 7 steps PASS:
+  1. Cold load — readout="0" in `text-h1 tabular-nums font-medium`
+     (muted), Decrease `disabled`, Increase enabled, CTA `aria-disabled
+     ="true" cursor-not-allowed`.
+  2. Tap Plus once — readout="1" in `font-bold` (lime tone via cva
+     `tone="active"`), AnimatePresence crossfade visible, LS
+     `ahavah.profile.v1` = `{"children":1}`, CTA flips to `<a
+     href="/onboarding/looking-for">` (enabled link).
+  3. Tap Plus 19 more times — at value=20 Increase becomes `disabled`,
+     LS `{"children":20}`.
+  4. Tap Minus down to 0 — at value=0 readout returns to `font-medium`
+     muted styling, Decrease `disabled`, CTA stays enabled because the
+     value committed (preserves the SP18 ZERO_ALLOWED_FIELDS semantic).
+  5. Keyboard — `tabindex` on the group, focus, ArrowUp → LS
+     `{"children":1}`, ArrowDown → LS `{"children":0}`.
+  6. Reload — LS persists, hydration restores readout="3"+`font-bold`,
+     CTA is the enabled link.
+  7. Emulate `prefers-reduced-motion: reduce` + tap Plus — both spans
+     report `transform: "none"`; only the opacity crossfades. Motion
+     library's `useReducedMotion` correctly suppresses the 8px slide.
+- Screenshot: `docs/screenshots/sub-plan-22-stepper-polaroid.png` (value=3,
+  lime + bold readout, lavender Minus, brand-lime Plus).
+
+### 29.6 Outstanding carry-forwards (unchanged from §28.7 minus L1)
+
+From §27 (SP20 audit), still open:
+- **L3** — axis-9 contrast measurement sweep (intentional vs defect decision).
+- **L4** — motion-budget rubric reconciliation (≤300ms vs current 350ms entrance).
+- **L5** — widened 12-axis audit (deferred from SP20 scope fence).
+- **L7** — `/onboarding/verification` Bronze/Silver/Gold tier cards (the
+  design-fidelity gap, not the L2 photo states fix — those landed in SP21).
+
+Outside the audit lineage:
+- Legal pages (Terms, Privacy, Community Guidelines) — awaiting client copy.
+- SP21 deferred items: real backend storage, image cropping, HEIC, drag
+  reorder, fullscreen preview, sample-profile photo seed, batch upload,
+  ML face/nudity check.
+- **SP23 candidate** (per latest user direction) — marital-status + has-kids
+  filter wiring on `/discover` and `/matches`. The `profile.children` field
+  is now reliably collected via NumberStepper; the downstream filter on
+  the discovery surfaces is the next step in the "must-have-kids /
+  must-not-have-kids" preference flow.
+
+### 29.7 Files modified in T2
+
+- `src/app/onboarding/children/page.tsx` — replace `<Input>` block with
+  `<NumberStepper>`; drop `useState<string>` raw buffer; drop
+  `aria-invalid` + `aria-describedby` (stepper has its own a11y wiring).
+  93 → 67 lines net.
+- `PROJECT-STATUS.md` — strike §27 Group A L1 + append this §29.
