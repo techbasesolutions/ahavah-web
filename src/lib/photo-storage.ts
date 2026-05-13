@@ -35,6 +35,7 @@
  */
 
 import { apiClient, ApiError } from "@/lib/api-client";
+import { profileEndpoint } from "@/lib/onboarded-storage";
 import type {
   ModerationState,
   PhotoRecord,
@@ -134,6 +135,8 @@ export function adaptProfileInfoPhotos(
 /** Fetches the current user's profile and returns the photo list.
  *  Maps to GET /profile-info → adapter. */
 export async function listPhotos(): Promise<PhotoRecord[]> {
+  // GET only exists for /profile-info. Onboardees have no profile to read
+  // yet — return empty so the UI renders the "add photos" affordance.
   const profile = await apiClient.get<ProfileInfoResponse>("/profile-info");
   return adaptProfileInfoPhotos(profile);
 }
@@ -166,7 +169,7 @@ export async function uploadPhoto(
 ): Promise<UploadResult> {
   const dataUrl = await blobToBase64DataUrl(blob);
   const base64 = stripDataUrlPrefix(dataUrl);
-  await apiClient.patch<unknown>("/profile-info", {
+  await apiClient.patch<unknown>(profileEndpoint(), {
     base64_file: {
       position: options.position,
       base64,
@@ -194,7 +197,7 @@ export async function uploadPhoto(
  *  we issue the request via a low-level fetch wrapping the same
  *  credentials + base-URL convention. */
 export async function deletePhoto(position: number): Promise<void> {
-  await sendDeleteWithBody("/profile-info", { files: [position] });
+  await sendDeleteWithBody(profileEndpoint(), { files: [position] });
 }
 
 /** Reorders photos by position-pair swaps. The map's keys are the
@@ -204,7 +207,7 @@ export async function deletePhoto(position: number): Promise<void> {
 export async function reorderPhotos(
   assignments: Record<number, number>,
 ): Promise<void> {
-  await apiClient.patch<unknown>("/profile-info", {
+  await apiClient.patch<unknown>(profileEndpoint(), {
     photo_assignments: assignments,
   });
 }

@@ -10,40 +10,15 @@ import {
 } from "@/lib/use-profile-storage";
 import { apiClient, ApiError, setSessionToken } from "@/lib/api-client";
 import { clearChatSession } from "@/lib/chat-session";
-import { ONBOARDED_KEY } from "@/lib/storage-keys";
+import {
+  readOnboarded,
+  writeOnboarded,
+  clearOnboarded,
+} from "@/lib/onboarded-storage";
 
-// Onboarding state — read from localStorage (written by verify-email /
-// verify-phone after /check-otp). Pre-onboarding users PATCH a different
-// endpoint than full members:
-//   onboardee  -> PATCH /onboardee-info  (expected_onboarding_status=False)
-//   person     -> PATCH /profile-info    (requires session.person_id)
-// Stored as "1" / "0" so we can do a string compare without JSON.parse.
-function readOnboarded(): boolean {
-  if (typeof window === "undefined") return false;
-  try {
-    return window.localStorage.getItem(ONBOARDED_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
-
-export function writeOnboarded(value: boolean): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(ONBOARDED_KEY, value ? "1" : "0");
-  } catch {
-    // ignore
-  }
-}
-
-function clearOnboarded(): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.removeItem(ONBOARDED_KEY);
-  } catch {
-    // ignore
-  }
-}
+// Re-export so existing call sites that import { writeOnboarded } from
+// "@/lib/use-profile" keep working without churn.
+export { writeOnboarded } from "@/lib/onboarded-storage";
 
 // Phase W gap: the frontend Profile schema is the Torah-observant product
 // shape (firstName, assembly, tzitzit, ...), but the backend's
