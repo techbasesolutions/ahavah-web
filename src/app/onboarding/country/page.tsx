@@ -19,6 +19,7 @@ import {
 
 import { EmptyState } from "@/components/app/empty-state";
 import { OnboardingShell } from "@/components/app/onboarding-shell";
+import { apiClient } from "@/lib/api-client";
 import { useProfile } from "@/lib/use-profile";
 
 const fadeUp = {
@@ -26,10 +27,41 @@ const fadeUp = {
   animate: { opacity: 1, y: 0 },
 };
 
+/**
+ * Resolve an ISO country code to the long_friendly string the backend's
+ * onboardee.coordinates lookup requires. We ask /search-locations for
+ * cities in the country and take the first match. Falls back to the
+ * plain country name if no result (PATCH will then 400 but local state
+ * is preserved).
+ */
+async function resolveLongFriendly(
+  countryName: string,
+): Promise<string | null> {
+  try {
+    const res = await apiClient.get<string[]>(
+      `/search-locations?q=${encodeURIComponent(countryName)}`,
+    );
+    return res.find((s) => s.toLowerCase().endsWith(countryName.toLowerCase())) ?? res[0] ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export default function CountryStep() {
   const { profile, update } = useProfile();
   const selected = profile.country ?? "";
   const [query, setQuery] = useState("");
+
+  const handlePickCountry = async (cc: string) => {
+    // Optimistic: persist the ISO code immediately so the radio reflects
+    // the choice. Then resolve and persist the long_friendly string the
+    // backend needs.
+    void update({ country: cc });
+    const country = ALL_COUNTRIES.find((c) => c.cc === cc);
+    if (!country) return;
+    const longFriendly = await resolveLongFriendly(country.name);
+    if (longFriendly) void update({ location: longFriendly });
+  };
 
   const q = query.trim().toLowerCase();
   const isSearching = q.length > 0;
@@ -162,7 +194,7 @@ export default function CountryStep() {
         ) : (
           <RadioGroup
             value={selected}
-            onValueChange={(v) => update({ country: v as string })}
+            onValueChange={(v) => void handlePickCountry(v as string)}
             aria-label="Select your country"
             className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto pb-2"
           >

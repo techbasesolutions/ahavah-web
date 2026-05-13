@@ -10,7 +10,6 @@ import {
 } from "@/lib/use-profile-storage";
 import { apiClient, ApiError, setSessionToken } from "@/lib/api-client";
 import { clearChatSession } from "@/lib/chat-session";
-import { ALL_COUNTRIES } from "@/lib/countries";
 import {
   readOnboarded,
   writeOnboarded,
@@ -78,14 +77,19 @@ const TRANSFORMS: Record<string, FieldTransform> = {
     return null;
   },
 
-  // Location — backend wants a "City, State, Country" string. We only
-  // have ISO country code, so send the country name alone for now.
-  // refining to include state/city when those fields ship.
-  country: (v) => {
-    if (typeof v !== "string") return null;
-    const country = ALL_COUNTRIES.find((c) => c.cc === v);
-    return country ? { location: country.name } : null;
-  },
+  // ISO country code is client-only. The backend's
+  // onboardee.coordinates lookup requires the canonical long_friendly
+  // string (e.g. "Bridgetown, Saint Michael, Barbados") via
+  // location.long_friendly. The country page resolves that via
+  // /search-locations and stores it on Profile.location, which has its
+  // own transform below.
+  country: () => null,
+
+  // Resolved location string — must be an exact long_friendly match. The
+  // country page populates this asynchronously after the user picks a
+  // country; falsy means "not yet resolved", skip the PATCH.
+  location: (v) =>
+    typeof v === "string" && v.length > 0 ? { location: v } : null,
 
   // Relationship status --------------------------------------------------
   maritalStatus: (v) => {
@@ -165,7 +169,7 @@ function translateInbound(server: Partial<Profile> | Record<string, unknown>): P
 const ONBOARDEE_ALLOWED_KEYS: ReadonlySet<string> = new Set([
   "firstName",      // -> name
   "dob",            // -> date_of_birth
-  "country",        // -> location
+  "location",       // -> location (long_friendly format)
   "sex",            // -> gender + other_peoples_genders
 ]);
 

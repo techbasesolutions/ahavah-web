@@ -6,6 +6,7 @@ import { motion } from "motion/react";
 import { OnboardingShell } from "@/components/app/onboarding-shell";
 import { PhotoSlot } from "@/components/app/photo-slot";
 import { listPhotos } from "@/lib/photo-storage";
+import { readOnboarded } from "@/lib/onboarded-storage";
 import { usePhotoQuota } from "@/lib/use-photo-quota";
 import { usePhotoUpload, type StartOptions } from "@/lib/use-photo-upload";
 import { useProfile } from "@/lib/use-profile";
@@ -56,20 +57,19 @@ export default function PhotosStep() {
 
   /** Pull the latest photo list from the backend and project CDN URLs
    *  into the local profile mirror. Called on mount + after every upload.
-   *  Bridging external state (backend) into React state — canonical
-   *  pattern in this codebase, see use-profile.ts mount-hydration. */
+   *
+   *  Onboardees have no GET /onboardee-info endpoint, so listPhotos()
+   *  (which calls /profile-info) 401s. We just no-op the fetch in that
+   *  case — records are maintained from upload results below.
+   */
   const refreshFromBackend = useCallback(async () => {
+    if (!readOnboarded()) return; // onboardee: no backend list available
     try {
       const list = await listPhotos();
       setRecords(list);
-      // Profile.photos is now PhotoRecord[] (Task 3.8); push the
-      // resolved records directly so consumer surfaces (map-avatar,
-      // discover) stay in sync.
       update({ photos: list });
     } catch {
-      // Best-effort: silently swallow. Slot state already shows an error
-      // if upload failed; a separate refresh failure shouldn't compound
-      // the noise. A future toast layer (Agent 5+) can surface this.
+      // best-effort
     }
   }, [update]);
 
@@ -79,25 +79,44 @@ export default function PhotosStep() {
     void refreshFromBackend();
   }, [refreshFromBackend]);
 
-  // When any slot enters "moderating", trigger a refresh + confirmModeration.
-  // We watch a tuple of kinds so the effect only re-fires on a relevant
-  // state-machine transition, not on every render.
+  // When any slot enters "moderating", advance it. For PERSON users, fetch
+  // the resolved PhotoRecord from the backend. For ONBOARDEES (no GET
+  // endpoint), synthesize an optimistic PhotoRecord — the cron will
+  // re-classify async; the slot can transition to "ready" right now so
+  // the user can hit Continue.
   const moderationKinds = slotHooks.map((h) => h.state.kind).join("|");
   useEffect(() => {
     slotHooks.forEach((hook, idx) => {
-      if (hook.state.kind === "moderating") {
-        void (async () => {
+      if (hook.state.kind !== "moderating") return;
+      const position = idx + 1;
+      void (async () => {
+        if (readOnboarded()) {
           await refreshFromBackend();
-          const position = idx + 1;
           const justUploaded = (await listPhotos()).find(
             (p) => p.position === position,
           );
           if (justUploaded) hook.confirmModeration(justUploaded);
-        })();
-      }
+          return;
+        }
+        // Onboardee path: synthesize the record + push it locally.
+        const synthetic: PhotoRecord = {
+          uuid: `pending-${position}`,
+          cdn_url: "",
+          position,
+          moderation_state: "pending-review",
+          nsfw_score: null,
+          created_at: new Date().toISOString(),
+        };
+        // Treat as approved for Continue-gate purposes so onboarding
+        // can proceed — cron may demote later.
+        hook.confirmModeration({ ...synthetic, moderation_state: "approved" });
+        setRecords((prev) => {
+          const next = [...prev];
+          next[idx] = synthetic;
+          return next;
+        });
+      })();
     });
-    // moderationKinds is a derived dep that captures the slot-kind tuple
-    // change; including slotHooks would re-fire on every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [moderationKinds, refreshFromBackend]);
 
@@ -168,13 +187,17 @@ export default function PhotosStep() {
     }
   }
 
-  // Continue is enabled when at least one photo is approved OR pending-review.
-  // See gating comment at top of file re: nsfw_score backend dependency.
-  const hasUsablePhoto = records.some(
-    (r) =>
-      r.moderation_state === "approved" ||
-      r.moderation_state === "pending-review",
-  );
+  // Continue is enabled when at least one photo is approved OR pending-review,
+  // OR a slot is in a state past "uploading" (moderating / ready) for
+  // onboardees who never receive a backend records refresh.
+  const hasUsablePhoto =
+    records.some(
+      (r) =>
+        r &&
+        (r.moderation_state === "approved" ||
+          r.moderation_state === "pending-review"),
+    ) ||
+    slotHooks.some((h) => h.state.kind === "moderating" || h.state.kind === "ready");
   const isComplete = hasUsablePhoto;
 
   return (

@@ -19,6 +19,29 @@ import { OnboardingShell } from "@/components/app/onboarding-shell";
 
 const MAX_CUSTOM_LEN = 40;
 
+// Top languages for the Torah-observant international audience. Others
+// are still selectable — the user types them into the "Add it" field
+// below and they appear in the "Your additions" row. This trims the
+// initial visible list from ~75 to 10 so the page no longer requires
+// long scroll on a phone.
+const POPULAR_LANGUAGE_CODES: ReadonlyArray<string> = [
+  "en", // English
+  "he", // Hebrew
+  "es", // Spanish
+  "fr", // French
+  "pt", // Portuguese
+  "ru", // Russian
+  "ar", // Arabic
+  "de", // German
+  "it", // Italian
+  "yi", // Yiddish
+];
+
+const POPULAR_LANGUAGES = POPULAR_LANGUAGE_CODES.flatMap((code) => {
+  const found = LANGUAGES.find((l) => l.code === code);
+  return found ? [found] : [];
+});
+
 const fadeUp = {
   initial: { opacity: 0, y: 12 },
   animate: { opacity: 1, y: 0 },
@@ -142,7 +165,7 @@ export default function LanguagesStep() {
           className="flex-wrap"
           aria-label="Languages you speak"
         >
-          {LANGUAGES.map((lang, i) => (
+          {POPULAR_LANGUAGES.map((lang, i) => (
             <motion.div
               key={lang.code}
               {...fadeUp}

@@ -653,6 +653,13 @@ export type Profile = {
   maritalStatus?: MaritalStatus;
   children?: number;
   country?: string;        // 2-letter ISO from src/lib/countries.ts
+  /**
+   * Resolved "City, State, Country" string from /search-locations. The
+   * backend's onboardee.coordinates lookup requires an exact match
+   * against the location.long_friendly column, so we resolve and persist
+   * the canonical string here when the user picks a country.
+   */
+  location?: string;
   stateOrProvince?: string;
   city?: string;
   nationality?: Nationality;
