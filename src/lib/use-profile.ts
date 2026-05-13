@@ -10,6 +10,7 @@ import {
 } from "@/lib/use-profile-storage";
 import { apiClient, ApiError, setSessionToken } from "@/lib/api-client";
 import { clearChatSession } from "@/lib/chat-session";
+import { ALL_COUNTRIES } from "@/lib/countries";
 import {
   readOnboarded,
   writeOnboarded,
@@ -21,29 +22,134 @@ import {
 export { writeOnboarded } from "@/lib/onboarded-storage";
 
 // Phase W gap: the frontend Profile schema is the Torah-observant product
-// shape (firstName, assembly, tzitzit, ...), but the backend's
-// PatchProfileInfo (duotypes/__init__.py:401) is the upstream Duolicious
-// shape (name, no Torah fields). For every keystroke / selection in
-// onboarding to not 422 with "Field firstName must not be None", we
-// translate at this boundary:
-//   - outbound (client -> server): rename mapped keys, drop unmapped ones
-//     so the PATCH only carries fields the backend understands
-//   - inbound (server -> client): rename mapped keys so the Input reading
-//     profile.firstName sees the server's `name`
-// Backend also enforces "exactly one field per PATCH" (model_validator at
-// duotypes/__init__.py:444), so we never bundle multiple changes into a
-// single request. Multi-field updates fan out into one PATCH each.
-const CLIENT_TO_SERVER: Record<string, string> = {
-  firstName: "name",
+// shape (firstName, assembly, tzitzit, ...) but the backend's
+// PatchOnboardeeInfo (duotypes/__init__.py:281) / PatchProfileInfo
+// (duotypes/__init__.py:401) are the upstream Duolicious shape (name,
+// gender, relationship_status, ...). We translate at this boundary:
+//   - outbound (client -> server): rename + value-transform mapped keys,
+//     fan one input field into multiple PATCHes when needed (e.g. `sex`
+//     also sets `other_peoples_genders`), drop unmappable Torah-observant
+//     fields (assembly, polygyny, ...) so the rest of onboarding can
+//     proceed
+//   - inbound (server -> client): rename so profile.firstName reads the
+//     server's `name`
+// Backend enforces "exactly one field per PATCH" (model_validator at
+// duotypes/__init__.py:309 and 444), so update() fans the translated
+// entries into one PATCH per key.
+type FieldTransform = (value: unknown) => Record<string, unknown> | null;
+
+const MARITAL_STATUS_MAP: Record<string, string> = {
+  "never-married": "Single",
+  "married": "Married",
+  "re-married": "Married",
+  "divorced": "Divorced",
+  "widowed": "Widowed",
 };
-const SERVER_TO_CLIENT: Record<string, string> = Object.fromEntries(
-  Object.entries(CLIENT_TO_SERVER).map(([k, v]) => [v, k]),
-);
+
+const INTENT_TO_LOOKING_FOR_MARRIAGE = new Set([
+  "first-wife",
+  "additional-wife",
+  "marriage-only",
+]);
+
+const TRANSFORMS: Record<string, FieldTransform> = {
+  // Identity --------------------------------------------------------------
+  firstName: (v) => (typeof v === "string" ? { name: v } : null),
+
+  // Date of birth — backend's MIN_AGE is enforced server-side via the
+  // computed age. Frontend already filtered <18.
+  dob: (v) => (typeof v === "string" ? { date_of_birth: v } : null),
+
+  // `age` alone can't reconstruct date_of_birth. We persist `dob`
+  // separately (see /onboarding/dob/page.tsx) and ignore `age` here.
+  age: () => null,
+
+  // Sex maps to gender + auto-fills other_peoples_genders. Ahavah is
+  // hetero-only per memory/feedback_ahavah_gender_binary.md; we infer
+  // the opposite from the user's selection. The other PATCH must go
+  // out separately because of the "one field per PATCH" rule.
+  sex: (v) => {
+    if (v === "female") {
+      return { gender: "Woman", other_peoples_genders: ["Man"] };
+    }
+    if (v === "male") {
+      return { gender: "Man", other_peoples_genders: ["Woman"] };
+    }
+    return null;
+  },
+
+  // Location — backend wants a "City, State, Country" string. We only
+  // have ISO country code, so send the country name alone for now.
+  // refining to include state/city when those fields ship.
+  country: (v) => {
+    if (typeof v !== "string") return null;
+    const country = ALL_COUNTRIES.find((c) => c.cc === v);
+    return country ? { location: country.name } : null;
+  },
+
+  // Relationship status --------------------------------------------------
+  maritalStatus: (v) => {
+    if (typeof v !== "string") return null;
+    const mapped = MARITAL_STATUS_MAP[v];
+    return mapped ? { relationship_status: mapped } : null;
+  },
+
+  // Children: integer count -> yes/no for backend's has_kids
+  children: (v) => {
+    if (typeof v !== "number") return null;
+    return { has_kids: v > 0 ? "Yes" : "No" };
+  },
+
+  // Looking-for / intent ------------------------------------------------
+  intent: (v) => {
+    if (typeof v !== "string") return null;
+    return {
+      looking_for: INTENT_TO_LOOKING_FOR_MARRIAGE.has(v)
+        ? "Marriage"
+        : "Long-term dating",
+    };
+  },
+
+  // Bio -----------------------------------------------------------------
+  bio: (v) => (typeof v === "string" && v.length > 0 ? { about: v } : null),
+
+  // Occupation / education are 1:1 string renames.
+  occupation: (v) =>
+    typeof v === "string" && v.length > 0 ? { occupation: v } : null,
+  education: (v) =>
+    typeof v === "string" && v.length > 0 ? { education: v } : null,
+
+  // Ethnicities — backend takes a single string; send the first entry.
+  ethnicities: (v) => {
+    if (!Array.isArray(v) || v.length === 0) return null;
+    const first = v[0];
+    return typeof first === "string" ? { ethnicity: first } : null;
+  },
+
+  // Unmappable Torah-observant fields stay client-only. Any onboarding
+  // step that updates these will optimistically cache the value in
+  // localStorage but skip the PATCH. Listed explicitly so a future
+  // reader knows these are KNOWN drops (not unhandled).
+  //   assembly, torahLevel, shabbat, feastDays, calendar,
+  //   polygyny, headCovering, tzitzit, familyViews, livingPreferences,
+  //   healthTags, interests, personalityTraits, relocation,
+  //   communicationPrefs, verificationTags, boundaryTags,
+  //   voiceIntroUrl, promptCards, showOnMap
+  //
+  // Photos go through photo-storage.ts (multipart-style PATCH); the
+  // `photos` field here is the cached client-side list and should not
+  // PATCH directly. Skip.
+  photos: () => null,
+};
+
+const SERVER_TO_CLIENT_KEY: Record<string, keyof Profile> = {
+  name: "firstName",
+};
 
 function translateInbound(server: Partial<Profile> | Record<string, unknown>): Partial<Profile> {
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(server)) {
-    const clientKey = SERVER_TO_CLIENT[k] ?? k;
+    const clientKey = SERVER_TO_CLIENT_KEY[k] ?? k;
     out[clientKey] = v;
   }
   return out as Partial<Profile>;
@@ -52,11 +158,11 @@ function translateInbound(server: Partial<Profile> | Record<string, unknown>): P
 function translateOutbound(patch: Partial<Profile>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(patch)) {
-    const serverKey = CLIENT_TO_SERVER[k];
-    if (serverKey) out[serverKey] = v;
-    // Unmapped keys: client-only fields the backend doesn't model yet.
-    // Silently dropped so the rest of onboarding can proceed; future
-    // backend migrations will fill these in.
+    const transform = TRANSFORMS[k];
+    if (!transform) continue; // unmapped → client-only, no PATCH
+    const entries = transform(v);
+    if (!entries) continue;
+    Object.assign(out, entries);
   }
   return out;
 }

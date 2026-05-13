@@ -71,10 +71,13 @@ export default function DOBStep() {
   const handleYearChange = (v: string) => {
     const digits = v.replace(/\D/g, "").slice(0, 4);
     setYear(digits);
-    // When all three fields are filled, compute and persist age
+    // When all three fields are filled, compute and persist age + the
+    // original DOB string. Backend needs date_of_birth on /onboardee-info;
+    // age alone can't reconstruct the date.
     const computedAge = computeAge(day, month, digits);
     if (computedAge !== null && computedAge >= MIN_AGE) {
-      update({ age: computedAge });
+      const dobIso = `${digits}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+      update({ age: computedAge, dob: dobIso });
     }
   };
 

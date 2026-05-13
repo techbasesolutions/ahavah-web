@@ -639,6 +639,13 @@ export type Profile = {
   firstName?: string;
   displayName?: string;
   age?: number;
+  /**
+   * ISO date string (YYYY-MM-DD). Persisted alongside `age` so the
+   * /onboardee-info translation layer can send the original date to
+   * the backend's `date_of_birth` field — age alone loses too much
+   * information to round-trip.
+   */
+  dob?: string;
   sex?: Sex;
   // Mandatory onboarding (sub-plan 18). `children` is an integer 0..20;
   // `children: 0` is a VALID complete answer — completeness uses an
