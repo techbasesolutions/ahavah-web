@@ -146,15 +146,78 @@ const TRANSFORMS: Record<string, FieldTransform> = {
   photos: () => null,
 };
 
+/**
+ * Inbound translation: backend `GET /profile-info` returns space-separated
+ * keys ("looking for", "relationship status", "has kids") with enum-value
+ * strings ("Man", "Yes", "Long-term dating"). Map back to camelCase Profile
+ * fields with value reverse-transforms.
+ *
+ * Per duo SQL Q_GET_PROFILE_INFO (service/person/sql/__init__.py:1637):
+ *   name | about | gender | orientation | ethnicity | location | occupation |
+ *   education | height | "looking for" | smoking | drinking | drugs |
+ *   "long distance" | "relationship status" | "has kids" | "wants kids" |
+ *   exercise | religion | "star sign" | "verification level" | photo | ...
+ */
+const MARITAL_STATUS_REVERSE: Record<string, string> = {
+  Single: "never-married",
+  Married: "married",
+  Divorced: "divorced",
+  Widowed: "widowed",
+};
+
+function reverseTranslateValue(
+  clientKey: keyof Profile | string,
+  serverValue: unknown,
+): unknown {
+  if (serverValue == null) return undefined;
+  switch (clientKey) {
+    case "sex":
+      if (serverValue === "Woman") return "female";
+      if (serverValue === "Man") return "male";
+      return undefined;
+    case "maritalStatus":
+      return MARITAL_STATUS_REVERSE[serverValue as string] ?? undefined;
+    case "children":
+      // Lossy: backend tracks Yes/No only, not the integer count. Restore
+      // 0 for No, leave the local cached number for Yes.
+      if (serverValue === "No") return 0;
+      return undefined;
+    case "intent":
+      // looking_for "Marriage" / "Long-term dating" / etc. — no inverse
+      // that recovers the original intent enum cleanly. Leave undefined;
+      // the local cache holds the precise value.
+      return undefined;
+    case "bio":
+    case "occupation":
+    case "education":
+    case "location":
+    case "firstName":
+      return typeof serverValue === "string" ? serverValue : undefined;
+    case "ethnicities":
+      return typeof serverValue === "string" ? [serverValue] : undefined;
+    default:
+      return serverValue;
+  }
+}
+
 const SERVER_TO_CLIENT_KEY: Record<string, keyof Profile> = {
+  // /me
   name: "firstName",
+  // /profile-info (same key + space-keys)
+  about: "bio",
+  gender: "sex",
+  ethnicity: "ethnicities",
+  "looking for": "intent",
+  "relationship status": "maritalStatus",
+  "has kids": "children",
 };
 
 function translateInbound(server: Partial<Profile> | Record<string, unknown>): Partial<Profile> {
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(server)) {
     const clientKey = SERVER_TO_CLIENT_KEY[k] ?? k;
-    out[clientKey] = v;
+    const value = reverseTranslateValue(clientKey, v);
+    if (value !== undefined) out[clientKey] = value;
   }
   return out as Partial<Profile>;
 }
@@ -271,8 +334,20 @@ export function useProfile(): UseProfileResult {
       return;
     }
     try {
-      const server = await apiClient.get<Record<string, unknown>>("/me");
-      const translated = translateInbound(server);
+      // /me is lean (just person_id + name post-Q&A-strip), so we
+      // separately pull GET /profile-info for the full record (gender,
+      // location, looking_for, relationship_status, has_kids, ...).
+      // Run them in parallel; tolerate /profile-info failure.
+      const [me, profileInfo] = await Promise.all([
+        apiClient.get<Record<string, unknown>>("/me"),
+        apiClient
+          .get<Record<string, unknown>>("/profile-info")
+          .catch(() => ({}) as Record<string, unknown>),
+      ]);
+      const translated = {
+        ...translateInbound(me),
+        ...translateInbound(profileInfo),
+      };
       lastServerSnapshot.current = translated;
       // Merge — don't replace. The backend doesn't model the Torah fields
       // (assembly, polygyny, ...), so a wholesale setProfileState(translated)
