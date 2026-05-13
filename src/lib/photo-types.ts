@@ -1,53 +1,99 @@
 /**
- * Shared photo types for the Phase W backend photo pipeline.
+ * Canonical photo types for the Phase W backend photo pipeline.
  *
- * Re-exports the canonical type definitions from `api-types.ts` (the
- * single source of truth for the backend contract) so consumers can
- * import them from a domain-shaped module without depending on the
- * full api-types surface.
+ * This module is the SINGLE SOURCE OF TRUTH for PhotoRecord +
+ * ModerationState + QuotaInfo + ProfileInfoResponse. `api-types.ts`
+ * re-exports these so the rest of the codebase can keep importing
+ * from either location.
  *
- * Why re-export instead of duplicate: the api-client / api-types pair
- * owns the wire contract. If we duplicated `PhotoRecord` here it would
- * silently drift the moment the backend adds a field. Anything photo-
- * specific that does NOT belong on the wire (e.g. local-only upload
- * machine states) is defined fresh below.
+ * Why the inverted ownership: `profile-schema.ts` imports PhotoRecord
+ * (Profile.photos: PhotoRecord[] as of Task 3.8), and `api-types.ts`
+ * imports Profile. If PhotoRecord lived in api-types.ts the import
+ * graph would cycle.
  *
  * Lines preserved for grep continuity with the Phase W F.3 commit:
- *   src/lib/api-types.ts:52-83  (canonical defs)
+ *   src/lib/api-types.ts:50-99  (wire-contract block, now re-exports)
  */
 
-import type {
-  ModerationState as ApiModerationState,
-  PhotoRecord as ApiPhotoRecord,
-  QuotaInfo as ApiQuotaInfo,
-  UploadProgress as ApiUploadProgress,
-  UploadResult as ApiUploadResult,
-} from "@/lib/api-types";
+// Wire-shape types --------------------------------------------------------
 
-// Wire-shape re-exports ----------------------------------------------------
+/** Server-side moderation verdict. `uploading` is a synthetic in-flight
+ *  state the client emits while bytes are travelling — never returned
+ *  by the backend (it always returns one of the three terminal states). */
+export type ModerationState =
+  | "approved"
+  | "pending-review"
+  | "rejected"
+  | "uploading";
 
-/** Server-side moderation state. `uploading` is a synthetic in-flight state
- *  the client emits while bytes are travelling — never returned by the
- *  backend (it always returns one of the three terminal states). */
-export type ModerationState = ApiModerationState;
+/** A photo as returned by GET /profile-info.
+ *
+ *  - `uuid`: server-issued image UUID. null when upstream Duolicious
+ *    response omits it (e.g. an entry that was just deleted, or a
+ *    transient response shape change). Used as the filename stem in
+ *    CDN URLs: `${IMAGES_URL}/450-${uuid}.jpg`.
+ *  - `cdn_url`: pre-built CDN URL at the 450px variant. Empty string
+ *    when uuid is null.
+ *  - `position`: 1..7 backend slot (duotypes MAX_PHOTO_POSITION).
+ *  - `moderation_state`: synthesised client-side from nsfw_score.
+ *  - `nsfw_score`: server-side classifier output; null while pending OR
+ *    while backend does not surface it in GET response.
+ *  - `created_at`: ISO-8601 server timestamp. Empty string when backend
+ *    does not surface per-photo timestamps.
+ */
+export type PhotoRecord = {
+  uuid: string | null;
+  cdn_url: string;
+  position: number;
+  moderation_state: ModerationState;
+  nsfw_score: number | null;
+  created_at: string;
+};
 
-/** A photo as returned by the backend. UUID is server-issued. `cdn_url`
- *  points at DigitalOcean Spaces (bucket `ahavah-photos-prod`, region
- *  nyc3) and is safe to render directly. */
-export type PhotoRecord = ApiPhotoRecord;
+/** Raw photo shape inside GET /profile-info. The backend serialises the
+ *  `photo` table as `{ "1": "uuid1", "2": "uuid2", ... }` sparse maps;
+ *  also returns parallel `photo_blurhash` + `photo_verification` maps
+ *  keyed by the same positions. */
+export type ProfileInfoPhotoMap = Record<string, string>;
 
-/** Quota descriptor returned by GET /photos/quota. */
-export type QuotaInfo = ApiQuotaInfo;
+/** Subset of GET /profile-info the photo pipeline cares about. The full
+ *  response includes ~40 other profile fields not relevant here; consumers
+ *  that want the broader shape should import `Profile` directly. */
+export type ProfileInfoResponse = {
+  photo: ProfileInfoPhotoMap | null;
+  photo_blurhash?: Record<string, string> | null;
+  photo_verification?: Record<string, boolean> | null;
+};
+
+/** Quota descriptor. usedBytes / limitBytes are 0 sentinels since the
+ *  backend does not surface byte counts; consumers must NOT render
+ *  "X MB / Y MB" copy. */
+export type QuotaInfo = {
+  usedBytes: number;
+  limitBytes: number;
+  maxPhotos: number;
+  currentPhotoCount: number;
+};
 
 /** Multipart upload progress. Bytes, not percent — the consumer computes
  *  percent if it needs one (avoids a divide-by-zero before the first
- *  chunk reports `totalBytes`). */
-export type UploadProgress = ApiUploadProgress;
+ *  chunk reports `totalBytes`).
+ *
+ *  Note: with the JSON-body PATCH transport (Phase W revised brief)
+ *  upload progress is NOT actually reported — fetch() doesn't expose it.
+ *  The shape is preserved so the UploadState union stays stable across
+ *  consumers. */
+export type UploadProgress = {
+  loadedBytes: number;
+  totalBytes: number;
+};
 
-/** Result envelope for POST /photos. Wraps the new PhotoRecord so the
- *  backend can later add sibling fields (rate-limit headroom, etc.)
- *  without a breaking change. */
-export type UploadResult = ApiUploadResult;
+/** Result envelope for uploadPhoto. Wraps the new PhotoRecord so sibling
+ *  fields (rate-limit headroom, etc.) can be added without a breaking
+ *  change. */
+export type UploadResult = {
+  photo: PhotoRecord;
+};
 
 // Client-only state machine -------------------------------------------------
 

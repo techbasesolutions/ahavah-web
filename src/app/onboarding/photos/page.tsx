@@ -21,10 +21,8 @@ import type { PhotoRecord } from "@/lib/photo-types";
  * slot can transition to ready / rejected.
  *
  * The page maintains a local `records: PhotoRecord[]` mirror of the
- * backend state. Until profile-schema.ts widens Profile.photos to
- * PhotoRecord[] (Task 3.8), we ALSO project the CDN URLs into
- * profile.photos: string[] so that profile-completeness + consumer
- * surfaces (map avatar, discover) keep working unchanged.
+ * backend state and mirrors it into `profile.photos: PhotoRecord[]` so
+ * consumer surfaces (map-avatar, discover, profile-detail) stay in sync.
  *
  * "Continue" gating: brief asks for "approved" as the safety pick. As of
  * 2026-05-12 the backend doesn't yet surface nsfw_score in GET, so every
@@ -39,7 +37,7 @@ const SLOT_COUNT = 6;
 type SlotIndex = 0 | 1 | 2 | 3 | 4 | 5;
 
 export default function PhotosStep() {
-  const { profile, update } = useProfile();
+  const { update } = useProfile();
   const { quota } = usePhotoQuota();
   const [records, setRecords] = useState<PhotoRecord[]>([]);
 
@@ -64,9 +62,10 @@ export default function PhotosStep() {
     try {
       const list = await listPhotos();
       setRecords(list);
-      const urls: string[] = [];
-      for (const rec of list) if (rec.cdn_url) urls.push(rec.cdn_url);
-      update({ photos: urls });
+      // Profile.photos is now PhotoRecord[] (Task 3.8); push the
+      // resolved records directly so consumer surfaces (map-avatar,
+      // discover) stay in sync.
+      update({ photos: list });
     } catch {
       // Best-effort: silently swallow. Slot state already shows an error
       // if upload failed; a separate refresh failure shouldn't compound
@@ -231,9 +230,6 @@ export default function PhotosStep() {
         JPEG, PNG, or WebP. Photos are compressed before upload, then
         reviewed by automated moderation.
       </p>
-      {/* `profile.photos` is referenced just to keep the legacy mirror
-       *  data-bound — once Task 3.8 widens the schema this trick can go. */}
-      <span hidden>{profile.photos?.length ?? 0}</span>
     </OnboardingShell>
   );
 }

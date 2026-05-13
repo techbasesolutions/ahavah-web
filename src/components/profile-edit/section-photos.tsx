@@ -32,7 +32,7 @@ type SlotIndex = 0 | 1 | 2 | 3 | 4 | 5;
  * arrows are accessible, mobile-friendly, and convey the same intent.
  */
 export function PhotoEditSection() {
-  const { profile, update } = useProfile();
+  const { update } = useProfile();
   const [records, setRecords] = useState<PhotoRecord[]>([]);
 
   const slot0 = usePhotoUpload();
@@ -50,9 +50,8 @@ export function PhotoEditSection() {
     try {
       const list = await listPhotos();
       setRecords(list);
-      const urls: string[] = [];
-      for (const rec of list) if (rec.cdn_url) urls.push(rec.cdn_url);
-      update({ photos: urls });
+      // Profile.photos is now PhotoRecord[] (Task 3.8); push records direct.
+      update({ photos: list });
     } catch {
       // Best-effort.
     }
@@ -232,7 +231,6 @@ export function PhotoEditSection() {
         JPEG, PNG, or WebP. Photos are compressed before upload, then
         reviewed by automated moderation.
       </p>
-      <span hidden>{profile.photos?.length ?? 0}</span>
     </ProfileSection>
   );
 }

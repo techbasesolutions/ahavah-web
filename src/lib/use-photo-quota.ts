@@ -33,9 +33,7 @@ export type UsePhotoQuotaResult = {
 export function usePhotoQuota(): UsePhotoQuotaResult {
   const { profile, loaded } = useProfile();
 
-  // profile.photos may currently be string[] (pre-3.8) or PhotoRecord[]
-  // (post-3.8). We only care about the length, which is uniform across
-  // both shapes.
+  // profile.photos: PhotoRecord[] (Task 3.8 made this canonical).
   const currentPhotoCount = profile.photos?.length ?? 0;
 
   const quota = useMemo<QuotaInfo>(

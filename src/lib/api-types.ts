@@ -59,65 +59,21 @@ export type ProfileInfoPatch = Partial<Profile>;
 // nsfw_score is currently NOT surfaced in GET /profile-info — the adapter
 // in photo-storage.ts synthesises ModerationState per the documented
 // threshold table and tolerates a null score (treated as pending-review).
+//
+// Canonical definitions live in photo-types.ts (so profile-schema.ts can
+// import PhotoRecord without cycling through this file). We re-export
+// them here so the original `from "@/lib/api-types"` imports keep working.
 // ---------------------------------------------------------------------------
 
-export type ModerationState =
-  | "approved"
-  | "pending-review"
-  | "rejected"
-  | "uploading";
-
-export type PhotoRecord = {
-  /** Server-issued image UUID. null when upstream Duolicious response
-   *  omits it (e.g. transient response shape changes). Used as the
-   *  filename stem in CDN URLs: `${IMAGES_URL}/450-${uuid}.jpg`. */
-  uuid: string | null;
-  cdn_url: string;
-  position: number;
-  moderation_state: ModerationState;
-  /** Server-side NSFW classifier output; null while pending (cron has
-   *  not yet run) OR while backend does not surface it in GET response. */
-  nsfw_score: number | null;
-  /** ISO-8601 server timestamp. May be empty string when backend does
-   *  not surface per-photo timestamps in GET /profile-info. */
-  created_at: string;
-};
-
-/** Raw photo shape inside GET /profile-info. The backend serialises the
- *  `photo` table as `{ "1": "uuid1", "2": "uuid2", ... }` sparse maps;
- *  also returns parallel `photo_blurhash` + `photo_verification` maps
- *  keyed by the same positions. */
-export type ProfileInfoPhotoMap = Record<string, string>;
-
-/** Subset of GET /profile-info the photo pipeline cares about. The full
- *  response includes ~40 other profile fields not relevant here; consumers
- *  that want the broader shape should import `Profile` directly. */
-export type ProfileInfoResponse = {
-  photo: ProfileInfoPhotoMap | null;
-  photo_blurhash?: Record<string, string> | null;
-  photo_verification?: Record<string, boolean> | null;
-};
-
-export type QuotaInfo = {
-  /** Not surfaced server-side. 0 sentinel — consumers should not
-   *  display "X MB / Y MB" copy. */
-  usedBytes: number;
-  /** Not surfaced server-side. 0 sentinel. */
-  limitBytes: number;
-  /** Hard backend cap: duotypes/__init__.py:129 ge=1 le=7 via
-   *  MAX_PHOTO_POSITION. */
-  maxPhotos: number;
-  currentPhotoCount: number;
-};
-
-export type UploadProgress = {
-  loadedBytes: number;
-  totalBytes: number;
-};
-
-export type UploadResult = {
-  photo: PhotoRecord;
-};
+export type {
+  ModerationState,
+  PhotoRecord,
+  ProfileInfoPhotoMap,
+  ProfileInfoResponse,
+  QuotaInfo,
+  UploadProgress,
+  UploadResult,
+} from "@/lib/photo-types";
 
 // ---------------------------------------------------------------------------
 // Discovery — service/search/__init__.py + service/discovery/__init__.py
