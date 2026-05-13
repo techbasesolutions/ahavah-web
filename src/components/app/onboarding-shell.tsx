@@ -141,8 +141,11 @@ export function OnboardingShell({
           scrolls inside the shell rather than growing it. Combined with
           h-screen + overflow-hidden on the shell, this keeps long lists
           (country picker, etc.) inside the viewport while the CTA stays
-          pinned below. */}
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+          pinned below.
+          px-1 gives full-width children (w-full Input boxes) 4px of
+          horizontal breathing room so the 3px focus-visible ring isn't
+          clipped by overflow-y-auto's implicit overflow-x: hidden. */}
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-1">
         {children}
       </div>
 
