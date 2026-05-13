@@ -175,7 +175,6 @@ export default function ProfilePage() {
       >
         <Dialog open={signOutOpen} onOpenChange={setSignOutOpen}>
           <DialogTrigger
-            nativeButton={false}
             render={
               <Button
                 variant="outlineSubtle"
