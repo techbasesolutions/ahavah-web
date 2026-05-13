@@ -1,24 +1,36 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { use } from "react";
+import { use, useEffect, useMemo, useRef, useState } from "react";
 
 import { BlockReportSheet } from "@/components/app/block-report-sheet";
-import {
-  ImageBubble,
-  TextBubble,
-  VoiceBubble,
-} from "@/components/app/chat-bubble";
+import { TextBubble } from "@/components/app/chat-bubble";
 import { ChatHeader } from "@/components/app/chat-header";
 import { ChatInput } from "@/components/app/chat-input";
 import { sampleByName } from "@/lib/profile-sample";
 import { photoOrGradient } from "@/lib/photo-or-gradient";
+import { chatClient } from "@/lib/chat-client";
+import { readChatSession } from "@/lib/chat-session";
+import { useChatThread } from "@/lib/use-chat-thread";
+import { apiClient, ApiError } from "@/lib/api-client";
+import type { Profile } from "@/lib/profile-schema";
+import { cn } from "@/lib/utils";
 
 type Props = { params: Promise<{ id: string }> };
 
-// Seed must match SAMPLE_PROFILES (profile-sample.ts) so the chat header's
-// profileHref={`/profile/${id}`} lands on a real record. See inbox/page.tsx.
-const SUBJECT_BY_ID: Record<string, { name: string; age: number; online: boolean }> = {
+// 3-second typing-stop debounce: after the user stops typing for this long,
+// we stop sending typing stanzas. The backend's own typing TTL is 5s, so
+// the recipient still sees us as "typing" for up to 5s after our last
+// keystroke, then auto-clears.
+const TYPING_STOP_DEBOUNCE_MS = 3_000;
+
+/**
+ * Sample/legacy slugs (daniel, esther, ...) seed thumbnails when no real
+ * profile data has been fetched yet. We keep this map so deep-links from
+ * the existing seed-based UX still produce a sensible header during the
+ * transition period; once /inbox returns real UUIDs, sampleByName will
+ * miss and we fall back to a generic header populated from GET /profile/<uuid>.
+ */
+const LEGACY_SUBJECT_BY_SLUG: Record<string, { name: string; age: number; online: boolean }> = {
   daniel:  { name: "Daniel",  age: 32, online: false },
   esther:  { name: "Esther",  age: 28, online: false },
   yosef:   { name: "Yosef",   age: 41, online: true  },
@@ -29,49 +41,128 @@ const SUBJECT_BY_ID: Record<string, { name: string; age: number; online: boolean
   tirzah:  { name: "Tirzah",  age: 22, online: true  },
 };
 
-type SentMessage = { id: string; text: string };
-
 export default function ChatThreadPage({ params }: Props) {
   const { id } = use(params);
-  const subject = SUBJECT_BY_ID[id] ?? { name: "Adina", age: 24, online: true };
-  // SP21 T8: resolve the subject's photo source (real photo when present,
-  // gradient fallback otherwise). Sample profiles ship without photos so
-  // gradient/initial fallback paints; if a future backend seeds a sample
-  // with photos[0], the chat header avatar will pick it up automatically.
+  const legacy = LEGACY_SUBJECT_BY_SLUG[id];
+
+  // Chat session — read once on mount; useEffect ensures the chat-client
+  // is connected for this user. If we have no session yet, we render a
+  // gentle "connecting…" header rather than crashing.
+  // Mount-time hydration from localStorage is the canonical pattern for
+  // syncing React state with an external store; the lint rule's
+  // generic-cascading-renders warning doesn't apply (single one-shot read).
+  const [session, setSession] = useState<ReturnType<typeof readChatSession>>(null);
+  useEffect(() => {
+    const s = readChatSession();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSession(s);
+    if (s) chatClient.connect(s.myUuid, s.sessionToken);
+  }, []);
+
+  const myUuid = session?.myUuid ?? "";
+
+  // Resolve real profile via GET /profile/<uuid> when id looks like a uuid.
+  // Falls back to legacy slug sample when id is a slug (transitional UX).
+  const [serverProfile, setServerProfile] = useState<Partial<Profile> | null>(null);
+  useEffect(() => {
+    if (!isUuidLike(id)) return;
+    let cancelled = false;
+    void apiClient
+      .get<Partial<Profile>>(`/profile/${id}`)
+      .then((p) => {
+        if (cancelled) return;
+        setServerProfile(p);
+      })
+      .catch((err: unknown) => {
+        // 404 is fine — chat header falls back to "Person".
+        if (!(err instanceof ApiError)) return;
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  const subject = useMemo(() => {
+    if (serverProfile?.firstName) {
+      return {
+        name: serverProfile.firstName,
+        age: serverProfile.age ?? 0,
+        online: false,
+      };
+    }
+    if (legacy) return legacy;
+    return { name: "Person", age: 0, online: false };
+  }, [serverProfile, legacy]);
+
   const subjectProfile = sampleByName(id);
   const subjectPhotoSource = photoOrGradient(
     subjectProfile ?? { firstName: subject.name },
     0,
   );
+
+  const { messages, isHydrated, theyAreTyping, send, setMyTyping } = useChatThread(id, myUuid);
+
   const [reportOpen, setReportOpen] = useState(false);
   const [draft, setDraft] = useState("");
-  const [sent, setSent] = useState<SentMessage[]>([]);
   const endRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [sent.length]);
+  // Debounced typing-off — keep a single timer; reset on every keystroke.
+  const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isMyTypingActiveRef = useRef(false);
 
-  const handleSend = () => {
-    const text = draft.trim();
-    if (!text) return;
-    setSent((prev) => [
-      ...prev,
-      { id: `${Date.now()}-${prev.length}`, text },
-    ]);
-    setDraft("");
+  const handleDraftChange = (next: string) => {
+    setDraft(next);
+    if (!myUuid) return;
+    if (next.trim().length > 0) {
+      // Send a typing stanza on every keystroke at most once per second
+      // (the backend has no rate limit but flooding the wire is wasteful).
+      if (!isMyTypingActiveRef.current) {
+        setMyTyping(true);
+        isMyTypingActiveRef.current = true;
+      }
+      if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+      typingTimerRef.current = setTimeout(() => {
+        isMyTypingActiveRef.current = false;
+        typingTimerRef.current = null;
+      }, TYPING_STOP_DEBOUNCE_MS);
+    } else {
+      // Cleared the input — drop typing immediately.
+      isMyTypingActiveRef.current = false;
+      if (typingTimerRef.current) {
+        clearTimeout(typingTimerRef.current);
+        typingTimerRef.current = null;
+      }
+    }
   };
 
+  const handleSend = () => {
+    const body = draft.trim();
+    if (!body) return;
+    send(body);
+    setDraft("");
+    // Clear typing state immediately so the recipient sees the message
+    // arrive without a stale "typing" indicator.
+    isMyTypingActiveRef.current = false;
+    if (typingTimerRef.current) {
+      clearTimeout(typingTimerRef.current);
+      typingTimerRef.current = null;
+    }
+  };
+
+  // Auto-scroll on new messages / typing changes.
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages.length, theyAreTyping]);
+
+  // Mark thread as displayed when the surface mounts + on every new
+  // inbound message (clears unread count server-side).
+  useEffect(() => {
+    if (!myUuid || !id) return;
+    chatClient.markDisplayed(id);
+  }, [myUuid, id, messages.length]);
+
   return (
-    // `h-screen` (not `h-full`) so the chat layout is locked to viewport:
-    // messages flex-1 fills the middle (with overflow-y-auto), header sticks
-    // to top, ChatInput pins to bottom of viewport. With `h-full` and a
-    // body that grows with content, the wrapper grew past viewport and the
-    // input ended up wherever content ended (mid-screen if few messages).
     <div className="flex h-screen flex-col">
-      {/* sr-only page heading — visible chrome is ChatHeader, which uses
-          `<p>` for name/age so SR users would otherwise land on a chat
-          thread with no structure. h1 anchors the page. */}
       <h1 className="sr-only">Chat with {subject.name}</h1>
 
       <ChatHeader
@@ -83,50 +174,56 @@ export default function ChatThreadPage({ params }: Props) {
         photoSource={subjectPhotoSource}
       />
 
-      {/* Messages — seeded bubbles cascade in on mount with explicit delays
-          (0, 0.06, 0.12, 0.18, 0.24). Sent bubbles use delay=0 so user-typed
-          messages appear instantly on tap. role='log' + aria-live='polite'
-          so screen readers announce new messages as they arrive without
-          taking focus from the composer. */}
       <div
         role="log"
         aria-live="polite"
         aria-label={`Conversation with ${subject.name}`}
         className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-4"
       >
-        <TextBubble side="them" avatar={subject.name[0]} delay={0}>
-          Hi! How&apos;s everything with you? Did you get home safely yesterday?
-        </TextBubble>
-        <TextBubble side="me" delay={0.06}>
-          Yeah, absolutely, thanks for asking! I was thinking, it would be great to catch up at some point next week 😊 Here are some photos we took yesterday.
-        </TextBubble>
-        <ImageBubble
-          side="me"
-          delay={0.12}
-          images={[
-            "linear-gradient(135deg,#FFB088,#FF7A53)",
-            "linear-gradient(135deg,#6CB7FF,#1A1340)",
-          ]}
-        />
-        <VoiceBubble side="them" avatar={subject.name[0]} duration="0:13" delay={0.18} />
-        <TextBubble side="them" avatar={subject.name[0]} delay={0.24}>
-          So let&apos;s go out of town?
-        </TextBubble>
-        {sent.map((m) => (
-          <TextBubble
-            key={m.id}
-            side="me"
-            delay={0}
-          >
-            {m.text}
-          </TextBubble>
-        ))}
+        {!isHydrated ? null : messages.length === 0 ? (
+          <p className="self-center text-meta text-text-muted">
+            Say hello to start the conversation.
+          </p>
+        ) : (
+          messages.map((m) => (
+            <TextBubble
+              key={m.id}
+              side={m.fromUserId === myUuid ? "me" : "them"}
+              avatar={m.fromUserId === myUuid ? undefined : subject.name[0]}
+              delay={0}
+            >
+              <span
+                className={cn(
+                  m.status === "pending" && "opacity-70",
+                  m.status === "failed" && "italic text-red-500",
+                )}
+                title={
+                  m.status === "pending"
+                    ? "Sending…"
+                    : m.status === "failed"
+                    ? "Failed to send"
+                    : undefined
+                }
+              >
+                {m.body}
+                {m.status === "failed" && (
+                  <span aria-label="Failed to send" className="ml-2 text-caption">
+                    (tap to retry)
+                  </span>
+                )}
+              </span>
+            </TextBubble>
+          ))
+        )}
+        {theyAreTyping && (
+          <TypingIndicator avatar={subject.name[0]} />
+        )}
         <div ref={endRef} aria-hidden />
       </div>
 
       <ChatInput
         value={draft}
-        onChange={setDraft}
+        onChange={handleDraftChange}
         onSend={handleSend}
       />
 
@@ -140,4 +237,37 @@ export default function ChatThreadPage({ params }: Props) {
       />
     </div>
   );
+}
+
+/**
+ * Inline typing-indicator atom — three dots with a calm bounce. Respects
+ * prefers-reduced-motion via Tailwind's `motion-safe:` modifier so the
+ * animation collapses to a static row of dots for users who request
+ * reduced motion.
+ */
+function TypingIndicator({ avatar }: { avatar?: string }) {
+  return (
+    <div className="flex max-w-bubble items-end gap-2 self-start" aria-label="Typing">
+      {avatar && (
+        <div className="size-7 rounded-full bg-bg-elevated flex items-center justify-center text-caption font-medium text-white">
+          {avatar}
+        </div>
+      )}
+      <div className="rounded-2xl rounded-bl-sm bg-lavender px-4 py-3 text-body text-black">
+        <span className="inline-flex gap-1" aria-hidden>
+          <span className="size-1.5 rounded-full bg-black/60 motion-safe:animate-bounce [animation-delay:0ms]" />
+          <span className="size-1.5 rounded-full bg-black/60 motion-safe:animate-bounce [animation-delay:120ms]" />
+          <span className="size-1.5 rounded-full bg-black/60 motion-safe:animate-bounce [animation-delay:240ms]" />
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Quick UUID-shape check — does NOT validate canonical form, just rules
+ * out the legacy seed slugs (daniel, esther, ...). 8-4-4-4-12 hex pattern.
+ */
+function isUuidLike(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 }
