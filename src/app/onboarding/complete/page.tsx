@@ -1,13 +1,32 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
-import { Check } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { IconBadge } from "@/components/ui/icon-badge";
 
 import { PageShell } from "@/components/app/page-shell";
+import { useProfile } from "@/lib/use-profile";
+
+/**
+ * Onboarding-complete celebration screen. Two server-touching jobs:
+ *
+ *   1. On mount: fire a no-op `update({})` so any partial state the
+ *      wizard left in cache but never flushed to the backend gets
+ *      written through. Defensive — most onboarding pages already
+ *      PATCH on each change, but a missed step would leave the user's
+ *      server profile out of sync with their cached one.
+ *
+ *   2. On "Start matching": refreshProfile() before navigating to
+ *      /discover so the discover feed paints with fresh server state.
+ *      If either operation fails we keep the user on this page and
+ *      surface an error pill rather than dropping them on /discover
+ *      with stale data.
+ */
 
 const fadeUp = {
   initial: { opacity: 0, y: 12 },
@@ -15,13 +34,42 @@ const fadeUp = {
 };
 
 export default function OnboardingCompletePage() {
+  const router = useRouter();
+  const { update, refreshProfile } = useProfile();
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Write-through on mount. Empty patch sends no diff (setProfile's diff
+  // logic would skip the PATCH); `update({})` always fires the PATCH
+  // because it merges {} into prev and then sends the patch as-is. That
+  // confirms the server has *something* and surfaces stale-session errors
+  // here rather than on /discover.
+  useEffect(() => {
+    void update({}).catch(() => {
+      setError("We couldn't finalise your profile. Refresh and try again.");
+    });
+  }, [update]);
+
+  const handleStartMatching = async () => {
+    if (submitting) return;
+    setError(null);
+    setSubmitting(true);
+    try {
+      await refreshProfile();
+      router.push("/discover");
+    } catch {
+      setError("We couldn't finalise your profile. Refresh and try again.");
+      setSubmitting(false);
+    }
+  };
+
   return (
     <PageShell bottomPad="default" className="px-5 pt-6">
       <div className="flex flex-1 flex-col items-center justify-center gap-6 text-center">
-        {/* Hero — lime check "tada" entrance (scale 0.7 → 1 with spring
-            bounce) then a slow infinite breathe (1 → 1.06 → 1). The lime
+        {/* Hero — lime check "tada" entrance (scale 0.7 -> 1 with spring
+            bounce) then a slow infinite breathe (1 -> 1.06 -> 1). The lime
             glow ring underneath gives the celebration weight. Lucide Check
-            inside an IconBadge — kit-only, no SparkleMark per the
+            inside an IconBadge - kit-only, no SparkleMark per the
             no-stickers rule (this page is not on the permitted list).
             Reduce-motion via globals.css collapses both animations. */}
         <motion.div
@@ -75,13 +123,20 @@ export default function OnboardingCompletePage() {
         className="flex flex-col gap-3"
       >
         <Button
-          nativeButton={false}
           size="cta"
           tone="cta"
           lift="float"
-          render={<Link href="/discover" prefetch={false} />}
+          onClick={handleStartMatching}
+          disabled={submitting}
         >
-          Start matching
+          {submitting ? (
+            <>
+              <Loader2 className="animate-spin" />
+              Finalising...
+            </>
+          ) : (
+            "Start matching"
+          )}
         </Button>
         <Button
           nativeButton={false}
@@ -92,6 +147,15 @@ export default function OnboardingCompletePage() {
         >
           Review my profile first
         </Button>
+        {error ? (
+          <p
+            role="alert"
+            aria-live="polite"
+            className="text-center text-caption font-semibold text-pink"
+          >
+            {error}
+          </p>
+        ) : null}
       </motion.div>
     </PageShell>
   );

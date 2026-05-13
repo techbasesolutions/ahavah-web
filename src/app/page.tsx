@@ -122,7 +122,7 @@ export default function WelcomePage() {
             variant="link"
             size="tap"
             className="text-lavender"
-            render={<Link href="/auth/sign-up" prefetch={false} />}
+            render={<Link href="/auth/sign-in" prefetch={false} />}
           >
             Sign in
           </Button>

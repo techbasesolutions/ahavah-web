@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import {
   ArrowLeft,
@@ -9,10 +10,13 @@ import {
   ChevronRight,
   KeyRound,
   Languages,
+  Loader2,
   LogOut,
   Phone,
   Trash2,
 } from "lucide-react";
+
+import { useProfile } from "@/lib/use-profile";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -60,8 +64,18 @@ const ACCOUNT_FIELDS: ReadonlyArray<{
 ];
 
 export default function AccountSettingsPage() {
+  const router = useRouter();
+  const { signOut } = useProfile();
   const [signOutOpen, setSignOutOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+
+  const handleSignOut = async () => {
+    if (signingOut) return;
+    setSigningOut(true);
+    await signOut();
+    router.push("/");
+  };
 
   return (
     <PageShell bottomPad="nav">
@@ -151,13 +165,21 @@ export default function AccountSettingsPage() {
                   <DialogClose
                     render={<Button variant="outlineSubtle" size="lg">Cancel</Button>}
                   />
-                  <DialogClose
-                    render={
-                      <Button size="lg" tone="brand">
-                        Log out
-                      </Button>
-                    }
-                  />
+                  <Button
+                    size="lg"
+                    tone="brand"
+                    onClick={handleSignOut}
+                    disabled={signingOut}
+                  >
+                    {signingOut ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" />
+                        Signing out...
+                      </>
+                    ) : (
+                      "Log out"
+                    )}
+                  </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
