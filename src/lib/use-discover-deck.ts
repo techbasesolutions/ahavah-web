@@ -108,12 +108,19 @@ export function useDiscoverDeck(
     setIsLoading(true);
     try {
       const path = buildSearchPath(cursorRef.current, filters);
-      const res = await apiClient.get<SearchResponse>(path);
-      setItems((prev) => [...prev, ...res.results]);
-      cursorRef.current = res.next_cursor;
-      setCursor(res.next_cursor);
-      hasMoreRef.current = res.next_cursor !== null;
-      setHasMore(res.next_cursor !== null);
+      // The backend's /search returns a bare array, not {results, next_cursor}.
+      // api-types.ts's SearchResponse shape was Phase W aspirational —
+      // adapt by accepting either shape here. Pagination is via the
+      // backend's n/o query-string args (not implemented yet on the
+      // frontend), so we treat the response as a single page for now.
+      const res = await apiClient.get<DiscoverCandidate[] | SearchResponse>(path);
+      const results = Array.isArray(res) ? res : res.results ?? [];
+      const nextCursor = Array.isArray(res) ? null : res.next_cursor;
+      setItems((prev) => [...prev, ...results]);
+      cursorRef.current = nextCursor;
+      setCursor(nextCursor);
+      hasMoreRef.current = nextCursor !== null;
+      setHasMore(nextCursor !== null);
       setError(null);
     } catch (e) {
       // Preserve last good items + cursor; surface the error for retry UI.

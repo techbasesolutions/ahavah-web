@@ -190,6 +190,15 @@ function translateOutbound(
   return out;
 }
 
+/** Read the current localStorage profile cache, falling back to empty. */
+function readCachedOrEmpty(): Partial<Profile> {
+  try {
+    return loadProfileFromCache() ?? {};
+  } catch {
+    return {};
+  }
+}
+
 /**
  * Phase W: the backend (`GET /me`) is the source of truth for the current
  * user's profile. localStorage is a CACHE used only to paint the UI
@@ -265,8 +274,12 @@ export function useProfile(): UseProfileResult {
       const server = await apiClient.get<Record<string, unknown>>("/me");
       const translated = translateInbound(server);
       lastServerSnapshot.current = translated;
-      setProfileState(translated);
-      saveProfileToCache(translated);
+      // Merge — don't replace. The backend doesn't model the Torah fields
+      // (assembly, polygyny, ...), so a wholesale setProfileState(translated)
+      // would wipe what the wizard captured locally and the /discover
+      // gate (firstMissingStepFor) would redirect us back to onboarding.
+      setProfileState((prev) => ({ ...prev, ...translated }));
+      saveProfileToCache({ ...readCachedOrEmpty(), ...translated });
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         // Session expired post-onboarding. Drop the cache so we don't
