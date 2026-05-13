@@ -495,6 +495,16 @@ export function useProfile(): UseProfileResult {
   }, []);
 
   const finishOnboarding = useCallback(async () => {
+    // Idempotent guard: backend's /finish-onboarding has an
+    // `expected_onboarding_status` decorator that 400s for already-graduated
+    // users. Re-visiting /onboarding/complete would otherwise always show
+    // "We couldn't finalise your profile". When the local flag says we're
+    // already onboarded, skip the POST + the post-graduation sync (those
+    // fields already landed on the person row) and just refresh /me.
+    if (readOnboarded()) {
+      await refreshProfile();
+      return;
+    }
     await apiClient.post("/finish-onboarding", {});
     writeOnboarded(true);
     // Post-graduation sync: PATCH the fields the onboardee schema didn't
@@ -502,7 +512,7 @@ export function useProfile(): UseProfileResult {
     // they land on the now-existing person row. One PATCH per mapped
     // entry, errors swallowed individually — a single broken field
     // shouldn't block reaching /discover.
-    const translated = translateOutbound(profile, { onboardee: false });
+    const translated = translateOutbound(profileRef.current, { onboardee: false });
     for (const [k, v] of Object.entries(translated)) {
       try {
         await apiClient.patch("/profile-info", { [k]: v });
@@ -512,7 +522,7 @@ export function useProfile(): UseProfileResult {
       }
     }
     await refreshProfile();
-  }, [profile, refreshProfile]);
+  }, [refreshProfile]);
 
   return {
     profile,
