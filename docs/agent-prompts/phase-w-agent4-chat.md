@@ -1,17 +1,19 @@
-# Phase W — Agent D: Chat WebSocket
+# Phase W — Agent 4: Chat WebSocket
+
+> **Trigger phrase**: This agent waits for the user to type **`You are Agent 4, execute`** in the terminal. Do not begin Task 4.0 / 4.1 until that phrase appears. Read the entire brief, confirm you understand your file ownership, then wait.
 
 _Self-contained dispatch prompt. Copy entire file as the Agent tool's `prompt` parameter, `subagent_type: "general-purpose"`, `run_in_background: true`._
 
 ---
 
-You are **Phase W Agent D — Chat WebSocket** for the Ahavah PWA.
+You are **Phase W Agent 4 — Chat WebSocket** for the Ahavah PWA.
 
-**Worktree:** `d:/Antigravity/ahavah-web-phase-w-d` (branch: `phase-w-agent-d`)
-**Logging file:** `d:/Antigravity/ahavah-web-phase-w-d/logs/phase-w-agent-d.md`
+**Worktree:** `d:/Antigravity/ahavah-web-phase-w-4` (branch: `phase-w-agent-4`)
+**Logging file:** `d:/Antigravity/ahavah-web-phase-w-4/logs/agent-4-chat.md`
 
 ## Mission
 
-Connect the chat surface to the backend's real WebSocket server. The backend speaks an XMPP-style XML protocol (forked from Duolicious) on `wss://chat.ahavah.app:5443`. You must:
+Connect the chat surface to the backend's real WebSocket server. The backend speaks an XMPP-style XML protocol (forked from Duolicious) on `ws://167.71.93.27:5443` (plain WebSocket on the droplet IP; no WSS yet because `ahavah.app` isn't registered). You must:
 
 1. Write a typed WebSocket wrapper that handles connect / auth / reconnect / stanza send / stanza receive
 2. Parse incoming XML stanzas into typed message events
@@ -20,13 +22,13 @@ Connect the chat surface to the backend's real WebSocket server. The backend spe
 5. Rewire `/chat/[id]` to render real messages
 6. Rewire `/inbox` to show real recent threads with unread counts
 
-This is the **hardest of the four agents**. The XMPP-XML wire format is undocumented; you must reverse-engineer from the backend's test harness. Budget more time for D.1 (the client) than the other tasks combined.
+This is the **hardest of the four agents**. The XMPP-XML wire format is undocumented; you must reverse-engineer from the backend's test harness. Budget more time for 4.1 (the client) than the other tasks combined.
 
 ## BEFORE YOU WRITE ANY CODE — READ IN ORDER
 
 1. **Master plan** — `d:/Antigravity/ahavah-web/docs/phase-w-plan.md` sections 2, 4, 6, plus risk §10 (XMPP-XML undocumented quirks).
 2. **Quad-agent protocol** — `d:/Antigravity/loprofile-backend-v2/docs/quad-agent-protocol.md`.
-3. **Current chat page** — `d:/Antigravity/ahavah-web-phase-w-d/src/app/chat/[id]/page.tsx` (whole file). Note the seeded bubbles + ephemeral sends pattern.
+3. **Current chat page** — `d:/Antigravity/ahavah-web-phase-w-4/src/app/chat/[id]/page.tsx` (whole file). Note the seeded bubbles + ephemeral sends pattern.
 4. **Current inbox** — `src/app/inbox/page.tsx`.
 5. **Backend chat module** — `d:/Antigravity/ahavah-api/service/chat/__init__.py` (whole file — it's the FastAPI/uvicorn entry point, ~400 lines, you NEED this for the wire format).
 6. **Backend chatutil** — `d:/Antigravity/ahavah-api/service/chat/chatutil/__init__.py` (hardcodes + helpers).
@@ -81,12 +83,12 @@ If files 5–7 don't give you a clear enough wire-format picture, **BLOCKER** be
 
 Execute IN ORDER. One commit per task. Log before AND after.
 
-### Task D.0 — Wire-format spike (~90 min, NOT a commit)
+### Task 4.0 — Wire-format spike (~90 min, NOT a commit)
 
 **Goal:** before writing any production code, understand the wire format completely.
 
 - [ ] Read every file in `d:/Antigravity/ahavah-api/tests/chat/`. Note: these are shell + JS test harnesses. Look at the literal XML strings they send and receive.
-- [ ] Document everything you learn in `logs/phase-w-agent-d-wire-format.md` (this is YOUR scratch file, not a commit). Include:
+- [ ] Document everything you learn in `logs/phase-w-agent-4-wire-format.md` (this is YOUR scratch file, not a commit). Include:
   - The opening stanza shape (XMPP-style `<stream:stream>` or simpler?)
   - The auth stanza (how does the server know the session token? Via cookie alone, or an explicit `<auth>` stanza?)
   - The message-send stanza (`<message to="..." type="chat"><body>...</body></message>`?)
@@ -98,7 +100,7 @@ Execute IN ORDER. One commit per task. Log before AND after.
 
 This task produces a planning doc, no code commit.
 
-### Task D.1 — Pure stanza encoder/decoder + exhaustive tests (~120 min)
+### Task 4.1 — Pure stanza encoder/decoder + exhaustive tests (~120 min)
 
 **Goal:** `chat-stanza.ts` is a pure module that converts between TypeScript objects and XML strings. No I/O.
 
@@ -140,7 +142,7 @@ export type ChatStateEvent =
 ```typescript
 import type { ChatStateEvent } from "./chat-types";
 
-/** Encode a message-send stanza. The exact format comes from Task D.0 spike. */
+/** Encode a message-send stanza. The exact format comes from Task 4.0 spike. */
 export function encodeMessage(params: {
   toUserId: string;
   body: string;
@@ -170,14 +172,14 @@ export function splitStanzas(buffer: string): string[] {
 - [ ] Write `tests/lib/chat-stanza.test.ts` covering AT LEAST:
   - encodeMessage produces the exact byte-for-byte XML the backend test harness expects (use a literal from `tests/chat/` as the assertion)
   - encodeTyping for both `true` and `false`
-  - decodeStanza recognizes every stanza type from your Task D.0 notes
+  - decodeStanza recognizes every stanza type from your Task 4.0 notes
   - decodeStanza returns null on unknown / malformed XML
   - splitStanzas handles a buffer with 1 / 2 / 3 stanzas in one chunk
   - splitStanzas handles a partial stanza at end-of-buffer (returns the complete prefix and leaves the partial for next call)
 - [ ] Run vitest — every test passes.
-- [ ] Commit: `feat(phase-w-d): pure chat-stanza encoder/decoder with exhaustive tests`.
+- [ ] Commit: `feat(phase-w-agent-4): pure chat-stanza encoder/decoder with exhaustive tests`.
 
-### Task D.2 — IndexedDB chat cache (~45 min)
+### Task 4.2 — IndexedDB chat cache (~45 min)
 
 **Goal:** persist the last 50 messages per thread so reopening shows history immediately.
 
@@ -213,9 +215,9 @@ export async function clearAll(): Promise<void> { /* ... */ }
 ```
 
 - [ ] Write tests using `fake-indexeddb` (already in vitest's `jsdom` dependencies; if not, BLOCKER and orchestrator adds it).
-- [ ] Commit: `feat(phase-w-d): IndexedDB cache for recent chat history`.
+- [ ] Commit: `feat(phase-w-agent-4): IndexedDB cache for recent chat history`.
 
-### Task D.3 — `chat-client.ts` — the WebSocket wrapper (~120 min)
+### Task 4.3 — `chat-client.ts` — the WebSocket wrapper (~120 min)
 
 **Goal:** singleton class managing the WebSocket connection. Emits typed events; consumers subscribe via callbacks.
 
@@ -249,7 +251,7 @@ class ChatClient {
     const ws = new WebSocket(url);
     ws.onopen = () => {
       this.reconnectDelay = 1000;
-      // Send any explicit auth stanza if Task D.0 spike showed one is needed.
+      // Send any explicit auth stanza if Task 4.0 spike showed one is needed.
     };
     ws.onmessage = (e) => this.handleIncoming(typeof e.data === "string" ? e.data : "");
     ws.onclose = () => this.handleClose();
@@ -308,9 +310,9 @@ export const chatClient = new ChatClient();
 
 - [ ] Refine `splitStanzas` interface to return remainder — adjust `chat-stanza.ts` if needed.
 - [ ] Smoke-test against the production WebSocket: in DevTools console, `chatClient.connect(); chatClient.subscribe(console.log); chatClient.sendMessage("<some-user-id>", "test")`. Watch console for `message-ack` or `message-in` events.
-- [ ] Commit: `feat(phase-w-d): chat-client WebSocket wrapper with reconnect + buffer-aware parsing`.
+- [ ] Commit: `feat(phase-w-agent-4): chat-client WebSocket wrapper with reconnect + buffer-aware parsing`.
 
-### Task D.4 — `use-chat-thread` hook (~60 min)
+### Task 4.4 — `use-chat-thread` hook (~60 min)
 
 **Goal:** consume `chatClient` for one specific thread.
 
@@ -375,16 +377,16 @@ export function useChatThread(threadId: string, withUserId: string) {
 }
 ```
 
-- [ ] Commit: `feat(phase-w-d): use-chat-thread hook with optimistic send + ack + typing`.
+- [ ] Commit: `feat(phase-w-agent-4): use-chat-thread hook with optimistic send + ack + typing`.
 
-### Task D.5 — `use-inbox` hook (~45 min)
+### Task 4.5 — `use-inbox` hook (~45 min)
 
 **Goal:** GET `/inbox-info` (or whichever REST endpoint the backend exposes for the inbox list — confirm in Foundation block) and merge in real-time updates from `chatClient` so unread counts stay accurate while a user is browsing.
 
 - [ ] Create `src/lib/use-inbox.ts`. Implementation pattern: initial `apiClient.get("/inbox-info")` for the list; subscribe to `chatClient` for inbound `message-in` events; bump the matching thread's `unreadCount` + update `lastMessage`.
-- [ ] Commit: `feat(phase-w-d): use-inbox hook merging REST + WebSocket updates`.
+- [ ] Commit: `feat(phase-w-agent-4): use-inbox hook merging REST + WebSocket updates`.
 
-### Task D.6 — Rewire `/chat/[id]` (~45 min)
+### Task 4.6 — Rewire `/chat/[id]` (~45 min)
 
 - [ ] Open `src/app/chat/[id]/page.tsx`. Note the current shape — `SUBJECT_BY_ID` hardcoded map + seeded bubbles + ephemeral sends.
 - [ ] Replace with `useChatThread(threadId, withUserId)` driving the existing `<ChatBubble>` atoms. The subject (other user's profile) is fetched via `GET /profile/<uuid>` through `apiClient` — confirm exact path in Foundation block. Loading state = `<Skeleton>`.
@@ -392,16 +394,16 @@ export function useChatThread(threadId: string, withUserId: string) {
 - [ ] Wire `<ChatInput>` `onChange` to debounce-fire `setMyTyping(true)` (and `setMyTyping(false)` 3s after last keystroke).
 - [ ] Render `theyAreTyping` via the existing typing-indicator atom (or as a small `<motion.div>` if no atom exists — read the chat-bubble.tsx file to see what's there).
 - [ ] Smoke-walk: open `/chat/<known-thread-id>` in two browsers (different seed accounts). Send message in one; see it appear in the other within ~500ms.
-- [ ] Commit: `feat(phase-w-d): /chat/[id] connects to real WebSocket`.
+- [ ] Commit: `feat(phase-w-agent-4): /chat/[id] connects to real WebSocket`.
 
-### Task D.7 — Rewire `/inbox` (~30 min)
+### Task 4.7 — Rewire `/inbox` (~30 min)
 
 - [ ] Open `src/app/inbox/page.tsx`. Replace fixtures with `useInbox()`. Each row = `<ListItem>` with unread badge from `thread.unreadCount`.
 - [ ] Each row clicks to `/chat/<thread.id>`.
 - [ ] Loading + empty + error states (R5).
-- [ ] Commit: `feat(phase-w-d): /inbox shows real recent threads with live unread counts`.
+- [ ] Commit: `feat(phase-w-agent-4): /inbox shows real recent threads with live unread counts`.
 
-### Task D.8 — Final verification (~30 min)
+### Task 4.8 — Final verification (~30 min)
 
 - [ ] `pnpm exec tsc --noEmit` clean.
 - [ ] `pnpm exec eslint --max-warnings=0` clean on touched files.
@@ -423,8 +425,8 @@ export function useChatThread(threadId: string, withUserId: string) {
 - [ ] Emit COMPLETE:
 
 ```
-COMPLETE: Agent D
-Tasks: 8/8 completed (D.0 is the wire-format spike, no commit)
+COMPLETE: Agent 4
+Tasks: 8/8 completed (4.0 is the wire-format spike, no commit)
 Files changed:
  - src/lib/chat-types.ts (new)
  - src/lib/chat-stanza.ts (new, ~150 lines)
@@ -434,60 +436,110 @@ Files changed:
  - src/lib/use-inbox.ts (new)
  - src/app/chat/[id]/page.tsx (rewired)
  - src/app/inbox/page.tsx (rewired)
- - tests/lib/chat-stanza.test.ts (new, covers every stanza type from D.0 spike)
+ - tests/lib/chat-stanza.test.ts (new, covers every stanza type from 4.0 spike)
  - tests/lib/chat-cache.test.ts (new, fake-indexeddb)
 Issues: [or none]
 Verification: typecheck + lint + vitest + build + two-browser e2e smoke walk all pass.
-Wire-format spike notes: docs/agent-prompts/phase-w-agent-d-wire-format.md (committed for orchestrator review)
+Wire-format spike notes: docs/agent-prompts/phase-w-agent-4-wire-format.md (committed for orchestrator review)
 ```
 
 ## BLOCKER format
 
 ```
-BLOCKER: Agent D
-Task: [task ID like D.1]
+BLOCKER: Agent 4
+Task: [task ID like 4.1]
 Error: [error]
 Attempted: [what you tried twice]
 Need: [what would unblock — likely a wire-format clarification or a backend endpoint addition]
 ```
 
-**Special blocker for D.0:** If after 90 minutes of spike work you can't reconstruct the wire format from the backend's test harness, BLOCKER. Don't write speculative XML. The orchestrator will pair-debug with you or add a JSON-bridge endpoint to the backend.
+**Special blocker for 4.0:** If after 90 minutes of spike work you can't reconstruct the wire format from the backend's test harness, BLOCKER. Don't write speculative XML. The orchestrator will pair-debug with you or add a JSON-bridge endpoint to the backend.
 
-## Logging format (`logs/phase-w-agent-d.md`)
+## Logging format (`logs/agent-4-chat.md`)
 
-Same shape — timestamped entries before/after each task. Plus the wire-format spike doc goes in `docs/agent-prompts/phase-w-agent-d-wire-format.md` (this IS committed; the orchestrator will read it during merge to confirm your understanding).
+Same shape — timestamped entries before/after each task. Plus the wire-format spike doc goes in `docs/agent-prompts/phase-w-agent-4-wire-format.md` (this IS committed; the orchestrator will read it during merge to confirm your understanding).
 
 ---
 
 ## Wave 1 Foundation — files now live
 
-_Filled by orchestrator before dispatch. If you see "TO BE FILLED", BLOCKER._
+Agent 0 (the IDE orchestrator) has completed Foundation work. Concrete
+values for your prompts:
 
-### Backend chat server
+### Backend (ahavah-api)
 
-- WebSocket URL: TO BE FILLED (expected: `wss://chat.ahavah.app:5443`)
-- Auth: session cookie sent on WebSocket upgrade (browser handles this automatically for same-eTLD+1 hosts). If cookie doesn't transmit, fallback is an explicit `<auth>` stanza after open — orchestrator confirms in Foundation F.2.
-- XMPP domain: `ahavah.app` (post-rebrand; was `duolicious.app` in the fork — Foundation F.1 changed it).
+- **Repo**: `d:/Antigravity/ahavah-api/` on branch `ahavah/main`. Deployed
+  to DigitalOcean droplet `ahavah-api-prod-01` (id 570650212, $24/mo
+  s-2vcpu-4gb, nyc3 region). SSH key: `C:/Users/Ehud/.ssh/id_ed25519_ahavah`.
+- **API base URL (REST)**: `http://167.71.93.27:5000` — set in
+  `.env.local` as `NEXT_PUBLIC_API_BASE_URL`. Plain HTTP (no SSL yet
+  because `ahavah.app` domain isn't registered).
+- **WebSocket URL (chat)**: `ws://167.71.93.27:5443` — set in
+  `.env.local` as `NEXT_PUBLIC_CHAT_WS_URL`. Plain WebSocket (not WSS)
+  because there's no SSL cert yet.
+- **Health check**: `curl http://167.71.93.27:5000/health` returns
+  `status: ok` (verified during Foundation).
 
-### Frontend env var
+### Frontend foundation (already on master)
 
-```
-NEXT_PUBLIC_CHAT_WS_URL=wss://chat.ahavah.app:5443
-```
+These files exist on `master` at commit `7bbf212` and beyond. Every
+worktree branched from this commit, so they're already in your tree:
 
-### REST endpoints you'll use
+- `src/lib/api-client.ts` — fetch wrapper with `credentials: 'include'`,
+  methods `get` / `post` / `patch` / `delete` / `postMultipart` (the
+  multipart variant uses XHR for upload progress; the others use fetch).
+  Throws `ApiError` (`.status` + `.body` + `.message`) on non-2xx.
+- `src/lib/api-types.ts` — hand-written TypeScript types for every
+  endpoint group. Source-of-truth comments cite the matching
+  `service/api/__init__.py` line ranges in the backend repo.
+- `src/lib/storage-keys.ts` — constants for localStorage keys
+  (`PROFILE_CACHE_KEY`, `DECISIONS_CACHE_KEY`, `FILTERS_CACHE_KEY`,
+  `PENDING_EMAIL_KEY`, `MAP_FIRST_MOUNT_KEY`).
 
-| Method | Path | Purpose | Request | Response |
-|---|---|---|---|---|
-| GET | `/inbox-info` | Recent threads + unread counts | none | `{ threads: ChatThread[] }` |
-| GET | `/profile/<uuid>` | One user's profile (for chat header) | none | `Partial<Profile>` |
-| GET | `/feed?thread=<id>&before=<ts>` (TO CONFIRM) | Message history backfill (REST, not WS) | querystring | `{ messages: ChatMessage[] }` |
+### Chat wire format (specific to you)
 
-The WS protocol is for real-time send/receive + typing + presence. For historical scrollback beyond what's in cache, use the REST endpoint above (confirm path in Foundation block).
+- The backend chat service is reachable at `ws://167.71.93.27:5443`.
+- Wire format is XMPP-XML — `lxml` on the backend, browser-native
+  `DOMParser` on the frontend. Do not install an XMPP library.
+- The `LSERVER` for JIDs is `ahavah.app`, set as an env var on the
+  backend even though that domain isn't registered. JIDs are just
+  identifiers; no DNS lookup is performed against them. So your
+  outbound `to` attribute is `<user-uuid>@ahavah.app/web` regardless
+  of the real droplet IP.
+- Auth: session cookie (`duo_session`) is sent on the WebSocket upgrade
+  request by the browser automatically. The plain-HTTP/IP setup means
+  `SameSite=Lax` may matter; if cookies don't flow, that's a BLOCKER
+  for Agent 0 to investigate. Fallback path (explicit `<auth>` stanza
+  after open) is documented but the cookie path is preferred.
+- **Your spike task (4.0) still applies** — reverse-engineer the exact
+  wire format from `d:/Antigravity/ahavah-api/tests/chat/`. Don't rely
+  on the hints below as gospel.
 
-### Wire-format hints from orchestrator's pre-spike
+### Auth / OTP (context for the cookie that authenticates your WS)
+
+- Email-only OTP via Resend (no SMS / Twilio in Phase W — deferred).
+- OTP from-address is `onboarding@resend.dev` (universal Resend
+  placeholder).
+- Session is delivered as an httpOnly cookie named `duo_session`. The
+  backend sets it on `Set-Cookie` from `/check-otp`.
+
+### Database schema
+
+The backend's Postgres database is `duo_api` on `postgres:16` with
+pgvector + postgis extensions. 74 tables from the upstream Duolicious
+schema plus the Phase W migrations:
+
+- `swipe` (subject, object, direction, created_at) — like/pass record
+- `hide_and_block` — block list
+- `message_translation` — DeepL translation cache (Phase 2)
+- `mam_message`, `inbox`, `rude_message` — chat tables (your domain)
+- `ahavah_verification_tier` ENUM type — `'none' | 'bronze' | 'silver' | 'gold'`
+- `person.ahavah_verification_tier` column (default `'none'`)
+
+### Wire-format hints (NOT gospel — confirm in Task 4.0)
 
 The backend's `chat/chatutil` module suggests:
+
 - Stanza tag is `<message>` (XMPP-style)
 - `type="chat"` attribute on outbound messages
 - `to` attribute is `<user-uuid>@ahavah.app/web`
@@ -495,12 +547,48 @@ The backend's `chat/chatutil` module suggests:
 - `id` attribute on outbound messages is preserved on the server `ack` so you can match.
 - Typing uses XEP-0085: child element `<composing xmlns="http://jabber.org/protocol/chatstates"/>` or `<paused/>`.
 
-**These are hints, not gospel.** Confirm against the test harness in Task D.0.
+**These are hints, not gospel.** Confirm against the test harness in
+Task 4.0.
+
+### REST endpoints you'll use
+
+| Method | Path | Purpose | Request | Response |
+|---|---|---|---|---|
+| GET | `/inbox-info` | Recent threads + unread counts | none | `{ threads: ChatThread[] }` |
+| GET | `/profile/<uuid>` | One user's profile (for chat header) | none | `Partial<Profile>` |
+| GET | `/feed?thread=<id>&before=<ts>` (verify against `service/api/__init__.py`) | Message history backfill (REST, not WS) | querystring | `{ messages: ChatMessage[] }` |
+
+The WS protocol is for real-time send/receive + typing + presence. For
+historical scrollback beyond what's in cache, use the REST endpoint
+above.
+
+### What's deferred (don't try to wire these)
+
+- **Stripe** (verification + paywall): deferred to Cutover.
+- **Twilio**: no SMS OTP path. Email-only.
+- **SSL / domain**: no `ahavah.app`. Plain HTTP + plain WS on droplet IP.
+- **Sentry / PostHog**: env vars unset, telemetry no-ops.
 
 ### IndexedDB polyfill for tests
 
-If `fake-indexeddb` isn't already in devDependencies, BLOCKER — orchestrator adds it during Foundation F.3.
+`fake-indexeddb` is expected in devDependencies for `chat-cache.test.ts`.
+If missing, BLOCKER — Agent 0 adds it.
+
+### Logs go to
+
+`d:/Antigravity/ahavah-web/logs/agent-4-chat.md` on the master
+repo (NOT inside your worktree). The `logs/` directory was created
+by Agent 0 during F.5. Append-only; one entry per major step
+(started + completed).
+
+### Communication protocol (reminder)
+
+When you hit a 2-attempt failure → emit a `BLOCKER:` block (template
+in the brief above). When you finish all tasks → emit a `COMPLETE:`
+block. Both go to **stdout in this terminal**; the user copy-pastes
+them into Agent 0's IDE session for triage / acknowledgement. Agent 0
+cannot see your terminal output directly.
 
 ---
 
-**Begin Task D.0 (wire-format spike) when ready. Log first, then work. Take 90 minutes on D.0 before any code; bluffing the wire format will cost more later than spiking now.**
+**Begin Task 4.0 (wire-format spike) when ready. Log first, then work. Take 90 minutes on 4.0 before any code; bluffing the wire format will cost more later than spiking now.**

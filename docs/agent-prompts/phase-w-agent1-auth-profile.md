@@ -1,26 +1,28 @@
-# Phase W — Agent A: Auth + Profile wiring
+# Phase W — Agent 1: Auth + Profile wiring
+
+> **Trigger phrase**: This agent waits for the user to type **`You are Agent 1, execute`** in the terminal. Do not begin Task 1.0 / 1.1 until that phrase appears. Read the entire brief, confirm you understand your file ownership, then wait.
 
 _Self-contained dispatch prompt. Copy the entire contents of this file into the Agent tool as the `prompt` parameter, `subagent_type: "general-purpose"`, `run_in_background: true`._
 
 ---
 
-You are **Phase W Agent A — Auth + Profile** for the Ahavah PWA.
+You are **Phase W Agent 1 — Auth + Profile** for the Ahavah PWA.
 
-**Worktree:** `d:/Antigravity/ahavah-web-phase-w-a` (branch: `phase-w-agent-a`)
+**Worktree:** `d:/Antigravity/ahavah-web-phase-w-1` (branch: `phase-w-agent-1`)
 **Project root referenced in code:** `d:/Antigravity/ahavah-web` (use the worktree path when editing; the imports + structure are identical).
-**Logging file:** `d:/Antigravity/ahavah-web-phase-w-a/logs/phase-w-agent-a.md`
+**Logging file:** `d:/Antigravity/ahavah-web-phase-w-1/logs/agent-1-auth-profile.md`
 
 ## Mission
 
-Replace every localStorage read/write of the user profile + auth state with real HTTP calls to the backend at `https://api.ahavah.app`. Wire the signup → email-OTP → onboarding pipeline end-to-end against the real backend so a fresh visitor can register, verify, complete onboarding, and have a persistent server-backed profile.
+Replace every localStorage read/write of the user profile + auth state with real HTTP calls to the backend at `http://167.71.93.27:5000` (plain HTTP; no SSL yet because the `ahavah.app` domain isn't registered). Wire the signup → email-OTP → onboarding pipeline end-to-end against the real backend so a fresh visitor can register, verify, complete onboarding, and have a persistent server-backed profile.
 
 ## BEFORE YOU WRITE ANY CODE — READ IN ORDER
 
 1. **The master plan** — `d:/Antigravity/ahavah-web/docs/phase-w-plan.md` — sections 2 (outcome), 4 (workstream), 6 (file ownership). 5-min read; gives you context for why your scope ends where it ends.
 2. **The quad-agent protocol** — `d:/Antigravity/loprofile-backend-v2/docs/quad-agent-protocol.md` — sections on Logging, Blocker, Completion. 3-min read; sets the communication contract.
-3. **The current `useProfile` hook** — `d:/Antigravity/ahavah-web-phase-w-a/src/lib/use-profile.ts` (entire file, ~60 lines) and `d:/Antigravity/ahavah-web-phase-w-a/src/lib/use-profile-storage.ts` (entire file, ~25 lines).
-4. **The Profile schema** — `d:/Antigravity/ahavah-web-phase-w-a/src/lib/profile-schema.ts` (it's long; read the top 100 lines + the `Profile` type at the bottom).
-5. **The shared API client** (orchestrator-built, read-only for you) — `d:/Antigravity/ahavah-web-phase-w-a/src/lib/api-client.ts`, `src/lib/api-types.ts`, `src/lib/storage-keys.ts`. These exist when you start.
+3. **The current `useProfile` hook** — `d:/Antigravity/ahavah-web-phase-w-1/src/lib/use-profile.ts` (entire file, ~60 lines) and `d:/Antigravity/ahavah-web-phase-w-1/src/lib/use-profile-storage.ts` (entire file, ~25 lines).
+4. **The Profile schema** — `d:/Antigravity/ahavah-web-phase-w-1/src/lib/profile-schema.ts` (it's long; read the top 100 lines + the `Profile` type at the bottom).
+5. **The shared API client** (orchestrator-built, read-only for you) — `d:/Antigravity/ahavah-web-phase-w-1/src/lib/api-client.ts`, `src/lib/api-types.ts`, `src/lib/storage-keys.ts`. These exist when you start.
 6. **Backend endpoint signatures for your scope** — `d:/Antigravity/ahavah-api/service/api/__init__.py` lines 173–229 (auth), 297–427 (profile). 5-min skim; confirms the wire format the api-client targets.
 
 If any of files 5 are missing, BLOCKER — orchestrator hasn't completed Foundation. Do not proceed.
@@ -59,15 +61,15 @@ If any of files 5 are missing, BLOCKER — orchestrator hasn't completed Foundat
 - `src/lib/profile-schema.ts` — locked; if a type extension needed, BLOCKER
 - `src/components/ui/*`, `src/components/kibo-ui/*` — primitives
 - All other onboarding pages (name, dob, gender, marital-status, children, looking-for, photos, country, languages, bio, polygyny, assembly, relocation, verification) — they read from `useProfile` whose surface you preserve; they don't get rewritten by you
-- `src/lib/discover-engine.ts`, `src/lib/profile-sample.ts` — Agent B's domain in practice; preserve unchanged
-- `src/lib/photo-storage.ts` — Agent C's domain
-- `src/lib/chat-client.ts` (when it exists) — Agent D's domain
+- `src/lib/discover-engine.ts`, `src/lib/profile-sample.ts` — Agent 2's domain in practice; preserve unchanged
+- `src/lib/photo-storage.ts` — Agent 3's domain
+- `src/lib/chat-client.ts` (when it exists) — Agent 4's domain
 
 ## Tasks
 
-Execute these tasks IN ORDER. Each task is one focused commit. Log before AND after each task in `logs/phase-w-agent-a.md`.
+Execute these tasks IN ORDER. Each task is one focused commit. Log before AND after each task in `logs/agent-1-auth-profile.md`.
 
-### Task A.1 — Cache layer + storage rewrite (~30 min)
+### Task 1.1 — Cache layer + storage rewrite (~30 min)
 
 **Goal:** rewrite `use-profile-storage.ts` so localStorage is a cache, not source of truth.
 
@@ -152,9 +154,9 @@ export function clearProfileCache(): void {
 
 - [ ] Re-run the test file. Expect 4 PASS.
 - [ ] `pnpm exec tsc --noEmit` + `pnpm exec eslint --max-warnings=0 src/lib/use-profile-storage.ts tests/lib/use-profile-storage.test.ts` — both clean.
-- [ ] Commit: `feat(phase-w-a): use-profile-storage becomes cache, backend is source of truth`.
+- [ ] Commit: `feat(phase-w-agent-1): use-profile-storage becomes cache, backend is source of truth`.
 
-### Task A.2 — `useProfile` extends with HTTP source-of-truth (~45 min)
+### Task 1.2 — `useProfile` extends with HTTP source-of-truth (~45 min)
 
 **Goal:** `useProfile()` now hydrates from backend on mount, falls back to cache while the fetch resolves, write-through on every update.
 
@@ -279,9 +281,9 @@ export function useProfile(): UseProfileResult {
 
 - [ ] `pnpm exec tsc --noEmit` clean.
 - [ ] `grep -rn "useProfile()" src/` — confirm every existing consumer still compiles (the external shape is preserved).
-- [ ] Commit: `feat(phase-w-a): useProfile hydrates from backend with cache + write-through`.
+- [ ] Commit: `feat(phase-w-agent-1): useProfile hydrates from backend with cache + write-through`.
 
-### Task A.3 — `auth-otp.ts` helper module + tests (~30 min)
+### Task 1.3 — `auth-otp.ts` helper module + tests (~30 min)
 
 **Goal:** small typed wrapper over the OTP endpoints so the UI doesn't repeat the request shape.
 
@@ -339,9 +341,9 @@ export async function checkOtp(email: string, otp: string): Promise<CheckOtpResu
 ```
 
 - [ ] Run vitest — expect both pass.
-- [ ] Commit: `feat(phase-w-a): auth-otp helpers (request + check)`.
+- [ ] Commit: `feat(phase-w-agent-1): auth-otp helpers (request + check)`.
 
-### Task A.4 — Welcome page wires real handlers (~20 min)
+### Task 1.4 — Welcome page wires real handlers (~20 min)
 
 **Goal:** `/` (welcome page) "Get started" and "Sign in" buttons navigate to the real signup / signin flows.
 
@@ -350,9 +352,9 @@ export async function checkOtp(email: string, otp: string): Promise<CheckOtpResu
 - [ ] Read `src/app/page.tsx` to see what it currently does.
 - [ ] Update the two CTA buttons to navigate to `/auth/sign-up` and `/auth/sign-in` respectively (use `next/link` `<Link>` — these are non-async navigations). If they already do this, no change needed; verify by reading.
 - [ ] Smoke-walk: `pnpm dev`, open `http://localhost:3000`, tap each button, confirm correct destination.
-- [ ] Commit if changed: `feat(phase-w-a): welcome page CTAs route to real signup/signin`.
+- [ ] Commit if changed: `feat(phase-w-agent-1): welcome page CTAs route to real signup/signin`.
 
-### Task A.5 — `/auth/sign-up` calls real backend (~45 min)
+### Task 1.5 — `/auth/sign-up` calls real backend (~45 min)
 
 **Goal:** the signup form actually requests an OTP and routes to `/onboarding/verify-email`.
 
@@ -407,9 +409,9 @@ export default function SignUpPage() {
 Actually, **reconsider:** if Duolicious is passwordless, the current sign-up password field is misleading. Coordinate with the orchestrator: BLOCKER if you think the password field should be removed from the UI; otherwise leave it and document in code.
 
 - [ ] Smoke-walk: enter a real email, submit, confirm an OTP arrives at that inbox (assumes orchestrator's Foundation has wired Resend and seeded the test domain).
-- [ ] Commit: `feat(phase-w-a): /auth/sign-up requests real OTP`.
+- [ ] Commit: `feat(phase-w-agent-1): /auth/sign-up requests real OTP`.
 
-### Task A.6 — `/auth/sign-in` page (~30 min)
+### Task 1.6 — `/auth/sign-in` page (~30 min)
 
 **Goal:** returning users hit `/auth/sign-in`, enter their email, get an OTP, complete the same flow.
 
@@ -417,10 +419,10 @@ Actually, **reconsider:** if Duolicious is passwordless, the current sign-up pas
 
 - [ ] Create `src/app/auth/sign-in/page.tsx` mirroring sign-up but with single email field, no password, copy: heading "Welcome back" + "Enter your email and we'll send a sign-in code." + CTA "Send code".
 - [ ] Same handler: `await requestEmailOtp(email); sessionStorage.setItem("ahavah.pending-email", email); router.push("/onboarding/verify-email");`.
-- [ ] Smoke-walk parallel to A.5.
-- [ ] Commit: `feat(phase-w-a): /auth/sign-in page for returning users`.
+- [ ] Smoke-walk parallel to 1.5.
+- [ ] Commit: `feat(phase-w-agent-1): /auth/sign-in page for returning users`.
 
-### Task A.7 — `/onboarding/verify-email` wires real OTP check (~45 min)
+### Task 1.7 — `/onboarding/verify-email` wires real OTP check (~45 min)
 
 **Goal:** the 6-box CodeInput, on completion, calls `/check-otp`, stores the session cookie (handled server-side via `Set-Cookie`), and advances to the next onboarding step.
 
@@ -463,17 +465,17 @@ const handleCodeComplete = async (code: string) => {
 
 - [ ] Use the existing `useProfile()` hook to get `refreshProfile`.
 - [ ] **Crucial:** the backend must set the session cookie as `Set-Cookie: duo_session=<token>; HttpOnly; Secure; SameSite=Lax; Path=/`. Confirm in `api-client.ts` that `credentials: 'include'` is set so cookies are sent on subsequent requests. If not, BLOCKER (orchestrator-owned file).
-- [ ] Commit: `feat(phase-w-a): /onboarding/verify-email validates OTP and starts session`.
+- [ ] Commit: `feat(phase-w-agent-1): /onboarding/verify-email validates OTP and starts session`.
 
-### Task A.8 — `/onboarding/verify-phone` parallel wiring (~30 min)
+### Task 1.8 — `/onboarding/verify-phone` parallel wiring (~30 min)
 
-The backend OTP flow is the same shape for phone (different field name; the backend accepts either). Mirror A.7 but with phone field + `requestPhoneOtp` (you'll need to add a sibling helper to `auth-otp.ts` calling `/request-otp` with a `phone` field instead of `email`).
+The backend OTP flow is the same shape for phone (different field name; the backend accepts either). Mirror 1.7 but with phone field + `requestPhoneOtp` (you'll need to add a sibling helper to `auth-otp.ts` calling `/request-otp` with a `phone` field instead of `email`).
 
 - [ ] Add `requestPhoneOtp(phone: string)` and `checkPhoneOtp(phone: string, otp: string)` to `auth-otp.ts` + tests.
 - [ ] Wire the page handler.
-- [ ] Commit: `feat(phase-w-a): /onboarding/verify-phone validates OTP via SMS`.
+- [ ] Commit: `feat(phase-w-agent-1): /onboarding/verify-phone validates OTP via SMS`.
 
-### Task A.9 — `/onboarding/complete` write-through (~20 min)
+### Task 1.9 — `/onboarding/complete` write-through (~20 min)
 
 **Goal:** before navigating to `/discover`, ensure the full profile is committed to the backend (in case any intermediate step didn't write through — defensive).
 
@@ -498,9 +500,9 @@ const handleStartMatching = async () => {
 };
 ```
 
-- [ ] Commit: `feat(phase-w-a): /onboarding/complete confirms server profile before launch`.
+- [ ] Commit: `feat(phase-w-agent-1): /onboarding/complete confirms server profile before launch`.
 
-### Task A.10 — Sign-out wiring on /profile + /settings/account (~20 min)
+### Task 1.10 — Sign-out wiring on /profile + /settings/account (~20 min)
 
 **Goal:** the "Sign out" affordance on profile + account-settings calls the real `signOut()` and lands the user back on `/`.
 
@@ -519,9 +521,9 @@ const handleSignOut = async () => {
 ```
 
 - [ ] Smoke-walk: sign in, navigate to profile, tap Sign out, confirm landed on `/` and `useProfile().profile === {}`.
-- [ ] Commit: `feat(phase-w-a): real sign-out wiring`.
+- [ ] Commit: `feat(phase-w-agent-1): real sign-out wiring`.
 
-### Task A.11 — Final verification (~30 min)
+### Task 1.11 — Final verification (~30 min)
 
 **Steps:**
 
@@ -545,7 +547,7 @@ const handleSignOut = async () => {
 - [ ] Emit COMPLETE:
 
 ```
-COMPLETE: Agent A
+COMPLETE: Agent 1
 Tasks: 11/11 completed
 Files changed:
  - src/lib/use-profile-storage.ts (rewrite)
@@ -569,20 +571,20 @@ Verification: typecheck + lint + vitest + production build + end-to-end smoke wa
 After 2 failed attempts at any single step, stop and emit:
 
 ```
-BLOCKER: Agent A
-Task: [task ID like A.7]
+BLOCKER: Agent 1
+Task: [task ID like 1.7]
 Error: [error message]
 Attempted: [what you tried, twice]
 Need: [what would unblock you — e.g. "/check-otp returns 500; need backend log access"
        or "api-client.ts doesn't set credentials: 'include'"]
 ```
 
-## Logging format (write to `logs/phase-w-agent-a.md`)
+## Logging format (write to `logs/agent-1-auth-profile.md`)
 
 Append to the file before AND after each task:
 
 ```markdown
-## [HH:MM] Task A.N — [description]
+## [HH:MM] Task 1.N — [description]
 
 - Status: started | completed | blocked
 - Files: [created/modified paths]
@@ -594,67 +596,96 @@ Append to the file before AND after each task:
 
 ## Wave 1 Foundation — files now live
 
-_This section is filled in by the orchestrator AFTER Foundation §5 completes and BEFORE you are dispatched. If you see "TO BE FILLED" anywhere below, BLOCKER._
+Agent 0 (the IDE orchestrator) has completed Foundation work. Concrete
+values for your prompts:
 
-### Backend production URLs (Foundation F.2 deliverables)
+### Backend (ahavah-api)
 
-- API base URL: TO BE FILLED (expected: `https://api.ahavah.app`)
-- API health check: TO BE FILLED (expected: `https://api.ahavah.app/health` → 200)
-- WebSocket chat URL (for reference; Agent D uses): TO BE FILLED (expected: `wss://chat.ahavah.app:5443`)
+- **Repo**: `d:/Antigravity/ahavah-api/` on branch `ahavah/main`. Deployed
+  to DigitalOcean droplet `ahavah-api-prod-01` (id 570650212, $24/mo
+  s-2vcpu-4gb, nyc3 region). SSH key: `C:/Users/Ehud/.ssh/id_ed25519_ahavah`.
+- **API base URL (REST)**: `http://167.71.93.27:5000` — set in
+  `.env.local` as `NEXT_PUBLIC_API_BASE_URL`. Plain HTTP (no SSL yet
+  because `ahavah.app` domain isn't registered).
+- **WebSocket URL (chat)**: `ws://167.71.93.27:5443` — set in
+  `.env.local` as `NEXT_PUBLIC_CHAT_WS_URL`.
+- **Health check**: `curl http://167.71.93.27:5000/health` returns
+  `status: ok` (verified during Foundation).
 
-### Frontend env var (set in `.env.local` before you start)
+### Frontend foundation (already on master)
 
-```
-NEXT_PUBLIC_API_BASE_URL=https://api.ahavah.app
-```
+These files exist on `master` at commit `7bbf212` and beyond. Every
+worktree branched from this commit, so they're already in your tree:
 
-### API client surface (Foundation F.3 — read-only for you)
+- `src/lib/api-client.ts` — fetch wrapper with `credentials: 'include'`,
+  methods `get` / `post` / `patch` / `delete` / `postMultipart` (the
+  multipart variant uses XHR for upload progress; the others use fetch).
+  Throws `ApiError` (`.status` + `.body` + `.message`) on non-2xx.
+- `src/lib/api-types.ts` — hand-written TypeScript types for every
+  endpoint group. Source-of-truth comments cite the matching
+  `service/api/__init__.py` line ranges in the backend repo.
+- `src/lib/storage-keys.ts` — constants for localStorage keys
+  (`PROFILE_CACHE_KEY`, `DECISIONS_CACHE_KEY`, `FILTERS_CACHE_KEY`,
+  `PENDING_EMAIL_KEY`, `MAP_FIRST_MOUNT_KEY`).
 
-The orchestrator has shipped `src/lib/api-client.ts` exporting:
+### Auth / OTP
 
-```typescript
-export const apiClient: {
-  get<T>(path: string): Promise<T>;
-  post<T>(path: string, body: unknown): Promise<T>;
-  patch<T>(path: string, body: unknown): Promise<T>;
-  delete<T>(path: string): Promise<T>;
-};
-export class ApiError extends Error {
-  status: number;
-  body: unknown;
-}
-```
+- Email-only OTP via Resend (no SMS / Twilio in Phase W — deferred).
+- OTP from-address is `onboarding@resend.dev` (universal Resend
+  placeholder). Real Ahavah branding lands when `ahavah.app` is
+  registered + verified in Resend.
+- Session is delivered as an httpOnly cookie named `duo_session`. The
+  backend sets it on `Set-Cookie` from `/check-otp`. `api-client.ts`'s
+  `credentials: 'include'` carries it back automatically.
+- During dev: emails to `*@example.com` use OTP code `000000` (no real
+  send). For real OTPs use a gmail / outlook / etc. address — the
+  backend's `good_email_domain` table restricts which providers pass.
 
-Sets `credentials: 'include'` by default so the `duo_session` httpOnly cookie travels on every request. Reads `process.env.NEXT_PUBLIC_API_BASE_URL` as the base.
+### Database schema
 
-### Endpoints you'll use
+The backend's Postgres database is `duo_api` on `postgres:16` with
+pgvector + postgis extensions. 74 tables from the upstream Duolicious
+schema plus the Phase W migrations:
 
-| Method | Path | Purpose | Request body | Response |
-|---|---|---|---|---|
-| POST | `/request-otp` | Request signup/login OTP via email | `{ email: string }` | `{ ok: true }` (200) |
-| POST | `/check-otp` | Verify OTP, start session | `{ email: string, otp: string }` | `{ session_token: string, is_new_account: boolean }` (200; sets `Set-Cookie`) |
-| POST | `/sign-out` | End session | `{}` | `{ ok: true }` (200; clears cookie) |
-| GET | `/me` | Read current profile | none | `Partial<Profile>` (200) or 401 if no session |
-| PATCH | `/profile-info` | Update profile fields | `Partial<Profile>` | `{ ok: true }` (200) |
-| GET | `/check-session-token` | Validate session exists | none | `{ valid: boolean }` |
+- `swipe` (subject, object, direction, created_at) — like/pass record
+- `hide_and_block` — block list
+- `message_translation` — DeepL translation cache (Phase 2)
+- `photo_moderation_*` — moderation queue (Phase 4)
+- `entitlement_event` — IAP ledger (Phase 5)
+- `ahavah_verification_tier` ENUM type — `'none' | 'bronze' | 'silver' | 'gold'`
+- `person.ahavah_verification_tier` column (default `'none'`)
 
-### Seed account for testing
+### Storage (photos)
 
-The orchestrator has created seed account `agent-a-test@ahavah.app` with verified OTP flow. Use it for end-to-end smoke walks. Email arrives at the Resend test inbox (path: TO BE FILLED).
+- DigitalOcean Spaces bucket `ahavah-photos-prod` in `nyc3`.
+- CDN URL pattern: `https://ahavah-photos-prod.nyc3.cdn.digitaloceanspaces.com/<uuid>.jpg`
+- Backend handles NSFW moderation via the existing ONNX classifier
+  before approving uploads.
 
-### Storage keys (orchestrator-owned constants)
+### What's deferred (don't try to wire these)
 
-The orchestrator's `src/lib/storage-keys.ts` exports:
+- **Stripe** (verification + paywall): deferred to Cutover. The
+  `/verification/start-id-flow` and `/checkout/web` endpoints exist
+  but `STRIPE_SECRET_KEY` is empty in production env, so they no-op.
+- **Twilio**: no SMS OTP path. Email-only.
+- **SSL / domain**: no `ahavah.app`. Plain HTTP on droplet IP.
+- **Sentry / PostHog**: env vars unset, telemetry no-ops.
 
-```typescript
-export const PROFILE_CACHE_KEY = "ahavah.profile.v1";
-export const DECISIONS_CACHE_KEY = "ahavah.decisions.v1";
-export const FILTERS_CACHE_KEY = "ahavah.filters.v1";
-export const PENDING_EMAIL_KEY = "ahavah.pending-email";
-```
+### Logs go to
 
-Use these constants — don't hardcode strings.
+`d:/Antigravity/ahavah-web/logs/agent-1-auth-profile.md` on the master
+repo (NOT inside your worktree). The `logs/` directory was created
+by Agent 0 during F.5. Append-only; one entry per major step
+(started + completed).
+
+### Communication protocol (reminder)
+
+When you hit a 2-attempt failure → emit a `BLOCKER:` block (template
+in the brief above). When you finish all tasks → emit a `COMPLETE:`
+block. Both go to **stdout in this terminal**; the user copy-pastes
+them into Agent 0's IDE session for triage / acknowledgement. Agent 0
+cannot see your terminal output directly.
 
 ---
 
-**Begin Task A.1 when ready. Log first, then work.**
+**Begin Task 1.1 when ready. Log first, then work.**

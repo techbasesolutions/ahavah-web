@@ -1,13 +1,15 @@
-# Phase W — Agent B: Discovery + Likes + SwipeCard
+# Phase W — Agent 2: Discovery + Likes + SwipeCard
+
+> **Trigger phrase**: This agent waits for the user to type **`You are Agent 2, execute`** in the terminal. Do not begin Task 2.0 / 2.1 until that phrase appears. Read the entire brief, confirm you understand your file ownership, then wait.
 
 _Self-contained dispatch prompt. Copy entire file as the Agent tool's `prompt` parameter, `subagent_type: "general-purpose"`, `run_in_background: true`._
 
 ---
 
-You are **Phase W Agent B — Discovery + Likes + SwipeCard** for the Ahavah PWA.
+You are **Phase W Agent 2 — Discovery + Likes + SwipeCard** for the Ahavah PWA.
 
-**Worktree:** `d:/Antigravity/ahavah-web-phase-w-b` (branch: `phase-w-agent-b`)
-**Logging file:** `d:/Antigravity/ahavah-web-phase-w-b/logs/phase-w-agent-b.md`
+**Worktree:** `d:/Antigravity/ahavah-web-phase-w-2` (branch: `phase-w-agent-2`)
+**Logging file:** `d:/Antigravity/ahavah-web-phase-w-2/logs/agent-2-discovery-likes.md`
 
 ## Mission
 
@@ -21,10 +23,10 @@ Make `/discover` a real dating-app surface. Three pieces:
 
 1. **The master plan** — `d:/Antigravity/ahavah-web/docs/phase-w-plan.md` sections 2, 4, 6.
 2. **The quad-agent protocol** — `d:/Antigravity/loprofile-backend-v2/docs/quad-agent-protocol.md`.
-3. **Current `/discover`** — `d:/Antigravity/ahavah-web-phase-w-b/src/app/discover/page.tsx` (whole file).
-4. **Current `discover-engine.ts`** — `d:/Antigravity/ahavah-web-phase-w-b/src/lib/discover-engine.ts` (whole file).
-5. **Current `/match`** — `d:/Antigravity/ahavah-web-phase-w-b/src/app/match/page.tsx`.
-6. **Current `/matches`** — `d:/Antigravity/ahavah-web-phase-w-b/src/app/matches/page.tsx`.
+3. **Current `/discover`** — `d:/Antigravity/ahavah-web-phase-w-2/src/app/discover/page.tsx` (whole file).
+4. **Current `discover-engine.ts`** — `d:/Antigravity/ahavah-web-phase-w-2/src/lib/discover-engine.ts` (whole file).
+5. **Current `/match`** — `d:/Antigravity/ahavah-web-phase-w-2/src/app/match/page.tsx`.
+6. **Current `/matches`** — `d:/Antigravity/ahavah-web-phase-w-2/src/app/matches/page.tsx`.
 7. **Shared API client** — `src/lib/api-client.ts`, `src/lib/api-types.ts`, `src/lib/storage-keys.ts`. If missing → BLOCKER.
 8. **Backend endpoint signatures** — `d:/Antigravity/ahavah-api/service/api/__init__.py` lines 258–393 (search + discovery prefs) and 351–355 (skip/by-uuid).
 9. **`motion/react` docs you need** — gesture API (PanInfo, useMotionValue, useTransform, drag, dragConstraints, dragElastic). Read `node_modules/motion/dist/index.d.ts` for the exact types. ~10 min.
@@ -71,9 +73,9 @@ If any file from item 7 is missing → BLOCKER.
 
 ## Tasks
 
-Execute IN ORDER. One commit per task. Log before AND after each in `logs/phase-w-agent-b.md`.
+Execute IN ORDER. One commit per task. Log before AND after each in `logs/agent-2-discovery-likes.md`.
 
-### Task B.1 — Pure swipe-decision logic + tests (~30 min)
+### Task 2.1 — Pure swipe-decision logic + tests (~30 min)
 
 **Goal:** decide what a pan gesture means — `"like"`, `"nope"`, or `"stay"` — based on offset + velocity.
 
@@ -135,9 +137,9 @@ export function decideFromPan({ offsetX, velocityX }: PanState): SwipeDecision {
 ```
 
 - [ ] Run vitest — all 6 pass.
-- [ ] Commit: `feat(phase-w-b): pure swipe-decision logic with offset + velocity thresholds`.
+- [ ] Commit: `feat(phase-w-agent-2): pure swipe-decision logic with offset + velocity thresholds`.
 
-### Task B.2 — SwipeCard primitive (~90 min)
+### Task 2.2 — SwipeCard primitive (~90 min)
 
 **Goal:** a single card that handles its own pan/rotate/LIKE-NOPE-overlay drawing. Stateless from the deck's POV.
 
@@ -259,10 +261,10 @@ export function SwipeCard({
 }
 ```
 
-- [ ] Smoke-walk: `pnpm dev`. Open `/discover` once you've wired it (B.5). For now, you can write a temporary preview page at `/_preview/swipe-card` if you want a sandbox; delete it after the real wiring is done.
-- [ ] Commit: `feat(phase-w-b): SwipeCard primitive with pan + rotation + LIKE/NOPE overlays`.
+- [ ] Smoke-walk: `pnpm dev`. Open `/discover` once you've wired it (2.5). For now, you can write a temporary preview page at `/_preview/swipe-card` if you want a sandbox; delete it after the real wiring is done.
+- [ ] Commit: `feat(phase-w-agent-2): SwipeCard primitive with pan + rotation + LIKE/NOPE overlays`.
 
-### Task B.3 — SwipeDeck primitive (~60 min)
+### Task 2.3 — SwipeDeck primitive (~60 min)
 
 **Goal:** stacks N visible cards (default 3), commits the top card's decision, reveals the next.
 
@@ -392,9 +394,9 @@ export function SwipeDeck({
 }
 ```
 
-- [ ] Commit: `feat(phase-w-b): SwipeDeck stacks SwipeCards with pagination signal`.
+- [ ] Commit: `feat(phase-w-agent-2): SwipeDeck stacks SwipeCards with pagination signal`.
 
-### Task B.4 — `use-discover-deck` hook + tests (~45 min)
+### Task 2.4 — `use-discover-deck` hook + tests (~45 min)
 
 **Goal:** wraps `GET /search` with cursor pagination. Returns the running list of candidates + a `loadMore()` callback.
 
@@ -477,9 +479,9 @@ export function useDiscoverDeck(filters: DiscoverFilters): DiscoverDeckResult {
 }
 ```
 
-- [ ] Commit: `feat(phase-w-b): use-discover-deck hook with cursor pagination`.
+- [ ] Commit: `feat(phase-w-agent-2): use-discover-deck hook with cursor pagination`.
 
-### Task B.5 — `use-decisions` hook + tests (~45 min)
+### Task 2.5 — `use-decisions` hook + tests (~45 min)
 
 **Goal:** like / pass actions with optimistic local state and rollback on server error. Returns the match-record when a like creates a mutual match.
 
@@ -536,9 +538,9 @@ export function useDecisions() {
 ```
 
 - [ ] **Note:** the exact endpoint path is documented in the Foundation block at the bottom of this brief. If it differs from `/decision`, update accordingly.
-- [ ] Commit: `feat(phase-w-b): use-decisions hook with optimistic + rollback`.
+- [ ] Commit: `feat(phase-w-agent-2): use-decisions hook with optimistic + rollback`.
 
-### Task B.6 — Rewire `/discover` (~60 min)
+### Task 2.6 — Rewire `/discover` (~60 min)
 
 **Goal:** replace the static card with `SwipeDeck` driven by `use-discover-deck` + `use-decisions`.
 
@@ -607,25 +609,25 @@ export default function DiscoverPage() {
 - [ ] Extract `<DiscoverCardFace candidate={c} />` as a local component (or new file `src/components/app/discover-card-face.tsx` if it grows past ~80 lines) — it shows photo + name + age + verification badges + bio preview.
 - [ ] Confirm `SAMPLE_PROFILES` is no longer imported by `src/app/discover/page.tsx`. `grep -r "SAMPLE_PROFILES" src/app/` should return nothing.
 - [ ] Smoke-walk: with 10 seed accounts in the production DB, sign in as one, open `/discover`. See real cards. Swipe.
-- [ ] Commit: `feat(phase-w-b): /discover wires SwipeDeck + real /search endpoint`.
+- [ ] Commit: `feat(phase-w-agent-2): /discover wires SwipeDeck + real /search endpoint`.
 
-### Task B.7 — Rewire `/match` to real match record (~30 min)
+### Task 2.7 — Rewire `/match` to real match record (~30 min)
 
 - [ ] Open `src/app/match/page.tsx`. Note it currently uses static fixtures.
 - [ ] Read `matchId` from `useSearchParams()`. If present, GET `/match/<matchId>` (or whatever endpoint the backend exposes — confirm in Foundation block) to fetch the matched profile. If missing/error, show the SP19 confetti+celebration but fall back to a generic "You matched!" without specific user data.
 - [ ] **Preserve the SP19 motion budget carve-out** — do NOT tighten the 1.0s badge climax or the cascading card delays. This is a celebration screen, exempt from the ≤500ms entrance budget per `docs/motion-budget.md`.
-- [ ] Wire the "Send a message" CTA to `/chat/<matchId>` (Agent D will pick up the chat-side wiring).
-- [ ] Commit: `feat(phase-w-b): /match reads real match record from querystring`.
+- [ ] Wire the "Send a message" CTA to `/chat/<matchId>` (Agent 4 will pick up the chat-side wiring).
+- [ ] Commit: `feat(phase-w-agent-2): /match reads real match record from querystring`.
 
-### Task B.8 — Rewire `/matches` list (~30 min)
+### Task 2.8 — Rewire `/matches` list (~30 min)
 
 - [ ] Open `src/app/matches/page.tsx`.
 - [ ] Replace fixtures with a `useEffect` that GETs `/matches` (backend endpoint — confirm exact path in Foundation block; likely `/inbox-info` returns both unread chats + mutual-match records).
 - [ ] Loading state = `<Skeleton>` list. Empty state = existing EmptyState variant.
 - [ ] Each row clicks to `/profile/<id>?from=matches` (the existing routing pattern).
-- [ ] Commit: `feat(phase-w-b): /matches reads real match list from backend`.
+- [ ] Commit: `feat(phase-w-agent-2): /matches reads real match list from backend`.
 
-### Task B.9 — Final verification (~30 min)
+### Task 2.9 — Final verification (~30 min)
 
 - [ ] `pnpm exec tsc --noEmit` clean.
 - [ ] `pnpm exec eslint --max-warnings=0` clean on all touched files.
@@ -636,7 +638,7 @@ export default function DiscoverPage() {
   2. Navigate to `/discover`. See real candidates (not the 8 fixtures).
   3. Swipe right twice, left twice — confirm DevTools Network shows 4 POST requests.
   4. Use a seed account that has a pre-arranged mutual with another seed account. Swipe right on that match. Land on `/match` with the real match details, see SP19 celebration animation.
-  5. Tap "Send a message" → land on `/chat/<id>` (this may show a stub until Agent D merges; that's OK).
+  5. Tap "Send a message" → land on `/chat/<id>` (this may show a stub until Agent 4 merges; that's OK).
   6. Navigate to `/matches`. See the new match in the list.
   7. Toggle reduce-motion in OS. Reload `/discover`. Confirm cards no longer drag; LIKE / NOPE buttons below the card work.
   8. Open `/discover` on a 414×896 viewport (DevTools device emulation). Swipe should feel smooth — no jank during drag.
@@ -644,7 +646,7 @@ export default function DiscoverPage() {
 - [ ] Emit COMPLETE:
 
 ```
-COMPLETE: Agent B
+COMPLETE: Agent 2
 Tasks: 9/9 completed
 Files changed:
  - src/components/app/swipe-card.tsx (new)
@@ -666,42 +668,120 @@ Verification: typecheck + lint + vitest + build + e2e smoke walk all pass.
 ## BLOCKER format
 
 ```
-BLOCKER: Agent B
-Task: [task ID like B.5]
+BLOCKER: Agent 2
+Task: [task ID like 2.5]
 Error: [error]
 Attempted: [what you tried twice]
 Need: [what would unblock]
 ```
 
-## Logging format (`logs/phase-w-agent-b.md`)
+## Logging format (`logs/agent-2-discovery-likes.md`)
 
-Same shape as Agent A — timestamped entries before/after each task.
+Same shape as Agent 1 — timestamped entries before/after each task.
 
 ---
 
 ## Wave 1 Foundation — files now live
 
-_Filled by orchestrator before dispatch. If you see "TO BE FILLED", BLOCKER._
+Agent 0 (the IDE orchestrator) has completed Foundation work. Concrete
+values for your prompts:
 
-### Endpoints you'll use
+### Backend (ahavah-api)
 
-| Method | Path | Purpose | Request | Response |
-|---|---|---|---|---|
-| GET | `/search?cursor=&age_min=&age_max=&countries=&languages=` | Ranked + filtered candidate page | querystring | `{ results: DiscoverCandidate[], next_cursor: string \| null }` |
-| POST | `/decision` (TO CONFIRM in F.3 — may be `/skip/by-uuid` for nope and a separate `/like/by-uuid` for like) | Record like/pass | `{ profile_uuid, decision: "like" \| "nope" }` | `{ match: { match_id, with_profile_id } \| null }` |
-| GET | `/matches` (TO CONFIRM — may be sub-resource of `/inbox-info`) | List mutual matches | none | `{ matches: Match[] }` |
-| GET | `/match/<match_id>` (TO CONFIRM) | One match record + matched profile | none | `Match & { profile: Partial<Profile> }` |
+- **Repo**: `d:/Antigravity/ahavah-api/` on branch `ahavah/main`. Deployed
+  to DigitalOcean droplet `ahavah-api-prod-01` (id 570650212, $24/mo
+  s-2vcpu-4gb, nyc3 region). SSH key: `C:/Users/Ehud/.ssh/id_ed25519_ahavah`.
+- **API base URL (REST)**: `http://167.71.93.27:5000` — set in
+  `.env.local` as `NEXT_PUBLIC_API_BASE_URL`. Plain HTTP (no SSL yet
+  because `ahavah.app` domain isn't registered).
+- **WebSocket URL (chat)**: `ws://167.71.93.27:5443` — set in
+  `.env.local` as `NEXT_PUBLIC_CHAT_WS_URL`.
+- **Health check**: `curl http://167.71.93.27:5000/health` returns
+  `status: ok` (verified during Foundation).
 
-If any of the "TO CONFIRM" endpoints don't exist in the backend at the path shown, BLOCKER — orchestrator extends `api-types.ts`.
+### Frontend foundation (already on master)
 
-### `discover-engine.ts` reuse
+These files exist on `master` at commit `7bbf212` and beyond. Every
+worktree branched from this commit, so they're already in your tree:
 
-The existing `discover-engine.ts` filter / scoring logic stays in the repo for test fixtures, but `/discover` no longer calls it. Filter state in the UI (FiltersSheet) maps to the `DiscoverFilters` shape this brief defines — confirm the field names match what the backend `/search` accepts.
+- `src/lib/api-client.ts` — fetch wrapper with `credentials: 'include'`,
+  methods `get` / `post` / `patch` / `delete` / `postMultipart` (the
+  multipart variant uses XHR for upload progress; the others use fetch).
+  Throws `ApiError` (`.status` + `.body` + `.message`) on non-2xx.
+- `src/lib/api-types.ts` — hand-written TypeScript types for every
+  endpoint group. Source-of-truth comments cite the matching
+  `service/api/__init__.py` line ranges in the backend repo.
+- `src/lib/storage-keys.ts` — constants for localStorage keys
+  (`PROFILE_CACHE_KEY`, `DECISIONS_CACHE_KEY`, `FILTERS_CACHE_KEY`,
+  `PENDING_EMAIL_KEY`, `MAP_FIRST_MOUNT_KEY`).
 
-### SwipeCard a11y reference
+### Auth / OTP
 
-The reduce-motion fallback (tap buttons instead of drag) satisfies WCAG 2.5.1 (Pointer Gestures — must have non-gesture alternative). Document this in a code comment in `swipe-card.tsx`.
+- Email-only OTP via Resend (no SMS / Twilio in Phase W — deferred).
+- OTP from-address is `onboarding@resend.dev` (universal Resend
+  placeholder). Real Ahavah branding lands when `ahavah.app` is
+  registered + verified in Resend.
+- Session is delivered as an httpOnly cookie named `duo_session`. The
+  backend sets it on `Set-Cookie` from `/check-otp`. `api-client.ts`'s
+  `credentials: 'include'` carries it back automatically.
+- During dev: emails to `*@example.com` use OTP code `000000` (no real
+  send). For real OTPs use a gmail / outlook / etc. address — the
+  backend's `good_email_domain` table restricts which providers pass.
+
+### Database schema
+
+The backend's Postgres database is `duo_api` on `postgres:16` with
+pgvector + postgis extensions. 74 tables from the upstream Duolicious
+schema plus the Phase W migrations:
+
+- `swipe` (subject, object, direction, created_at) — like/pass record
+- `hide_and_block` — block list
+- `message_translation` — DeepL translation cache (Phase 2)
+- `photo_moderation_*` — moderation queue (Phase 4)
+- `entitlement_event` — IAP ledger (Phase 5)
+- `ahavah_verification_tier` ENUM type — `'none' | 'bronze' | 'silver' | 'gold'`
+- `person.ahavah_verification_tier` column (default `'none'`)
+
+### Storage (photos)
+
+- DigitalOcean Spaces bucket `ahavah-photos-prod` in `nyc3`.
+- CDN URL pattern: `https://ahavah-photos-prod.nyc3.cdn.digitaloceanspaces.com/<uuid>.jpg`
+- Backend handles NSFW moderation via the existing ONNX classifier
+  before approving uploads.
+
+### What's deferred (don't try to wire these)
+
+- **Stripe** (verification + paywall): deferred to Cutover. The
+  `/verification/start-id-flow` and `/checkout/web` endpoints exist
+  but `STRIPE_SECRET_KEY` is empty in production env, so they no-op.
+- **Twilio**: no SMS OTP path. Email-only.
+- **SSL / domain**: no `ahavah.app`. Plain HTTP on droplet IP.
+- **Sentry / PostHog**: env vars unset, telemetry no-ops.
+
+### Logs go to
+
+`d:/Antigravity/ahavah-web/logs/agent-2-discovery-likes.md` on the master
+repo (NOT inside your worktree). The `logs/` directory was created
+by Agent 0 during F.5. Append-only; one entry per major step
+(started + completed).
+
+### Communication protocol (reminder)
+
+When you hit a 2-attempt failure → emit a `BLOCKER:` block (template
+in the brief above). When you finish all tasks → emit a `COMPLETE:`
+block. Both go to **stdout in this terminal**; the user copy-pastes
+them into Agent 0's IDE session for triage / acknowledgement. Agent 0
+cannot see your terminal output directly.
+
+### Caveat: empty `/search` results are expected initially
+
+The production `/search` endpoint may not yet return real candidates
+because no users are seeded. Build the SwipeDeck + SwipeCard primitives
++ the wiring; if `/search` returns empty arrays, render the EmptyState.
+Agent 0 will manually create test users via the seeded-account flow
+(during F.4) before the swipe e2e test in Task 2.9. The wiring itself
+must still be in place at the end of your run regardless of seed state.
 
 ---
 
-**Begin Task B.1 when ready. Log first, then work.**
+**Begin Task 2.1 when ready. Log first, then work.**
