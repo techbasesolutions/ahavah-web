@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import { Loader2 } from "lucide-react";
 
@@ -12,6 +13,9 @@ import { Label } from "@/components/ui/label";
 
 import { BrandMark } from "@/components/brand/sparkle-mark";
 import { PageShell } from "@/components/app/page-shell";
+import { ApiError } from "@/lib/api-client";
+import { requestEmailOtp } from "@/lib/auth-otp";
+import { PENDING_EMAIL_KEY } from "@/lib/storage-keys";
 
 const MIN_PASSWORD = 8;
 
@@ -37,22 +41,45 @@ function passwordStrength(pw: string): { level: 0 | 1 | 2 | 3 | 4; label: string
 }
 
 export default function SignUpPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
+  // Password is captured locally for the strength meter only. Duolicious
+  // auth is passwordless (email-OTP); /request-otp accepts only the email
+  // field. The strength meter remains as a UX gate so users still feel they
+  // are "creating an account", but no password is ever transmitted to the
+  // backend. If the product later moves to password+OTP, send `password`
+  // in the request body here.
   const [password, setPassword] = useState("");
   const [accepted, setAccepted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const strength = passwordStrength(password);
   const isComplete =
     email.includes("@") && password.length >= MIN_PASSWORD && accepted;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isComplete || submitting) return;
+    setError(null);
     setSubmitting(true);
-    setTimeout(() => {
-      window.location.href = "/onboarding/verify-email";
-    }, 250);
+    try {
+      await requestEmailOtp(email);
+      // Bridge to /onboarding/verify-email — that page reads this key to
+      // know which email to verify against. sessionStorage (not local)
+      // so a closed tab cleans up automatically.
+      sessionStorage.setItem(PENDING_EMAIL_KEY, email);
+      router.push("/onboarding/verify-email");
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 429) {
+        setError("Too many requests. Try again in a few minutes.");
+      } else if (err instanceof ApiError && err.status === 400) {
+        setError("That email looks malformed. Check it and try again.");
+      } else {
+        setError("Something went wrong. Please try again.");
+      }
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -242,6 +269,16 @@ export default function SignUpPage() {
             Create account
           </Button>
         )}
+
+        {error ? (
+          <p
+            role="alert"
+            aria-live="polite"
+            className="text-center text-caption font-semibold text-pink"
+          >
+            {error}
+          </p>
+        ) : null}
       </motion.form>
 
       <motion.div
@@ -255,7 +292,7 @@ export default function SignUpPage() {
           variant="link"
           size="tap"
           className="text-lavender"
-          render={<Link href="/" prefetch={false} />}
+          render={<Link href="/auth/sign-in" prefetch={false} />}
         >
           Sign in
         </Button>
