@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,7 @@ import { Input } from "@/components/ui/input";
 
 import { BrandMark } from "@/components/brand/sparkle-mark";
 import { PageShell } from "@/components/app/page-shell";
+import { PENDING_EMAIL_KEY } from "@/lib/storage-keys";
 
 const EMAIL_SUFFIXES = ["@gmail.com", "@proton.me", "@yahoo.com", "@hotmail.com", "@outlook.com"];
 
@@ -20,6 +22,7 @@ const fadeUp = {
 };
 
 export default function WelcomePage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
 
   // Suffix chip handler — append the suffix when input is empty / has no
@@ -31,6 +34,16 @@ export default function WelcomePage() {
       const local = prev.split("@")[0];
       return local + suffix;
     });
+  };
+
+  // Stash the typed email so /auth/sign-{up,in} can prefill it instead
+  // of prompting again. PENDING_EMAIL_KEY is the same bridge sign-up
+  // already uses for /onboarding/verify-email — single source of truth
+  // for "what email did the user enter last."
+  const goTo = (path: string) => {
+    const trimmed = email.trim();
+    if (trimmed) sessionStorage.setItem(PENDING_EMAIL_KEY, trimmed);
+    router.push(path);
   };
 
   return (
@@ -108,21 +121,19 @@ export default function WelcomePage() {
         className="mt-8 flex flex-col gap-3"
       >
         <Button
-          nativeButton={false}
           size="cta"
           lift="float"
-          render={<Link href="/auth/sign-up" prefetch={false} />}
+          onClick={() => goTo("/auth/sign-up")}
         >
           Create account
         </Button>
         <div className="flex items-center justify-center gap-2 text-meta text-text-secondary">
           <span>Already have an account?</span>
           <Button
-            nativeButton={false}
             variant="link"
             size="tap"
             className="text-lavender"
-            render={<Link href="/auth/sign-in" prefetch={false} />}
+            onClick={() => goTo("/auth/sign-in")}
           >
             Sign in
           </Button>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
@@ -35,6 +35,15 @@ export default function SignInPage() {
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Prefill from the welcome page's email input (see /page.tsx). Same
+  // PENDING_EMAIL_KEY is used as the bridge through this page to
+  // /onboarding/verify-email below.
+  useEffect(() => {
+    const prefill = sessionStorage.getItem(PENDING_EMAIL_KEY);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (prefill) setEmail(prefill);
+  }, []);
 
   const isComplete = email.includes("@");
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
@@ -43,6 +43,15 @@ function passwordStrength(pw: string): { level: 0 | 1 | 2 | 3 | 4; label: string
 export default function SignUpPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
+
+  // Prefill from the email the user already typed on the welcome page.
+  // Without this, the user types their email on / then is prompted for it
+  // again here — flagged as bad UX.
+  useEffect(() => {
+    const prefill = sessionStorage.getItem(PENDING_EMAIL_KEY);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (prefill) setEmail(prefill);
+  }, []);
   // Password is captured locally for the strength meter only. Duolicious
   // auth is passwordless (email-OTP); /request-otp accepts only the email
   // field. The strength meter remains as a UX gate so users still feel they
