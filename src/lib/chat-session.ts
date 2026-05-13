@@ -24,14 +24,26 @@ const MY_UUID_KEY = "ahavah.my-uuid";
 
 export type ChatSession = {
   myUuid: string;
-  sessionToken: string;
+  /**
+   * Optional — when omitted, writeChatSession leaves whatever token is
+   * already in localStorage (set by /request-otp via api-client) alone.
+   * Only pass this if you actually have a new token to record. Passing
+   * `undefined` is the same as omitting (won't overwrite with "undefined").
+   */
+  sessionToken?: string;
 };
 
 /**
  * Read the chat session from localStorage. Returns null when either field
  * is missing (caller treats as "not yet signed in").
  */
-export function readChatSession(): ChatSession | null {
+/**
+ * Read returns sessionToken as required because we only return non-null
+ * when both keys are present — chat callers that pass to SASL PLAIN need
+ * a guaranteed string. ChatSession (the write-side type) keeps it optional
+ * because writes may want to update only myUuid.
+ */
+export function readChatSession(): { myUuid: string; sessionToken: string } | null {
   if (typeof window === "undefined") return null;
   try {
     const myUuid = window.localStorage.getItem(MY_UUID_KEY);
@@ -51,7 +63,12 @@ export function writeChatSession(session: ChatSession): void {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem(MY_UUID_KEY, session.myUuid);
-    window.localStorage.setItem(SESSION_TOKEN_KEY, session.sessionToken);
+    if (session.sessionToken !== undefined) {
+      window.localStorage.setItem(SESSION_TOKEN_KEY, session.sessionToken);
+    }
+    // else: token was set by /request-otp; leave it in place. Passing
+    // undefined used to write the literal string "undefined" here, which
+    // then went out as `Authorization: Bearer undefined` → 401.
   } catch {
     // localStorage full / disabled — chat will fall back to "connecting…".
   }

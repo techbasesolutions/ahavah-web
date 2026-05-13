@@ -45,8 +45,13 @@ function getSessionToken(): string | null {
  * Pass `null` to clear (sign-out). Safe on SSR — no-op when window is
  * undefined. The in-module cache means we never miss a token mid-render
  * because of a synchronous burst of requests.
+ *
+ * `undefined` is treated as a no-op (not a clear) so a caller that
+ * forwards a possibly-absent field like `result.session_token` never
+ * accidentally wipes the token /request-otp just set.
  */
-export function setSessionToken(token: string | null): void {
+export function setSessionToken(token: string | null | undefined): void {
+  if (token === undefined) return;
   _sessionToken = token;
   if (typeof window === "undefined") return;
   try {

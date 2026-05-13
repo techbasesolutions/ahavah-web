@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { CodeInput } from "@/components/app/code-input";
 import { OnboardingShell } from "@/components/app/onboarding-shell";
 
-import { ApiError, setSessionToken } from "@/lib/api-client";
+import { ApiError } from "@/lib/api-client";
 import { requestPhoneOtp, checkPhoneOtp } from "@/lib/auth-otp";
 import { writeChatSession } from "@/lib/chat-session";
 import { useProfile, writeOnboarded } from "@/lib/use-profile";
@@ -137,12 +137,8 @@ export default function VerifyPhoneStep() {
     setVerifying(true);
     try {
       const result = await checkPhoneOtp(phone, code);
-      // See verify-email/page.tsx — refresh bearer + persist chat session.
-      setSessionToken(result.session_token);
-      writeChatSession({
-        myUuid: result.person_uuid,
-        sessionToken: result.session_token,
-      });
+      // See verify-email/page.tsx — /check-otp doesn't return session_token.
+      writeChatSession({ myUuid: result.person_uuid });
       writeOnboarded(result.onboarded);
       sessionStorage.removeItem(PENDING_PHONE_KEY);
       await refreshProfile();

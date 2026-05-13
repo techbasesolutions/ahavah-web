@@ -28,17 +28,18 @@ export async function requestEmailOtp(email: string): Promise<void> {
 }
 
 export type CheckOtpResult = {
-  /** Backend also sets duo_session as an httpOnly cookie for REST auth.
-   *  Chat needs the raw token client-side for SASL PLAIN — see
-   *  `writeChatSession` in `lib/chat-session.ts`. */
-  session_token: string;
   /** Authenticated user's bare uuid — required for chat WebSocket auth. */
   person_uuid: string;
   /** Internal numeric id; not used client-side today but returned. */
-  person_id: number;
+  person_id: number | null;
   is_new_account: boolean;
   /** True when the user has finished onboarding. Callers branch on this. */
   onboarded: boolean;
+  // NOTE: `/check-otp` does NOT return session_token — the token comes
+  // from `/request-otp` and is set by `requestEmailOtp` before this fires.
+  // Earlier versions of this type included `session_token: string`, but the
+  // backend never sends it (service/person/__init__.py:349-353 returns
+  // onboarded + person row + clubs only).
 };
 
 export async function checkOtp(
