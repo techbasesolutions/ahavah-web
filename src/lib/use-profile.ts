@@ -8,7 +8,7 @@ import {
   saveProfileToCache,
   clearProfileCache,
 } from "@/lib/use-profile-storage";
-import { apiClient, ApiError } from "@/lib/api-client";
+import { apiClient, ApiError, setSessionToken } from "@/lib/api-client";
 import { clearChatSession } from "@/lib/chat-session";
 
 /**
@@ -155,6 +155,7 @@ export function useProfile(): UseProfileResult {
     }
     clearProfileCache();
     clearChatSession();
+    setSessionToken(null);
     setProfileState({});
     lastServerSnapshot.current = null;
   }, []);

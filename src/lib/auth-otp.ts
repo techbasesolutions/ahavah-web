@@ -14,10 +14,17 @@
  * here too so all OTP transport is in one file.
  */
 
-import { apiClient } from "@/lib/api-client";
+import { apiClient, setSessionToken } from "@/lib/api-client";
+
+type RequestOtpResponse = { session_token: string };
 
 export async function requestEmailOtp(email: string): Promise<void> {
-  await apiClient.post("/request-otp", { email });
+  // /request-otp returns `{ session_token }` for an unauthenticated session;
+  // /check-otp validates the OTP against that session via the bearer header.
+  // Without storing the token here, /check-otp goes out with no auth and
+  // the backend can't tie the request to the session that holds the OTP.
+  const res = await apiClient.post<RequestOtpResponse>("/request-otp", { email });
+  setSessionToken(res.session_token);
 }
 
 export type CheckOtpResult = {
@@ -42,7 +49,8 @@ export async function checkOtp(
 }
 
 export async function requestPhoneOtp(phone: string): Promise<void> {
-  await apiClient.post("/request-otp", { phone });
+  const res = await apiClient.post<RequestOtpResponse>("/request-otp", { phone });
+  setSessionToken(res.session_token);
 }
 
 export async function checkPhoneOtp(

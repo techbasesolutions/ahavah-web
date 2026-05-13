@@ -11,7 +11,7 @@ import { IconBadge } from "@/components/ui/icon-badge";
 import { CodeInput } from "@/components/app/code-input";
 import { OnboardingShell } from "@/components/app/onboarding-shell";
 
-import { ApiError } from "@/lib/api-client";
+import { ApiError, setSessionToken } from "@/lib/api-client";
 import { checkOtp, requestEmailOtp } from "@/lib/auth-otp";
 import { writeChatSession } from "@/lib/chat-session";
 import { useProfile } from "@/lib/use-profile";
@@ -91,11 +91,10 @@ export default function VerifyEmailStep() {
     setVerifying(true);
     try {
       const result = await checkOtp(email, code);
-      // REST auth flows on the httpOnly `duo_session` cookie (Set-Cookie).
-      // Chat WebSocket needs the raw token + bare uuid client-side for
-      // SASL PLAIN — persist them so `readChatSession` (chat-client + /inbox)
-      // can pick them up across pages and reloads. Without this, /inbox sits
-      // in "loading" forever because `useEffect` short-circuits on empty uuid.
+      // /check-otp may rotate the session_token on successful upgrade from
+      // unauthenticated -> authenticated; refresh the api-client's cached
+      // bearer + persist for the chat WebSocket SASL flow.
+      setSessionToken(result.session_token);
       writeChatSession({
         myUuid: result.person_uuid,
         sessionToken: result.session_token,

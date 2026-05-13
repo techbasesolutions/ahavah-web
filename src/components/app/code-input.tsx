@@ -83,7 +83,12 @@ export function CodeInput({
     <div
       role="group"
       aria-label={`Enter ${length}-digit code`}
-      className={cn("flex items-center justify-between gap-2", className)}
+      // px-1 keeps the focus ring (3px ring-3 from Input's focus-visible
+      // style) from being clipped by the scroll container's overflow-x.
+      // OnboardingShell wraps children in overflow-y-auto, which implicitly
+      // forces overflow-x: hidden — without this gutter the leftmost box's
+      // focus ring chops off at the viewport edge.
+      className={cn("flex items-center justify-between gap-2 px-1", className)}
     >
       {Array.from({ length }).map((_, i) => (
         <Input

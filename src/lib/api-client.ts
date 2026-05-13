@@ -21,6 +21,43 @@
 const BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5000";
 
+// Backend auth is bearer-token, NOT cookie. `/request-otp` returns
+// `{ session_token }` in the response body; every subsequent call must
+// send `Authorization: Bearer <token>`. We mirror the token into the same
+// localStorage key chat-session.ts already owns so the chat WebSocket and
+// REST client share one source of truth.
+const SESSION_TOKEN_KEY = "ahavah.session-token";
+let _sessionToken: string | null = null;
+
+function getSessionToken(): string | null {
+  if (_sessionToken) return _sessionToken;
+  if (typeof window === "undefined") return null;
+  try {
+    _sessionToken = window.localStorage.getItem(SESSION_TOKEN_KEY);
+  } catch {
+    _sessionToken = null;
+  }
+  return _sessionToken;
+}
+
+/**
+ * Persist the bearer token used by every future REST + chat call.
+ * Pass `null` to clear (sign-out). Safe on SSR — no-op when window is
+ * undefined. The in-module cache means we never miss a token mid-render
+ * because of a synchronous burst of requests.
+ */
+export function setSessionToken(token: string | null): void {
+  _sessionToken = token;
+  if (typeof window === "undefined") return;
+  try {
+    if (token) window.localStorage.setItem(SESSION_TOKEN_KEY, token);
+    else window.localStorage.removeItem(SESSION_TOKEN_KEY);
+  } catch {
+    // localStorage full / disabled — in-memory _sessionToken still works
+    // for this tab's session.
+  }
+}
+
 export class ApiError extends Error {
   status: number;
   body: unknown;
@@ -55,10 +92,15 @@ async function request<T>(
   payload?: unknown,
 ): Promise<T> {
   const url = path.startsWith("http") ? path : `${BASE_URL}${path}`;
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  const token = getSessionToken();
+  if (token) headers["Authorization"] = `Bearer ${token}`;
   const init: RequestInit = {
     method,
     credentials: "include",
-    headers: { "Content-Type": "application/json" },
+    headers,
   };
   if (payload !== undefined) {
     init.body = JSON.stringify(payload);
@@ -86,6 +128,8 @@ function postMultipart<T>(
     const xhr = new XMLHttpRequest();
     xhr.open("POST", url, true);
     xhr.withCredentials = true;
+    const token = getSessionToken();
+    if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
 
     if (options?.onProgress) {
       xhr.upload.onprogress = (e) => {

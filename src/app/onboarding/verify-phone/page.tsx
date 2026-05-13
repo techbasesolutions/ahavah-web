@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { CodeInput } from "@/components/app/code-input";
 import { OnboardingShell } from "@/components/app/onboarding-shell";
 
-import { ApiError } from "@/lib/api-client";
+import { ApiError, setSessionToken } from "@/lib/api-client";
 import { requestPhoneOtp, checkPhoneOtp } from "@/lib/auth-otp";
 import { writeChatSession } from "@/lib/chat-session";
 import { useProfile } from "@/lib/use-profile";
@@ -137,8 +137,8 @@ export default function VerifyPhoneStep() {
     setVerifying(true);
     try {
       const result = await checkPhoneOtp(phone, code);
-      // See verify-email/page.tsx for the rationale — chat needs the raw
-      // token + bare uuid in localStorage for SASL PLAIN auth.
+      // See verify-email/page.tsx — refresh bearer + persist chat session.
+      setSessionToken(result.session_token);
       writeChatSession({
         myUuid: result.person_uuid,
         sessionToken: result.session_token,
