@@ -40,7 +40,10 @@ const INBOX_QUERY_TIMEOUT_MS = 10_000;
 
 export function useInbox(myUuid: string): UseInboxResult {
   const [threads, setThreads] = useState<ChatThread[]>([]);
-  const [state, setState] = useState<InboxState>("loading");
+  // Start in loading only when we actually have a uuid to query with.
+  // Without it the chat client can't bind, so sitting in "loading" forever
+  // is a bug — surface as empty so the right CTA renders.
+  const [state, setState] = useState<InboxState>(myUuid ? "loading" : "empty");
   const pendingQueryIdRef = useRef<string | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -67,6 +70,12 @@ export function useInbox(myUuid: string): UseInboxResult {
   useEffect(() => {
     if (!myUuid) return;
 
+    // Recover from the "we mounted with no uuid → state was empty" path:
+    // a uuid arrived (e.g. /me backfilled it), so we should re-enter
+    // loading before issuing the actual fetch.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setState((cur) => (cur === "empty" ? "loading" : cur));
+
     const handle = (e: ChatEvent) => {
       switch (e.type) {
         case "auth-success": {
@@ -86,10 +95,20 @@ export function useInbox(myUuid: string): UseInboxResult {
           // Drain the loading state on the FIRST inbox-result of a query
           // — subsequent ones are still part of the same response burst.
           setState((cur) => (cur === "loading" ? "happy" : cur));
-          // Note: when the server returns ZERO threads we never receive an
-          // inbox-result event; we fall through to the empty path via the
-          // 10s timeout. To handle this faster we could parse the
-          // terminating <iq><fin/></iq>, but the 10s ceiling is fine for v1.
+          return;
+        }
+        case "inbox-fin": {
+          // Server signaled the inbox query is complete. The zero-result
+          // case sends ONLY this stanza (no inbox-result), so we drain
+          // loading here too — derivedState turns happy + zero threads
+          // into "empty" downstream.
+          if (e.queryId !== pendingQueryIdRef.current) return;
+          if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+          }
+          pendingQueryIdRef.current = null;
+          setState((cur) => (cur === "loading" ? "happy" : cur));
           return;
         }
         case "message-in": {

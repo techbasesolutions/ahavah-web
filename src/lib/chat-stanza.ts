@@ -428,9 +428,19 @@ export function decodeStanza(xml: string, ownUuid: string): ChatEvent | null {
       return null;
     case "message":
       return decodeMessage(root, ownUuid);
-    case "iq":
-      // <iq><fin .../></iq> terminates an inbox or MAM page — no event needed.
+    case "iq": {
+      // <iq type="result" id="<queryId>"><fin xmlns="erlang-..:inbox:0"/></iq>
+      // terminates an inbox query. We surface this as `inbox-fin` so the
+      // useInbox hook can drain its loading state in the zero-results case
+      // (no <message><result/></message> stanzas arrive when the inbox is
+      // empty, so without this terminator the UI sits on the skeleton).
+      const inboxFin = childrenByNS(root, INBOX_NS, "fin");
+      if (inboxFin.length > 0) {
+        const queryId = root.getAttribute("id");
+        if (queryId) return { type: "inbox-fin", queryId };
+      }
       return null;
+    }
     case "open":
     case "features":
       // Stream handshake artifacts — consumed by ChatClient state machine.

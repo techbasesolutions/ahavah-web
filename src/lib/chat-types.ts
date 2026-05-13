@@ -76,6 +76,7 @@ export type ChatEvent =
     }
   | { type: "typing-in"; fromUserId: string; toUserId: string }
   | { type: "inbox-result"; threads: ChatThread[] }
+  | { type: "inbox-fin"; queryId: string }
   | { type: "history-result"; threadId: string; messages: ChatMessage[]; queryId: string }
   | { type: "error"; message: string };
 

@@ -29,7 +29,7 @@ import { Pill, PillIndicator } from "@/components/kibo-ui/pill";
 
 import { cn } from "@/lib/utils";
 import { chatClient } from "@/lib/chat-client";
-import { readChatSession } from "@/lib/chat-session";
+import { readChatSession, writeChatSession } from "@/lib/chat-session";
 import { useInbox } from "@/lib/use-inbox";
 import { apiClient } from "@/lib/api-client";
 import type { ChatThread } from "@/lib/chat-types";
@@ -71,13 +71,37 @@ function InboxContent() {
   // Optional ?state=loading|empty|error overrides — used by design QA.
   const debugState = params.get("state") as DebugState | null;
 
-  // Wire chat-client connection.
+  // Wire chat-client connection. /check-otp returns person_uuid: null for
+  // fresh onboardees, so users who graduated via /finish-onboarding land
+  // here with no `ahavah.my-uuid` in localStorage. Backfill it via /me.
   const [myUuid, setMyUuid] = useState<string>("");
   useEffect(() => {
     const s = readChatSession();
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMyUuid(s?.myUuid ?? "");
-    if (s) chatClient.connect(s.myUuid, s.sessionToken);
+    if (s) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setMyUuid(s.myUuid);
+      chatClient.connect(s.myUuid, s.sessionToken);
+      return;
+    }
+    let cancelled = false;
+    void apiClient
+      .get<{ person_uuid?: string | null }>("/me")
+      .then((me) => {
+        if (cancelled) return;
+        const uuid = typeof me.person_uuid === "string" ? me.person_uuid : null;
+        if (!uuid) return;
+        writeChatSession({ myUuid: uuid });
+        const s2 = readChatSession();
+        if (!s2) return;
+        setMyUuid(s2.myUuid);
+        chatClient.connect(s2.myUuid, s2.sessionToken);
+      })
+      .catch(() => {
+        // Non-onboarded or 401 — leave myUuid empty; useInbox renders empty.
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const { threads, state, refresh } = useInbox(myUuid);

@@ -9,7 +9,7 @@ import {
   clearProfileCache,
 } from "@/lib/use-profile-storage";
 import { apiClient, ApiError, setSessionToken } from "@/lib/api-client";
-import { clearChatSession } from "@/lib/chat-session";
+import { clearChatSession, writeChatSession } from "@/lib/chat-session";
 import {
   readOnboarded,
   writeOnboarded,
@@ -344,6 +344,13 @@ export function useProfile(): UseProfileResult {
           .get<Record<string, unknown>>("/profile-info")
           .catch(() => ({}) as Record<string, unknown>),
       ]);
+      // Backfill the chat session's bare uuid. /check-otp returns
+      // person_uuid: null for fresh onboardees (no person row yet), so
+      // ahavah.my-uuid is missing for users who graduated via
+      // /finish-onboarding. Without it `useInbox` sits in a permanent
+      // skeleton and the chat WebSocket can't SASL-bind.
+      const personUuid = typeof me.person_uuid === "string" ? me.person_uuid : null;
+      if (personUuid) writeChatSession({ myUuid: personUuid });
       const translated = {
         ...translateInbound(me),
         ...translateInbound(profileInfo),
