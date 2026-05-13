@@ -35,32 +35,33 @@ const fadeUp = {
 
 export default function OnboardingCompletePage() {
   const router = useRouter();
-  const { update, refreshProfile } = useProfile();
+  const { finishOnboarding } = useProfile();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [graduated, setGraduated] = useState(false);
 
-  // Write-through on mount. Empty patch sends no diff (setProfile's diff
-  // logic would skip the PATCH); `update({})` always fires the PATCH
-  // because it merges {} into prev and then sends the patch as-is. That
-  // confirms the server has *something* and surfaces stale-session errors
-  // here rather than on /discover.
+  // Graduate the onboardee into a full member on mount: POST
+  // /finish-onboarding, flip the local ONBOARDED flag, then refresh /me.
+  // Without this, the user stays an onboardee forever — every PATCH would
+  // continue routing to /onboardee-info and /discover (which needs
+  // person_id) would 401.
   useEffect(() => {
-    void update({}).catch(() => {
-      setError("We couldn't finalise your profile. Refresh and try again.");
-    });
-  }, [update]);
+    void finishOnboarding()
+      .then(() => setGraduated(true))
+      .catch(() => {
+        setError("We couldn't finalise your profile. Refresh and try again.");
+      });
+  }, [finishOnboarding]);
 
   const handleStartMatching = async () => {
     if (submitting) return;
+    if (!graduated) {
+      setError("Still finalising your profile — give it a second.");
+      return;
+    }
     setError(null);
     setSubmitting(true);
-    try {
-      await refreshProfile();
-      router.push("/discover");
-    } catch {
-      setError("We couldn't finalise your profile. Refresh and try again.");
-      setSubmitting(false);
-    }
+    router.push("/discover");
   };
 
   return (

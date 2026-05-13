@@ -16,7 +16,7 @@ import { OnboardingShell } from "@/components/app/onboarding-shell";
 import { ApiError, setSessionToken } from "@/lib/api-client";
 import { requestPhoneOtp, checkPhoneOtp } from "@/lib/auth-otp";
 import { writeChatSession } from "@/lib/chat-session";
-import { useProfile } from "@/lib/use-profile";
+import { useProfile, writeOnboarded } from "@/lib/use-profile";
 
 /**
  * Verify-phone step. Two-phase UI:
@@ -143,6 +143,7 @@ export default function VerifyPhoneStep() {
         myUuid: result.person_uuid,
         sessionToken: result.session_token,
       });
+      writeOnboarded(result.onboarded);
       sessionStorage.removeItem(PENDING_PHONE_KEY);
       await refreshProfile();
       router.push("/onboarding/name");

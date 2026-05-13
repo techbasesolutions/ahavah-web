@@ -23,5 +23,13 @@ export const FILTERS_CACHE_KEY = "ahavah.filters.v1";
 /** Bridges /auth/sign-{up,in} -> /onboarding/verify-email. sessionStorage. */
 export const PENDING_EMAIL_KEY = "ahavah.pending-email";
 
+/**
+ * Tracks whether the current authenticated user has completed onboarding.
+ * Written from /check-otp's response. Used by useProfile to route PATCHes
+ * to /onboardee-info (not yet onboarded) vs /profile-info (onboarded).
+ * "1" = onboarded, "0" or missing = onboardee.
+ */
+export const ONBOARDED_KEY = "ahavah.onboarded";
+
 /** /map first-mount flag (SP17 sessionStorage gate). */
 export const MAP_FIRST_MOUNT_KEY = "ahavah.map-first-mount";

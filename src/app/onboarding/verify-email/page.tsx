@@ -14,7 +14,7 @@ import { OnboardingShell } from "@/components/app/onboarding-shell";
 import { ApiError, setSessionToken } from "@/lib/api-client";
 import { checkOtp, requestEmailOtp } from "@/lib/auth-otp";
 import { writeChatSession } from "@/lib/chat-session";
-import { useProfile } from "@/lib/use-profile";
+import { useProfile, writeOnboarded } from "@/lib/use-profile";
 import { PENDING_EMAIL_KEY } from "@/lib/storage-keys";
 
 /**
@@ -99,6 +99,9 @@ export default function VerifyEmailStep() {
         myUuid: result.person_uuid,
         sessionToken: result.session_token,
       });
+      // Record onboarding status so useProfile routes PATCHes correctly
+      // (/onboardee-info for onboardees, /profile-info for full members).
+      writeOnboarded(result.onboarded);
       sessionStorage.removeItem(PENDING_EMAIL_KEY);
       await refreshProfile();
       if (result.is_new_account) {

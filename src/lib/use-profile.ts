@@ -10,6 +10,40 @@ import {
 } from "@/lib/use-profile-storage";
 import { apiClient, ApiError, setSessionToken } from "@/lib/api-client";
 import { clearChatSession } from "@/lib/chat-session";
+import { ONBOARDED_KEY } from "@/lib/storage-keys";
+
+// Onboarding state — read from localStorage (written by verify-email /
+// verify-phone after /check-otp). Pre-onboarding users PATCH a different
+// endpoint than full members:
+//   onboardee  -> PATCH /onboardee-info  (expected_onboarding_status=False)
+//   person     -> PATCH /profile-info    (requires session.person_id)
+// Stored as "1" / "0" so we can do a string compare without JSON.parse.
+function readOnboarded(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(ONBOARDED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function writeOnboarded(value: boolean): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(ONBOARDED_KEY, value ? "1" : "0");
+  } catch {
+    // ignore
+  }
+}
+
+function clearOnboarded(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(ONBOARDED_KEY);
+  } catch {
+    // ignore
+  }
+}
 
 // Phase W gap: the frontend Profile schema is the Torah-observant product
 // shape (firstName, assembly, tzitzit, ...), but the backend's
@@ -90,6 +124,13 @@ export type UseProfileResult = {
   loaded: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  /**
+   * Graduate the current onboardee into a full member by POSTing
+   * /finish-onboarding, flipping the local ONBOARDED flag so subsequent
+   * PATCHes route to /profile-info, and refreshing /me. Idempotent —
+   * safe to call from /onboarding/complete on mount.
+   */
+  finishOnboarding: () => Promise<void>;
 };
 
 export function useProfile(): UseProfileResult {
@@ -153,9 +194,14 @@ export function useProfile(): UseProfileResult {
         lastServerSnapshot.current = next;
         return;
       }
+      // Route to /onboardee-info vs /profile-info based on whether the user
+      // has finished onboarding. Backend enforces this distinction via
+      // `expected_onboarding_status` decorator — calling the wrong endpoint
+      // returns 400 "Not authorized" and we'd roll the input back.
+      const endpoint = readOnboarded() ? "/profile-info" : "/onboardee-info";
       try {
         for (const [k, v] of entries) {
-          await apiClient.patch("/profile-info", { [k]: v });
+          await apiClient.patch(endpoint, { [k]: v });
         }
         lastServerSnapshot.current = next;
       } catch (err) {
@@ -188,8 +234,9 @@ export function useProfile(): UseProfileResult {
         }
         // Translate + fan out one-PATCH-per-field (see `update` for why).
         const translated = translateOutbound(diff);
+        const endpoint = readOnboarded() ? "/profile-info" : "/onboardee-info";
         for (const [k, v] of Object.entries(translated)) {
-          await apiClient.patch("/profile-info", { [k]: v });
+          await apiClient.patch(endpoint, { [k]: v });
         }
         lastServerSnapshot.current = next;
       } catch (err) {
@@ -212,9 +259,24 @@ export function useProfile(): UseProfileResult {
     clearProfileCache();
     clearChatSession();
     setSessionToken(null);
+    clearOnboarded();
     setProfileState({});
     lastServerSnapshot.current = null;
   }, []);
 
-  return { profile, setProfile, update, loaded, signOut, refreshProfile };
+  const finishOnboarding = useCallback(async () => {
+    await apiClient.post("/finish-onboarding", {});
+    writeOnboarded(true);
+    await refreshProfile();
+  }, [refreshProfile]);
+
+  return {
+    profile,
+    setProfile,
+    update,
+    loaded,
+    signOut,
+    refreshProfile,
+    finishOnboarding,
+  };
 }
