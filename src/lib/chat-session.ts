@@ -48,7 +48,13 @@ export function readChatSession(): { myUuid: string; sessionToken: string } | nu
   try {
     const myUuid = window.localStorage.getItem(MY_UUID_KEY);
     const sessionToken = window.localStorage.getItem(SESSION_TOKEN_KEY);
-    if (!myUuid || !sessionToken) return null;
+    // Defensive: reject the poisoned literal strings legacy bundles wrote.
+    if (
+      !myUuid || myUuid === "null" || myUuid === "undefined" ||
+      !sessionToken || sessionToken === "null" || sessionToken === "undefined"
+    ) {
+      return null;
+    }
     return { myUuid, sessionToken };
   } catch {
     return null;
@@ -62,13 +68,21 @@ export function readChatSession(): { myUuid: string; sessionToken: string } | nu
 export function writeChatSession(session: ChatSession): void {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(MY_UUID_KEY, session.myUuid);
-    if (session.sessionToken !== undefined) {
+    // Guard against null / undefined being coerced to the literal strings
+    // "null" / "undefined" by setItem(). /check-otp returns
+    // person_uuid: null for fresh onboardees (no person row yet) — we
+    // simply skip the write in that case; the uuid will be available
+    // after /finish-onboarding.
+    if (session.myUuid && session.myUuid !== "null" && session.myUuid !== "undefined") {
+      window.localStorage.setItem(MY_UUID_KEY, session.myUuid);
+    }
+    if (
+      session.sessionToken &&
+      session.sessionToken !== "null" &&
+      session.sessionToken !== "undefined"
+    ) {
       window.localStorage.setItem(SESSION_TOKEN_KEY, session.sessionToken);
     }
-    // else: token was set by /request-otp; leave it in place. Passing
-    // undefined used to write the literal string "undefined" here, which
-    // then went out as `Authorization: Bearer undefined` → 401.
   } catch {
     // localStorage full / disabled — chat will fall back to "connecting…".
   }

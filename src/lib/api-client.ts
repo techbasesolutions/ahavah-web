@@ -33,7 +33,17 @@ function getSessionToken(): string | null {
   if (_sessionToken) return _sessionToken;
   if (typeof window === "undefined") return null;
   try {
-    _sessionToken = window.localStorage.getItem(SESSION_TOKEN_KEY);
+    const raw = window.localStorage.getItem(SESSION_TOKEN_KEY);
+    // Earlier buggy builds wrote the literal strings "undefined" / "null"
+    // into this key via `localStorage.setItem(k, JSValue)` coercion.
+    // Even after the buggy code is gone, the strings persist in users'
+    // localStorage and would be sent as `Authorization: Bearer undefined`
+    // -> 401. Treat them as missing.
+    _sessionToken = raw && raw !== "undefined" && raw !== "null" ? raw : null;
+    if (raw && _sessionToken === null) {
+      // Clean the poisoned value so we don't pay this check forever.
+      try { window.localStorage.removeItem(SESSION_TOKEN_KEY); } catch { /* */ }
+    }
   } catch {
     _sessionToken = null;
   }
