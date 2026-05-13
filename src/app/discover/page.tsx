@@ -48,13 +48,12 @@ export default function DiscoverPage() {
   const { filters, setFilters } = useFilters();
 
   // Soft-completeness gate — redirect incomplete profiles to first missing
-  // step. Identical pattern to the pre-Phase-W flow.
+  // step. If the missing field has no wizard step (config drift), fall
+  // through to /profile/edit instead of stranding the user on this page.
   useEffect(() => {
     if (loaded && !isDiscoverEligible(userProfile)) {
       const missingStep = firstMissingStepFor(userProfile);
-      if (missingStep) {
-        router.replace(missingStep);
-      }
+      router.replace(missingStep ?? "/profile/edit");
     }
   }, [loaded, userProfile, router]);
 
@@ -156,7 +155,9 @@ export default function DiscoverPage() {
         >
           <div className="text-center">
             <p className="text-body text-text-secondary">
-              Redirecting to complete your profile…
+              {!loaded
+                ? "Loading…"
+                : "Taking you to finish your profile…"}
             </p>
           </div>
         </div>

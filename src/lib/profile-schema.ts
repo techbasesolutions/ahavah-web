@@ -728,7 +728,12 @@ export const MINIMUM_COMPLETE_FIELDS: ReadonlyArray<keyof Profile> = [
   "intent",
   "assembly",
   "relocation",
-  "verificationTags",
+  // verificationTags intentionally excluded — /onboarding/verification is
+  // a "Skip for now" step (CTA defaults to skip; the page never forces a
+  // tier choice). Listing it as required while no wizard step writes it
+  // strands users on /discover with a permanent "Redirecting…" message
+  // because firstMissingStepFor returns null. Verification status is a
+  // post-onboarding nudge, not a discover prerequisite.
 ];
 
 export function emptyProfile(): Profile {
