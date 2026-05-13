@@ -321,6 +321,15 @@ export function useProfile(): UseProfileResult {
   // reconciliation logic (e.g. server-wins conflict resolution). Not part
   // of the public surface.
   const lastServerSnapshot = useRef<Partial<Profile> | null>(null);
+  // Mirror of `profile` that mutates synchronously inside `update()` so
+  // concurrent calls (e.g. country page firing `update({country})` then
+  // `update({location})` after a `/search-locations` await) each see the
+  // latest committed state. Without this, both calls capture the same
+  // pre-render `profile` snapshot and the second one clobbers the first.
+  const profileRef = useRef<Partial<Profile>>(profile);
+  useEffect(() => {
+    profileRef.current = profile;
+  }, [profile]);
 
   const refreshProfile = useCallback(async () => {
     // /me requires a person row. Onboardees don't have one yet and the
@@ -388,8 +397,11 @@ export function useProfile(): UseProfileResult {
 
   const update = useCallback(
     async (patch: Partial<Profile>) => {
-      const prev = profile;
+      // Read from ref (synchronously up-to-date) NOT from the closure
+      // `profile` (one render behind during back-to-back calls).
+      const prev = profileRef.current;
       const next = { ...prev, ...patch };
+      profileRef.current = next;
       // Optimistic: paint the patched state immediately.
       setProfileState(next);
       saveProfileToCache(next);
@@ -426,7 +438,10 @@ export function useProfile(): UseProfileResult {
         throw err;
       }
     },
-    [profile],
+    // `profileRef` is a ref — stable across renders. No `profile` dep
+    // needed and dropping it makes `update` referentially stable for
+    // downstream useCallback/useEffect deps.
+    [],
   );
 
   const setProfile = useCallback(

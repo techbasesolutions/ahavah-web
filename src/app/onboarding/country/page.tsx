@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { Search, X } from "lucide-react";
 
@@ -51,6 +51,21 @@ export default function CountryStep() {
   const { profile, update } = useProfile();
   const selected = profile.country ?? "";
   const [query, setQuery] = useState("");
+  // Hydration guard: useProfile pulls profile.country from localStorage on
+  // mount, so the server renders WITHOUT the selected-country summary
+  // (no localStorage during SSR) and the client renders WITH it. The
+  // mismatch makes React bail out of hydrating the subtree and click
+  // handlers on the radio cards intermittently fail to bind. Mount-gated
+  // render eliminates the divergence.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    // The setState-in-effect rule warns generically here, but a one-shot
+    // mount flag IS the canonical way to signal "client hydration done".
+    // No external system to sync against; the React docs' alternative
+    // (move to useSyncExternalStore) is overkill for a single boolean.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
 
   const handlePickCountry = async (cc: string) => {
     // Optimistic: persist the ISO code immediately so the radio reflects
@@ -85,15 +100,21 @@ export default function CountryStep() {
 
   const showEmpty = isSearching && searchResults.length === 0;
 
+  // `effectiveSelected` is the value the RadioGroup + CountryRows render
+  // against. We deliberately mask it to "" pre-mount so the SSR pass and
+  // the first client pass match — the localStorage-backed `selected` then
+  // becomes live on the post-mount re-render.
+  const effectiveSelected = mounted ? selected : "";
+
   // Resolve the selected country to its full record so the summary row can
   // show flag + name without scrolling. Cheap O(n) lookup against the full
   // list — negligible at ~250 rows.
-  const selectedCountry = selected
-    ? ALL_COUNTRIES.find((c) => c.cc === selected)
+  const selectedCountry = effectiveSelected
+    ? ALL_COUNTRIES.find((c) => c.cc === effectiveSelected)
     : undefined;
 
   return (
-    <OnboardingShell href="/onboarding/country" ctaDisabled={!selected}>
+    <OnboardingShell href="/onboarding/country" ctaDisabled={!effectiveSelected}>
       <motion.div
         {...fadeUp}
         transition={{ duration: 0.4 }}
@@ -109,8 +130,10 @@ export default function CountryStep() {
 
       {/* Selection summary — renders only when a country is picked so the
           user can confirm their choice without scrolling 250 rows. Sticky
-          near the top, above the search; tap the X to clear and re-pick. */}
-      {selectedCountry ? (
+          near the top, above the search; tap the X to clear and re-pick.
+          Gated on `mounted` to prevent SSR/CSR hydration mismatch (cache
+          isn't readable during SSR). */}
+      {mounted && selectedCountry ? (
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -193,19 +216,19 @@ export default function CountryStep() {
           />
         ) : (
           <RadioGroup
-            value={selected}
+            value={effectiveSelected}
             onValueChange={(v) => void handlePickCountry(v as string)}
             aria-label="Select your country"
             className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto pb-2"
           >
             {isSearching ? (
-              <CountryRows countries={searchResults} selected={selected} />
+              <CountryRows countries={searchResults} selected={effectiveSelected} />
             ) : (
               <>
                 <SectionHeader>Popular</SectionHeader>
-                <CountryRows countries={POPULAR_COUNTRIES} selected={selected} />
+                <CountryRows countries={POPULAR_COUNTRIES} selected={effectiveSelected} />
                 <SectionHeader className="mt-5">All countries</SectionHeader>
-                <CountryRows countries={restCountries} selected={selected} />
+                <CountryRows countries={restCountries} selected={effectiveSelected} />
               </>
             )}
           </RadioGroup>

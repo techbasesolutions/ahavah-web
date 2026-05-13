@@ -125,7 +125,7 @@ export function EmptyState({
   const { Icon, useSparkle, sparkleColor, iconColor } = preset;
 
   return (
-    <Empty className={cn("mx-5 mt-6", className)}>
+    <Empty className={cn("mt-6", className)}>
       <EmptyHeader>
         <EmptyMedia>
           {useSparkle ? (
@@ -186,7 +186,7 @@ export function ErrorState({
   className,
 }: ErrorStateProps) {
   return (
-    <Empty className={cn("mx-5 mt-6", className)}>
+    <Empty className={cn("mt-6", className)}>
       <EmptyHeader>
         <EmptyMedia>
           <AlertTriangle className="size-14 text-pink" />
