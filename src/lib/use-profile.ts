@@ -147,6 +147,16 @@ export function useProfile(): UseProfileResult {
   const lastServerSnapshot = useRef<Partial<Profile> | null>(null);
 
   const refreshProfile = useCallback(async () => {
+    // /me requires a person row. Onboardees don't have one yet and the
+    // endpoint 401s for them. Hitting it anyway and then clobbering local
+    // state on 401 wipes the optimistically-cached answers from earlier
+    // onboarding steps (sex, dob, ...), so the next page redirects back
+    // to "fix" the now-missing field. During onboarding, the cache *is*
+    // the source of truth — don't touch it.
+    if (!readOnboarded()) {
+      setLoaded(true);
+      return;
+    }
     try {
       const server = await apiClient.get<Record<string, unknown>>("/me");
       const translated = translateInbound(server);
@@ -155,8 +165,8 @@ export function useProfile(): UseProfileResult {
       saveProfileToCache(translated);
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
-        // Session expired / never authenticated. Drop the cache so we
-        // don't paint stale data on the next mount.
+        // Session expired post-onboarding. Drop the cache so we don't
+        // paint stale data on the next mount.
         clearProfileCache();
         setProfileState({});
       }
@@ -205,9 +215,13 @@ export function useProfile(): UseProfileResult {
         }
         lastServerSnapshot.current = next;
       } catch (err) {
-        // Rollback to the snapshot we had before the optimistic write.
-        setProfileState(prev);
-        saveProfileToCache(prev);
+        // Do NOT rollback the optimistic state. The user just typed
+        // "Ehud"; rolling back to prev erases the input visually for a
+        // problem they can't see (auth failure, server hiccup, etc.) and
+        // makes the wizard feel broken. localStorage cache still holds
+        // the latest, and a future successful PATCH (or /finish-onboarding)
+        // will sync it. Rethrow so callers that DO care (e.g. final
+        // submit) can react.
         throw err;
       }
     },
@@ -240,8 +254,7 @@ export function useProfile(): UseProfileResult {
         }
         lastServerSnapshot.current = next;
       } catch (err) {
-        setProfileState(prev);
-        saveProfileToCache(prev);
+        // Same reasoning as `update` above — keep the optimistic state.
         throw err;
       }
     },

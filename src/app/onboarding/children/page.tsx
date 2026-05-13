@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { motion } from "motion/react";
 
 import { OnboardingShell } from "@/components/app/onboarding-shell";
@@ -19,6 +20,16 @@ export default function ChildrenStep() {
   const { profile, update } = useProfile();
   const value = profile.children;
   const isComplete = value !== undefined;
+
+  // Default to 0 on mount so "I have no children" counts as a valid
+  // answer without forcing the user to bump up then back down. Without
+  // this, CTA stays disabled even though the stepper visibly reads 0.
+  useEffect(() => {
+    if (profile.children === undefined) {
+      void update({ children: 0 });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleChange = (next: number) => {
     update({ children: next });
