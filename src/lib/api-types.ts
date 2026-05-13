@@ -45,42 +45,35 @@ export type MeResponse = Partial<Profile>;
 export type ProfileInfoPatch = Partial<Profile>;
 
 // ---------------------------------------------------------------------------
-// Photos — service/api/__init__.py lines 477-501 + new /photos endpoints
-//                                                   shipped Phase W F.1
+// Photos — the backend has NO /photos REST resource. Photo I/O is folded
+// into the existing /profile-info endpoint:
+//   GET    /profile-info                     → photo map {position: uuid}
+//   PATCH  /profile-info {base64_file:{...}} → upload one photo by position
+//                                              (duotypes/__init__.py:128, 401)
+//   PATCH  /profile-info {photo_assignments} → reorder by position swaps
+//                                              (duotypes/__init__.py:188)
+//   DELETE /profile-info {files:[positions]} → delete photos at positions
+//                                              (duotypes/__init__.py:361)
+// Moderation is async via cron (nsfwphotorunner + photocleaner). PATCH
+// returns immediately; verdict materialises on a later GET /profile-info.
+// nsfw_score is currently NOT surfaced in GET /profile-info — the adapter
+// in photo-storage.ts synthesises ModerationState per the documented
+// threshold table and tolerates a null score (treated as pending-review).
+//
+// Canonical definitions live in photo-types.ts (so profile-schema.ts can
+// import PhotoRecord without cycling through this file). We re-export
+// them here so the original `from "@/lib/api-types"` imports keep working.
 // ---------------------------------------------------------------------------
 
-export type ModerationState =
-  | "approved"
-  | "pending-review"
-  | "rejected"
-  | "uploading";
-
-export type PhotoRecord = {
-  uuid: string;
-  cdn_url: string;
-  position: number;
-  moderation_state: ModerationState;
-  /** Server-side NSFW classifier output; null while pending. */
-  nsfw_score: number | null;
-  /** ISO-8601 server timestamp. */
-  created_at: string;
-};
-
-export type QuotaInfo = {
-  usedBytes: number;
-  limitBytes: number;
-  maxPhotos: number;
-  currentPhotoCount: number;
-};
-
-export type UploadProgress = {
-  loadedBytes: number;
-  totalBytes: number;
-};
-
-export type UploadResult = {
-  photo: PhotoRecord;
-};
+export type {
+  ModerationState,
+  PhotoRecord,
+  ProfileInfoPhotoMap,
+  ProfileInfoResponse,
+  QuotaInfo,
+  UploadProgress,
+  UploadResult,
+} from "@/lib/photo-types";
 
 // ---------------------------------------------------------------------------
 // Discovery — service/search/__init__.py + service/discovery/__init__.py

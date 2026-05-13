@@ -7,6 +7,8 @@
  * onboarding and complete the rest in /profile/edit.
  */
 
+import type { PhotoRecord } from "@/lib/photo-types";
+
 // Basic Identity ------------------------------------------------------------
 
 export type Sex = "male" | "female";
@@ -652,7 +654,12 @@ export type Profile = {
   occupation?: string;
   education?: EducationLevel;
   bio?: string;            // also called "Testimony" in copy for this audience
-  photos?: string[];       // Up to 6 data URLs from /onboarding/photos. SP21.
+  // Up to 7 PhotoRecord entries (backend MAX_PHOTO_POSITION = 7). Each
+  // record carries a CDN URL (450px variant), position, moderation state,
+  // and the raw nsfw_score where available. Consumer surfaces (map-avatar,
+  // discover, profile-detail) render record.cdn_url directly; the photo
+  // pipeline lives in `photo-storage.ts`.
+  photos?: PhotoRecord[];
   // Relationship intent (gender-conditional)
   intent?: Intent;
   // Faith cluster

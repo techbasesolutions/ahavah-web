@@ -1,81 +1,181 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
 
 import { OnboardingShell } from "@/components/app/onboarding-shell";
 import { PhotoSlot } from "@/components/app/photo-slot";
-import { compressImage } from "@/lib/image-compress";
-import { canAddPhoto } from "@/lib/photo-storage";
+import { listPhotos } from "@/lib/photo-storage";
+import { usePhotoQuota } from "@/lib/use-photo-quota";
+import { usePhotoUpload, type StartOptions } from "@/lib/use-photo-upload";
 import { useProfile } from "@/lib/use-profile";
+import type { PhotoRecord } from "@/lib/photo-types";
+
+/**
+ * /onboarding/photos
+ *
+ * Phase W rewire: photo I/O goes through the backend pipeline. Each slot
+ * owns its own usePhotoUpload hook; after a slot's upload settles into
+ * `moderating`, we refresh the photo list from the backend and push the
+ * resolved PhotoRecord back into the hook via confirmModeration() so the
+ * slot can transition to ready / rejected.
+ *
+ * The page maintains a local `records: PhotoRecord[]` mirror of the
+ * backend state and mirrors it into `profile.photos: PhotoRecord[]` so
+ * consumer surfaces (map-avatar, discover, profile-detail) stay in sync.
+ *
+ * "Continue" gating: brief asks for "approved" as the safety pick. As of
+ * 2026-05-12 the backend doesn't yet surface nsfw_score in GET, so every
+ * photo resolves to pending-review on refresh. We accept either approved
+ * OR pending-review as the gate (the alternative the brief documented)
+ * so onboarding isn't permanently blocked until backend surfaces the
+ * score. Update gating once nsfw_score lands in GET /profile-info.
+ */
 
 const SLOT_COUNT = 6;
 
-type SlotState = "empty" | "loading" | "filled" | "error";
+type SlotIndex = 0 | 1 | 2 | 3 | 4 | 5;
 
 export default function PhotosStep() {
-  const { profile, update } = useProfile();
-  const photos = profile.photos ?? [];
-  // Per-slot transient state (loading / error). Indexed 0..5.
-  // Filled state is derived from photos[i] directly so it survives reload;
-  // only loading/error are session-local.
-  const [slotStates, setSlotStates] = useState<
-    Record<number, { state: SlotState; error?: string }>
-  >({});
+  const { update } = useProfile();
+  const { quota } = usePhotoQuota();
+  const [records, setRecords] = useState<PhotoRecord[]>([]);
 
-  const hasMain = (photos[0] ?? "") !== "";
-  const isComplete = hasMain;
+  // Per-slot upload hooks. SLOT_COUNT is small + fixed so we instantiate
+  // each up front (Rules of Hooks).
+  const slot0 = usePhotoUpload();
+  const slot1 = usePhotoUpload();
+  const slot2 = usePhotoUpload();
+  const slot3 = usePhotoUpload();
+  const slot4 = usePhotoUpload();
+  const slot5 = usePhotoUpload();
+  const slotHooks = useMemo(
+    () => [slot0, slot1, slot2, slot3, slot4, slot5] as const,
+    [slot0, slot1, slot2, slot3, slot4, slot5],
+  );
 
-  const handlePick = async (slotIndex: number, file: File) => {
-    setSlotStates((s) => ({ ...s, [slotIndex]: { state: "loading" } }));
+  /** Pull the latest photo list from the backend and project CDN URLs
+   *  into the local profile mirror. Called on mount + after every upload.
+   *  Bridging external state (backend) into React state — canonical
+   *  pattern in this codebase, see use-profile.ts mount-hydration. */
+  const refreshFromBackend = useCallback(async () => {
     try {
-      const compressed = await compressImage(file);
-      // Exclude this slot from the quota baseline so a re-upload doesn't
-      // double-count the photo we're about to overwrite.
-      const baseline = photos.filter((_, i) => i !== slotIndex);
-      const quota = canAddPhoto(baseline, compressed.bytes);
-      if (!quota.ok) {
-        setSlotStates((s) => ({
-          ...s,
-          [slotIndex]: { state: "error", error: quota.reason },
-        }));
-        return;
+      const list = await listPhotos();
+      setRecords(list);
+      // Profile.photos is now PhotoRecord[] (Task 3.8); push the
+      // resolved records directly so consumer surfaces (map-avatar,
+      // discover) stay in sync.
+      update({ photos: list });
+    } catch {
+      // Best-effort: silently swallow. Slot state already shows an error
+      // if upload failed; a separate refresh failure shouldn't compound
+      // the noise. A future toast layer (Agent 5+) can surface this.
+    }
+  }, [update]);
+
+  // Initial mount-fetch.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void refreshFromBackend();
+  }, [refreshFromBackend]);
+
+  // When any slot enters "moderating", trigger a refresh + confirmModeration.
+  // We watch a tuple of kinds so the effect only re-fires on a relevant
+  // state-machine transition, not on every render.
+  const moderationKinds = slotHooks.map((h) => h.state.kind).join("|");
+  useEffect(() => {
+    slotHooks.forEach((hook, idx) => {
+      if (hook.state.kind === "moderating") {
+        void (async () => {
+          await refreshFromBackend();
+          const position = idx + 1;
+          const justUploaded = (await listPhotos()).find(
+            (p) => p.position === position,
+          );
+          if (justUploaded) hook.confirmModeration(justUploaded);
+        })();
       }
-      const nextPhotos = [...photos];
-      nextPhotos[slotIndex] = compressed.dataUrl;
-      // Compact: filter empty entries so the main slot is always populated
-      // first. If the user fills slot 2 before slots 0+1, the photo moves
-      // into slot 0 on save. This matches the "first non-empty is main"
-      // invariant the consumer surfaces (T8) expect.
-      const compacted = nextPhotos.filter((p) => p && p.length > 0);
-      update({ photos: compacted });
-      setSlotStates((s) => {
-        const copy = { ...s };
-        delete copy[slotIndex];
-        return copy;
-      });
-    } catch (err) {
-      setSlotStates((s) => ({
-        ...s,
-        [slotIndex]: {
-          state: "error",
-          error:
-            err instanceof Error ? err.message : "Couldn't read this file.",
-        },
-      }));
+    });
+    // moderationKinds is a derived dep that captures the slot-kind tuple
+    // change; including slotHooks would re-fire on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [moderationKinds, refreshFromBackend]);
+
+  const handlePick = (slotIndex: SlotIndex, file: File) => {
+    const opts: StartOptions = { position: slotIndex + 1 };
+    void slotHooks[slotIndex].start(file, opts);
+  };
+
+  const handleRemove = async (slotIndex: SlotIndex) => {
+    const rec = records[slotIndex];
+    if (!rec) return;
+    try {
+      const { deletePhoto } = await import("@/lib/photo-storage");
+      await deletePhoto(rec.position);
+      await refreshFromBackend();
+      slotHooks[slotIndex].reset();
+    } catch {
+      // Surface via slot — currently no toast layer.
     }
   };
 
-  const handleRemove = (slotIndex: number) => {
-    const next = [...photos];
-    next.splice(slotIndex, 1);
-    update({ photos: next });
-    setSlotStates((s) => {
-      const copy = { ...s };
-      delete copy[slotIndex];
-      return copy;
-    });
+  // Derive the visible state for each slot from BOTH the upload hook
+  // (transient: compressing / uploading / moderating / error) AND the
+  // backend records (persistent: approved / pending-review / rejected /
+  // missing).
+  type Visible = {
+    state: "empty" | "loading" | "filled" | "pending-review" | "rejected" | "error";
+    src?: string;
+    error?: string;
   };
+  function visibleFor(idx: SlotIndex): Visible {
+    const hook = slotHooks[idx];
+    // Transient hook states win over the backend snapshot.
+    switch (hook.state.kind) {
+      case "compressing":
+      case "uploading":
+      case "moderating":
+        return { state: "loading" };
+      case "error":
+        return { state: "error", error: hook.state.message };
+      case "rejected":
+        return { state: "rejected" };
+      case "ready":
+        return {
+          state:
+            hook.state.photo.moderation_state === "pending-review"
+              ? "pending-review"
+              : "filled",
+          src: hook.state.photo.cdn_url || undefined,
+        };
+      case "idle":
+      default:
+        // Fall through to backend record.
+        break;
+    }
+    const rec = records[idx];
+    if (!rec || !rec.cdn_url) return { state: "empty" };
+    switch (rec.moderation_state) {
+      case "approved":
+        return { state: "filled", src: rec.cdn_url };
+      case "pending-review":
+      case "uploading":
+        return { state: "pending-review", src: rec.cdn_url };
+      case "rejected":
+        return { state: "rejected" };
+      default:
+        return { state: "empty" };
+    }
+  }
+
+  // Continue is enabled when at least one photo is approved OR pending-review.
+  // See gating comment at top of file re: nsfw_score backend dependency.
+  const hasUsablePhoto = records.some(
+    (r) =>
+      r.moderation_state === "approved" ||
+      r.moderation_state === "pending-review",
+  );
+  const isComplete = hasUsablePhoto;
 
   return (
     <OnboardingShell href="/onboarding/photos" ctaDisabled={!isComplete}>
@@ -95,31 +195,40 @@ export default function PhotosStep() {
 
       <div className="mt-8 grid grid-cols-3 gap-3">
         {Array.from({ length: SLOT_COUNT }).map((_, i) => {
-          const photo = photos[i];
-          const localState = slotStates[i];
-          const state: SlotState = localState?.state ?? (photo ? "filled" : "empty");
+          const idx = i as SlotIndex;
+          const vis = visibleFor(idx);
           return (
             <PhotoSlot
               key={i}
               index={i}
               isMain={i === 0}
-              state={state}
-              src={photo}
-              errorMessage={localState?.error}
-              onPick={(file) => handlePick(i, file)}
-              onRemove={photo ? () => handleRemove(i) : undefined}
+              state={vis.state}
+              src={vis.src}
+              errorMessage={vis.error}
+              onPick={(file) => handlePick(idx, file)}
+              onRemove={
+                vis.state === "filled" || vis.state === "pending-review"
+                  ? () => void handleRemove(idx)
+                  : undefined
+              }
+              onClearRejected={
+                vis.state === "rejected"
+                  ? () => slotHooks[idx].reset()
+                  : undefined
+              }
             />
           );
         })}
       </div>
 
       <p className="mt-4 text-caption text-text-secondary" aria-live="polite">
-        {hasMain
-          ? `${photos.length} of ${SLOT_COUNT} added. Your main photo is set.`
+        {hasUsablePhoto
+          ? `${quota.currentPhotoCount} of ${SLOT_COUNT} added.`
           : "At least one photo required."}
       </p>
       <p className="mt-1 text-caption text-text-muted">
-        JPEG, PNG, or WebP up to 10MB each. Photos are compressed before saving.
+        JPEG, PNG, or WebP. Photos are compressed before upload, then
+        reviewed by automated moderation.
       </p>
     </OnboardingShell>
   );
