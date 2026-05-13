@@ -1,61 +1,54 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
-import { Heart, MapPin, Pause, SlidersHorizontal, X } from "lucide-react";
+import { motion } from "motion/react";
+import { MapPin, SlidersHorizontal, X } from "lucide-react";
 
 import { Avatar, AvatarBadge, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 
 import { BrandMark } from "@/components/brand/sparkle-mark";
 import { BottomNav } from "@/components/app/bottom-nav";
+import { DiscoverCardFace } from "@/components/app/discover-card-face";
 import { EmptyState } from "@/components/app/empty-state";
 import { FiltersSheet } from "@/components/app/filters-sheet";
 import { PageHeader, PageShell } from "@/components/app/page-shell";
-import { PhotoCaption } from "@/components/app/photo-caption";
-import { ProgressDots } from "@/components/app/progress-dots";
-import { CompatPill } from "@/components/app/compat-pill";
+import { SwipeDeck, type DeckItem } from "@/components/app/swipe-deck";
 import { useProfile } from "@/lib/use-profile";
 import { firstMissingStepFor, isDiscoverEligible } from "@/lib/profile-completeness";
-import { buildDiscoverDeck, type DiscoverCandidate } from "@/lib/discover-engine";
-import { SAMPLE_PROFILES } from "@/lib/profile-sample";
 import { useDecisions } from "@/lib/use-decisions";
+import { useDiscoverDeck, type DiscoverFilters as HttpFilters } from "@/lib/use-discover-deck";
 import { useFilters } from "@/lib/use-filters";
-import { simulateLikesBack } from "@/lib/decision-engine";
-import { photoOrGradient } from "@/lib/photo-or-gradient";
-
-const PHOTOS_PER_CANDIDATE = 3;
 
 /**
- * Convert SAMPLE_PROFILES to DiscoverCandidates with gradients.
+ * /discover — the dating app's central swipe surface.
+ *
+ * Phase W rewire (this file):
+ *   - Deck is fetched from `GET /search` via `useDiscoverDeck`. Filter
+ *     changes reset the deck and refetch from the head. SwipeDeck's
+ *     `onNeedMore` triggers prefetch when only ~3 cards remain.
+ *   - Each swipe POSTs to `/decisions` via `useDecisions().decide`.
+ *   - Mutual matches navigate to `/match?matchId=<id>` (handled by the
+ *     /match page).
+ *
+ * Local-decision tracking (the legacy `recordLike`/`hasDecided` flow) is
+ * deliberately removed here — the backend owns swipe state post-Phase W,
+ * and the local `useDecisions` legacy surface is only kept for /map and
+ * /profile/[uuid] cosmetic affordances.
  */
-const SAMPLE_AS_CANDIDATES: DiscoverCandidate[] = SAMPLE_PROFILES.map((profile) => ({
-  ...profile,
-  id: profile.firstName?.toLowerCase() ?? "unknown",
-}));
-
 export default function DiscoverPage() {
   const router = useRouter();
   const { profile: userProfile, loaded } = useProfile();
-  const { recordPass, recordLike, hasDecided, popLast, clearAll } = useDecisions();
-  // Lifted FiltersSheet open state so both the SlidersHorizontal trigger
-  // AND the empty-deck "Adjust filters" CTA can open the same sheet.
+  const { decide, pendingIds } = useDecisions();
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [userIndex, setUserIndex] = useState(0);
-  const [photoIndex, setPhotoIndex] = useState(0);
-  // Shared filter state — /map reads + writes the same store via
-  // useFilters() so picking Country:BB on one surface is reflected on
-  // the other immediately.
+  // Local filter state powers the FiltersSheet; we adapt its shape to the
+  // useDiscoverDeck HTTP filter shape just below.
   const { filters, setFilters } = useFilters();
-  // Track last action so AnimatePresence can pick a direction (skip → left,
-  // like → right). Reset on user advance.
-  const [exitDirection, setExitDirection] = useState<"left" | "right">("left");
 
-  // Soft-completeness gate: redirect incomplete profiles to first missing step.
-  // Check only after profile is loaded from localStorage.
+  // Soft-completeness gate — redirect incomplete profiles to first missing
+  // step. Identical pattern to the pre-Phase-W flow.
   useEffect(() => {
     if (loaded && !isDiscoverEligible(userProfile)) {
       const missingStep = firstMissingStepFor(userProfile);
@@ -65,96 +58,69 @@ export default function DiscoverPage() {
     }
   }, [loaded, userProfile, router]);
 
-  // Build the discover deck based on filters
-  const deck = useMemo(() => {
-    if (!userProfile) return [];
-    return buildDiscoverDeck(userProfile, SAMPLE_AS_CANDIDATES, filters);
-  }, [userProfile, filters]);
+  // Map FiltersSheet's local filter shape onto the HTTP filter shape that
+  // useDiscoverDeck expects. The local filters object carries far more
+  // facets than the backend exposes today (assemblies, intents, etc.);
+  // those are silently dropped here — they will return as discovery-prefs
+  // wiring lands in a future phase. age + countries + languages cover the
+  // current backend `/search` query-string shape.
+  const httpFilters: HttpFilters = useMemo(
+    () => ({
+      ageMin: filters.ageMin,
+      ageMax: filters.ageMax,
+      countries: filters.country,
+      languages: filters.languages,
+    }),
+    [filters.ageMin, filters.ageMax, filters.country, filters.languages],
+  );
 
-  // Exclude viewer themselves from the deck
-  const filteredDeck = useMemo(() => {
-    if (!userProfile?.firstName) return deck;
-    const viewerFirstName = userProfile.firstName.toLowerCase();
-    return deck.filter(
-      (candidate) =>
-        candidate.id !== viewerFirstName && !hasDecided(candidate.id),
-    );
-  }, [deck, userProfile, hasDecided]);
+  const { items, loadMore, hasMore } = useDiscoverDeck(httpFilters);
 
-  const profile = filteredDeck[userIndex];
+  // Filter out candidates currently mid-decision so the deck doesn't double-
+  // count a card the user just swiped while the server response is in flight.
+  // The hook still tracks them in pendingIds; we just hide them visually.
+  const visibleItems = useMemo(
+    () => items.filter((c) => !pendingIds.has(c.id)),
+    [items, pendingIds],
+  );
 
-  /**
-   * 3-slot photo source list for the current candidate. SP21 T8: each
-   * slot maps to photos[i] when present, gradient fallback otherwise.
-   * Sample profiles ship without photos so the carousel renders 3
-   * deterministic gradients. Once a candidate has real photos, those
-   * render via <img> with object-cover.
-   */
-  const candidatePhotos = useMemo(() => {
-    if (!profile) return [];
-    return Array.from({ length: PHOTOS_PER_CANDIDATE }, (_, i) =>
-      photoOrGradient(profile, i),
-    );
-  }, [profile]);
+  // Map candidates to DeckItem shape consumed by SwipeDeck. render() is
+  // a thunk so SwipeDeck can call it once per visible slot without us
+  // re-binding callbacks each parent render.
+  const deckItems: DeckItem[] = useMemo(
+    () =>
+      visibleItems.map((candidate) => ({
+        id: candidate.id,
+        render: () => <DiscoverCardFace candidate={candidate} />,
+      })),
+    [visibleItems],
+  );
 
-  const currentPhotoSource = candidatePhotos[photoIndex] ?? candidatePhotos[0];
-
-  /**
-   * Reset deck affordance for the empty state. Clears all locally-recorded
-   * pass/like decisions and resets the UI indices so filteredDeck repopulates
-   * from the head. Pre-backend MVP only — once Tier-4 auth/server decisions
-   * land in a later sub-plan, this button is repurposed or removed.
-   */
-  const handleResetDeck = () => {
-    clearAll();
-    setUserIndex(0);
-    setPhotoIndex(0);
-  };
-
-  const advanceUser = (action: "skip" | "like") => {
-    if (!profile) return;
-    // The decision causes hasDecided(profile.id) to flip true on next
-    // render, so filteredDeck drops this candidate from its head.
-    // userIndex stays at 0 and naturally points at the new head.
-    // Bumping userIndex here would skip the candidate that takes the
-    // head slot after the filter shrinks — index drift bug fixed.
-    setExitDirection(action === "like" ? "right" : "left");
-    setUserIndex(0);
-    setPhotoIndex(0);
-  };
-
-  /**
-   * Walk the candidate's photo carousel. At the boundaries, advance / fall
-   * back to the previous candidate so the gesture always does something.
-   */
-  const advancePhoto = (direction: "prev" | "next") => {
-    if (!profile) return;
-    if (direction === "next") {
-      if (photoIndex < candidatePhotos.length - 1) {
-        setPhotoIndex((i) => i + 1);
-      } else {
-        // Past the last photo → treat as a Skip on the current candidate.
-        // The recordPass is required: under the head-only deck model, the
-        // filter (hasDecided) is the sole driver of deck advancement. Without
-        // recording the decision, the candidate stays atop filteredDeck and
-        // the user loops on right-edge taps.
-        recordPass(profile.id);
-        advanceUser("skip");
+  const handleDecide = async (
+    item: DeckItem,
+    decision: "like" | "nope",
+  ) => {
+    try {
+      const result = await decide(item.id, decision);
+      if (decision === "like" && result.matchId) {
+        router.push(`/match?matchId=${encodeURIComponent(result.matchId)}`);
       }
-    } else if (photoIndex > 0) {
-      setPhotoIndex((i) => i - 1);
-    } else {
-      // photoIndex === 0 + prev tap → pop most recent decision so the
-      // previously-decided candidate re-appears at the head of filteredDeck.
-      // Head-only deck model: no userIndex manipulation needed.
-      setExitDirection("right");
-      popLast();
-      setPhotoIndex(0);
+    } catch {
+      // Errors are surfaced through useDecisions().error; the deck
+      // returns to its prior visible state automatically because the
+      // failed id is removed from pendingIds in the hook's finally.
+      // Future: toast via global notification rail when the
+      // notifications primitive lands.
     }
   };
 
+  const handleNeedMore = () => {
+    if (hasMore) {
+      void loadMore();
+    }
+  };
 
-  // During hydration or redirect, render minimal state to avoid swipe deck flash.
+  // During hydration or completeness redirect, render minimal scaffolding.
   if (!loaded || (loaded && !isDiscoverEligible(userProfile))) {
     return (
       <PageShell bottomPad="nav">
@@ -201,14 +167,9 @@ export default function DiscoverPage() {
 
   return (
     <PageShell bottomPad="nav">
-      {/* Visually-hidden page heading for screen readers — the visible
-          per-card h2 is the profile name, not a page-level heading.
-          Without this, SR users land on a page with no h1. */}
+      {/* Visually-hidden page heading for screen readers. */}
       <h1 className="sr-only">Discover</h1>
 
-      {/* Top chrome — BrandMark + filter/location button + own-avatar.
-          Uses PageHeader chrome (px-5 pt-6) with a flex layout in className
-          for the BrandMark-left, action-cluster-right pattern. */}
       <PageHeader pad="default" className="flex items-center justify-between">
         <BrandMark size="sm" />
         <div className="flex items-center gap-3">
@@ -225,10 +186,7 @@ export default function DiscoverPage() {
                 <SlidersHorizontal className="text-lavender" />
               </Button>
             }
-            onApply={(f) => {
-              setFilters(f);
-              setUserIndex(0);
-            }}
+            onApply={(f) => setFilters(f)}
           />
           <Button
             nativeButton={false}
@@ -246,14 +204,9 @@ export default function DiscoverPage() {
         </div>
       </PageHeader>
 
-      {/* "Filtered by map view" pill — escape hatch when /map's
-          onBoundsChange wrote filters.country to narrow the deck. Without
-          this, a user who panned to a narrow region and then opened
-          /discover would see a shrunken deck with no visual explanation
-          and no way to widen without going back to /map. Tap clears the
-          filter; deck restores immediately. Subtle visual treatment
-          (text-caption + bg-bg-elevated/80 + backdrop-blur) so the pill
-          doesn't compete with the primary header chrome above. */}
+      {/* "Filtered by map view" pill — same UX as the pre-Phase-W version.
+          /map writes filters.country when the user pans to a narrow region;
+          this row gives a single-tap escape. */}
       {filters.country && filters.country.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: -4 }}
@@ -277,196 +230,25 @@ export default function DiscoverPage() {
         </motion.div>
       )}
 
-      {/* Profile card — Stories model with slide transition on user-swap.
-          AnimatePresence + keyed motion.div: card slides out in the
-          chosen exit direction (skip → left, like → right) and the new
-          card slides in from the opposite side. Reduce-motion via
-          globals.css. */}
-      <div className="relative mt-3 flex flex-1 flex-col px-5">
-        {/* AnimatePresence custom prop: passes the current exitDirection
-            to BOTH the exiting and entering card as a function arg for
-            initial/exit variants. Without this, the exiting card's exit
-            prop is captured from the previous render — so a reject right
-            after a like would play the like exit animation (slide right)
-            because exitDirection was still 'right' when the doomed card
-            last rendered. */}
-        <AnimatePresence mode="wait" initial={false} custom={exitDirection}>
-          {profile ? (
-            <motion.div
-              key={profile.id}
-              custom={exitDirection}
-              variants={{
-                initial: (dir: "left" | "right") => ({
-                  opacity: 0,
-                  x: dir === "left" ? 60 : -60,
-                }),
-                animate: { opacity: 1, x: 0 },
-                exit: (dir: "left" | "right") => ({
-                  opacity: 0,
-                  x: dir === "left" ? -60 : 60,
-                }),
+      <div className="relative mt-3 flex flex-1 flex-col px-5 pb-2">
+        <SwipeDeck
+          items={deckItems}
+          onDecide={handleDecide}
+          onNeedMore={handleNeedMore}
+          pageThreshold={3}
+          emptyState={
+            <EmptyState
+              variant="no-matches"
+              title="You're all caught up."
+              description="Try widening your filters or check back later."
+              action={{
+                label: "Adjust filters",
+                onClick: () => setFiltersOpen(true),
               }}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              transition={{ duration: 0.3, ease: "easeOut" }}
-              className="relative w-full flex-1 overflow-hidden rounded-2xl shadow-2xl"
-              style={
-                currentPhotoSource?.kind === "gradient"
-                  ? ({
-                      backgroundImage: currentPhotoSource.css,
-                      backgroundSize: "cover",
-                      backgroundPosition: "center",
-                    } as React.CSSProperties)
-                  : undefined
-              }
-            >
-              {/* SP21 T8: real photo via <img> when present, gradient
-                  rendered via inline style above otherwise. <img> sits at
-                  z-0 so tap zones (z-10) + caption (z-20) overlay correctly. */}
-              {currentPhotoSource?.kind === "photo" && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={currentPhotoSource.src}
-                  alt={`${profile.firstName ?? "Profile"} photo ${photoIndex + 1}`}
-                  className="absolute inset-0 z-0 size-full object-cover"
-                />
-              )}
-              {/* Timeline — one segment per photo, stories-style. Bar mode
-                  fills reached segments and dims upcoming ones. */}
-              <div className="absolute top-5 right-5 left-5 z-20">
-                <ProgressDots
-                  mode="bar"
-                  tone="white"
-                  count={candidatePhotos.length}
-                  active={photoIndex}
-                />
-              </div>
-
-              {/* Symmetric tap zones — left half = previous photo (or
-                  previous candidate at photo 0), right half = next photo
-                  (or next candidate at last photo). Plain transparent
-                  <button> elements with no variant — the Button kit's
-                  ghost variant added hover/active backgrounds that
-                  produced a visible vertical seam down the card. These
-                  are pure tap surfaces, visually invisible at every
-                  state. Action row below sits on z-30. */}
-              <button
-                type="button"
-                aria-label="Previous photo"
-                onClick={() => advancePhoto("prev")}
-                className="absolute inset-y-0 left-0 z-10 h-full w-1/2 cursor-pointer bg-transparent outline-none focus-visible:bg-white/5"
-              />
-              <button
-                type="button"
-                aria-label="Next photo"
-                onClick={() => advancePhoto("next")}
-                className="absolute inset-y-0 right-0 z-10 h-full w-1/2 cursor-pointer bg-transparent outline-none focus-visible:bg-white/5"
-              />
-
-              <PhotoCaption className="px-6 pb-20">
-                {/* Name + location form a tap zone to the full profile.
-                    Sits z-20 above the prev/next photo tap zones (z-10)
-                    so the link wins the hit-test. Compat pill stays
-                    outside the Link because it owns its own Sheet trigger. */}
-                <Link
-                  href={`/profile/${profile.id}`}
-                  prefetch={false}
-                  aria-label={`View ${profile.firstName}'s profile`}
-                  className="relative z-20 -mx-1 -my-1 inline-block rounded-xl px-1 py-1 outline-none focus-visible:ring-2 focus-visible:ring-lavender"
-                >
-                  <h2 className="text-h2 leading-tight text-white">
-                    {profile.firstName}, {profile.age}
-                  </h2>
-                  {profile.city && profile.country ? (
-                    <p className="mt-1 flex items-center gap-1 text-caption text-white/85">
-                      <MapPin className="size-3" /> {profile.city}, {profile.country}
-                    </p>
-                  ) : profile.country ? (
-                    <p className="mt-1 flex items-center gap-1 text-caption text-white/85">
-                      <MapPin className="size-3" /> {profile.country}
-                    </p>
-                  ) : null}
-                </Link>
-                <div className="relative z-20 mt-3">
-                  <CompatPill score={profile.compatScore} size="sm" />
-                </div>
-              </PhotoCaption>
-
-              {/* Action row — skip/pause/like for the profile */}
-              <div className="absolute bottom-4 left-1/2 z-30 flex -translate-x-1/2 items-center gap-5">
-                <Button
-                  size="circle"
-                  tone="brand"
-                  lift="float"
-                  aria-label="Skip user"
-                  onClick={() => {
-                    recordPass(profile.id);
-                    advanceUser("skip");
-                  }}
-                >
-                  <X className="text-black" />
-                </Button>
-                <Button
-                  size="circle-lg"
-                  tone="cta"
-                  lift="float"
-                  aria-label="Pause auto-advance"
-                >
-                  <Pause className="text-black" fill="currentColor" />
-                </Button>
-                <Button
-                  size="circle"
-                  tone="action"
-                  lift="float"
-                  aria-label="Like user"
-                  onClick={() => {
-                    recordLike(profile.id);
-                    if (userProfile && simulateLikesBack(userProfile, profile)) {
-                      router.push(`/match?id=${profile.id}`);
-                    } else {
-                      advanceUser("like");
-                    }
-                  }}
-                >
-                  <Heart className="text-white" fill="currentColor" />
-                </Button>
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="empty"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.3 }}
-            >
-              <EmptyState
-                variant="filter-too-narrow"
-                title="You're all caught up"
-                description="No more matches nearby. Try widening your filters or check back later."
-                action={{
-                  label: "Adjust filters",
-                  onClick: () => setFiltersOpen(true),
-                }}
-                className="mx-0 mt-0 rounded-2xl border border-white/10 bg-bg-elevated"
-              />
-              {/* Secondary affordance: clear local decisions so the deck
-                  repopulates. EmptyState only supports a single action prop,
-                  so this is rendered as a separate full-width button beneath
-                  it, matching the outlineSubtle treatment of the primary CTA.
-                  Pre-backend MVP only — see comment on handleResetDeck. */}
-              <div className="mx-5 mt-3 flex justify-center">
-                <Button
-                  variant="outlineSubtle"
-                  size="lg"
-                  onClick={handleResetDeck}
-                >
-                  Reset all decisions
-                </Button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              className="mx-0 mt-0 rounded-2xl border border-white/10 bg-bg-elevated"
+            />
+          }
+        />
       </div>
 
       <BottomNav />

@@ -1,8 +1,7 @@
 "use client";
 
-import { Suspense, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
 import { MapPin, Search } from "lucide-react";
 
@@ -25,10 +24,8 @@ import {
   PageShell,
 } from "@/components/app/page-shell";
 import { PhotoTile } from "@/components/app/photo-tile";
-import { CompatPill } from "@/components/app/compat-pill";
-import { useProfile } from "@/lib/use-profile";
-import { computeCompatibility } from "@/lib/scoring/compute-compatibility";
-import { SAMPLE_PROFILES } from "@/lib/profile-sample";
+import { apiClient, ApiError } from "@/lib/api-client";
+import type { MatchesResponse, MatchRecord } from "@/lib/api-types";
 import { photoOrGradient, type PhotoSource } from "@/lib/photo-or-gradient";
 
 const fadeUp = {
@@ -36,61 +33,62 @@ const fadeUp = {
   animate: { opacity: 1, y: 0 },
 };
 
-// Cap stagger after the first 6 cells so a long match list doesn't slow-
-// cascade for seconds.
+// Stagger cap so a long matches list doesn't slow-cascade for seconds.
 const staggerDelay = (i: number) => 0.05 + Math.min(i, 5) * 0.06;
 
-// IDs match SAMPLE_PROFILES first names (lowercase) so computeCompatibility
-// has a real candidate to score against. Picked 4 women so the "Liked you"
-// list reads as a typical matches grid for a male viewer; the page
-// auto-recovers for female viewers (intent scoring will reflect the
-// gender-conditional rules).
-// SP21 T8: gradient field removed — each tile resolves via photoOrGradient
-// against the sample profile (photos[] if any, gradient fallback otherwise).
-const MATCHES_DISPLAY = [
-  { id: "esther", name: "Esther", age: 28, dist: "2 km away" },
-  { id: "adina",  name: "Adina",  age: 24, dist: "1 km away" },
-  { id: "rivka",  name: "Rivka",  age: 31, dist: "1.5 km away" },
-  { id: "tirzah", name: "Tirzah", age: 22, dist: "3 km away" },
-];
+type LoadState =
+  | { kind: "loading" }
+  | { kind: "happy"; matches: ReadonlyArray<MatchRecord> }
+  | { kind: "empty" }
+  | { kind: "error"; message: string };
 
-type State = "happy" | "loading" | "empty" | "error";
+/**
+ * /matches — "Liked you" list.
+ *
+ * Phase W rewire:
+ *   - `GET /matches` fetches the real list. Backend may not have shipped
+ *     this endpoint yet (Phase W F.1 backlog); on error we surface
+ *     ErrorState with retry.
+ *   - Empty list → EmptyState 'no-matches' variant.
+ *   - Row click → /profile/<partnerId>?from=matches (the back arrow on
+ *     /profile reads ?from= and routes home correctly).
+ *
+ * No `state=loading|empty|error` querystring override here — the page is
+ * now driven by the real fetch lifecycle. (The earlier dev-affordance for
+ * forcing states via querystring lived in pre-Phase-W code and is dropped.)
+ */
+export default function MatchesPage() {
+  const [state, setState] = useState<LoadState>({ kind: "loading" });
 
-function MatchesContent() {
-  const params = useSearchParams();
-  const state = (params.get("state") as State | null) ?? "happy";
-  const { profile: userProfile } = useProfile();
-
-  // Compute compatibility scores + resolve photo source per match. SP21 T8.
-  const matchesWithCompat = useMemo(() => {
-    return MATCHES_DISPLAY.map((match) => {
-      const sampleProfile = SAMPLE_PROFILES.find(
-        (p) => p.firstName?.toLowerCase() === match.id,
-      );
-      const photoSource: PhotoSource = photoOrGradient(
-        sampleProfile ?? { firstName: match.id },
-        0,
-      );
-      if (!userProfile || !sampleProfile) {
-        return { ...match, compatScore: 0, photoSource };
+  const fetchMatches = useMemo(
+    () => async () => {
+      setState({ kind: "loading" });
+      try {
+        const res = await apiClient.get<MatchesResponse>("/matches");
+        if (res.matches.length === 0) {
+          setState({ kind: "empty" });
+        } else {
+          setState({ kind: "happy", matches: res.matches });
+        }
+      } catch (e) {
+        const msg =
+          e instanceof ApiError
+            ? e.message
+            : e instanceof Error
+              ? e.message
+              : "Couldn't load matches.";
+        setState({ kind: "error", message: msg });
       }
-      const { score } = computeCompatibility(userProfile, sampleProfile);
-      return { ...match, compatScore: score, photoSource };
-    });
-  }, [userProfile]);
+    },
+    [],
+  );
 
-  const matches = state === "empty" ? [] : matchesWithCompat;
-
-  const body =
-    state === "loading" ? (
-      <MatchesLoadingSkeleton />
-    ) : state === "error" ? (
-      <MatchesErrorState />
-    ) : matches.length === 0 ? (
-      <MatchesEmptyState />
-    ) : (
-      <MatchesGrid matches={matches} />
-    );
+  useEffect(() => {
+    // Initial fetch — fetchMatches calls setState inside. The rule warns
+    // generically; this is the correct mount-driven pattern.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchMatches();
+  }, [fetchMatches]);
 
   return (
     <PageShell bottomPad="nav">
@@ -101,19 +99,18 @@ function MatchesContent() {
         </Button>
       </PageHeader>
 
-      {body}
+      {state.kind === "loading" ? (
+        <MatchesLoadingSkeleton />
+      ) : state.kind === "error" ? (
+        <MatchesErrorState onRetry={() => void fetchMatches()} />
+      ) : state.kind === "empty" ? (
+        <MatchesEmptyState />
+      ) : (
+        <MatchesGrid matches={state.matches} />
+      )}
 
       <BottomNav />
     </PageShell>
-  );
-}
-
-export default function MatchesPage() {
-  // Suspense wraps useSearchParams per Next 16 client-component pattern.
-  return (
-    <Suspense fallback={null}>
-      <MatchesContent />
-    </Suspense>
   );
 }
 
@@ -124,73 +121,77 @@ export default function MatchesPage() {
 function MatchesGrid({
   matches,
 }: {
-  matches: Array<
-    (typeof MATCHES_DISPLAY)[number] & {
-      compatScore: number;
-      photoSource: PhotoSource;
-    }
-  >;
+  matches: ReadonlyArray<MatchRecord>;
 }) {
   return (
     <div className="grid grid-cols-2 gap-4 px-5 pt-6">
-      {matches.map((m, i) => (
-        <motion.div
-          key={m.id}
-          {...fadeUp}
-          transition={{ duration: 0.3, delay: staggerDelay(i) }}
-        >
-          {/* Tap goes to the match's profile (mirrors /discover → profile).
-              Profile is the natural review surface; the Message button on
-              /profile/[uuid] then opens /chat/[id] for the conversation. */}
-          <Link
-            href={`/profile/${m.id}`}
-            prefetch={false}
-            className={cn(
-              buttonVariants({ variant: "ghost", size: "block" }),
-              "h-auto",
-            )}
+      {matches.map((m, i) => {
+        const partner = m.with_profile;
+        const partnerName = partner.firstName ?? "Match";
+        const partnerAge = partner.age;
+        const partnerLocation =
+          partner.city && partner.country
+            ? `${partner.city}, ${partner.country}`
+            : (partner.country ?? "");
+        const photoSource: PhotoSource = photoOrGradient(
+          { firstName: partnerName, photos: partner.photos },
+          0,
+        );
+        return (
+          <motion.div
+            key={m.match_id}
+            {...fadeUp}
+            transition={{ duration: 0.3, delay: staggerDelay(i) }}
           >
-            <Card tone="flat" size="sm" className="w-full gap-2 p-0">
-              <PhotoTile
-                aspect="4/5"
-                radius="lg"
-                surface="none"
-                bg={m.photoSource.kind === "gradient" ? m.photoSource.css : undefined}
-              >
-                {/* SP21 T8: real photo via <img> when present; gradient
-                    fallback flows through PhotoTile's `bg` prop above. */}
-                {m.photoSource.kind === "photo" && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={m.photoSource.src}
-                    alt={`${m.name}'s photo`}
-                    className="absolute inset-0 size-full object-cover"
-                  />
-                )}
-                <div className="absolute bottom-4 left-4">
-                  <CompatPill score={m.compatScore} size="sm" />
-                </div>
-              </PhotoTile>
-              <CardHeader className="px-0">
-                <CardTitle className="text-body font-semibold leading-tight text-white">
-                  {m.name}, {m.age}
-                </CardTitle>
-                <CardDescription className="flex items-center gap-1 text-caption text-text-secondary">
-                  <MapPin className="size-3" />
-                  {m.dist}
-                </CardDescription>
-              </CardHeader>
-            </Card>
-          </Link>
-        </motion.div>
-      ))}
+            <Link
+              href={`/profile/${partner.id}?from=matches`}
+              prefetch={false}
+              className={cn(
+                buttonVariants({ variant: "ghost", size: "block" }),
+                "h-auto",
+              )}
+            >
+              <Card tone="flat" size="sm" className="w-full gap-2 p-0">
+                <PhotoTile
+                  aspect="4/5"
+                  radius="lg"
+                  surface="none"
+                  bg={
+                    photoSource.kind === "gradient" ? photoSource.css : undefined
+                  }
+                >
+                  {photoSource.kind === "photo" && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={photoSource.src}
+                      alt={`${partnerName}'s photo`}
+                      className="absolute inset-0 size-full object-cover"
+                    />
+                  )}
+                </PhotoTile>
+                <CardHeader className="px-0">
+                  <CardTitle className="text-body font-semibold leading-tight text-white">
+                    {partnerName}
+                    {partnerAge ? `, ${partnerAge}` : ""}
+                  </CardTitle>
+                  {partnerLocation ? (
+                    <CardDescription className="flex items-center gap-1 text-caption text-text-secondary">
+                      <MapPin className="size-3" />
+                      {partnerLocation}
+                    </CardDescription>
+                  ) : null}
+                </CardHeader>
+              </Card>
+            </Link>
+          </motion.div>
+        );
+      })}
     </div>
   );
 }
 
 // Loading skeleton — mirrors the 4-cell grid layout so the transition from
-// loading → loaded doesn't shift any element. Each cell: aspect-4/5 photo
-// skeleton + 2 text-row skeletons. shadcn Skeleton primitive only.
+// loading → loaded doesn't shift any element.
 function MatchesLoadingSkeleton() {
   return (
     <div className="grid grid-cols-2 gap-4 px-5 pt-6">
@@ -213,12 +214,12 @@ function MatchesEmptyState() {
   );
 }
 
-function MatchesErrorState() {
+function MatchesErrorState({ onRetry }: { onRetry: () => void }) {
   return (
     <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.1 }}>
       <ErrorState
         description="We couldn't load your matches. Check your connection and try again."
-        retry={{ label: "Try again", onClick: () => window.location.reload() }}
+        retry={{ label: "Try again", onClick: onRetry }}
       />
     </motion.div>
   );
