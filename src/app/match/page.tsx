@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -16,21 +16,15 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 
-// Confetti uses motion/react's useReducedMotion hook which evaluates
-// `matchMedia("(prefers-reduced-motion: reduce)")` at render time. The
-// server can't read the user's OS pref, so SSR + first-client-render
-// disagree on whether to render the pieces — produces a hydration
-// mismatch warning. dynamic({ssr:false}) defers the component to
-// post-mount, eliminating the divergence at the cost of one frame's
-// invisibility (acceptable for a decorative burst that fires at delay
-// 0.3s anyway). Same pattern SP14 uses for WorldMap + MapAvatar.
+// Confetti uses motion/react's useReducedMotion which is post-mount only.
 const Confetti = dynamic(
   () => import("@/components/app/confetti").then((m) => m.Confetti),
   { ssr: false },
 );
 import { PageShell } from "@/components/app/page-shell";
 import { PhotoTile } from "@/components/app/photo-tile";
-import { sampleByName } from "@/lib/profile-sample";
+import { apiClient, ApiError } from "@/lib/api-client";
+import type { MatchRecord } from "@/lib/api-types";
 import { useProfile } from "@/lib/use-profile";
 import { photoOrGradient, type PhotoSource } from "@/lib/photo-or-gradient";
 
@@ -39,36 +33,87 @@ const fadeUp = {
   animate: { opacity: 1, y: 0 },
 };
 
-// Fallback match subject when no id is provided or profile lookup fails.
-// Esther is one of the SAMPLE_PROFILES; her /profile/esther + /chat/esther
-// routes both exist and render real content.
+// Generic fallback subject when the matchId either isn't supplied or the
+// server lookup fails. Display copy is intentionally vague ("Your match")
+// because we can't name them. The Message CTA still routes somewhere
+// reasonable — /matches — so the user has a path forward.
 const FALLBACK_SUBJECT = {
-  id: "esther",
-  name: "Esther",
+  id: "",
+  name: "Your match",
 };
 
-// Assert the fallback resolves at module load. If sample-profiles renames
-// or removes 'esther', this throws loudly instead of silently 404ing
-// the Send/Photo destinations.
-if (!sampleByName(FALLBACK_SUBJECT.id)) {
-  throw new Error(
-    `FALLBACK_SUBJECT.id "${FALLBACK_SUBJECT.id}" not found in SAMPLE_PROFILES`,
-  );
-}
-
+/**
+ * /match — the post-match celebration screen.
+ *
+ * Phase W rewire:
+ *   - `useSearchParams().get("matchId")` carries the real match id pushed
+ *     by /discover after a server-confirmed mutual like.
+ *   - `GET /matches/<matchId>` is the canonical lookup. Backend may not
+ *     have shipped this endpoint yet (Phase W F.1 backlog); on any error
+ *     we silently fall back to a generic celebration so the user is never
+ *     stuck staring at a broken page after a real match was created.
+ *   - SP19 motion budget is preserved: the badge climax keeps its 1.0s
+ *     duration + cascading card delays (0.05s / 0.15s / 0.25s). Per the
+ *     plan's motion-budget rubric, /match has an explicit carve-out from
+ *     the standard entrance budget — it's the only celebratory screen.
+ */
 function MatchPageContent() {
   const params = useSearchParams();
-  const rawId = params.get("id")?.toLowerCase().trim() || FALLBACK_SUBJECT.id;
-  const profile = sampleByName(rawId);
-  const subject = profile?.firstName
-    ? { id: rawId, name: profile.firstName }
-    : FALLBACK_SUBJECT;
+  const matchId = params.get("matchId");
+  // Backward-compat: older /discover code routed via ?id=<sample-id>.
+  // We accept either as a fallback for in-flight users on cached bundles.
+  const legacyId = params.get("id");
+  const lookupId = matchId ?? legacyId;
 
-  // SP21 T8: self card resolves against the viewer's uploaded photo (if
-  // any) with a deterministic gradient fallback; matched card resolves
-  // against the sample profile (which today has no photos seeded, so
-  // gradient fallback paints).
   const { profile: viewerProfile } = useProfile();
+  const [record, setRecord] = useState<MatchRecord | null>(null);
+  const [fetchAttempted, setFetchAttempted] = useState(false);
+
+  useEffect(() => {
+    if (!lookupId) {
+      // No id supplied — render the generic celebration directly. The
+      // setState-in-effect rule warns generically here; this branch fires
+      // the haptic + commits the celebration immediately.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setFetchAttempted(true);
+      return;
+    }
+    let cancelled = false;
+    apiClient
+      .get<MatchRecord>(`/matches/${encodeURIComponent(lookupId)}`)
+      .then((r) => {
+        if (!cancelled) setRecord(r);
+      })
+      .catch((e: unknown) => {
+        // Network / 404 / 405 / etc. — log to the console (Sentry once
+        // wired) but fall through to the generic celebration. Users who
+        // matched real-time must NEVER see an error here.
+        if (e instanceof ApiError) {
+          console.warn(`/matches/${lookupId} failed:`, e.status, e.message);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setFetchAttempted(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [lookupId]);
+
+  // Resolve the display subject from the fetched record, or fall through.
+  // The legacy ?id route preserves the (gradient-only) subject name; the
+  // new ?matchId route resolves once the network call returns.
+  const subject = record
+    ? {
+        id: record.with_profile.id,
+        name: record.with_profile.firstName ?? FALLBACK_SUBJECT.name,
+      }
+    : legacyId
+      ? { id: legacyId, name: capitalize(legacyId) }
+      : FALLBACK_SUBJECT;
+
+  // Self card: viewer's own first photo. Matched card: subject's first
+  // photo if the record arrived, otherwise a deterministic gradient.
   const selfPhotoSource: PhotoSource = photoOrGradient(
     {
       firstName: viewerProfile?.firstName ?? "you",
@@ -77,14 +122,14 @@ function MatchPageContent() {
     0,
   );
   const matchedPhotoSource: PhotoSource = photoOrGradient(
-    profile ?? { firstName: subject.name },
+    record?.with_profile ?? { firstName: subject.name },
     0,
   );
 
-  // Triple-pulse haptic on mount — PWA users on mobile get a real
-  // physical "tap-tap-tap" for the match moment. Skipped if API absent
-  // or prefers-reduced-motion is set. Silent on errors.
+  // Triple-pulse haptic on mount — only fires once the celebration is
+  // committed (after the fetch attempt has settled, or no id was supplied).
   useEffect(() => {
+    if (!fetchAttempted) return;
     if (typeof window === "undefined") return;
     if (!("vibrate" in navigator)) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -93,13 +138,16 @@ function MatchPageContent() {
     } catch {
       /* ignore */
     }
-  }, []);
+  }, [fetchAttempted]);
+
+  // Where Message routes — known subject id if we have it, else /matches
+  // so the user lands on their list rather than a 404.
+  const messageHref = subject.id ? `/chat/${subject.id}` : "/matches";
+  const profileHref = subject.id ? `/profile/${subject.id}` : "/matches";
 
   return (
     <PageShell bottomPad="default" className="px-5 pt-6">
-      {/* Gradient mesh backdrop — fixed-positioned radial gradients (lime
-          top + pink bottom) paint a soft, brand-color atmospheric wash
-          behind the celebration. Decorative; aria-hidden. SP19 T4. */}
+      {/* Gradient mesh backdrop — decorative. */}
       <div
         aria-hidden
         className="pointer-events-none fixed inset-0 -z-10"
@@ -111,11 +159,8 @@ function MatchPageContent() {
         }}
       />
 
-      {/* sr-only h1 — visible Badge below is the celebration mark, but SRs
-          need a heading to land on so the page has structure. */}
       <h1 className="sr-only">It&apos;s a match</h1>
 
-      {/* Close — Button render={<Link>} per Base UI nativeButton pattern */}
       <Button
         nativeButton={false}
         size="icon-tap"
@@ -127,10 +172,6 @@ function MatchPageContent() {
         <X className="text-white" />
       </Button>
 
-      {/* Celebration cluster — vertically centered, NOT pushed apart from
-          the composer by a giant flex-1 void. Cards spring-stagger in from
-          opposite sides; lime halo behind ties it to the brand color story
-          (mirrors /onboarding/complete's halo recipe). */}
       <div className="flex flex-1 flex-col items-center justify-center gap-6">
         <div className="relative">
           <span
@@ -163,8 +204,6 @@ function MatchPageContent() {
                   }
                   className="size-full"
                 >
-                  {/* SP21 T8: viewer's real photo via <img> when present;
-                      gradient fallback flows through `bg` above. */}
                   {selfPhotoSource.kind === "photo" && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -174,8 +213,6 @@ function MatchPageContent() {
                     />
                   )}
                 </PhotoTile>
-                {/* Corner-tape detail — lavender bubble at top-right
-                    suggests scrapbook/paper aesthetic. SP19 T4. */}
                 <span
                   aria-hidden
                   className="pointer-events-none absolute right-2 top-2 z-10 h-2 w-6 rotate-12 rounded-sm bg-lavender/70"
@@ -193,9 +230,8 @@ function MatchPageContent() {
               }}
               className="-ml-8 -translate-y-4"
             >
-              {/* Matched subject photo is tappable to view their full profile. */}
               <Link
-                href={`/profile/${subject.id}`}
+                href={profileHref}
                 prefetch={false}
                 aria-label={`View ${subject.name}'s profile`}
                 className="block rounded-3xl outline-none focus-visible:ring-2 focus-visible:ring-lavender"
@@ -215,9 +251,6 @@ function MatchPageContent() {
                     }
                     className="size-full"
                   >
-                    {/* SP21 T8: matched profile's real photo via <img> when
-                        present; gradient fallback (sample profiles ship
-                        without photos) flows through `bg` above. */}
                     {matchedPhotoSource.kind === "photo" && (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -227,8 +260,6 @@ function MatchPageContent() {
                       />
                     )}
                   </PhotoTile>
-                  {/* Corner-tape detail — pink bubble mirrors the self
-                      card's lavender. SP19 T4. */}
                   <span
                     aria-hidden
                     className="pointer-events-none absolute right-2 top-2 z-10 h-2 w-6 rotate-12 rounded-sm bg-pink/70"
@@ -237,9 +268,6 @@ function MatchPageContent() {
               </Link>
             </motion.div>
 
-            {/* Mid-cards Sparkle dot — spring-pops at the seam between
-                the two photos. Represents "two souls recognized". Lime
-                color + lime drop-shadow glow. SP19 T4. */}
             <motion.div
               aria-hidden
               initial={{ opacity: 0, scale: 0 }}
@@ -257,11 +285,8 @@ function MatchPageContent() {
           </div>
         </div>
 
-        {/* Badge appears AFTER cards have settled — the climax beat.
-            Wrapped in `relative` so <Confetti> (absolute left-1/2 top-1/2)
-            anchors at the badge center. Keyframe-array animation adds a
-            heartbeat pulse after the initial pop. Lime drop-shadow glow
-            replaces the default shadow-lg. SP19 T4. */}
+        {/* Badge — SP19 carve-out preserved: 1.0s duration, 0.3s delay,
+            keyframe scale animation for the heartbeat pulse. */}
         <div className="relative">
           <Confetti className="-translate-x-1/2 -translate-y-1/2" />
           <motion.div
@@ -290,19 +315,21 @@ function MatchPageContent() {
           className="text-center text-meta text-white/85"
         >
           You and{" "}
-          <Link
-            href={`/profile/${subject.id}`}
-            prefetch={false}
-            className="text-lime underline-offset-2 hover:underline focus-visible:underline"
-          >
-            {subject.name}
-          </Link>{" "}
+          {subject.id ? (
+            <Link
+              href={profileHref}
+              prefetch={false}
+              className="text-lime underline-offset-2 hover:underline focus-visible:underline"
+            >
+              {subject.name}
+            </Link>
+          ) : (
+            <span className="text-lime">{subject.name}</span>
+          )}{" "}
           liked each other.
         </motion.p>
       </div>
 
-      {/* Footer actions — composer + secondary stay grouped together,
-          immediately below the celebration cluster (no flex-1 void). */}
       <motion.div
         {...fadeUp}
         transition={{ duration: 0.4, delay: 0.7 }}
@@ -310,21 +337,17 @@ function MatchPageContent() {
       >
         <InputGroup tone="elevated" className="h-input rounded-2xl px-4">
           <InputGroupInput
-            placeholder="Say hi 👋"
+            placeholder="Say hi"
             aria-label="Say hi message"
             className="text-body text-white placeholder:text-text-muted"
           />
           <InputGroupAddon align="inline-end" className="pr-0">
-            {/* Send navigates to the new chat with the matched subject.
-                Real backend-send wires up when chat is server-backed; for
-                now this lands the user on /chat/[id] where their typed
-                'Say hi' message starts the conversation. */}
             <Button
               nativeButton={false}
               size="circle"
               tone="cta"
-              aria-label="Send"
-              render={<Link href={`/chat/${subject.id}`} prefetch={false} />}
+              aria-label="Send a message"
+              render={<Link href={messageHref} prefetch={false} />}
             >
               <Send className="text-black" />
             </Button>
@@ -342,6 +365,11 @@ function MatchPageContent() {
       </motion.div>
     </PageShell>
   );
+}
+
+function capitalize(s: string): string {
+  if (!s) return s;
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 export default function MatchPage() {
