@@ -11,6 +11,47 @@ import {
 import { apiClient, ApiError, setSessionToken } from "@/lib/api-client";
 import { clearChatSession } from "@/lib/chat-session";
 
+// Phase W gap: the frontend Profile schema is the Torah-observant product
+// shape (firstName, assembly, tzitzit, ...), but the backend's
+// PatchProfileInfo (duotypes/__init__.py:401) is the upstream Duolicious
+// shape (name, no Torah fields). For every keystroke / selection in
+// onboarding to not 422 with "Field firstName must not be None", we
+// translate at this boundary:
+//   - outbound (client -> server): rename mapped keys, drop unmapped ones
+//     so the PATCH only carries fields the backend understands
+//   - inbound (server -> client): rename mapped keys so the Input reading
+//     profile.firstName sees the server's `name`
+// Backend also enforces "exactly one field per PATCH" (model_validator at
+// duotypes/__init__.py:444), so we never bundle multiple changes into a
+// single request. Multi-field updates fan out into one PATCH each.
+const CLIENT_TO_SERVER: Record<string, string> = {
+  firstName: "name",
+};
+const SERVER_TO_CLIENT: Record<string, string> = Object.fromEntries(
+  Object.entries(CLIENT_TO_SERVER).map(([k, v]) => [v, k]),
+);
+
+function translateInbound(server: Partial<Profile> | Record<string, unknown>): Partial<Profile> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(server)) {
+    const clientKey = SERVER_TO_CLIENT[k] ?? k;
+    out[clientKey] = v;
+  }
+  return out as Partial<Profile>;
+}
+
+function translateOutbound(patch: Partial<Profile>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(patch)) {
+    const serverKey = CLIENT_TO_SERVER[k];
+    if (serverKey) out[serverKey] = v;
+    // Unmapped keys: client-only fields the backend doesn't model yet.
+    // Silently dropped so the rest of onboarding can proceed; future
+    // backend migrations will fill these in.
+  }
+  return out;
+}
+
 /**
  * Phase W: the backend (`GET /me`) is the source of truth for the current
  * user's profile. localStorage is a CACHE used only to paint the UI
@@ -66,10 +107,11 @@ export function useProfile(): UseProfileResult {
 
   const refreshProfile = useCallback(async () => {
     try {
-      const server = await apiClient.get<Partial<Profile>>("/me");
-      lastServerSnapshot.current = server;
-      setProfileState(server);
-      saveProfileToCache(server);
+      const server = await apiClient.get<Record<string, unknown>>("/me");
+      const translated = translateInbound(server);
+      lastServerSnapshot.current = translated;
+      setProfileState(translated);
+      saveProfileToCache(translated);
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         // Session expired / never authenticated. Drop the cache so we
@@ -101,8 +143,20 @@ export function useProfile(): UseProfileResult {
       // Optimistic: paint the patched state immediately.
       setProfileState(next);
       saveProfileToCache(next);
+      // Translate to the backend's shape AND respect "exactly one field per
+      // PATCH" by fanning out. Empty translation = client-only field, no
+      // network call (we keep the optimistic state forever — the local
+      // cache becomes source of truth until the backend models the field).
+      const translated = translateOutbound(patch);
+      const entries = Object.entries(translated);
+      if (entries.length === 0) {
+        lastServerSnapshot.current = next;
+        return;
+      }
       try {
-        await apiClient.patch("/profile-info", patch);
+        for (const [k, v] of entries) {
+          await apiClient.patch("/profile-info", { [k]: v });
+        }
         lastServerSnapshot.current = next;
       } catch (err) {
         // Rollback to the snapshot we had before the optimistic write.
@@ -132,8 +186,10 @@ export function useProfile(): UseProfileResult {
             (diff as Record<string, unknown>)[k] = nextRec[k];
           }
         }
-        if (Object.keys(diff).length > 0) {
-          await apiClient.patch("/profile-info", diff);
+        // Translate + fan out one-PATCH-per-field (see `update` for why).
+        const translated = translateOutbound(diff);
+        for (const [k, v] of Object.entries(translated)) {
+          await apiClient.patch("/profile-info", { [k]: v });
         }
         lastServerSnapshot.current = next;
       } catch (err) {
