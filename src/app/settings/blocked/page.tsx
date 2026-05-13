@@ -55,14 +55,22 @@ function BlockedContent() {
     state === "loading" ? (
       <BlockedLoading />
     ) : state === "error" ? (
-      <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.1 }}>
+      <motion.div
+        {...fadeUp}
+        transition={{ duration: 0.4, delay: 0.1 }}
+        className="flex flex-1 flex-col"
+      >
         <ErrorState
           description="We couldn't load your blocked users. Please try again."
           retry={{ label: "Try again", onClick: () => window.location.reload() }}
         />
       </motion.div>
     ) : visible.length === 0 ? (
-      <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.1 }}>
+      <motion.div
+        {...fadeUp}
+        transition={{ duration: 0.4, delay: 0.1 }}
+        className="flex flex-1 flex-col"
+      >
         <EmptyState
           variant="you-blocked-everyone"
           title="You haven't blocked anyone"

@@ -208,7 +208,11 @@ function MatchesLoadingSkeleton() {
 
 function MatchesEmptyState() {
   return (
-    <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.1 }}>
+    <motion.div
+      {...fadeUp}
+      transition={{ duration: 0.4, delay: 0.1 }}
+      className="flex flex-1 flex-col"
+    >
       <EmptyState variant="no-matches" />
     </motion.div>
   );
@@ -216,7 +220,11 @@ function MatchesEmptyState() {
 
 function MatchesErrorState({ onRetry }: { onRetry: () => void }) {
   return (
-    <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.1 }}>
+    <motion.div
+      {...fadeUp}
+      transition={{ duration: 0.4, delay: 0.1 }}
+      className="flex flex-1 flex-col"
+    >
       <ErrorState
         description="We couldn't load your matches. Check your connection and try again."
         retry={{ label: "Try again", onClick: onRetry }}

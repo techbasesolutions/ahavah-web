@@ -21,10 +21,17 @@ export async function requestEmailOtp(email: string): Promise<void> {
 }
 
 export type CheckOtpResult = {
-  /** Backend also sets duo_session as an httpOnly cookie; this field is
-   *  documented for parity but the client never reads it directly. */
+  /** Backend also sets duo_session as an httpOnly cookie for REST auth.
+   *  Chat needs the raw token client-side for SASL PLAIN — see
+   *  `writeChatSession` in `lib/chat-session.ts`. */
   session_token: string;
+  /** Authenticated user's bare uuid — required for chat WebSocket auth. */
+  person_uuid: string;
+  /** Internal numeric id; not used client-side today but returned. */
+  person_id: number;
   is_new_account: boolean;
+  /** True when the user has finished onboarding. Callers branch on this. */
+  onboarded: boolean;
 };
 
 export async function checkOtp(

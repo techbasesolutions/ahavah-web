@@ -15,6 +15,7 @@ import { OnboardingShell } from "@/components/app/onboarding-shell";
 
 import { ApiError } from "@/lib/api-client";
 import { requestPhoneOtp, checkPhoneOtp } from "@/lib/auth-otp";
+import { writeChatSession } from "@/lib/chat-session";
 import { useProfile } from "@/lib/use-profile";
 
 /**
@@ -135,7 +136,13 @@ export default function VerifyPhoneStep() {
     setError(null);
     setVerifying(true);
     try {
-      await checkPhoneOtp(phone, code);
+      const result = await checkPhoneOtp(phone, code);
+      // See verify-email/page.tsx for the rationale — chat needs the raw
+      // token + bare uuid in localStorage for SASL PLAIN auth.
+      writeChatSession({
+        myUuid: result.person_uuid,
+        sessionToken: result.session_token,
+      });
       sessionStorage.removeItem(PENDING_PHONE_KEY);
       await refreshProfile();
       router.push("/onboarding/name");

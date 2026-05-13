@@ -13,6 +13,7 @@ import { OnboardingShell } from "@/components/app/onboarding-shell";
 
 import { ApiError } from "@/lib/api-client";
 import { checkOtp, requestEmailOtp } from "@/lib/auth-otp";
+import { writeChatSession } from "@/lib/chat-session";
 import { useProfile } from "@/lib/use-profile";
 import { PENDING_EMAIL_KEY } from "@/lib/storage-keys";
 
@@ -90,9 +91,15 @@ export default function VerifyEmailStep() {
     setVerifying(true);
     try {
       const result = await checkOtp(email, code);
-      // session_token is delivered via Set-Cookie (httpOnly); we don't
-      // touch it here. The cookie is now present so refreshProfile() will
-      // succeed against GET /me.
+      // REST auth flows on the httpOnly `duo_session` cookie (Set-Cookie).
+      // Chat WebSocket needs the raw token + bare uuid client-side for
+      // SASL PLAIN — persist them so `readChatSession` (chat-client + /inbox)
+      // can pick them up across pages and reloads. Without this, /inbox sits
+      // in "loading" forever because `useEffect` short-circuits on empty uuid.
+      writeChatSession({
+        myUuid: result.person_uuid,
+        sessionToken: result.session_token,
+      });
       sessionStorage.removeItem(PENDING_EMAIL_KEY);
       await refreshProfile();
       if (result.is_new_account) {

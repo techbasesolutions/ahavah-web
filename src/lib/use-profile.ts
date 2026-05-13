@@ -9,6 +9,7 @@ import {
   clearProfileCache,
 } from "@/lib/use-profile-storage";
 import { apiClient, ApiError } from "@/lib/api-client";
+import { clearChatSession } from "@/lib/chat-session";
 
 /**
  * Phase W: the backend (`GET /me`) is the source of truth for the current
@@ -153,6 +154,7 @@ export function useProfile(): UseProfileResult {
       // the UI in a logged-in-looking state.
     }
     clearProfileCache();
+    clearChatSession();
     setProfileState({});
     lastServerSnapshot.current = null;
   }, []);
