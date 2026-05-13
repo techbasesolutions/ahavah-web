@@ -2,11 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import {
-  ChevronRight, CreditCard, LogOut, Settings,
+  ChevronRight, CreditCard, Loader2, LogOut, Settings,
   ShieldCheck, Sparkles, UserPen,
 } from "lucide-react";
+
+import { useProfile } from "@/lib/use-profile";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -61,7 +64,19 @@ const PROFILE_LINKS: ReadonlyArray<{
 ];
 
 export default function ProfilePage() {
+  const router = useRouter();
+  const { signOut } = useProfile();
   const [signOutOpen, setSignOutOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+
+  const handleSignOut = async () => {
+    if (signingOut) return;
+    setSigningOut(true);
+    // signOut() is best-effort: even if the server call fails the local
+    // cache + state is cleared, so we always navigate away.
+    await signOut();
+    router.push("/");
+  };
 
   return (
     <PageShell bottomPad="nav">
@@ -183,13 +198,21 @@ export default function ProfilePage() {
               <DialogClose
                 render={<Button variant="outlineSubtle" size="lg">Cancel</Button>}
               />
-              <DialogClose
-                render={
-                  <Button size="lg" tone="brand">
-                    Sign out
-                  </Button>
-                }
-              />
+              <Button
+                size="lg"
+                tone="brand"
+                onClick={handleSignOut}
+                disabled={signingOut}
+              >
+                {signingOut ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Signing out...
+                  </>
+                ) : (
+                  "Sign out"
+                )}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
