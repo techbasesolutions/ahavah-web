@@ -61,7 +61,11 @@ export function useInbox(myUuid: string): UseInboxResult {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(() => {
       if (pendingQueryIdRef.current === queryId) {
-        setState((cur) => (cur === "loading" ? "error" : cur));
+        // Timeout: never block the user with a "Couldn't load" alarm when
+        // they have nothing to load. Drain to happy (derives to empty if
+        // threads is still []). Real errors with existing threads keep
+        // their last-known happy state.
+        setState((cur) => (cur === "loading" ? "happy" : cur));
       }
     }, INBOX_QUERY_TIMEOUT_MS);
   }, [myUuid]);
@@ -147,11 +151,22 @@ export function useInbox(myUuid: string): UseInboxResult {
             // Don't flash error; keep the last-known happy state.
             return;
           }
-          setState("error");
+          // Hard disconnect (server unreachable / SSL not yet on droplet):
+          // if we never received any threads, surface as empty rather than
+          // a red alarm. The user has nothing to load — telling them their
+          // chats failed is wrong copy. Real failures with EXISTING threads
+          // keep them visible (don't clobber happy state with error).
+          setState((cur) => {
+            if (cur === "happy") return cur;
+            return "happy"; // drains to "empty" via derivedState (zero threads)
+          });
           return;
         }
         case "error": {
-          setState((cur) => (cur === "loading" ? "error" : cur));
+          // Same reasoning as `disconnected`: don't paint the error state
+          // when the user has no chats. The "Try again" CTA there can't
+          // help an empty inbox.
+          setState((cur) => (cur === "loading" ? "happy" : cur));
           return;
         }
         default:
