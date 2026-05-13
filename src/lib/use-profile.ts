@@ -155,9 +155,28 @@ function translateInbound(server: Partial<Profile> | Record<string, unknown>): P
   return out as Partial<Profile>;
 }
 
-function translateOutbound(patch: Partial<Profile>): Record<string, unknown> {
+/**
+ * Frontend keys the backend's PatchOnboardeeInfo schema accepts
+ * (duotypes/__init__.py:281). All other fields are silently dropped
+ * during onboarding — pydantic ignores unknown keys, then the
+ * "exactly one field" validator counts ZERO known fields and 400s.
+ * They get sync'd to /profile-info post-/finish-onboarding instead.
+ */
+const ONBOARDEE_ALLOWED_KEYS: ReadonlySet<string> = new Set([
+  "firstName",      // -> name
+  "dob",            // -> date_of_birth
+  "country",        // -> location
+  "sex",            // -> gender + other_peoples_genders
+]);
+
+function translateOutbound(
+  patch: Partial<Profile>,
+  options?: { onboardee?: boolean },
+): Record<string, unknown> {
   const out: Record<string, unknown> = {};
+  const onboardee = options?.onboardee ?? false;
   for (const [k, v] of Object.entries(patch)) {
+    if (onboardee && !ONBOARDEE_ALLOWED_KEYS.has(k)) continue;
     const transform = TRANSFORMS[k];
     if (!transform) continue; // unmapped → client-only, no PATCH
     const entries = transform(v);
@@ -276,10 +295,12 @@ export function useProfile(): UseProfileResult {
       setProfileState(next);
       saveProfileToCache(next);
       // Translate to the backend's shape AND respect "exactly one field per
-      // PATCH" by fanning out. Empty translation = client-only field, no
-      // network call (we keep the optimistic state forever — the local
-      // cache becomes source of truth until the backend models the field).
-      const translated = translateOutbound(patch);
+      // PATCH" by fanning out. During onboarding only a narrow set is
+      // allowed (PatchOnboardeeInfo); everything else gets dropped here
+      // and sync'd post-/finish-onboarding. Empty translation = client-
+      // only field, no network call.
+      const onboardee = !readOnboarded();
+      const translated = translateOutbound(patch, { onboardee });
       const entries = Object.entries(translated);
       if (entries.length === 0) {
         lastServerSnapshot.current = next;
@@ -289,7 +310,7 @@ export function useProfile(): UseProfileResult {
       // has finished onboarding. Backend enforces this distinction via
       // `expected_onboarding_status` decorator — calling the wrong endpoint
       // returns 400 "Not authorized" and we'd roll the input back.
-      const endpoint = readOnboarded() ? "/profile-info" : "/onboardee-info";
+      const endpoint = onboardee ? "/onboardee-info" : "/profile-info";
       try {
         for (const [k, v] of entries) {
           await apiClient.patch(endpoint, { [k]: v });
@@ -328,8 +349,9 @@ export function useProfile(): UseProfileResult {
           }
         }
         // Translate + fan out one-PATCH-per-field (see `update` for why).
-        const translated = translateOutbound(diff);
-        const endpoint = readOnboarded() ? "/profile-info" : "/onboardee-info";
+        const onboardee = !readOnboarded();
+        const translated = translateOutbound(diff, { onboardee });
+        const endpoint = onboardee ? "/onboardee-info" : "/profile-info";
         for (const [k, v] of Object.entries(translated)) {
           await apiClient.patch(endpoint, { [k]: v });
         }
@@ -361,8 +383,22 @@ export function useProfile(): UseProfileResult {
   const finishOnboarding = useCallback(async () => {
     await apiClient.post("/finish-onboarding", {});
     writeOnboarded(true);
+    // Post-graduation sync: PATCH the fields the onboardee schema didn't
+    // accept (relationship_status, has_kids, looking_for, about, ...) so
+    // they land on the now-existing person row. One PATCH per mapped
+    // entry, errors swallowed individually — a single broken field
+    // shouldn't block reaching /discover.
+    const translated = translateOutbound(profile, { onboardee: false });
+    for (const [k, v] of Object.entries(translated)) {
+      try {
+        await apiClient.patch("/profile-info", { [k]: v });
+      } catch {
+        // tolerate — the field stays in local cache, user can refine
+        // from /profile/edit later.
+      }
+    }
     await refreshProfile();
-  }, [refreshProfile]);
+  }, [profile, refreshProfile]);
 
   return {
     profile,
