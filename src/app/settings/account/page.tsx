@@ -420,8 +420,12 @@ export default function AccountSettingsPage() {
                 <DialogHeader>
                   <DialogTitle>Delete your account?</DialogTitle>
                   <DialogDescription>
-                    This will permanently erase your profile, photos, matches, and
-                    messages. This cannot be undone.
+                    Your profile will go invisible immediately and be
+                    permanently deleted in 7 days. To cancel within
+                    that window, email{" "}
+                    <span className="text-white">admin@ahavah.app</span>{" "}
+                    from your sign-in address. After 7 days deletion is
+                    irreversible.
                   </DialogDescription>
                 </DialogHeader>
                 {deleteError ? (
