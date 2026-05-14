@@ -43,7 +43,7 @@ const FAQS: ReadonlyArray<{ q: string; a: string }> = [
   },
   {
     q: "How do I delete my account?",
-    a: "Go to Profile, then Settings, then Account, then Delete account. The action is irreversible.",
+    a: "Go to Profile, then Settings, then Account, then Delete account. Your profile goes invisible immediately. After a 7-day grace window the account is permanently deleted. To cancel within that window, email admin@ahavah.app from your sign-in address.",
   },
   {
     q: "Is my data shared?",
@@ -58,19 +58,22 @@ const CONTACTS: ReadonlyArray<{
   description: string;
   href: string;
 }> = [
+  // Single inbox for now (admin@ahavah.app). Phase W §9 deferred
+  // multi-inbox routing (support@ / bugs@ forwarding); when those
+  // forwards land, swap each href back to its dedicated address.
   {
     Icon: Mail,
     tone: "brand",
     title: "Email support",
-    description: "support@ahavah.app",
-    href: "mailto:support@ahavah.app",
+    description: "admin@ahavah.app",
+    href: "mailto:admin@ahavah.app?subject=Ahavah%20support",
   },
   {
     Icon: Bug,
     tone: "muted",
     title: "Report a bug",
-    description: "bugs@ahavah.app",
-    href: "mailto:bugs@ahavah.app",
+    description: "admin@ahavah.app",
+    href: "mailto:admin@ahavah.app?subject=Ahavah%20bug%20report",
   },
 ];
 

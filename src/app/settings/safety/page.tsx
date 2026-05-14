@@ -77,16 +77,14 @@ const SAFETY_TIPS: ReadonlyArray<{
 const RESOURCES: ReadonlyArray<{
   Icon: typeof BookOpen;
   title: string;
-  /** null = render as plain text (no destination yet — see TODO below). */
+  /** null = render as plain text (no destination yet). */
   href: string | null;
 }> = [
-  // TODO(legal-pages): real destinations don't exist yet — /legal/* routes
-  // are referenced in /welcome and /auth/sign-up footer links but have NO
-  // pages built. Linking here would 404. Linking back to /settings/safety
-  // would self-loop. Both options are worse than rendering plain text;
-  // promoting these to interactive links only once real legal pages ship.
-  { Icon: BookOpen,    title: "Community guidelines",    href: null },
-  { Icon: ShieldCheck, title: "Trust & safety policies", href: null },
+  // Community guidelines + privacy policy now live as stub pages
+  // pending real legal copy. Local emergency numbers are intentionally
+  // left as plain text — international app, no single number to link.
+  { Icon: BookOpen,    title: "Community guidelines",    href: "/legal/community-guidelines" },
+  { Icon: ShieldCheck, title: "Privacy policy",          href: "/legal/privacy" },
   { Icon: PhoneCall,   title: "Local emergency numbers", href: null },
 ];
 
