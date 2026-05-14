@@ -124,17 +124,24 @@ export function useDiscoverDeck(
       // the rendering layer stays clean.
       const results: DiscoverCandidate[] = rawResults.map((r) => {
         const loc = typeof r.location === "string" ? r.location : "";
-        // long_friendly format is "City, State, Country" — split on comma.
+        // long_friendly format is "City, State, Country" — split for the
+        // city display label. The COUNTRY ISO code, however, comes from
+        // the dedicated `country` column on the response (not the last
+        // segment of `location`, which is a country NAME and useless to
+        // centroidOf which expects ISO2). /map depends on this.
         const parts = loc.split(",").map((s) => s.trim()).filter(Boolean);
         const city = parts[0];
-        const country = parts[parts.length - 1];
+        const countryIso =
+          typeof r.country === "string" && r.country.length === 2
+            ? r.country.toUpperCase()
+            : undefined;
         return {
           ...(r as Partial<DiscoverCandidate>),
           id: (r.prospect_uuid as string | undefined) ?? (r.id as string | undefined) ?? String(r.prospect_person_id ?? ""),
           firstName: (r.name as string | undefined) ?? (r.firstName as string | undefined),
           age: r.age as number | undefined,
           city: city || undefined,
-          country: country || undefined,
+          country: countryIso,
         } as DiscoverCandidate;
       });
       setItems((prev) => [...prev, ...results]);

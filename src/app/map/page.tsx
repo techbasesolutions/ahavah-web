@@ -70,15 +70,15 @@ import { Button } from "@/components/ui/button";
 
 import { centroidOf, countriesInBounds } from "@/lib/country-centroids";
 import { simulateLikesBack } from "@/lib/decision-engine";
-import { applyHardFilters, type DiscoverCandidate } from "@/lib/discover-engine";
+import type { DiscoverCandidate } from "@/lib/discover-engine";
 import { ACTIVE_CHAT_IDS } from "@/lib/inbox-seed";
 import { resolveMarkerState } from "@/lib/map-avatar-state";
 import {
   firstMissingStepFor,
   isDiscoverEligible,
 } from "@/lib/profile-completeness";
-import { SAMPLE_PROFILES } from "@/lib/profile-sample";
 import { useDecisions } from "@/lib/use-decisions";
+import { useDiscoverDeck } from "@/lib/use-discover-deck";
 import { useFilters } from "@/lib/use-filters";
 import { useProfile } from "@/lib/use-profile";
 
@@ -204,21 +204,24 @@ export default function MapPage() {
     [setFilters],
   );
 
-  // Marker pool — start from SAMPLE_PROFILES, drop candidate-side
-  // opt-outs (`showOnMap === false`, e.g. Caleb), then run the SAME
-  // applyHardFilters() the /discover deck uses so the two surfaces
-  // share filter semantics. Synthetic `id` (lowercased firstName) for
-  // DiscoverCandidate satisfaction.
-  const visibleSamples = useMemo<readonly DiscoverCandidate[]>(() => {
-    const baseEligible: DiscoverCandidate[] = SAMPLE_PROFILES.filter(
-      (p) => p.showOnMap !== false,
-    ).map((p, i) => ({
-      ...p,
-      id: p.firstName?.toLowerCase() ?? `s${i}`,
-    }));
-    if (!viewer) return baseEligible;
-    return applyHardFilters(viewer, baseEligible, filters);
-  }, [filters, viewer]);
+  // Marker pool — real candidates from GET /search via useDiscoverDeck.
+  // Same filter shape /discover uses (age + countries + languages), so
+  // the two surfaces share filter semantics.
+  const httpFilters = useMemo(
+    () => ({
+      ageMin: filters.ageMin,
+      ageMax: filters.ageMax,
+      countries: filters.country,
+      languages: filters.languages,
+    }),
+    [filters.ageMin, filters.ageMax, filters.country, filters.languages],
+  );
+  const { items: realCandidates } = useDiscoverDeck(httpFilters);
+  // Drop candidates without a country ISO — the map can't position them.
+  const visibleCandidates = useMemo<readonly DiscoverCandidate[]>(
+    () => realCandidates.filter((c) => Boolean(c.country)),
+    [realCandidates],
+  );
 
   // Pre-hydration or in-flight redirect — render minimal scaffold to
   // keep the map from flashing for an ineligible viewer.
@@ -250,7 +253,7 @@ export default function MapPage() {
           onBoundsChange={handleBoundsChange}
           bbox={initialBbox}
         >
-          {visibleSamples.map((p) => {
+          {visibleCandidates.map((p) => {
             // SP16 T5: resolve per-candidate marker state.
             //   - `id` is the lowercased firstName slug used everywhere
             //     in the app (chat seed, decisions store, profile route).
