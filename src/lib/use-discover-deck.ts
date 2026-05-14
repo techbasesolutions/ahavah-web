@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { apiClient, ApiError } from "@/lib/api-client";
 import type { DiscoverCandidate } from "@/lib/api-types";
+import { cdnUrlFor } from "@/lib/photo-storage";
+import type { PhotoRecord } from "@/lib/photo-types";
 
 /**
  * Client-side filters that the discover hook forwards to the backend's
@@ -135,6 +137,24 @@ export function useDiscoverDeck(
           typeof r.country === "string" && r.country.length === 2
             ? r.country.toUpperCase()
             : undefined;
+        // Q_CACHED_SEARCH returns `photo_uuids` as a JSON array of strings
+        // (position ASC). Map each to a PhotoRecord so DiscoverCardFace +
+        // photoOrGradient() can treat it the same shape as /profile-info.
+        // photo_uuids is `[]` when the prospect has no photos — the card
+        // falls back to the deterministic gradient.
+        const rawPhotoUuids = Array.isArray(r.photo_uuids)
+          ? (r.photo_uuids as ReadonlyArray<unknown>).filter(
+              (u): u is string => typeof u === "string" && u.length > 0,
+            )
+          : [];
+        const photos: PhotoRecord[] = rawPhotoUuids.map((uuid, i) => ({
+          uuid,
+          cdn_url: cdnUrlFor(uuid),
+          position: i + 1,
+          moderation_state: "approved",
+          nsfw_score: null,
+          created_at: "",
+        }));
         return {
           ...(r as Partial<DiscoverCandidate>),
           id: (r.prospect_uuid as string | undefined) ?? (r.id as string | undefined) ?? String(r.prospect_person_id ?? ""),
@@ -142,6 +162,7 @@ export function useDiscoverDeck(
           age: r.age as number | undefined,
           city: city || undefined,
           country: countryIso,
+          photos,
         } as DiscoverCandidate;
       });
       setItems((prev) => [...prev, ...results]);

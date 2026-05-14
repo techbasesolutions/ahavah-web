@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiClient } from "@/lib/api-client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -47,12 +47,12 @@ export default function DiscoverPage() {
   const { decide, pendingIds } = useDecisions();
   const { filters, setFilters } = useFilters();
   const [exitDirection, setExitDirection] = useState<"left" | "right">("left");
-  // Auto-advance: when enabled, /discover auto-skips through candidates
-  // every AUTO_ADVANCE_MS so a user can browse hands-free. The Pause
-  // button in the action row toggles this. Default off — user opts in
-  // explicitly with the first tap. Auto-skip records a 'nope' (same as
-  // tapping X), not a 'like', so passive viewing doesn't create matches.
-  const [autoAdvancing, setAutoAdvancing] = useState(false);
+  // Photo carousel state — index into the current candidate's `photos`
+  // array. Reset to 0 whenever the candidate changes (effect below).
+  // `cyclePhotos` toggles the auto-advance through the candidate's photos
+  // (NOT candidates) — Pause button in the action row controls this.
+  const [photoIndex, setPhotoIndex] = useState(0);
+  const [cyclePhotos, setCyclePhotos] = useState(false);
   const [resettingDecisions, setResettingDecisions] = useState(false);
 
   const resetDecisions = async () => {
@@ -101,47 +101,82 @@ export default function DiscoverPage() {
   );
 
   const candidate = visibleItems[0];
+  // Cached photo count so the carousel never out-runs the array. Empty
+  // (no photos uploaded) → 1 (so ProgressDots renders one segment and
+  // the gradient fallback gets a faux "single photo" slot).
+  const photoCount = Math.max(1, candidate?.photos?.length ?? 0);
 
-  const advance = async (decision: "like" | "nope") => {
-    if (!candidate) return;
-    setExitDirection(decision === "like" ? "right" : "left");
-    try {
-      const result = await decide(candidate.id, decision);
-      if (decision === "like" && result.matchId) {
-        router.push(`/match?matchId=${encodeURIComponent(result.matchId)}`);
-        return;
-      }
-    } catch {
-      // useDecisions surfaces error; visible state recovers via pendingIds.
-    }
-    // Prefetch when the deck is running low.
-    if (hasMore && visibleItems.length <= 3) void loadMore();
-  };
-
-  // Auto-advance timer. Wakes every AUTO_ADVANCE_MS and skips the
-  // current candidate. Disables itself if the deck runs dry (nothing to
-  // advance to) so we don't spin a no-op timer.
-  const AUTO_ADVANCE_MS = 8_000;
+  // Reset photo index whenever the candidate changes. The dependency on
+  // candidate?.id is what triggers the reset; the candidate object itself
+  // can re-render while the same person is on screen.
   useEffect(() => {
-    if (!autoAdvancing) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPhotoIndex(0);
+  }, [candidate?.id]);
+
+  const advance = useCallback(
+    async (decision: "like" | "nope") => {
+      if (!candidate) return;
+      setExitDirection(decision === "like" ? "right" : "left");
+      try {
+        const result = await decide(candidate.id, decision);
+        if (decision === "like" && result.matchId) {
+          router.push(`/match?matchId=${encodeURIComponent(result.matchId)}`);
+          return;
+        }
+      } catch {
+        // useDecisions surfaces error; visible state recovers via pendingIds.
+      }
+      // Prefetch when the deck is running low.
+      if (hasMore && visibleItems.length <= 3) void loadMore();
+    },
+    [candidate, decide, hasMore, visibleItems.length, loadMore, router],
+  );
+
+  // Tap-zone handlers — left zone goes back one photo (no-op at first
+  // photo), right zone goes forward one photo (advances to next
+  // candidate when at the last photo). This matches the standard
+  // Bumpy / Tinder / Hinge gesture for the photo timeline.
+  const prevPhoto = useCallback(() => {
+    setPhotoIndex((i) => (i > 0 ? i - 1 : 0));
+  }, []);
+  const nextPhoto = useCallback(() => {
+    setPhotoIndex((i) => {
+      if (i + 1 < photoCount) return i + 1;
+      // At the last photo and user tapped right → advance to next
+      // candidate (recording a 'nope'). We don't await here because the
+      // setState path must run before this microtask resolves; the
+      // pending decision is non-blocking.
+      void advance("nope");
+      return 0;
+    });
+  }, [photoCount, advance]);
+
+  // Photo auto-cycle timer. When `cyclePhotos` is true, advance through
+  // the candidate's photo carousel every PHOTO_CYCLE_MS. When the loop
+  // reaches the last photo, it WRAPS back to 0 rather than skipping to
+  // the next candidate — auto-skip-by-time was the original misbuild
+  // the user explicitly rejected. The Pause button toggles cyclePhotos.
+  const PHOTO_CYCLE_MS = 3_500;
+  // Stable ref to photoCount so the interval callback reads the latest
+  // value without restarting the timer on every photo-index change.
+  // Updated in an effect (refs cannot be assigned during render).
+  const photoCountRef = useRef(photoCount);
+  useEffect(() => {
+    photoCountRef.current = photoCount;
+  }, [photoCount]);
+  useEffect(() => {
+    if (!cyclePhotos) return;
     if (!candidate) {
-      // Empty deck — kill the timer so we don't spin a no-op. The
-      // lint rule fires generically here, but this IS the canonical
-      // pattern (external state → react state).
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setAutoAdvancing(false);
+      setCyclePhotos(false);
       return;
     }
-    const id = setTimeout(() => {
-      void advance("nope");
-    }, AUTO_ADVANCE_MS);
-    return () => clearTimeout(id);
-    // candidate.id is the only thing that should restart the timer.
-    // `advance` closes over candidate/decide/router but is stable
-    // enough for the use case — re-running on every render would
-    // reset the timer constantly.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoAdvancing, candidate?.id]);
+    const id = setInterval(() => {
+      setPhotoIndex((i) => (i + 1) % photoCountRef.current);
+    }, PHOTO_CYCLE_MS);
+    return () => clearInterval(id);
+  }, [cyclePhotos, candidate]);
 
   // During hydration / redirect, render minimal scaffolding.
   if (!loaded || (loaded && !isDiscoverEligible(userProfile))) {
@@ -183,7 +218,7 @@ export default function DiscoverPage() {
     );
   }
 
-  const photoSource = candidate ? photoOrGradient(candidate, 0) : null;
+  const photoSource = candidate ? photoOrGradient(candidate, photoIndex) : null;
 
   return (
     <PageShell bottomPad="nav">
@@ -244,35 +279,40 @@ export default function DiscoverPage() {
                 />
               )}
 
-              {/* Progress bar — single-photo mode for now (one segment).
-                  When multi-photo lands, this becomes one segment per photo
-                  with the active one filled. */}
+              {/* Photo timeline — one segment per uploaded photo, the
+                  active one filled. Gradient-only candidates (no photos)
+                  still get a single segment so the layout doesn't shift
+                  between candidates. */}
               <div
                 aria-hidden
                 className="absolute top-5 right-5 left-5 z-20 flex gap-1.5"
               >
-                <Progress value={100} className="flex-1" />
+                {Array.from({ length: photoCount }).map((_, i) => (
+                  <Progress
+                    key={i}
+                    value={i <= photoIndex ? 100 : 0}
+                    className="flex-1"
+                  />
+                ))}
               </div>
 
-              {/* Symmetric tap zones — left 50% = previous, right 50% =
-                  next. Plain transparent <button> elements (NOT the
-                  Button kit) — the kit's `ghost` variant added
-                  hover/active backgrounds that produced a visible
-                  vertical seam down the card. These are pure tap
-                  surfaces, visually invisible at every state except
-                  focus-visible (subtle keyboard-only indicator).
-                  Re-discovered: previously fixed in 6242b47 + 583690e;
-                  do not regress. */}
+              {/* Symmetric tap zones — left 50% = previous photo
+                  (no-op at index 0), right 50% = next photo (advances
+                  candidate when at last photo). Plain transparent
+                  <button> elements (NOT the Button kit) — the kit's
+                  `ghost` variant added hover/active backgrounds that
+                  produced a visible vertical seam down the card.
+                  Pre-fix: 6242b47 + 583690e; do not regress. */}
               <button
                 type="button"
-                aria-label="Previous candidate"
-                onClick={() => advance("nope")}
+                aria-label="Previous photo"
+                onClick={prevPhoto}
                 className="absolute inset-y-0 left-0 z-10 h-full w-1/2 cursor-pointer bg-transparent outline-none focus-visible:bg-white/5"
               />
               <button
                 type="button"
-                aria-label="Next candidate"
-                onClick={() => advance("nope")}
+                aria-label="Next photo"
+                onClick={nextPhoto}
                 className="absolute inset-y-0 right-0 z-10 h-full w-1/2 cursor-pointer bg-transparent outline-none focus-visible:bg-white/5"
               />
 
@@ -308,11 +348,11 @@ export default function DiscoverPage() {
                   size="circle-lg"
                   tone="cta"
                   lift="float"
-                  aria-label={autoAdvancing ? "Pause auto-advance" : "Start auto-advance (8s skips)"}
-                  aria-pressed={autoAdvancing}
-                  onClick={() => setAutoAdvancing((on) => !on)}
+                  aria-label={cyclePhotos ? "Pause photo slideshow" : "Play photo slideshow"}
+                  aria-pressed={cyclePhotos}
+                  onClick={() => setCyclePhotos((on) => !on)}
                 >
-                  {autoAdvancing ? (
+                  {cyclePhotos ? (
                     <Pause className="text-black" fill="currentColor" />
                   ) : (
                     <Play className="text-black" fill="currentColor" />
