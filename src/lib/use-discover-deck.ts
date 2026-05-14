@@ -3,10 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { apiClient, ApiError } from "@/lib/api-client";
-import type {
-  DiscoverCandidate,
-  SearchResponse,
-} from "@/lib/api-types";
+import type { DiscoverCandidate } from "@/lib/api-types";
 
 /**
  * Client-side filters that the discover hook forwards to the backend's
@@ -113,9 +110,33 @@ export function useDiscoverDeck(
       // adapt by accepting either shape here. Pagination is via the
       // backend's n/o query-string args (not implemented yet on the
       // frontend), so we treat the response as a single page for now.
-      const res = await apiClient.get<DiscoverCandidate[] | SearchResponse>(path);
-      const results = Array.isArray(res) ? res : res.results ?? [];
-      const nextCursor = Array.isArray(res) ? null : res.next_cursor;
+      const res = await apiClient.get<unknown>(path);
+      const rawResults: ReadonlyArray<Record<string, unknown>> = Array.isArray(res)
+        ? (res as Record<string, unknown>[])
+        : ((res as { results?: Record<string, unknown>[] }).results ?? []);
+      const nextCursor =
+        Array.isArray(res)
+          ? null
+          : ((res as { next_cursor?: string | null }).next_cursor ?? null);
+      // Adapter: backend /search returns snake_case (name, prospect_uuid,
+      // location, profile_photo_uuid, ...). DiscoverCardFace reads
+      // camelCase (firstName, id, city, country). Map at the boundary so
+      // the rendering layer stays clean.
+      const results: DiscoverCandidate[] = rawResults.map((r) => {
+        const loc = typeof r.location === "string" ? r.location : "";
+        // long_friendly format is "City, State, Country" — split on comma.
+        const parts = loc.split(",").map((s) => s.trim()).filter(Boolean);
+        const city = parts[0];
+        const country = parts[parts.length - 1];
+        return {
+          ...(r as Partial<DiscoverCandidate>),
+          id: (r.prospect_uuid as string | undefined) ?? (r.id as string | undefined) ?? String(r.prospect_person_id ?? ""),
+          firstName: (r.name as string | undefined) ?? (r.firstName as string | undefined),
+          age: r.age as number | undefined,
+          city: city || undefined,
+          country: country || undefined,
+        } as DiscoverCandidate;
+      });
       setItems((prev) => [...prev, ...results]);
       cursorRef.current = nextCursor;
       setCursor(nextCursor);

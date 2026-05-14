@@ -108,12 +108,13 @@ export function SwipeDeck({
 
   return (
     <div className={cn("relative flex w-full flex-1 flex-col", className)}>
-      {/* Card stack — sized relative; absolute-positioned cards fill it.
-          flex-1 inside the parent + a portrait aspect ratio ensures the
-          stack claims the available vertical space between header and
-          tap-buttons and never collapses to zero height when only 1 card
-          remains. aspect-3/4 mirrors photo-slot's card portrait. */}
-      <div className="relative aspect-3/4 w-full flex-1">
+      {/* Card stack — sized purely by `aspect-3/4 w-full` so its height
+          is `width × 4/3` and never grows to consume the parent's
+          remaining height. The OUTER deck container gets `flex-1` (it
+          fills the route), then the card stack sits at top with the
+          tap-buttons immediately below. Earlier `flex-1` here pushed
+          the buttons off-screen. */}
+      <div className="relative aspect-3/4 w-full shrink-0">
         <AnimatePresence initial={false}>
           {visible.map((item, index) => {
             const offsetY = index * STACK_OFFSET_PER_INDEX;
