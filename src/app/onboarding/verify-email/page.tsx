@@ -100,7 +100,14 @@ export default function VerifyEmailStep() {
       writeOnboarded(result.onboarded);
       sessionStorage.removeItem(PENDING_EMAIL_KEY);
       await refreshProfile();
-      if (result.is_new_account) {
+      // Route off `onboarded` (the backend ships this; it's true when
+      // a person row exists). is_new_account was the old check but
+      // /check-otp never returns that field, so it was always falsy
+      // and BOTH new + returning users routed to /discover. Returning
+      // users were fine (gate let them in), new users hit a brief
+      // /discover flash before the gate kicked them to /onboarding.
+      // Branching on onboarded eliminates the flash.
+      if (!result.onboarded) {
         router.push("/onboarding/name");
       } else {
         router.push("/discover");
