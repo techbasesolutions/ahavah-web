@@ -27,7 +27,6 @@ import { CompatPill } from "@/components/app/compat-pill";
 import { BlockReportSheet } from "@/components/app/block-report-sheet";
 import { useProfile } from "@/lib/use-profile";
 import { useDecisions } from "@/lib/use-decisions";
-import { simulateLikesBack } from "@/lib/decision-engine";
 import { computeCompatibility } from "@/lib/scoring/compute-compatibility";
 import { photoOrGradient } from "@/lib/photo-or-gradient";
 
@@ -139,7 +138,7 @@ export default function ProfileDetailPage({ params }: Props) {
   const { profile: userProfile, loaded: profileLoaded } = useProfile();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { recordPass, recordLike } = useDecisions();
+  const { decide } = useDecisions();
 
   // Back-button target — when the viewer arrived from /map (MapAvatar
   // appends ?from=map on marker tap), we return to /map instead of the
@@ -613,9 +612,16 @@ export default function ProfileDetailPage({ params }: Props) {
                 lift="float"
                 aria-label="Pass"
                 disabled={!profileLoaded}
-                onClick={() => {
-                  const subjectId = (profile.firstName ?? uuid).toLowerCase();
-                  recordPass(subjectId);
+                onClick={async () => {
+                  // Real backend POST /decisions {nope}. Was previously
+                  // recordPass(localOnly) — local-only flag with no
+                  // backend write, so swipes from /profile/[uuid] never
+                  // landed on the person row. AUDIT FIX 2026-05-14.
+                  try {
+                    await decide(uuid, "nope");
+                  } catch {
+                    // surfaced via useDecisions().error; navigate anyway
+                  }
                   router.push(backHref);
                 }}
               >
@@ -627,14 +633,21 @@ export default function ProfileDetailPage({ params }: Props) {
                 lift="float"
                 aria-label="Like"
                 disabled={!profileLoaded}
-                onClick={() => {
-                  const subjectId = (profile.firstName ?? uuid).toLowerCase();
-                  recordLike(subjectId);
-                  if (userProfile && simulateLikesBack(userProfile, profile)) {
-                    router.push(`/match?id=${subjectId}`);
-                  } else {
-                    router.push(backHref);
+                onClick={async () => {
+                  // Real backend POST /decisions {like}. Was previously
+                  // recordLike(localOnly) + simulateLikesBack(sample) —
+                  // neither hit the backend, so likes from /profile/[uuid]
+                  // never created matches. AUDIT FIX 2026-05-14.
+                  try {
+                    const result = await decide(uuid, "like");
+                    if (result.matchId) {
+                      router.push(`/match?matchId=${encodeURIComponent(result.matchId)}`);
+                      return;
+                    }
+                  } catch {
+                    // surfaced via useDecisions().error; navigate anyway
                   }
+                  router.push(backHref);
                 }}
               >
                 <Heart className="text-white" fill="currentColor" />
