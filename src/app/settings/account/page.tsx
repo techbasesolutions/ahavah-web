@@ -30,6 +30,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { IconBadge } from "@/components/ui/icon-badge";
+import { Input } from "@/components/ui/input";
 import {
   Item,
   ItemActions,
@@ -93,6 +94,53 @@ export default function AccountSettingsPage() {
   const [langOpen, setLangOpen] = useState(false);
   const [savingLang, setSavingLang] = useState(false);
   const [emailChangeOpen, setEmailChangeOpen] = useState(false);
+  // Two-step email change: collect new address → POST request → show OTP
+  // input → POST verify → swap. State machine inside the modal.
+  const [emailStep, setEmailStep] = useState<"input" | "otp" | "done">("input");
+  const [newEmail, setNewEmail] = useState("");
+  const [emailOtp, setEmailOtp] = useState("");
+  const [emailBusy, setEmailBusy] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
+
+  const resetEmailFlow = () => {
+    setEmailStep("input");
+    setNewEmail("");
+    setEmailOtp("");
+    setEmailError(null);
+    setEmailBusy(false);
+  };
+
+  const handleEmailRequest = async () => {
+    if (emailBusy) return;
+    setEmailBusy(true);
+    setEmailError(null);
+    try {
+      await apiClient.post("/account/change-email-request", { new_email: newEmail.trim() });
+      setEmailStep("otp");
+    } catch (err) {
+      setEmailError(err instanceof Error ? err.message : "Couldn't send the code.");
+    } finally {
+      setEmailBusy(false);
+    }
+  };
+
+  const handleEmailVerify = async () => {
+    if (emailBusy) return;
+    setEmailBusy(true);
+    setEmailError(null);
+    try {
+      await apiClient.post<{ email: string }>("/account/change-email-verify", {
+        otp: emailOtp.trim().toUpperCase(),
+      });
+      setEmailStep("done");
+      // Refresh /me so the row reflects the new email immediately.
+      await update({} as never);
+    } catch (err) {
+      setEmailError(err instanceof Error ? err.message : "Couldn't verify the code.");
+    } finally {
+      setEmailBusy(false);
+    }
+  };
 
   const handleSignOut = async () => {
     if (signingOut) return;
@@ -175,7 +223,13 @@ export default function AccountSettingsPage() {
                 Real change-email flow needs a backend endpoint that
                 doesn't exist yet; for now we surface the value and a
                 clear path (contact admin) instead of a fake button. */}
-            <Dialog open={emailChangeOpen} onOpenChange={setEmailChangeOpen}>
+            <Dialog
+              open={emailChangeOpen}
+              onOpenChange={(open) => {
+                setEmailChangeOpen(open);
+                if (!open) resetEmailFlow();
+              }}
+            >
               <DialogTrigger
                 nativeButton={false}
                 render={
@@ -198,19 +252,135 @@ export default function AccountSettingsPage() {
                 }
               />
               <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Change your email</DialogTitle>
-                  <DialogDescription>
-                    Email changes require support assistance for security.
-                    Contact <span className="text-white">admin@ahavah.app</span> from
-                    your current email and we&apos;ll switch it within 24 hours.
-                  </DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                  <DialogClose
-                    render={<Button variant="outlineSubtle" size="lg">Got it</Button>}
-                  />
-                </DialogFooter>
+                {emailStep === "input" && (
+                  <>
+                    <DialogHeader>
+                      <DialogTitle>Change your email</DialogTitle>
+                      <DialogDescription>
+                        We&apos;ll send a 6-character code to your new email to
+                        confirm. Your current email stays active until you enter
+                        the code.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <Input
+                      type="email"
+                      autoComplete="email"
+                      placeholder="new@example.com"
+                      value={newEmail}
+                      onChange={(e) => setNewEmail(e.target.value)}
+                      aria-label="New email address"
+                      size="lg"
+                      tone="elevated"
+                    />
+                    {emailError && (
+                      <p
+                        role="alert"
+                        aria-live="polite"
+                        className="text-caption font-semibold text-pink"
+                      >
+                        {emailError}
+                      </p>
+                    )}
+                    <DialogFooter>
+                      <DialogClose
+                        render={<Button variant="outlineSubtle" size="lg">Cancel</Button>}
+                      />
+                      <Button
+                        size="lg"
+                        tone="brand"
+                        onClick={handleEmailRequest}
+                        disabled={emailBusy || !newEmail.includes("@")}
+                      >
+                        {emailBusy ? (
+                          <>
+                            <Loader2 size={16} className="animate-spin" />
+                            Sending code...
+                          </>
+                        ) : (
+                          "Send code"
+                        )}
+                      </Button>
+                    </DialogFooter>
+                  </>
+                )}
+
+                {emailStep === "otp" && (
+                  <>
+                    <DialogHeader>
+                      <DialogTitle>Enter the code</DialogTitle>
+                      <DialogDescription>
+                        We sent a 6-character code to{" "}
+                        <span className="text-white">{newEmail}</span>. Enter it
+                        below to swap your email. The code expires in 15 minutes.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <Input
+                      type="text"
+                      inputMode="text"
+                      autoComplete="one-time-code"
+                      placeholder="A1B2C3"
+                      value={emailOtp}
+                      onChange={(e) => setEmailOtp(e.target.value.toUpperCase())}
+                      aria-label="6-character code"
+                      size="lg"
+                      tone="elevated"
+                      maxLength={6}
+                      className="text-center font-mono uppercase tracking-widest"
+                    />
+                    {emailError && (
+                      <p
+                        role="alert"
+                        aria-live="polite"
+                        className="text-caption font-semibold text-pink"
+                      >
+                        {emailError}
+                      </p>
+                    )}
+                    <DialogFooter>
+                      <Button
+                        variant="outlineSubtle"
+                        size="lg"
+                        onClick={() => setEmailStep("input")}
+                        disabled={emailBusy}
+                      >
+                        Back
+                      </Button>
+                      <Button
+                        size="lg"
+                        tone="brand"
+                        onClick={handleEmailVerify}
+                        disabled={emailBusy || emailOtp.trim().length !== 6}
+                      >
+                        {emailBusy ? (
+                          <>
+                            <Loader2 size={16} className="animate-spin" />
+                            Verifying...
+                          </>
+                        ) : (
+                          "Verify and swap"
+                        )}
+                      </Button>
+                    </DialogFooter>
+                  </>
+                )}
+
+                {emailStep === "done" && (
+                  <>
+                    <DialogHeader>
+                      <DialogTitle>Email updated</DialogTitle>
+                      <DialogDescription>
+                        Your sign-in email is now{" "}
+                        <span className="text-white">{newEmail}</span>. Use it the
+                        next time you log in.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                      <DialogClose
+                        render={<Button size="lg" tone="brand">Done</Button>}
+                      />
+                    </DialogFooter>
+                  </>
+                )}
               </DialogContent>
             </Dialog>
 
