@@ -1,5 +1,26 @@
 import { gradientsFor } from "@/lib/profile-gradients";
+import { cdnUrlFor } from "@/lib/photo-storage";
 import type { PhotoRecord } from "@/lib/photo-types";
+
+/** Build a PhotoRecord array from a wire `photo_uuids: string[]`. Empty
+ *  / non-array inputs yield []. Used at every place where the backend
+ *  ships uuids (e.g. /matches, /matches/<id>, /search) so consumers see
+ *  the same PhotoRecord shape regardless of source endpoint. */
+export function photosFromUuids(
+  uuids: unknown,
+): PhotoRecord[] {
+  if (!Array.isArray(uuids)) return [];
+  return uuids
+    .filter((u): u is string => typeof u === "string" && u.length > 0)
+    .map((uuid, i) => ({
+      uuid,
+      cdn_url: cdnUrlFor(uuid),
+      position: i + 1,
+      moderation_state: "approved" as const,
+      nsfw_score: null,
+      created_at: "",
+    }));
+}
 
 type PhotoableProfile = {
   firstName?: string;

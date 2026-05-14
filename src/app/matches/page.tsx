@@ -26,7 +26,7 @@ import {
 import { PhotoTile } from "@/components/app/photo-tile";
 import { apiClient, ApiError } from "@/lib/api-client";
 import type { MatchesResponse, MatchRecord } from "@/lib/api-types";
-import { photoOrGradient, type PhotoSource } from "@/lib/photo-or-gradient";
+import { photoOrGradient, photosFromUuids, type PhotoSource } from "@/lib/photo-or-gradient";
 
 const fadeUp = {
   initial: { opacity: 0, y: 12 },
@@ -134,8 +134,17 @@ function MatchesGrid({
           partner.city && partner.country
             ? `${partner.city}, ${partner.country}`
             : (partner.country ?? "");
+        // Backend ships peer photos as photo_uuids; map to PhotoRecord[]
+        // so photoOrGradient finds a cdn_url instead of falling through
+        // to the gradient stamp.
+        const partnerPhotos =
+          partner.photos && partner.photos.length > 0
+            ? partner.photos
+            : photosFromUuids(
+                (partner as { photo_uuids?: unknown }).photo_uuids,
+              );
         const photoSource: PhotoSource = photoOrGradient(
-          { firstName: partnerName, photos: partner.photos },
+          { firstName: partnerName, photos: partnerPhotos },
           0,
         );
         return (

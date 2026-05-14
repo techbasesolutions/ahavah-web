@@ -29,6 +29,7 @@ import { useProfile } from "@/lib/use-profile";
 import { useDecisions } from "@/lib/use-decisions";
 import { computeCompatibility } from "@/lib/scoring/compute-compatibility";
 import { photoOrGradient } from "@/lib/photo-or-gradient";
+import { cdnUrlFor } from "@/lib/photo-storage";
 
 import {
   ASSEMBLIES,
@@ -70,6 +71,22 @@ function adaptProspect(raw: Record<string, unknown>): Profile & { country?: stri
   const gender = typeof raw.gender === "string" ? raw.gender.toLowerCase() : undefined;
   const sex: "male" | "female" | undefined =
     gender === "woman" ? "female" : gender === "man" ? "male" : undefined;
+  // Backend ships photo_uuids as a position-ordered array. Convert to
+  // PhotoRecord[] via cdnUrlFor so the carousel renders real images
+  // instead of falling all the way through to the gradient stamp.
+  const rawPhotoUuids = Array.isArray(raw.photo_uuids)
+    ? (raw.photo_uuids as ReadonlyArray<unknown>).filter(
+        (u): u is string => typeof u === "string" && u.length > 0,
+      )
+    : [];
+  const photos = rawPhotoUuids.map((uuid, i) => ({
+    uuid,
+    cdn_url: cdnUrlFor(uuid),
+    position: i + 1,
+    moderation_state: "approved" as const,
+    nsfw_score: null,
+    created_at: "",
+  }));
   return {
     firstName: typeof raw.name === "string" ? raw.name : undefined,
     age: typeof raw.age === "number" ? raw.age : undefined,
@@ -78,6 +95,7 @@ function adaptProspect(raw: Record<string, unknown>): Profile & { country?: stri
     country,
     sex,
     children,
+    photos,
     // Pass-through fields that may exist for richer profiles later.
     intent: typeof raw.looking_for === "string"
       ? (raw.looking_for as Profile["intent"])

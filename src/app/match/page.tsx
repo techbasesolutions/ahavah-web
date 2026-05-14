@@ -26,7 +26,7 @@ import { PhotoTile } from "@/components/app/photo-tile";
 import { apiClient, ApiError } from "@/lib/api-client";
 import type { MatchRecord } from "@/lib/api-types";
 import { useProfile } from "@/lib/use-profile";
-import { photoOrGradient, type PhotoSource } from "@/lib/photo-or-gradient";
+import { photoOrGradient, photosFromUuids, type PhotoSource } from "@/lib/photo-or-gradient";
 
 const fadeUp = {
   initial: { opacity: 0, y: 12 },
@@ -121,8 +121,19 @@ function MatchPageContent() {
     },
     0,
   );
+  // Match-record peer photos are shipped as photo_uuids; map to
+  // PhotoRecord[] so photoOrGradient finds the cdn_url.
+  const matchedPeerPhotos =
+    record?.with_profile?.photos && record.with_profile.photos.length > 0
+      ? record.with_profile.photos
+      : photosFromUuids(
+          (record?.with_profile as { photo_uuids?: unknown } | undefined)
+            ?.photo_uuids,
+        );
   const matchedPhotoSource: PhotoSource = photoOrGradient(
-    record?.with_profile ?? { firstName: subject.name },
+    record?.with_profile
+      ? { firstName: record.with_profile.firstName, photos: matchedPeerPhotos }
+      : { firstName: subject.name },
     0,
   );
 
