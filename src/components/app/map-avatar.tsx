@@ -120,12 +120,16 @@ export function MapAvatar({ candidate, state = "none" }: MapAvatarProps) {
   if (!centroid) return null;
 
   const name = candidate.firstName ?? "Profile";
-  const slug = name.toLowerCase();
   // ?from=map → /profile/[uuid] reads this and points its back button
   // back at /map instead of the /discover default. Required because
   // map markers are the second entry path into a profile, and Bumpy's
   // UX expects returning to the surface the user came from.
-  const href = `/profile/${slug}?from=map`;
+  //
+  // BUG FIX 2026-05-14: the URL used to be `${name.toLowerCase()}` —
+  // a slug that only matched legacy sample profiles. Real candidates
+  // have UUIDs; tapping their marker 404'd. Use candidate.id which is
+  // the real prospect UUID from the /search response.
+  const href = `/profile/${candidate.id}?from=map`;
 
   const countryLabel = labelForCountry(iso) ?? iso;
   // SR users hear marker state context first ("Matched. Adina, 24, in
@@ -154,7 +158,10 @@ export function MapAvatar({ candidate, state = "none" }: MapAvatarProps) {
   // <img> renders in the 44px circle; otherwise the gradient fallback paints
   // the disc directly.
   const photoSource = photoOrGradient(
-    { firstName: candidate.firstName ?? slug, photos: candidate.photos },
+    {
+      firstName: candidate.firstName ?? candidate.id ?? "x",
+      photos: candidate.photos,
+    },
     0,
   );
 

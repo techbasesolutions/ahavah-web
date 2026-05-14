@@ -4,8 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiClient } from "@/lib/api-client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AnimatePresence, motion } from "motion/react";
-import { Heart, MapPin, Pause, Play, SlidersHorizontal, X } from "lucide-react";
+import { AnimatePresence, motion, type PanInfo } from "motion/react";
+import { ChevronUp, Heart, MapPin, Pause, Play, SlidersHorizontal, X } from "lucide-react";
 
 import { Avatar, AvatarBadge, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -303,10 +303,26 @@ export default function DiscoverPage() {
             <motion.div
               key={candidate.id}
               initial={{ opacity: 0, x: exitDirection === "left" ? 60 : -60 }}
-              animate={{ opacity: 1, x: 0 }}
+              animate={{ opacity: 1, x: 0, y: 0 }}
               exit={{ opacity: 0, x: exitDirection === "left" ? -60 : 60 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
-              className="relative w-full flex-1 overflow-hidden rounded-2xl bg-cover bg-center shadow-2xl"
+              // Swipe-up to view full profile (Bumpy convention).
+              // dragConstraints clamps the rubber-band so the card can
+              // only travel up — pulling down is a no-op and the card
+              // springs back. Threshold: 80px OR velocity > 400 fires
+              // navigation. Below that, the card eases home.
+              drag="y"
+              dragDirectionLock
+              dragConstraints={{ top: -120, bottom: 0 }}
+              dragElastic={0.25}
+              onDragEnd={(_e, info: PanInfo) => {
+                if (info.offset.y < -80 || info.velocity.y < -400) {
+                  router.push(
+                    `/profile/${encodeURIComponent(candidate.id)}?from=discover`,
+                  );
+                }
+              }}
+              className="relative w-full flex-1 cursor-grab overflow-hidden rounded-2xl bg-cover bg-center shadow-2xl active:cursor-grabbing"
               style={
                 photoSource?.kind === "gradient"
                   ? ({
@@ -362,20 +378,46 @@ export default function DiscoverPage() {
               />
 
               <PhotoCaption className="px-6 pb-24">
-                <h2 className="text-h2 leading-tight text-white">
-                  {candidate.firstName ?? "Someone"}
-                  {candidate.age ? `, ${candidate.age}` : ""}
-                </h2>
-                {candidate.city && candidate.country ? (
-                  <p className="mt-1 flex items-center gap-1 text-caption text-white/85">
-                    <MapPin className="size-3" /> {candidate.city}, {candidate.country}
-                  </p>
-                ) : candidate.country ? (
-                  <p className="mt-1 flex items-center gap-1 text-caption text-white/85">
-                    <MapPin className="size-3" /> {candidate.country}
-                  </p>
-                ) : null}
+                {/* Tapping name/age opens the full profile — the
+                    discoverable shortcut that pairs with the swipe-up
+                    gesture on the card. z-20 puts the Link above the
+                    photo tap zones (z-10) so the click lands here
+                    instead of advancing a photo. */}
+                <Link
+                  href={`/profile/${encodeURIComponent(candidate.id)}?from=discover`}
+                  prefetch={false}
+                  aria-label={`View ${candidate.firstName ?? "profile"}'s full profile`}
+                  className="relative z-20 -mx-2 -my-1 inline-block rounded-xl px-2 py-1 outline-none focus-visible:ring-2 focus-visible:ring-lavender"
+                >
+                  <h2 className="text-h2 leading-tight text-white">
+                    {candidate.firstName ?? "Someone"}
+                    {candidate.age ? `, ${candidate.age}` : ""}
+                  </h2>
+                  {candidate.city && candidate.country ? (
+                    <p className="mt-1 flex items-center gap-1 text-caption text-white/85">
+                      <MapPin className="size-3" /> {candidate.city}, {candidate.country}
+                    </p>
+                  ) : candidate.country ? (
+                    <p className="mt-1 flex items-center gap-1 text-caption text-white/85">
+                      <MapPin className="size-3" /> {candidate.country}
+                    </p>
+                  ) : null}
+                </Link>
               </PhotoCaption>
+
+              {/* Subtle swipe-up affordance — a small chevron + label
+                  above the action row. Reduces the discoverability gap
+                  on the swipe gesture without adding a tutorial overlay. */}
+              <motion.div
+                aria-hidden
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4, duration: 0.4 }}
+                className="pointer-events-none absolute right-0 bottom-20 left-0 z-20 flex flex-col items-center gap-0.5 text-white/55"
+              >
+                <ChevronUp className="size-4 animate-bounce animation-duration-[1.6s]" />
+                <span className="text-caption">Swipe up for profile</span>
+              </motion.div>
 
               {/* Action row — Skip / Pause / Like, floating at the bottom
                   of the card. z-30 wins over the tap zones (z-10). */}

@@ -227,14 +227,23 @@ export default function ProfileDetailPage({ params }: Props) {
   const searchParams = useSearchParams();
   const { decide } = useDecisions();
 
-  // Back-button target — when the viewer arrived from /map (MapAvatar
-  // appends ?from=map on marker tap), we return to /map instead of the
-  // /discover default. User feedback (2026-05-12):
-  // "the back button on profiles when clicked from the map should go
-  //  back to the map".
-  const fromMap = searchParams.get("from") === "map";
-  const backHref = fromMap ? "/map" : "/discover";
-  const backLabel = fromMap ? "Back to map" : "Back to discover";
+  // Back-button target — route back to whichever surface launched
+  // this profile view. /discover swipe-up and /map marker tap both
+  // append ?from=<surface>; /matches card tap goes straight to /chat,
+  // so 'matches' is handled by the chat header instead.
+  const from = searchParams.get("from");
+  const backHref =
+    from === "map"
+      ? "/map"
+      : from === "matches"
+        ? "/matches"
+        : "/discover";
+  const backLabel =
+    from === "map"
+      ? "Back to map"
+      : from === "matches"
+        ? "Back to matches"
+        : "Back to discover";
 
   // Photo carousel — slot count is the actual photos length (clamped
   // 1..3 so the page never collapses to zero AND a power-user with 7
