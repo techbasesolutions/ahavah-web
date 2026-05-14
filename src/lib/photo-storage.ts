@@ -34,7 +34,7 @@
  * adding the field is a zero-client-side-change upgrade.
  */
 
-import { apiClient, ApiError } from "@/lib/api-client";
+import { apiClient, ApiError, getSessionToken } from "@/lib/api-client";
 import { profileEndpoint } from "@/lib/onboarded-storage";
 import type {
   ModerationState,
@@ -57,19 +57,33 @@ export const NSFW_REJECTED_AT = 0.75;
 
 /** Base URL for the image CDN. Filenames follow `${size}-${uuid}.jpg`,
  *  where size ∈ { "original", 900, 450 }. We render the 450 variant in
- *  most UI surfaces (matches ahavah-frontend convention). */
+ *  most UI surfaces (matches ahavah-frontend convention).
+ *
+ *  Default points at the DO Spaces bucket (nyc3 region, CDN endpoint)
+ *  configured in the backend's DUO_R2_BUCKET_NAME. The earlier default
+ *  (https://user-images.ahavah.app) was aspirational and never set up,
+ *  causing every photo in production to fail to load. */
 const IMAGES_BASE_URL =
-  process.env.NEXT_PUBLIC_IMAGES_URL ?? "https://user-images.ahavah.app";
+  process.env.NEXT_PUBLIC_IMAGES_URL ??
+  "https://ahavah-photos-prod.nyc3.cdn.digitaloceanspaces.com";
 
 // ---------------------------------------------------------------------------
 // Pure helpers (tested directly)
 // ---------------------------------------------------------------------------
 
-/** Maps a raw nsfw_score to a ModerationState per the documented table. */
+/** Maps a raw nsfw_score to a ModerationState per the documented table.
+ *
+ *  IMPORTANT: backend GET /profile-info does NOT surface nsfw_score; it
+ *  returns only the position->uuid map. Defaulting null → "pending-review"
+ *  was wrong — it left every photo permanently in the Reviewing state even
+ *  though the backend's PATCH classifier ran synchronously and only saved
+ *  the photo if it passed. If a photo exists in GET /profile-info, it
+ *  passed moderation, period. We default null → "approved" accordingly.
+ *  When backend exposes the score field, the threshold logic still applies. */
 export function moderationStateFromScore(
   score: number | null | undefined,
 ): ModerationState {
-  if (score === null || score === undefined) return "pending-review";
+  if (score === null || score === undefined) return "approved";
   if (score < NSFW_APPROVED_BELOW) return "approved";
   if (score < NSFW_REJECTED_AT) return "pending-review";
   return "rejected";
@@ -221,10 +235,19 @@ const BASE_URL =
 
 async function sendDeleteWithBody(path: string, body: unknown): Promise<void> {
   const url = path.startsWith("http") ? path : `${BASE_URL}${path}`;
+  // Backend uses bearer-token auth (set on /check-otp), NOT cookies.
+  // The earlier raw fetch here omitted the Authorization header so every
+  // DELETE 401'd silently — meaning the X / trash button on a photo did
+  // nothing on production.
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  const token = getSessionToken();
+  if (token) headers["Authorization"] = `Bearer ${token}`;
   const res = await fetch(url, {
     method: "DELETE",
     credentials: "include",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify(body),
   });
   if (!res.ok) {

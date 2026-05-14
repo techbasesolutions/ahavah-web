@@ -29,7 +29,7 @@ const BASE_URL =
 const SESSION_TOKEN_KEY = "ahavah.session-token";
 let _sessionToken: string | null = null;
 
-function getSessionToken(): string | null {
+export function getSessionToken(): string | null {
   if (_sessionToken) return _sessionToken;
   if (typeof window === "undefined") return null;
   try {
