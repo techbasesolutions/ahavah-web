@@ -29,6 +29,7 @@ import { Pill, PillIndicator } from "@/components/kibo-ui/pill";
 
 import { cn } from "@/lib/utils";
 import { chatClient } from "@/lib/chat-client";
+import { isChatTransportAvailable } from "@/lib/chat-transport";
 import { readChatSession, writeChatSession } from "@/lib/chat-session";
 import { useInbox } from "@/lib/use-inbox";
 import { apiClient } from "@/lib/api-client";
@@ -75,7 +76,14 @@ function InboxContent() {
   // fresh onboardees, so users who graduated via /finish-onboarding land
   // here with no `ahavah.my-uuid` in localStorage. Backfill it via /me.
   const [myUuid, setMyUuid] = useState<string>("");
+  // Mixed-content gate: HTTPS page + ws:// chat URL = browser refuses
+  // to upgrade. Skip the connection attempt and render an honest
+  // "Chat ships with the domain launch" banner instead of the timeout
+  // spiral. Once chat.ahavah.app gets SSL, NEXT_PUBLIC_CHAT_WS_URL
+  // becomes wss:// and this gate flips on automatically.
+  const chatAvailable = isChatTransportAvailable();
   useEffect(() => {
+    if (!chatAvailable) return;
     const s = readChatSession();
     if (s) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -102,7 +110,7 @@ function InboxContent() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [chatAvailable]);
 
   const { threads, state, refresh } = useInbox(myUuid);
 
@@ -164,20 +172,21 @@ function InboxContent() {
       ? "empty"
       : "happy");
 
-  const body =
-    effectiveState === "loading" ? (
-      <InboxLoadingSkeleton />
-    ) : effectiveState === "error" ? (
-      <InboxErrorState onRetry={refresh} />
-    ) : filtered.length === 0 ? (
-      effectiveState !== "empty" && query.length > 0 ? (
-        <InboxNoSearchResults query={query} />
-      ) : (
-        <InboxEmptyState />
-      )
+  const body = !chatAvailable ? (
+    <ChatComingSoon />
+  ) : effectiveState === "loading" ? (
+    <InboxLoadingSkeleton />
+  ) : effectiveState === "error" ? (
+    <InboxErrorState onRetry={refresh} />
+  ) : filtered.length === 0 ? (
+    effectiveState !== "empty" && query.length > 0 ? (
+      <InboxNoSearchResults query={query} />
     ) : (
-      <ChatList chats={filtered} />
-    );
+      <InboxEmptyState />
+    )
+  ) : (
+    <ChatList chats={filtered} />
+  );
 
   return (
     <PageShell bottomPad="nav">
@@ -279,6 +288,19 @@ function ChatList({ chats }: { chats: DisplayThread[] }) {
         </motion.div>
       ))}
     </ItemGroup>
+  );
+}
+
+function ChatComingSoon() {
+  return (
+    <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.1 }} className="contents">
+      <EmptyState
+        variant="no-messages"
+        title="Chat ships with our domain launch"
+        description="We're finishing the secure WebSocket setup on chat.ahavah.app. Your matches and message history will be here when chat goes live."
+        action={{ label: "Back to discover", href: "/discover" }}
+      />
+    </motion.div>
   );
 }
 

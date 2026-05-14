@@ -9,6 +9,7 @@ import { ChatInput } from "@/components/app/chat-input";
 import { sampleByName } from "@/lib/profile-sample";
 import { photoOrGradient } from "@/lib/photo-or-gradient";
 import { chatClient } from "@/lib/chat-client";
+import { isChatTransportAvailable } from "@/lib/chat-transport";
 import { readChatSession } from "@/lib/chat-session";
 import { useChatThread } from "@/lib/use-chat-thread";
 import { apiClient, ApiError } from "@/lib/api-client";
@@ -45,6 +46,12 @@ export default function ChatThreadPage({ params }: Props) {
   const { id } = use(params);
   const legacy = LEGACY_SUBJECT_BY_SLUG[id];
 
+  // Mixed-content gate: HTTPS page + ws:// chat URL = browser blocks.
+  // Skip the connection attempt and render an honest "Chat coming
+  // soon" surface. Once chat.ahavah.app gets SSL the env var flips
+  // to wss:// and this gate opens automatically.
+  const chatAvailable = isChatTransportAvailable();
+
   // Chat session — read once on mount; useEffect ensures the chat-client
   // is connected for this user. If we have no session yet, we render a
   // gentle "connecting…" header rather than crashing.
@@ -53,11 +60,12 @@ export default function ChatThreadPage({ params }: Props) {
   // generic-cascading-renders warning doesn't apply (single one-shot read).
   const [session, setSession] = useState<ReturnType<typeof readChatSession>>(null);
   useEffect(() => {
+    if (!chatAvailable) return;
     const s = readChatSession();
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setSession(s);
     if (s) chatClient.connect(s.myUuid, s.sessionToken);
-  }, []);
+  }, [chatAvailable]);
 
   const myUuid = session?.myUuid ?? "";
 
@@ -180,7 +188,16 @@ export default function ChatThreadPage({ params }: Props) {
         aria-label={`Conversation with ${subject.name}`}
         className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-4"
       >
-        {!isHydrated ? null : messages.length === 0 ? (
+        {!chatAvailable ? (
+          <div className="m-auto flex max-w-sm flex-col items-center gap-3 text-center">
+            <p className="text-h3 text-white">Chat ships with our domain launch</p>
+            <p className="text-body text-text-secondary">
+              We&apos;re finishing the secure WebSocket setup on
+              chat.ahavah.app. Your conversation will be here when chat
+              goes live.
+            </p>
+          </div>
+        ) : !isHydrated ? null : messages.length === 0 ? (
           <p className="self-center text-meta text-text-muted">
             Say hello to start the conversation.
           </p>
@@ -221,11 +238,13 @@ export default function ChatThreadPage({ params }: Props) {
         <div ref={endRef} aria-hidden />
       </div>
 
-      <ChatInput
-        value={draft}
-        onChange={handleDraftChange}
-        onSend={handleSend}
-      />
+      {chatAvailable ? (
+        <ChatInput
+          value={draft}
+          onChange={handleDraftChange}
+          onSend={handleSend}
+        />
+      ) : null}
 
       <BlockReportSheet
         open={reportOpen}
