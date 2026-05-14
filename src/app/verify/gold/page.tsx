@@ -3,8 +3,10 @@
 import { IdCard, ScanFace, ShieldCheck } from "lucide-react";
 
 import { VerifyTierShell } from "@/components/app/verify-tier-shell";
+import { useStartVerification } from "@/lib/use-start-verification";
 
 export default function VerifyGoldPage() {
+  const { start, busy, errorMessage } = useStartVerification();
   return (
     <VerifyTierShell
       tierLabel="Gold verification"
@@ -33,6 +35,9 @@ export default function VerifyGoldPage() {
         },
       ]}
       ctaLabel="Continue with Stripe Identity"
+      onCtaClick={() => void start()}
+      ctaBusy={busy}
+      errorMessage={errorMessage}
       disclosure="Your ID is processed by Stripe and never stored on Ahavah's servers. Only the result is saved."
     />
   );

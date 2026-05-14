@@ -3,8 +3,10 @@
 import { ScanFace, Smartphone, Sparkles } from "lucide-react";
 
 import { VerifyTierShell } from "@/components/app/verify-tier-shell";
+import { useStartVerification } from "@/lib/use-start-verification";
 
 export default function VerifySilverPage() {
+  const { start, busy, errorMessage } = useStartVerification();
   return (
     <VerifyTierShell
       tierLabel="Silver verification"
@@ -33,6 +35,9 @@ export default function VerifySilverPage() {
         },
       ]}
       ctaLabel="Start liveness check"
+      onCtaClick={() => void start()}
+      ctaBusy={busy}
+      errorMessage={errorMessage}
       disclosure="Liveness frames are processed on-device. Nothing is stored or sent to our servers."
     />
   );

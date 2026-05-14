@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { IconBadge } from "@/components/ui/icon-badge";
@@ -52,6 +52,10 @@ type Props = {
   ctaLabel: string;
   /** Optional onClick — if omitted, CTA renders as a no-op pill. */
   onCtaClick?: () => void;
+  /** When true, CTA shows a spinner + 'Starting…' label and disables. */
+  ctaBusy?: boolean;
+  /** Inline error rendered above the disclosure. */
+  errorMessage?: string | null;
   /** Privacy / data disclosure text shown below the CTA. */
   disclosure: string;
 };
@@ -65,6 +69,8 @@ export function VerifyTierShell({
   steps,
   ctaLabel,
   onCtaClick,
+  ctaBusy = false,
+  errorMessage = null,
   disclosure,
 }: Props) {
   return (
@@ -214,9 +220,26 @@ export function VerifyTierShell({
             lift="float"
             className="ring-2 ring-(--tier-color) ring-offset-2 ring-offset-bg-canvas"
             onClick={onCtaClick}
+            disabled={ctaBusy || !onCtaClick}
           >
-            {ctaLabel}
+            {ctaBusy ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                Starting…
+              </>
+            ) : (
+              ctaLabel
+            )}
           </Button>
+          {errorMessage ? (
+            <p
+              role="alert"
+              aria-live="polite"
+              className="text-center text-caption font-semibold text-pink"
+            >
+              {errorMessage}
+            </p>
+          ) : null}
           <p className="text-center text-caption leading-relaxed text-text-muted">
             {disclosure}
           </p>

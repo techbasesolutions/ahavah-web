@@ -3,8 +3,14 @@
 import { Camera, BadgeCheck, Smartphone, Sun } from "lucide-react";
 
 import { VerifyTierShell } from "@/components/app/verify-tier-shell";
+import { useStartVerification } from "@/lib/use-start-verification";
 
 export default function VerifyBronzePage() {
+  // All three tiers (Bronze/Silver/Gold) currently route through the same
+  // Stripe Identity session — the backend webhook decides what tier to
+  // grant based on what Stripe approved. Bronze entry-point copy stays
+  // light-touch; the underlying flow is the same.
+  const { start, busy, errorMessage } = useStartVerification();
   return (
     <VerifyTierShell
       tierLabel="Bronze verification"
@@ -33,6 +39,9 @@ export default function VerifyBronzePage() {
         },
       ]}
       ctaLabel="Open camera"
+      onCtaClick={() => void start()}
+      ctaBusy={busy}
+      errorMessage={errorMessage}
       disclosure="The selfie is processed on-device. Only a yes/no result is stored on our server."
     />
   );

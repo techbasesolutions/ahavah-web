@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useState } from "react";
 import { motion } from "motion/react";
-import { Check, X } from "lucide-react";
+import { Check, Loader2, X } from "lucide-react";
 
+import { apiClient, ApiError } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { IconBadge } from "@/components/ui/icon-badge";
 import {
@@ -51,6 +52,43 @@ const TIERS = [
 export default function PaywallPage() {
   const [selected, setSelected] = useState("year");
   const activeTier = TIERS.find((t) => t.key === selected)!;
+  const [busy, setBusy] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const handleContinue = async () => {
+    if (busy) return;
+    setBusy(true);
+    setErrorMessage(null);
+    try {
+      const res = await apiClient.post<{ url?: string | null }>(
+        "/checkout/web",
+        { tier_key: selected },
+      );
+      if (res.url) {
+        window.location.assign(res.url);
+        return;
+      }
+      setErrorMessage("Stripe didn't return a checkout URL. Try again.");
+      setBusy(false);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        if (err.status === 503) {
+          setErrorMessage(
+            "Subscriptions aren't available yet. We're rolling them out — try again shortly.",
+          );
+        } else if (err.status === 401) {
+          setErrorMessage("Sign in again to subscribe.");
+        } else {
+          setErrorMessage(
+            err.message || "Couldn't start checkout. Try again.",
+          );
+        }
+      } else {
+        setErrorMessage("Couldn't reach the checkout service.");
+      }
+      setBusy(false);
+    }
+  };
 
   return (
     <PageShell bottomPad="default" className="overflow-y-auto px-5 pt-6">
@@ -140,7 +178,25 @@ export default function PaywallPage() {
         transition={{ duration: 0.25, delay: 0.23 }}
         className="mt-auto flex flex-col gap-4 pt-8"
       >
-        <Button size="cta">Continue {activeTier.price}</Button>
+        <Button size="cta" onClick={handleContinue} disabled={busy}>
+          {busy ? (
+            <>
+              <Loader2 size={16} className="animate-spin" />
+              Starting checkout…
+            </>
+          ) : (
+            `Continue ${activeTier.price}`
+          )}
+        </Button>
+        {errorMessage ? (
+          <p
+            role="alert"
+            aria-live="polite"
+            className="text-center text-caption font-semibold text-pink"
+          >
+            {errorMessage}
+          </p>
+        ) : null}
         <Button
           variant="link"
           size="tap"
