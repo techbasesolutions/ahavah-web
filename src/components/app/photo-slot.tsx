@@ -215,7 +215,7 @@ export function PhotoSlot({
       <input
         ref={inputRef}
         type="file"
-        accept="image/jpeg,image/png,image/webp"
+        accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
         onChange={handleFile}
         className="hidden"
         aria-hidden
