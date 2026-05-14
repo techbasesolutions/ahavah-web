@@ -226,7 +226,16 @@ export function SelectField<T extends string>({
           tone="elevated"
           className="w-full"
         >
-          <SelectValue placeholder={placeholder} />
+          {/* Base UI's SelectValue renders the raw `value` when given
+              no `children` function — that's why "bachelors" showed
+              lowercase in the trigger instead of "Bachelor's Degree".
+              The function-children pattern maps the value back to the
+              matching option's label. */}
+          <SelectValue placeholder={placeholder}>
+            {(v) =>
+              options.find((opt) => opt.value === v)?.label ?? placeholder
+            }
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           {options.map((opt) => (
