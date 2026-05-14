@@ -80,7 +80,17 @@ export default function SignUpPage() {
       sessionStorage.setItem(PENDING_EMAIL_KEY, email);
       router.push("/onboarding/verify-email");
     } catch (err) {
-      if (err instanceof ApiError && err.status === 429) {
+      if (err instanceof ApiError && err.status === 461) {
+        // Backend marked this account/email as banned (or in the
+        // banned-club list). Route to the dedicated edge page instead
+        // of a generic error — banned users deserve a clear answer.
+        router.push("/banned");
+        return;
+      } else if (err instanceof ApiError && err.status === 460) {
+        // IP blocked (firehol). Show /locked.
+        router.push("/locked");
+        return;
+      } else if (err instanceof ApiError && err.status === 429) {
         setError("Too many requests. Try again in a few minutes.");
       } else if (err instanceof ApiError && err.status === 400) {
         setError("That email looks malformed. Check it and try again.");

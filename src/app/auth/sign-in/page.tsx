@@ -57,7 +57,17 @@ export default function SignInPage() {
       sessionStorage.setItem(PENDING_EMAIL_KEY, email);
       router.push("/onboarding/verify-email");
     } catch (err) {
-      if (err instanceof ApiError && err.status === 429) {
+      if (err instanceof ApiError && err.status === 461) {
+        // Backend marked this account/email as banned. Edge surface
+        // explains what happened — generic 'something went wrong'
+        // would be a worse UX for a real ban.
+        router.push("/banned");
+        return;
+      } else if (err instanceof ApiError && err.status === 460) {
+        // IP blocked (firehol). Same idea — surface the right page.
+        router.push("/locked");
+        return;
+      } else if (err instanceof ApiError && err.status === 429) {
         setError("Too many requests. Try again in a few minutes.");
       } else if (err instanceof ApiError && err.status === 400) {
         setError("That email looks malformed. Check it and try again.");
