@@ -10,6 +10,8 @@ import {
   MapPin,
   MessageCircle,
   MoreHorizontal,
+  Pause,
+  Play,
   ShieldCheck,
   X,
 } from "lucide-react";
@@ -267,6 +269,44 @@ export default function ProfileDetailPage({ params }: Props) {
   const prevPhoto = () =>
     setPhotoIndex((i) => (i - 1 + photoSources.length) % photoSources.length);
   const currentPhotoSource = photoSources[photoIndex];
+  // Pause/Play toggle mirrors the discover card. When on, auto-cycle
+  // through the photo slots every PHOTO_CYCLE_MS; wraps at the end so
+  // viewing a profile feels continuous instead of jumping back.
+  const [cyclePhotos, setCyclePhotos] = useState(false);
+  const PHOTO_CYCLE_MS = 3_500;
+  useEffect(() => {
+    if (!cyclePhotos) return;
+    const id = setInterval(
+      () => setPhotoIndex((i) => (i + 1) % photoSources.length),
+      PHOTO_CYCLE_MS,
+    );
+    return () => clearInterval(id);
+  }, [cyclePhotos, photoSources.length]);
+
+  // Match-gated chat: viewer can only see the Message button on this
+  // profile when there's a confirmed mutual match with the prospect.
+  // /matches is small (single-digit to low-tens of entries usually) so
+  // fetching the whole list and checking membership is fine — no need
+  // for a dedicated /matches/<peer> probe endpoint.
+  const [isMatched, setIsMatched] = useState(false);
+  useEffect(() => {
+    if (!uuid) return;
+    let cancelled = false;
+    void apiClient
+      .get<{ matches?: Array<{ with_profile?: { id?: string } }> }>("/matches")
+      .then((res) => {
+        if (cancelled) return;
+        const list = res.matches ?? [];
+        setIsMatched(list.some((m) => m.with_profile?.id === uuid));
+      })
+      .catch(() => {
+        // Quiet fail — leave isMatched=false; user can still Like to
+        // (re-)create the match if they haven't yet.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [uuid]);
 
   // BlockReportSheet wiring for the kebab — same pattern as /chat.
   const [reportOpen, setReportOpen] = useState(false);
@@ -748,73 +788,93 @@ export default function ProfileDetailPage({ params }: Props) {
               </div>
             )}
 
-            {/* Action row — X (skip) + Heart (like, primary, larger) + Message
-                (chat). Per Dateasy reference: side buttons brand,
-                center heart action + larger. All circular with float
-                shadow. Fades up after the card settles. */}
+            {/* Action row — match-gated.
+                  Matched (mutual): Message only. Skip/Like would let the
+                    user undo a match from a profile view, which isn't a
+                    place we want unmatching to happen (settings only).
+                  Unmatched: same X + Pause/Play + Like trio as the
+                    /discover card so the action row reads identically
+                    whether the viewer is looking at the card or its
+                    expanded profile. */}
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.25, delay: 0.2, ease: "easeOut" }}
               className="mt-2 flex items-center justify-center gap-5"
             >
-              <Button
-                size="circle"
-                tone="brand"
-                lift="float"
-                aria-label="Pass"
-                disabled={!profileLoaded}
-                onClick={async () => {
-                  // Real backend POST /decisions {nope}. Was previously
-                  // recordPass(localOnly) — local-only flag with no
-                  // backend write, so swipes from /profile/[uuid] never
-                  // landed on the person row. AUDIT FIX 2026-05-14.
-                  try {
-                    await decide(uuid, "nope");
-                  } catch {
-                    // surfaced via useDecisions().error; navigate anyway
-                  }
-                  router.push(backHref);
-                }}
-              >
-                <X className="text-black" />
-              </Button>
-              <Button
-                size="circle-lg"
-                tone="action"
-                lift="float"
-                aria-label="Like"
-                disabled={!profileLoaded}
-                onClick={async () => {
-                  // Real backend POST /decisions {like}. Was previously
-                  // recordLike(localOnly) + simulateLikesBack(sample) —
-                  // neither hit the backend, so likes from /profile/[uuid]
-                  // never created matches. AUDIT FIX 2026-05-14.
-                  try {
-                    const result = await decide(uuid, "like");
-                    if (result.matchId) {
-                      router.push(`/match?matchId=${encodeURIComponent(result.matchId)}`);
-                      return;
+              {isMatched ? (
+                <Button
+                  nativeButton={false}
+                  size="circle-lg"
+                  tone="cta"
+                  lift="float"
+                  aria-label="Message"
+                  render={<Link href={`/chat/${uuid}`} prefetch={false} />}
+                >
+                  <MessageCircle className="text-black" />
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    size="circle"
+                    tone="brand"
+                    lift="float"
+                    aria-label="Skip"
+                    disabled={!profileLoaded}
+                    onClick={async () => {
+                      try {
+                        await decide(uuid, "nope");
+                      } catch {
+                        // surfaced via useDecisions().error
+                      }
+                      router.push(backHref);
+                    }}
+                  >
+                    <X className="text-black" />
+                  </Button>
+                  <Button
+                    size="circle-lg"
+                    tone="cta"
+                    lift="float"
+                    aria-label={
+                      cyclePhotos
+                        ? "Pause photo slideshow"
+                        : "Play photo slideshow"
                     }
-                  } catch {
-                    // surfaced via useDecisions().error; navigate anyway
-                  }
-                  router.push(backHref);
-                }}
-              >
-                <Heart className="text-white" fill="currentColor" />
-              </Button>
-              {/* Message button: existing wiring stays — Link render to /chat/[id]. */}
-              <Button
-                nativeButton={false}
-                size="circle"
-                tone="brand"
-                lift="float"
-                aria-label="Message"
-                render={<Link href={`/chat/${uuid}`} prefetch={false} />}
-              >
-                <MessageCircle className="text-black" />
-              </Button>
+                    aria-pressed={cyclePhotos}
+                    onClick={() => setCyclePhotos((on) => !on)}
+                  >
+                    {cyclePhotos ? (
+                      <Pause className="text-black" fill="currentColor" />
+                    ) : (
+                      <Play className="text-black" fill="currentColor" />
+                    )}
+                  </Button>
+                  <Button
+                    size="circle"
+                    tone="action"
+                    lift="float"
+                    aria-label="Like"
+                    disabled={!profileLoaded}
+                    onClick={async () => {
+                      try {
+                        const result = await decide(uuid, "like");
+                        if (result.matchId) {
+                          router.push(
+                            `/match?matchId=${encodeURIComponent(result.matchId)}`,
+                          );
+                          return;
+                        }
+                      } catch {
+                        // surfaced via useDecisions().error
+                      }
+                      router.push(backHref);
+                    }}
+                  >
+                    <Heart className="text-white" fill="currentColor" />
+                  </Button>
+                </>
+              )}
             </motion.div>
           </CardContent>
         </Card>

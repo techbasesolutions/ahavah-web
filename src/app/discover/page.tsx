@@ -48,6 +48,13 @@ export default function DiscoverPage() {
   const { decide, pendingIds } = useDecisions();
   const { filters, setFilters } = useFilters();
   const [exitDirection, setExitDirection] = useState<"left" | "right">("left");
+  // Track whether at least one swipe has happened. The very first card
+  // a user sees should land in its final position without sliding in;
+  // subsequent cards (after Skip/Like) keep the lateral slide to give
+  // visual feedback for the decision. Without this, the initial card
+  // entered from x=±60 and the user reported the card position was
+  // inconsistent across page loads.
+  const [hasSwiped, setHasSwiped] = useState(false);
   // Photo carousel state — index into the current candidate's `photos`
   // array. Reset to 0 whenever the candidate changes (effect below).
   // `cyclePhotos` toggles the auto-advance through the candidate's photos
@@ -146,6 +153,7 @@ export default function DiscoverPage() {
       if (!candidate) return;
       const candidateId = candidate.id;
       setExitDirection(decision === "like" ? "right" : "left");
+      setHasSwiped(true);
       // Optimistically remove this candidate from the visible deck so the
       // card animates out + the next one comes in even if the backend is
       // slow. If the decide() POST throws, undo below.
@@ -248,11 +256,16 @@ export default function DiscoverPage() {
             </Button>
           </div>
         </PageHeader>
+        {/* Same outer container as the loaded state — flex-col, top-
+            aligned, px-5 — so the card slot occupies the exact same
+            screen rectangle in both states. Without this, "Loading…"
+            sat vertically centered then the card jumped to the top
+            when ready, making the layout feel unstable on every load. */}
         <div
-          className="relative mt-3 flex flex-1 flex-col items-center justify-center px-5"
+          className="relative mt-3 flex flex-1 flex-col px-5"
           aria-live="polite"
         >
-          <p className="text-body text-text-secondary">
+          <p className="mt-auto mb-auto text-center text-body text-text-secondary">
             {!loaded ? "Loading…" : "Taking you to finish your profile…"}
           </p>
         </div>
@@ -302,7 +315,15 @@ export default function DiscoverPage() {
           {candidate ? (
             <motion.div
               key={candidate.id}
-              initial={{ opacity: 0, x: exitDirection === "left" ? 60 : -60 }}
+              // First card the user sees just fades in — no horizontal
+              // slide — so the page layout stops jumping. Cards entering
+              // after a Skip / Like keep the lateral slide as feedback
+              // for the decision the user just made.
+              initial={
+                hasSwiped
+                  ? { opacity: 0, x: exitDirection === "left" ? 60 : -60 }
+                  : { opacity: 0 }
+              }
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: exitDirection === "left" ? -60 : 60 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
