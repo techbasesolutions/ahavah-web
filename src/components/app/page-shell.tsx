@@ -34,12 +34,25 @@ import { cn } from "@/lib/utils";
 //                  browser chrome shows/hides, so the layout always
 //                  matches the actually-visible area. Safari/Chrome
 //                  mobile have supported it since 2022.
-const pageShellVariants = cva("flex min-h-dvh flex-col", {
+// `nav-fixed` (added 2026-05-14): a stricter variant of `nav` for
+// single-screen surfaces that must not scroll AND must clear the
+// home-indicator safe area on iOS PWAs. Used by /discover where the
+// card's flex-1 fill could otherwise push the absolute-positioned
+// action row past the visible viewport on first paint, clipping the
+// Skip / Pause / Like buttons behind the BottomNav. h-dvh + max-h-dvh
+// pin the shell to the visible viewport (not just a min-bound), and
+// overflow-hidden swallows any sub-pixel overshoot. The pb math adds
+// env(safe-area-inset-bottom) on top of the 80px nav clearance — on
+// devices without a home indicator that env() resolves to 0, so it's
+// safe to apply universally.
+const pageShellVariants = cva("flex flex-col", {
   variants: {
     bottomPad: {
-      none:    "",
-      default: "pb-6",
-      nav:     "pb-20",
+      none:    "min-h-dvh",
+      default: "min-h-dvh pb-6",
+      nav:     "min-h-dvh pb-20",
+      "nav-fixed":
+        "h-dvh max-h-dvh overflow-hidden pb-[calc(--spacing(20)+env(safe-area-inset-bottom))]",
     },
   },
   defaultVariants: { bottomPad: "default" },

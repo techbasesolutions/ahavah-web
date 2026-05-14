@@ -232,7 +232,7 @@ export default function DiscoverPage() {
   // server-side-onboarded, don't show the "Redirecting…" placeholder.
   if (!loaded || (loaded && !readOnboarded() && !isDiscoverEligible(userProfile))) {
     return (
-      <PageShell bottomPad="nav">
+      <PageShell bottomPad="nav-fixed">
         <h1 className="sr-only">Discover</h1>
         <PageHeader pad="default" className="flex items-center justify-between">
           <BrandMark size="sm" />
@@ -277,7 +277,17 @@ export default function DiscoverPage() {
   const photoSource = candidate ? photoOrGradient(candidate, photoIndex) : null;
 
   return (
-    <PageShell bottomPad="nav">
+    // /discover is a single-card surface — no scrolling, no overflow.
+    // Hard-clamp the shell to the dynamic viewport (h-dvh, NOT min-h)
+    // and overflow-hidden so any tiny child overshoot can't push the
+    // card past the visible area. The min-h-dvh on PageShell only set
+    // a floor; without an upper bound the layout could still grow
+    // (e.g. iOS PWA standalone mode adds the home-indicator safe area
+    // to the document, pushing flex-1 children below visible viewport
+    // and clipping the action row behind the BottomNav). pb-safe adds
+    // env(safe-area-inset-bottom) on top of pb-20 so the action row
+    // clears the home indicator on devices that have one.
+    <PageShell bottomPad="nav-fixed">
       <h1 className="sr-only">Discover</h1>
 
       <PageHeader pad="default" className="flex items-center justify-between">
@@ -310,7 +320,15 @@ export default function DiscoverPage() {
         </div>
       </PageHeader>
 
-      <div className="relative mt-3 flex flex-1 flex-col px-5">
+      {/* Card slot + action row in the same flex container.
+          - min-h-0 + flex-1 on the card lets it shrink to whatever
+            vertical space remains AFTER the action row claims its
+            56px. Without min-h-0, flex-1 children refuse to shrink
+            below their content height and the action row gets pushed
+            below the visible viewport (the bug that kept reappearing).
+          - shrink-0 on the action row guarantees its height is never
+            squeezed away. */}
+      <div className="relative mt-3 flex min-h-0 flex-1 flex-col gap-4 px-5 pb-3">
         <AnimatePresence mode="wait" initial={false}>
           {candidate ? (
             <motion.div
@@ -344,7 +362,7 @@ export default function DiscoverPage() {
                   );
                 }
               }}
-              className="relative w-full flex-1 overflow-hidden rounded-2xl bg-cover bg-center shadow-2xl"
+              className="relative w-full min-h-0 flex-1 overflow-hidden rounded-2xl bg-cover bg-center shadow-2xl"
               style={
                 photoSource?.kind === "gradient"
                   ? ({
@@ -399,7 +417,7 @@ export default function DiscoverPage() {
                 className="absolute inset-y-0 right-0 z-10 h-full w-1/2 cursor-pointer bg-transparent outline-none focus-visible:bg-white/5"
               />
 
-              <PhotoCaption className="px-6 pb-24">
+              <PhotoCaption className="px-6 pb-6">
                 {/* Tapping name + age opens the full profile. z-20 puts
                     the Link above the photo tap zones (z-10) so the
                     click lands here instead of advancing a photo. The
@@ -430,42 +448,6 @@ export default function DiscoverPage() {
                 </Link>
               </PhotoCaption>
 
-              {/* Action row — Skip / Pause / Like, floating at the bottom
-                  of the card. z-30 wins over the tap zones (z-10). */}
-              <div className="absolute bottom-4 left-1/2 z-30 flex -translate-x-1/2 items-center gap-5">
-                <Button
-                  size="circle"
-                  tone="brand"
-                  lift="float"
-                  aria-label="Skip"
-                  onClick={() => advance("nope")}
-                >
-                  <X className="text-black" />
-                </Button>
-                <Button
-                  size="circle-lg"
-                  tone="cta"
-                  lift="float"
-                  aria-label={cyclePhotos ? "Pause photo slideshow" : "Play photo slideshow"}
-                  aria-pressed={cyclePhotos}
-                  onClick={() => setCyclePhotos((on) => !on)}
-                >
-                  {cyclePhotos ? (
-                    <Pause className="text-black" fill="currentColor" />
-                  ) : (
-                    <Play className="text-black" fill="currentColor" />
-                  )}
-                </Button>
-                <Button
-                  size="circle"
-                  tone="action"
-                  lift="float"
-                  aria-label="Like"
-                  onClick={() => advance("like")}
-                >
-                  <Heart className="text-white" fill="currentColor" />
-                </Button>
-              </div>
             </motion.div>
           ) : (
             <motion.div
@@ -505,6 +487,54 @@ export default function DiscoverPage() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Action row — Skip / Pause / Like — sits as a flex sibling
+            BELOW the card in the same parent flex container. shrink-0
+            guarantees these 56px never get squeezed away regardless
+            of viewport quirks. Was previously absolute-positioned
+            inside the card with bottom-4, which let the buttons get
+            clipped behind the BottomNav whenever the card overflowed
+            its slot (the bug the user reported "still loads cut off").
+            Hidden when there's no candidate so the empty-state CTA
+            owns the slot. */}
+        {candidate ? (
+          <div className="flex shrink-0 items-center justify-center gap-5">
+            <Button
+              size="circle"
+              tone="brand"
+              lift="float"
+              aria-label="Skip"
+              onClick={() => advance("nope")}
+            >
+              <X className="text-black" />
+            </Button>
+            <Button
+              size="circle-lg"
+              tone="cta"
+              lift="float"
+              aria-label={
+                cyclePhotos ? "Pause photo slideshow" : "Play photo slideshow"
+              }
+              aria-pressed={cyclePhotos}
+              onClick={() => setCyclePhotos((on) => !on)}
+            >
+              {cyclePhotos ? (
+                <Pause className="text-black" fill="currentColor" />
+              ) : (
+                <Play className="text-black" fill="currentColor" />
+              )}
+            </Button>
+            <Button
+              size="circle"
+              tone="action"
+              lift="float"
+              aria-label="Like"
+              onClick={() => advance("like")}
+            >
+              <Heart className="text-white" fill="currentColor" />
+            </Button>
+          </div>
+        ) : null}
       </div>
 
       <BottomNav />
