@@ -130,6 +130,17 @@ const TRANSFORMS: Record<string, FieldTransform> = {
     return typeof first === "string" ? { ethnicity: first } : null;
   },
 
+  // Languages — backend column is `languages_spoken TEXT[]` (migration
+  // 0001). Pass through as-is; PatchProfileInfo accepts the array.
+  // Custom-language tokens like "custom:Aramaic" are preserved verbatim
+  // — backend stores them; the frontend reads them back via the same
+  // path. Future cleanup could split out the prefixed tokens.
+  languages: (v) => (Array.isArray(v) && v.length > 0 ? { languages_spoken: v } : null),
+
+  // Primary language — backend column `primary_language` (DeepL target).
+  primaryLanguage: (v) =>
+    typeof v === "string" && v.length > 0 ? { primary_language: v } : null,
+
   // Unmappable Torah-observant fields stay client-only. Any onboarding
   // step that updates these will optimistically cache the value in
   // localStorage but skip the PATCH. Listed explicitly so a future

@@ -665,6 +665,7 @@ export type Profile = {
   nationality?: Nationality;
   ethnicities?: Ethnicity[];
   languages?: string[];    // language codes from /onboarding/languages
+  primaryLanguage?: string; // backend person.primary_language (DeepL target)
   occupation?: string;
   education?: EducationLevel;
   bio?: string;            // also called "Testimony" in copy for this audience

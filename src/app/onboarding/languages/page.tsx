@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+import { useProfile } from "@/lib/use-profile";
 import { motion } from "motion/react";
 import { Globe, Plus, Star, X } from "lucide-react";
 
@@ -48,8 +50,16 @@ const fadeUp = {
 };
 
 export default function LanguagesStep() {
-  const [selected, setSelected] = useState<string[]>(["en"]);
-  const [primary, setPrimary] = useState<string>("en");
+  // Persist to backend via useProfile.update() — every other onboarding
+  // step does the same; this page was the lone outlier and lost the
+  // user's selections on Continue. Bug surfaced in audit 2026-05-14.
+  const { profile, update } = useProfile();
+  const [selected, setSelected] = useState<string[]>(
+    () => (profile.languages as string[] | undefined) ?? ["en"],
+  );
+  const [primary, setPrimary] = useState<string>(
+    () => (profile.primaryLanguage as string | undefined) ?? "en",
+  );
   // Tracks user-added language labels (the source of truth for the "Your
   // additions" row). Selected entries for these are stored as
   // `custom:${label}` in the `selected` array so primary detection and
@@ -58,9 +68,34 @@ export default function LanguagesStep() {
   const [draft, setDraft] = useState("");
   const [feedback, setFeedback] = useState<string>("");
 
+  // Hydrate from cache once profile loads (useProfile reads localStorage
+  // post-mount). Ignores the case where the user starts editing before
+  // the cache fires — the cache value would clobber their tap, but the
+  // tap fired update() too so the next render reads the merged value.
+  useEffect(() => {
+    const cachedLanguages = profile.languages as string[] | undefined;
+    const cachedPrimary = profile.primaryLanguage as string | undefined;
+    if (cachedLanguages && cachedLanguages.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSelected(cachedLanguages);
+    }
+    if (cachedPrimary) {
+      setPrimary(cachedPrimary);
+    }
+  }, [profile.languages, profile.primaryLanguage]);
+
+  const persist = (nextSelected: string[], nextPrimary: string) => {
+    void update({
+      languages: nextSelected,
+      primaryLanguage: nextPrimary,
+    });
+  };
+
   const setSelection = (next: string[]) => {
     setSelected(next);
-    if (!next.includes(primary)) setPrimary(next[0] ?? "");
+    const nextPrimary = next.includes(primary) ? primary : (next[0] ?? "");
+    if (nextPrimary !== primary) setPrimary(nextPrimary);
+    persist(next, nextPrimary);
   };
 
   const toggleSelected = (code: string) => {
@@ -90,21 +125,26 @@ export default function LanguagesStep() {
       return;
     }
     const value = `${CUSTOM_LANGUAGE_PREFIX}${trimmed}`;
+    const nextSelected = [...selected, value];
+    const nextPrimary = primary || value;
     setCustomLanguages([...customLanguages, trimmed]);
-    setSelected([...selected, value]);
+    setSelected(nextSelected);
     if (!primary) setPrimary(value);
     setDraft("");
     setFeedback(`Added ${trimmed}.`);
+    persist(nextSelected, nextPrimary);
   };
 
   const removeCustom = (label: string) => {
     const value = `${CUSTOM_LANGUAGE_PREFIX}${label}`;
     const nextCustom = customLanguages.filter((l) => l !== label);
     const nextSelected = selected.filter((c) => c !== value);
+    const nextPrimary = primary === value ? (nextSelected[0] ?? "") : primary;
     setCustomLanguages(nextCustom);
     setSelected(nextSelected);
-    if (primary === value) setPrimary(nextSelected[0] ?? "");
+    if (primary === value) setPrimary(nextPrimary);
     setFeedback(`Removed ${label}.`);
+    persist(nextSelected, nextPrimary);
   };
 
   const onDraftKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -186,9 +226,13 @@ export default function LanguagesStep() {
                   if (selected.includes(lang.code) && primary !== lang.code) {
                     e.preventDefault();
                     setPrimary(lang.code);
+                    persist(selected, lang.code);
                   } else if (!selected.includes(lang.code)) {
                     toggleSelected(lang.code);
-                    if (!primary) setPrimary(lang.code);
+                    if (!primary) {
+                      setPrimary(lang.code);
+                      persist([...selected, lang.code], lang.code);
+                    }
                   }
                 }}
                 className="gap-2 transition-transform active:scale-95"
@@ -234,7 +278,10 @@ export default function LanguagesStep() {
                 >
                   <button
                     type="button"
-                    onClick={() => setPrimary(value)}
+                    onClick={() => {
+                      setPrimary(value);
+                      persist(selected, value);
+                    }}
                     aria-label={
                       isPrimary
                         ? `${label} is your primary language`
