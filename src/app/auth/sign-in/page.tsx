@@ -15,6 +15,7 @@ import { PageShell } from "@/components/app/page-shell";
 import { ApiError } from "@/lib/api-client";
 import { requestEmailOtp } from "@/lib/auth-otp";
 import { PENDING_EMAIL_KEY } from "@/lib/storage-keys";
+import { useRedirectIfSignedIn } from "@/lib/use-redirect-if-signed-in";
 
 /**
  * Returning user flow. Single email field; no password. Submit triggers
@@ -35,6 +36,9 @@ export default function SignInPage() {
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Returning user who's already authenticated should skip this page
+  // entirely and land on /discover.
+  const { checking } = useRedirectIfSignedIn();
 
   // Prefill from the welcome page's email input (see /page.tsx). Same
   // PENDING_EMAIL_KEY is used as the bridge through this page to
@@ -77,6 +81,14 @@ export default function SignInPage() {
       setSubmitting(false);
     }
   };
+
+  if (checking) {
+    return (
+      <PageShell bottomPad="default" className="items-center justify-center px-5">
+        <p className="text-body text-text-secondary">Signing you in…</p>
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell bottomPad="default" className="px-5 pt-6">

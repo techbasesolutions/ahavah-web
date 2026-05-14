@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { BrandMark } from "@/components/brand/sparkle-mark";
 import { PageShell } from "@/components/app/page-shell";
 import { PENDING_EMAIL_KEY } from "@/lib/storage-keys";
+import { useRedirectIfSignedIn } from "@/lib/use-redirect-if-signed-in";
 
 const EMAIL_SUFFIXES = ["@gmail.com", "@proton.me", "@yahoo.com", "@hotmail.com", "@outlook.com"];
 
@@ -24,6 +25,12 @@ const fadeUp = {
 export default function WelcomePage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
+  // If the visitor already has a valid session, skip the welcome
+  // screen entirely and go straight to /discover. Without this the
+  // user has to retype their email + redo the OTP every time they
+  // open the app, which feels like "re-onboarding" even though their
+  // account is already set up.
+  const { checking } = useRedirectIfSignedIn();
 
   // Suffix chip handler — append the suffix when input is empty / has no
   // @, replace the existing suffix when one is already present. Keeps
@@ -45,6 +52,17 @@ export default function WelcomePage() {
     if (trimmed) sessionStorage.setItem(PENDING_EMAIL_KEY, trimmed);
     router.push(path);
   };
+
+  // While probing /me, render a minimal placeholder so we don't
+  // briefly flash the welcome screen to someone who's already signed
+  // in. The probe typically returns in <300ms.
+  if (checking) {
+    return (
+      <PageShell bottomPad="default" className="items-center justify-center px-5">
+        <p className="text-body text-text-secondary">Signing you in…</p>
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell bottomPad="default" className="px-5 pt-6">

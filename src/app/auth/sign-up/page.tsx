@@ -16,6 +16,7 @@ import { PageShell } from "@/components/app/page-shell";
 import { ApiError } from "@/lib/api-client";
 import { requestEmailOtp } from "@/lib/auth-otp";
 import { PENDING_EMAIL_KEY } from "@/lib/storage-keys";
+import { useRedirectIfSignedIn } from "@/lib/use-redirect-if-signed-in";
 
 const MIN_PASSWORD = 8;
 
@@ -43,6 +44,9 @@ function passwordStrength(pw: string): { level: 0 | 1 | 2 | 3 | 4; label: string
 export default function SignUpPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
+  // If they're already signed in, don't show them a "Create account"
+  // form — bounce to /discover.
+  const { checking } = useRedirectIfSignedIn();
 
   // Prefill from the email the user already typed on the welcome page.
   // Without this, the user types their email on / then is prompted for it
@@ -100,6 +104,14 @@ export default function SignUpPage() {
       setSubmitting(false);
     }
   };
+
+  if (checking) {
+    return (
+      <PageShell bottomPad="default" className="items-center justify-center px-5">
+        <p className="text-body text-text-secondary">Signing you in…</p>
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell bottomPad="default" className="px-5 pt-6">
