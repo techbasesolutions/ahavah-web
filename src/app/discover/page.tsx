@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { apiClient } from "@/lib/api-client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
-import { Globe, Heart, MapPin, Pause, Play, X } from "lucide-react";
+import { Heart, MapPin, Pause, Play, SlidersHorizontal, X } from "lucide-react";
 
 import { Avatar, AvatarBadge, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -52,6 +53,24 @@ export default function DiscoverPage() {
   // explicitly with the first tap. Auto-skip records a 'nope' (same as
   // tapping X), not a 'like', so passive viewing doesn't create matches.
   const [autoAdvancing, setAutoAdvancing] = useState(false);
+  const [resettingDecisions, setResettingDecisions] = useState(false);
+
+  const resetDecisions = async () => {
+    if (resettingDecisions) return;
+    setResettingDecisions(true);
+    try {
+      await apiClient.post("/decisions/reset", {});
+      // Bounce filters to trigger useDiscoverDeck's effect: setFilters
+      // with the same shape re-fetches /search since the backend now
+      // has an empty search_cache for us. A no-op spread is enough
+      // because filtersKey (JSON.stringify) sees a fresh reference.
+      setFilters({ ...filters });
+    } catch {
+      // Quiet fail — testing affordance only.
+    } finally {
+      setResettingDecisions(false);
+    }
+  };
 
   // Soft-completeness gate.
   useEffect(() => {
@@ -133,7 +152,7 @@ export default function DiscoverPage() {
           <BrandMark size="sm" />
           <div className="flex items-center gap-3">
             <Button size="circle" tone="elevated" aria-label="Discovery filters" disabled>
-              <Globe className="text-lavender" />
+              <SlidersHorizontal className="text-lavender" />
             </Button>
             <Button
               size="circle"
@@ -176,7 +195,7 @@ export default function DiscoverPage() {
           <FiltersSheet
             trigger={
               <Button size="circle" tone="elevated" aria-label="Discovery filters">
-                <Globe className="text-lavender" />
+                <SlidersHorizontal className="text-lavender" />
               </Button>
             }
             onApply={(f) => setFilters(f)}
@@ -316,17 +335,32 @@ export default function DiscoverPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.3 }}
+              className="flex flex-col gap-3"
             >
               <EmptyState
                 variant="filter-too-narrow"
                 title="You're all caught up"
-                description="No more matches nearby — try widening your filters or check back later."
+                description="No more matches nearby — try widening your filters or reset to re-see everyone."
                 action={{
                   label: "Adjust filters",
                   onClick: () => setFilters({}),
                 }}
                 className="mx-0 mt-0 rounded-2xl border border-white/10 bg-bg-elevated"
               />
+              {/* Reset decisions — wipes the user's swipe history on the
+                  backend (skipped + liked tables) AND the search_cache.
+                  Useful for testing the full /discover loop without
+                  manual DB intervention. After reset, useDiscoverDeck's
+                  filter-change effect re-fetches from /search. */}
+              <Button
+                variant="link"
+                size="tap"
+                className="self-center text-text-muted underline"
+                onClick={() => void resetDecisions()}
+                disabled={resettingDecisions}
+              >
+                {resettingDecisions ? "Resetting…" : "Reset my swipes (testing)"}
+              </Button>
             </motion.div>
           )}
         </AnimatePresence>
