@@ -105,7 +105,14 @@ function encodeBase64(raw: string): string {
  * Resource bind request. Server returns bare JID regardless of resource.
  */
 export function encodeBind(iqId: string, resource: string): string {
-  return `<iq type="set" id="${escapeAttr(iqId)}"><bind xmlns="${BIND_NS}"><resource>${escapeText(resource)}</resource></bind></iq>`;
+  // xmlns="jabber:client" is REQUIRED on every <iq>. The backend's
+  // maybe_get_session_response dispatches on (tag, namespace); without
+  // the explicit namespace, the parser sees ns=None, the handler
+  // returns [], and the bind request times out at 8s on the client
+  // (which then surfaces as the chat being stuck in 'binding' state
+  // and every send timing out as 'Failed to send (tap to retry)').
+  // Verified live with a Node WS smoke test 2026-05-14.
+  return `<iq xmlns="${JABBER_CLIENT_NS}" type="set" id="${escapeAttr(iqId)}"><bind xmlns="${BIND_NS}"><resource>${escapeText(resource)}</resource></bind></iq>`;
 }
 
 /**
@@ -161,7 +168,7 @@ export function encodeTyping(params: {
  * stanzas (see decodeStanza handling of `<message><result xmlns="erlang-..."/></message>`).
  */
 export function encodeInboxQuery(queryId: string): string {
-  return `<iq type="set" id="${escapeAttr(queryId)}"><inbox xmlns="${INBOX_NS}" queryid="${escapeAttr(queryId)}"/></iq>`;
+  return `<iq xmlns="${JABBER_CLIENT_NS}" type="set" id="${escapeAttr(queryId)}"><inbox xmlns="${INBOX_NS}" queryid="${escapeAttr(queryId)}"/></iq>`;
 }
 
 /**
@@ -180,7 +187,7 @@ export function encodeHistoryQuery(params: {
     ? `<before></before>`
     : `<before>${escapeText(before)}</before>`;
   return (
-    `<iq type="set" id="${escapeAttr(queryId)}">` +
+    `<iq xmlns="${JABBER_CLIENT_NS}" type="set" id="${escapeAttr(queryId)}">` +
     `<query xmlns="${MAM_NS}" queryid="${escapeAttr(queryId)}">` +
     `<x xmlns="${X_DATA_NS}" type="submit">` +
     `<field var="FORM_TYPE"><value>${escapeText(MAM_NS)}</value></field>` +
@@ -208,7 +215,8 @@ export function encodeMarkDisplayed(params: {
   const { fromUuid, toUuid, domain, receiptId } = params;
   const id = receiptId ?? `disp-${Math.random().toString(36).slice(2, 10)}`;
   return (
-    `<message to="${escapeAttr(toUuid)}@${escapeAttr(domain)}"` +
+    `<message xmlns="${JABBER_CLIENT_NS}"` +
+    ` to="${escapeAttr(toUuid)}@${escapeAttr(domain)}"` +
     ` from="${escapeAttr(fromUuid)}@${escapeAttr(domain)}">` +
     `<displayed xmlns="${CHAT_MARKERS_NS}" id="${escapeAttr(id)}"/>` +
     `</message>`
