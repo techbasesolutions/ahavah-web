@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { Globe, Heart, MapPin, Pause, X } from "lucide-react";
@@ -154,6 +155,7 @@ export default function DiscoverPage() {
             variant="ghost"
             aria-label="My profile"
             className="p-0"
+            render={<Link href="/profile" prefetch={false} />}
           >
             <Avatar size="tap-lg">
               <AvatarFallback variant="brand">

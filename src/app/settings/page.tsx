@@ -6,13 +6,11 @@ import {
   ArrowLeft,
   Bell,
   ChevronRight,
-  CreditCard,
   HelpCircle,
   ShieldAlert,
   ShieldCheck,
   Sparkles,
   UserCog,
-  UserPen,
   UserX,
 } from "lucide-react";
 
@@ -57,13 +55,15 @@ const SETTINGS_GROUPS: ReadonlyArray<{
     destructive?: boolean;
   }>;
 }> = [
+  // Edit profile / Verification / Subscription deliberately NOT here —
+  // they live on /profile (the personal-actions surface). Settings is
+  // for granular toggles + account management only. Earlier duplication
+  // gave users two ways to reach the same screens.
   {
     label: "Account",
     accent: "bg-lavender",
     items: [
-      { Icon: UserCog,    title: "Account",      subtitle: "Email, password, sign out",   href: "/settings/account", tone: "muted" },
-      { Icon: UserPen,    title: "Edit profile", subtitle: "Photos, bio, basics",         href: "/profile/edit",     tone: "brand" },
-      { Icon: ShieldCheck,title: "Verification", subtitle: "Bronze · upgrade to Silver",  href: "/verify",           tone: "success" },
+      { Icon: UserCog, title: "Account", subtitle: "Email, password, sign out", href: "/settings/account", tone: "muted" },
     ],
   },
   {
@@ -75,13 +75,6 @@ const SETTINGS_GROUPS: ReadonlyArray<{
       { Icon: UserX,       title: "Blocked users",  subtitle: "People you've blocked",      href: "/settings/blocked",       tone: "muted" },
       { Icon: ShieldCheck, title: "Safety center",  subtitle: "Tips, reports, emergencies", href: "/settings/safety",        tone: "muted" },
       { Icon: Sparkles,    title: "Auto-translate", subtitle: "On · English",               href: "/settings/translate",     tone: "muted" },
-    ],
-  },
-  {
-    label: "Billing",
-    accent: "bg-lime",
-    items: [
-      { Icon: CreditCard, title: "Subscription", subtitle: "Upgrade to Premium →", href: "/paywall", tone: "success" },
     ],
   },
   {
