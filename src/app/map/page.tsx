@@ -80,6 +80,7 @@ import { useDecisions } from "@/lib/use-decisions";
 import { useDiscoverDeck } from "@/lib/use-discover-deck";
 import { useFilters } from "@/lib/use-filters";
 import { useProfile } from "@/lib/use-profile";
+import { readOnboarded } from "@/lib/onboarded-storage";
 
 // Leaflet uses `window` at module scope (it shims SVG/canvas APIs at
 // import time). Next.js SSR breaks if we don't dynamic-import with
@@ -119,9 +120,13 @@ export default function MapPage() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [initialBbox, setInitialBbox] = useState<BBox | undefined>(undefined);
 
-  // Soft-completeness gate — match /discover's pattern exactly.
+  // Soft-completeness gate — trust the backend onboarded flag so users
+  // with a wiped localStorage cache aren't bounced back to the wizard
+  // every time they open /map. Mirrors /discover.
   useEffect(() => {
-    if (loaded && !isDiscoverEligible(viewer)) {
+    if (!loaded) return;
+    if (readOnboarded()) return;
+    if (!isDiscoverEligible(viewer)) {
       const missingStep = firstMissingStepFor(viewer);
       if (missingStep) {
         router.replace(missingStep);
@@ -235,15 +240,28 @@ export default function MapPage() {
     if (!loaded || !viewer) return;
     let cancelled = false;
     void apiClient
-      .get<{ matches?: Array<{ peer_uuid?: string }> } | Array<{ peer_uuid?: string }>>(
-        "/matches",
-      )
+      .get<
+        | {
+            matches?: Array<{
+              with_profile?: { id?: string };
+              peer_uuid?: string;
+            }>;
+          }
+        | Array<{
+            with_profile?: { id?: string };
+            peer_uuid?: string;
+          }>
+      >("/matches")
       .then((res) => {
         if (cancelled) return;
         const list = Array.isArray(res) ? res : (res.matches ?? []);
         const uuids = new Set<string>();
+        // Backend ships peers under `with_profile.id`. Keep peer_uuid
+        // as a tolerated alias so older responses don't break the
+        // marker highlight.
         for (const m of list) {
-          if (typeof m?.peer_uuid === "string") uuids.add(m.peer_uuid);
+          const id = m?.with_profile?.id ?? m?.peer_uuid;
+          if (typeof id === "string") uuids.add(id);
         }
         setMatchedUuids(uuids);
       })
@@ -257,7 +275,7 @@ export default function MapPage() {
 
   // Pre-hydration or in-flight redirect — render minimal scaffold to
   // keep the map from flashing for an ineligible viewer.
-  if (!loaded || (loaded && !isDiscoverEligible(viewer))) {
+  if (!loaded || (loaded && !readOnboarded() && !isDiscoverEligible(viewer))) {
     return (
       <PageShell bottomPad="nav">
         <div

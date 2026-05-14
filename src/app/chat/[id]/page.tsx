@@ -69,17 +69,24 @@ export default function ChatThreadPage({ params }: Props) {
 
   const myUuid = session?.myUuid ?? "";
 
-  // Resolve real profile via GET /profile/<uuid> when id looks like a uuid.
-  // Falls back to legacy slug sample when id is a slug (transitional UX).
+  // Resolve real profile via GET /prospect-profile/<uuid> when id looks
+  // like a uuid. Backend endpoint is /prospect-profile/, not /profile/
+  // — the wrong URL silently 404'd, parking every chat header on the
+  // "Person" fallback.
   const [serverProfile, setServerProfile] = useState<Partial<Profile> | null>(null);
   useEffect(() => {
     if (!isUuidLike(id)) return;
     let cancelled = false;
     void apiClient
-      .get<Partial<Profile>>(`/profile/${id}`)
-      .then((p) => {
+      .get<Record<string, unknown>>(`/prospect-profile/${id}`)
+      .then((raw) => {
         if (cancelled) return;
-        setServerProfile(p);
+        // Map snake-case backend fields onto the Profile shape this
+        // page reads. Same adapter pattern as /inbox + /profile/[uuid].
+        setServerProfile({
+          firstName: typeof raw.name === "string" ? raw.name : undefined,
+          age: typeof raw.age === "number" ? raw.age : undefined,
+        });
       })
       .catch((err: unknown) => {
         // 404 is fine — chat header falls back to "Person".

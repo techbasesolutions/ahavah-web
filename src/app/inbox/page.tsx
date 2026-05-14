@@ -125,8 +125,19 @@ function InboxContent() {
     void Promise.all(
       missing.map((uuid) =>
         apiClient
-          .get<Partial<Profile>>(`/profile/${uuid}`)
-          .then((p) => [uuid, p] as const)
+          // Backend endpoint is /prospect-profile/<uuid>, not /profile/<uuid>.
+          // The wrong URL silently 404'd, leaving every inbox row stuck on
+          // the "Person" fallback name.
+          .get<Record<string, unknown>>(`/prospect-profile/${uuid}`)
+          .then((raw): readonly [string, Partial<Profile>] => {
+            // Backend ships name / age as snake-case raw fields; map to
+            // the Profile shape this component reads.
+            const adapted: Partial<Profile> = {
+              firstName: typeof raw.name === "string" ? raw.name : undefined,
+              age: typeof raw.age === "number" ? raw.age : undefined,
+            };
+            return [uuid, adapted];
+          })
           .catch(() => [uuid, {} as Partial<Profile>] as const),
       ),
     ).then((results) => {
