@@ -143,21 +143,48 @@ const TRANSFORMS: Record<string, FieldTransform> = {
   primaryLanguage: (v) =>
     typeof v === "string" && v.length > 0 ? { primary_language: v } : null,
 
-  // Unmappable Torah-observant fields stay client-only. Any onboarding
-  // step that updates these will optimistically cache the value in
-  // localStorage but skip the PATCH. Listed explicitly so a future
-  // reader knows these are KNOWN drops (not unhandled).
-  //   assembly, torahLevel, shabbat, feastDays, calendar,
-  //   polygyny, headCovering, tzitzit, familyViews, livingPreferences,
-  //   healthTags, interests, personalityTraits, relocation,
-  //   communicationPrefs, verificationTags, boundaryTags,
-  //   voiceIntroUrl, promptCards, showOnMap
-  //
+  // Torah-observant fields — Duolicious doesn't model these as columns,
+  // so each gets bundled into a `ahavah_extra: { [key]: value }` PATCH
+  // that the backend merges into the JSONB blob on the person row
+  // (migration 0009). Single-field PATCH-per-call still satisfies the
+  // upstream "exactly one field" validator because every entry below
+  // becomes `{ ahavah_extra: {...} }`.
+  assembly:           (v) => bundleExtra("assembly", v),
+  torahLevel:         (v) => bundleExtra("torahLevel", v),
+  shabbat:            (v) => bundleExtra("shabbat", v),
+  feastDays:          (v) => bundleExtra("feastDays", v),
+  calendar:           (v) => bundleExtra("calendar", v),
+  polygyny:           (v) => bundleExtra("polygyny", v),
+  headCovering:       (v) => bundleExtra("headCovering", v),
+  tzitzit:            (v) => bundleExtra("tzitzit", v),
+  familyViews:        (v) => bundleExtra("familyViews", v),
+  livingPreferences:  (v) => bundleExtra("livingPreferences", v),
+  healthTags:         (v) => bundleExtra("healthTags", v),
+  interests:          (v) => bundleExtra("interests", v),
+  personalityTraits:  (v) => bundleExtra("personalityTraits", v),
+  relocation:         (v) => bundleExtra("relocation", v),
+  communicationPrefs: (v) => bundleExtra("communicationPrefs", v),
+  verificationTags:   (v) => bundleExtra("verificationTags", v),
+  boundaryTags:       (v) => bundleExtra("boundaryTags", v),
+  nationality:        (v) => bundleExtra("nationality", v),
+
   // Photos go through photo-storage.ts (multipart-style PATCH); the
   // `photos` field here is the cached client-side list and should not
   // PATCH directly. Skip.
   photos: () => null,
 };
+
+/** Helper: wrap a single Ahavah-specific field into the ahavah_extra
+ *  PATCH shape. Empty arrays + null/undefined values send `null` so
+ *  the backend's `||` JSONB merge clears the key when the user
+ *  deselects everything in a multi-select. */
+function bundleExtra(key: string, value: unknown): Record<string, unknown> | null {
+  if (Array.isArray(value) && value.length === 0) {
+    return { ahavah_extra: { [key]: null } };
+  }
+  if (value === undefined || value === null) return null;
+  return { ahavah_extra: { [key]: value } };
+}
 
 /**
  * Inbound translation: backend `GET /profile-info` returns space-separated
@@ -273,6 +300,18 @@ const SERVER_TO_CLIENT_KEY: Record<string, keyof Profile> = {
 function translateInbound(server: Partial<Profile> | Record<string, unknown>): Partial<Profile> {
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(server)) {
+    // ahavah_extra is the JSONB blob the backend uses for Torah-observant
+    // fields that don't have first-class columns. Spread its keys into
+    // the output so consumers read them as regular Profile fields
+    // (profile.assembly, profile.torahLevel, etc.).
+    if (k === "ahavah_extra" && v && typeof v === "object" && !Array.isArray(v)) {
+      for (const [extraKey, extraVal] of Object.entries(v as Record<string, unknown>)) {
+        if (extraVal !== null && extraVal !== undefined) {
+          out[extraKey] = extraVal;
+        }
+      }
+      continue;
+    }
     const clientKey = SERVER_TO_CLIENT_KEY[k] ?? k;
     const value = reverseTranslateValue(clientKey, v);
     if (value !== undefined) out[clientKey] = value;
@@ -292,6 +331,17 @@ const ONBOARDEE_ALLOWED_KEYS: ReadonlySet<string> = new Set([
   "dob",            // -> date_of_birth
   "location",       // -> location (long_friendly format)
   "sex",            // -> gender + other_peoples_genders
+  // All Torah-observant fields bundle into ahavah_extra via the
+  // TRANSFORMS entries above; the backend's PatchOnboardeeInfo now
+  // accepts the same field, so wizard answers persist server-side
+  // and survive /finish-onboarding by being copied onto person.
+  "assembly", "torahLevel", "shabbat", "feastDays", "calendar",
+  "polygyny", "headCovering", "tzitzit",
+  "familyViews", "livingPreferences", "healthTags",
+  "interests", "personalityTraits",
+  "relocation", "communicationPrefs",
+  "verificationTags", "boundaryTags",
+  "nationality",
 ]);
 
 function translateOutbound(

@@ -130,6 +130,21 @@ function adaptProspect(raw: Record<string, unknown>): Profile & { country?: stri
   ) {
     healthTags.push("fitness");
   }
+  // ahavah_extra carries the Torah-observant fields (assembly,
+  // torahLevel, shabbat, polygyny, etc.) that don't have first-class
+  // backend columns. Spread it onto the returned Profile so the
+  // detail page's faith / doctrine / lifestyle sections actually
+  // render for users who filled them during onboarding.
+  const extras: Record<string, unknown> = {};
+  if (
+    raw.ahavah_extra &&
+    typeof raw.ahavah_extra === "object" &&
+    !Array.isArray(raw.ahavah_extra)
+  ) {
+    for (const [k, v] of Object.entries(raw.ahavah_extra as Record<string, unknown>)) {
+      if (v !== null && v !== undefined) extras[k] = v;
+    }
+  }
   return {
     firstName: stringOrUndef(raw.name),
     age: typeof raw.age === "number" ? raw.age : undefined,
@@ -150,6 +165,10 @@ function adaptProspect(raw: Record<string, unknown>): Profile & { country?: stri
     intent: typeof raw.looking_for === "string"
       ? (raw.looking_for as Profile["intent"])
       : undefined,
+    // Spread Torah-observant fields LAST so they overwrite the
+    // narrower mappings above (e.g. ahavah_extra.healthTags from
+    // onboarding should win over the smoking/drinking-derived list).
+    ...extras,
   } as Profile & { country?: string };
 }
 
