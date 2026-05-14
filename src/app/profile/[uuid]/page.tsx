@@ -239,11 +239,13 @@ export default function ProfileDetailPage({ params }: Props) {
       ? "/map"
       : from === "matches"
         ? "/matches"
-        : "/discover";
+        : from === "match"
+          ? "/matches"
+          : "/discover";
   const backLabel =
     from === "map"
       ? "Back to map"
-      : from === "matches"
+      : from === "matches" || from === "match"
         ? "Back to matches"
         : "Back to discover";
 

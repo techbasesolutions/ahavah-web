@@ -365,10 +365,32 @@ function MatchPageContent() {
           </InputGroupAddon>
         </InputGroup>
 
+        {/* View profile — paired with the Send-message input above so
+            the celebration screen gives BOTH next actions explicitly
+            (message OR see the full profile first). Matches the
+            local-version layout the user referenced. Disabled-style
+            label when we have no subject.id to link to. */}
+        {subject.id ? (
+          <Button
+            nativeButton={false}
+            variant="outlineSubtle"
+            size="cta"
+            render={
+              <Link
+                href={`/profile/${encodeURIComponent(subject.id)}?from=match`}
+                prefetch={false}
+              />
+            }
+          >
+            View {subject.name}&apos;s profile
+          </Button>
+        ) : null}
+
         <Button
           nativeButton={false}
-          variant="outlineSubtle"
+          variant="link"
           size="cta"
+          className="text-text-muted underline-offset-2 hover:underline"
           render={<Link href="/discover" prefetch={false} />}
         >
           Keep swiping
