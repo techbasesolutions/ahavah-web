@@ -493,6 +493,65 @@ export function useProfile(): UseProfileResult {
       // gate (firstMissingStepFor) would redirect us back to onboarding.
       setProfileState((prev) => ({ ...prev, ...translated }));
       saveProfileToCache({ ...readCachedOrEmpty(), ...translated });
+
+      // BACK-SYNC: users who onboarded BEFORE the ahavah_extra column
+      // existed on the backend have all their Torah-observant wizard
+      // answers in localStorage only — nothing on the server. So when
+      // someone else views their profile, it looks empty even though
+      // the user filled the wizard. Detect this case here and push the
+      // local fields up to ahavah_extra so the next /prospect-profile
+      // call returns them.
+      //
+      // Fires only for onboarded users (no point during the wizard —
+      // PATCHes route to /onboardee-info), and only when the local
+      // cache has a value the server's ahavah_extra is missing. Idem-
+      // potent: a subsequent refreshProfile sees the field on the
+      // server side and skips it.
+      if (personUuid) {
+        const cache = readCachedOrEmpty() as Record<string, unknown>;
+        const serverExtra =
+          (profileInfo.ahavah_extra && typeof profileInfo.ahavah_extra === "object"
+            ? (profileInfo.ahavah_extra as Record<string, unknown>)
+            : {});
+        const TORAH_FIELDS = [
+          "assembly", "torahLevel", "shabbat", "feastDays", "calendar",
+          "polygyny", "headCovering", "tzitzit",
+          "familyViews", "livingPreferences", "healthTags",
+          "interests", "personalityTraits",
+          "relocation", "communicationPrefs",
+          "verificationTags", "boundaryTags",
+          "nationality",
+        ] as const;
+        const toSync: Record<string, unknown> = {};
+        for (const k of TORAH_FIELDS) {
+          const local = cache[k];
+          const remote = serverExtra[k];
+          // Consider "local has a value, server doesn't" as needs-sync.
+          // Empty arrays count as "no answer" — skip; the user just
+          // hasn't filled this multi-select.
+          const localHasValue =
+            local !== undefined &&
+            local !== null &&
+            local !== "" &&
+            !(Array.isArray(local) && local.length === 0);
+          const serverHasValue =
+            remote !== undefined &&
+            remote !== null &&
+            !(Array.isArray(remote) && remote.length === 0);
+          if (localHasValue && !serverHasValue) {
+            toSync[k] = local;
+          }
+        }
+        if (Object.keys(toSync).length > 0) {
+          // Fire-and-forget — failure is non-fatal (next refresh will
+          // try again). Don't await: keeps refreshProfile snappy.
+          void apiClient
+            .patch("/profile-info", { ahavah_extra: toSync })
+            .catch(() => {
+              // Quiet fail — the merge is best-effort.
+            });
+        }
+      }
     } catch (err) {
       // 401 from /me means EITHER (a) session expired post-onboarding,
       // (b) we're an onboardee (no person row yet → /me decorator
