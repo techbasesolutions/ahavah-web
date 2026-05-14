@@ -225,7 +225,15 @@ export class ChatClient {
 
     let ws: WebSocket;
     try {
-      ws = new WebSocket(WS_URL);
+      // The chat server's WS handler unconditionally returns
+      // `Sec-WebSocket-Protocol: xmpp` on accept. Browsers reject an
+      // upgrade whose server-advertised subprotocol wasn't in the
+      // client's Sec-WebSocket-Protocol request list, so without the
+      // ["xmpp"] arg every connection died the moment it opened —
+      // SASL never fired, every send timed out after 10s, and the
+      // UI showed "Failed to send (tap to retry)". Surfaced by user
+      // 2026-05-14 against the live wss:// endpoint.
+      ws = new WebSocket(WS_URL, ["xmpp"]);
     } catch (err) {
       this.emit({ type: "error", message: `WS construct failed: ${String(err)}` });
       this.scheduleReconnect();
