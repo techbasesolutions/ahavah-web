@@ -18,6 +18,7 @@ import { FiltersSheet } from "@/components/app/filters-sheet";
 import { PageHeader, PageShell } from "@/components/app/page-shell";
 import { PhotoCaption } from "@/components/app/photo-caption";
 import { useProfile } from "@/lib/use-profile";
+import { readOnboarded } from "@/lib/onboarded-storage";
 import { firstMissingStepFor, isDiscoverEligible } from "@/lib/profile-completeness";
 import { useDecisions } from "@/lib/use-decisions";
 import { useDiscoverDeck } from "@/lib/use-discover-deck";
@@ -79,9 +80,18 @@ export default function DiscoverPage() {
     }
   };
 
-  // Soft-completeness gate.
+  // Soft-completeness gate. Trust the backend onboarded flag: once a
+  // user has graduated via /finish-onboarding (readOnboarded() === true)
+  // they have a person row + session and the backend will serve their
+  // /discover deck. Sending them back to the wizard because some
+  // Torah-observant frontend-only fields (intent/assembly/relocation)
+  // never round-trip from Duolicious's schema would lock them out
+  // every time localStorage is cleared. Profile-detail fields they
+  // can still fill later via /profile/edit.
   useEffect(() => {
-    if (loaded && !isDiscoverEligible(userProfile)) {
+    if (!loaded) return;
+    if (readOnboarded()) return;
+    if (!isDiscoverEligible(userProfile)) {
       const missingStep = firstMissingStepFor(userProfile);
       router.replace(missingStep ?? "/profile/edit");
     }
@@ -209,8 +219,10 @@ export default function DiscoverPage() {
     return () => clearInterval(id);
   }, [cyclePhotos, candidate]);
 
-  // During hydration / redirect, render minimal scaffolding.
-  if (!loaded || (loaded && !isDiscoverEligible(userProfile))) {
+  // During hydration / redirect, render minimal scaffolding. Same
+  // backend-onboarded short-circuit as the gate above: if the user is
+  // server-side-onboarded, don't show the "Redirecting…" placeholder.
+  if (!loaded || (loaded && !readOnboarded() && !isDiscoverEligible(userProfile))) {
     return (
       <PageShell bottomPad="nav">
         <h1 className="sr-only">Discover</h1>

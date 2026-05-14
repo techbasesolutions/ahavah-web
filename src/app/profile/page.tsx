@@ -50,18 +50,13 @@ const fadeUp = {
 // log-out, plus the same duplication for delete. Delete account now
 // lives only at Profile → Settings → Account (3 deliberate steps —
 // appropriate friction for an irreversible action).
-const PROFILE_LINKS: ReadonlyArray<{
+type ProfileLink = {
   Icon: typeof UserPen;
   title: string;
   subtitle?: string;
   href: string;
   tone: "brand" | "success" | "muted";
-}> = [
-  { Icon: UserPen,     title: "Edit profile", subtitle: "Photos, bio, basics",             href: "/profile/edit", tone: "brand" },
-  { Icon: ShieldCheck, title: "Verification", subtitle: "Bronze · upgrade to Silver",      href: "/verify",       tone: "success" },
-  { Icon: CreditCard,  title: "Subscription", subtitle: "Upgrade to Premium →",            href: "/paywall",      tone: "success" },
-  { Icon: Settings,    title: "Settings",     subtitle: "Notifications, privacy, account", href: "/settings",     tone: "muted" },
-];
+};
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -90,6 +85,26 @@ export default function ProfilePage() {
     typeof verificationLevelRaw === "string" && verificationLevelRaw !== "No verification"
       ? verificationLevelRaw
       : null;
+
+  // Build the row list at render time so the Verification subtitle
+  // reflects the user's ACTUAL level instead of the hardcoded
+  // "Bronze · upgrade to Silver". Backend ships 'verification level'
+  // as the human-readable label ('No verification', 'Photos',
+  // 'Photos + ID').
+  const verifySubtitle =
+    !verificationLevelRaw || verificationLevelRaw === "No verification"
+      ? "Verify your identity"
+      : verificationLevelRaw === "Photos"
+        ? "Bronze · upgrade to Silver"
+        : verificationLevelRaw === "Photos + ID"
+          ? "Gold · highest trust"
+          : String(verificationLevelRaw);
+  const PROFILE_LINKS: ReadonlyArray<ProfileLink> = [
+    { Icon: UserPen,     title: "Edit profile", subtitle: "Photos, bio, basics",             href: "/profile/edit", tone: "brand" },
+    { Icon: ShieldCheck, title: "Verification", subtitle: verifySubtitle,                    href: "/verify",       tone: "success" },
+    { Icon: CreditCard,  title: "Subscription", subtitle: "Upgrade to Premium →",            href: "/paywall",      tone: "success" },
+    { Icon: Settings,    title: "Settings",     subtitle: "Notifications, privacy, account", href: "/settings",     tone: "muted" },
+  ];
 
   const handleSignOut = async () => {
     if (signingOut) return;

@@ -43,7 +43,7 @@ type LoadState =
   | { kind: "error"; message: string };
 
 /**
- * /matches — "Liked you" list.
+ * /matches — Your mutual matches list.
  *
  * Phase W rewire:
  *   - `GET /matches` fetches the real list. Backend may not have shipped
@@ -93,7 +93,7 @@ export default function MatchesPage() {
   return (
     <PageShell bottomPad="nav">
       <PageHeader>
-        <PageHeaderTitle>Liked you</PageHeaderTitle>
+        <PageHeaderTitle>Matches</PageHeaderTitle>
         {/* Removed: 'Search likes' button had no onClick handler and no
             backend search. Match lists are short; visual scan is fine
             for now. Restore when the list grows and a filter modal is
