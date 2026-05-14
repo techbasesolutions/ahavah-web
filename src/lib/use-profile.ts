@@ -208,6 +208,11 @@ function reverseTranslateValue(
       return typeof serverValue === "string" ? serverValue : undefined;
     case "ethnicities":
       return typeof serverValue === "string" ? [serverValue] : undefined;
+    case "age":
+      return typeof serverValue === "number" ? serverValue : undefined;
+    case "dob":
+      // Backend already serialises as YYYY-MM-DD.
+      return typeof serverValue === "string" ? serverValue : undefined;
     case "photos": {
       // Backend `photo` field: sparse map `{ "1": uuid1, "2": uuid2, ... }`.
       // Convert to a position-ordered PhotoRecord[] so consumers reading
@@ -255,6 +260,11 @@ const SERVER_TO_CLIENT_KEY: Record<string, keyof Profile> = {
   // map. Map it to the client-side `photos` array (PhotoRecord[]) so the
   // hero card + edit screen see the real uploads.
   photo: "photos",
+  // Age + DOB now ship from /profile-info (Ahavah-specific Q_GET_PROFILE_INFO
+  // additions) — without them the discover-eligibility gate redirected
+  // post-onboarding users back to /onboarding/dob.
+  age: "age",
+  date_of_birth: "dob",
 };
 
 function translateInbound(server: Partial<Profile> | Record<string, unknown>): Partial<Profile> {

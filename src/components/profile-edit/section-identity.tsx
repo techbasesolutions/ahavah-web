@@ -69,20 +69,26 @@ export default function IdentitySection() {
         placeholder="E.g. Sarah or Sarah from Jamaica"
       />
 
-      {/* 3. age */}
-      <TextField
-        id="age"
-        label="Age"
-        value={profile.age ? String(profile.age) : ""}
-        onChange={(v) =>
-          update({
-            age: v ? Number(v.replace(/\D/g, "")) || undefined : undefined,
-          })
-        }
-        maxLength={2}
-        type="text"
-        helper="Must be 18 or older"
-      />
+      {/* 3. age — DERIVED, not editable. Age is computed from the DOB
+          captured during onboarding; letting the user type a different
+          number here would let them lie about it AND drift away from
+          the immutable DOB on the backend. If they need to correct DOB
+          they have to ask support; rare-enough event that we don't
+          ship a self-serve flow. */}
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="age-display">Age</Label>
+        <Input
+          id="age-display"
+          value={profile.age ? String(profile.age) : "—"}
+          readOnly
+          aria-readonly="true"
+          tabIndex={-1}
+          className="cursor-not-allowed bg-white/3 text-text-secondary"
+        />
+        <p className="text-caption text-text-muted">
+          Calculated from your date of birth — contact support to correct.
+        </p>
+      </div>
 
       {/* 4. sex — id-wrapped so PracticalSection's intent fallback can
           anchor-scroll here instead of drilling out to /onboarding/gender.

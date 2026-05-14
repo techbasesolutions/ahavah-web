@@ -43,6 +43,7 @@ import {
   LIVING_PREFERENCES,
   HEALTH_TAGS,
   INTERESTS,
+  EDUCATIONS,
   MARITAL_STATUSES,
   NATIONALITIES,
   PERSONALITY_TRAITS,
@@ -87,16 +88,65 @@ function adaptProspect(raw: Record<string, unknown>): Profile & { country?: stri
     nsfw_score: null,
     created_at: "",
   }));
+  // Strings are "Unanswered" sentinels when the user hasn't filled the
+  // field — squash those to undefined so the detail page hides the
+  // section rather than rendering "Unanswered" as the value.
+  const stringOrUndef = (v: unknown): string | undefined => {
+    if (typeof v !== "string") return undefined;
+    const trimmed = v.trim();
+    if (!trimmed || trimmed === "Unanswered") return undefined;
+    return trimmed;
+  };
+  // Backend `relationship_status` -> Profile.maritalStatus enum.
+  const RELATIONSHIP_REVERSE: Record<string, Profile["maritalStatus"]> = {
+    Single: "never-married",
+    Married: "married",
+    Divorced: "divorced",
+    Widowed: "widowed",
+  };
+  const relStatus = stringOrUndef(raw.relationship_status);
+  const maritalStatus = relStatus ? RELATIONSHIP_REVERSE[relStatus] : undefined;
+  // Education + occupation are free-text on the backend; we render them
+  // as-is on the detail page. EducationLevel is an enum on the schema but
+  // the page falls through to the raw string via labelOf ?? raw.
+  const occupation = stringOrUndef(raw.occupation);
+  const education = stringOrUndef(raw.education) as Profile["education"] | undefined;
+  // Map smoking/drinking/exercise/drugs to the page's healthTags pill
+  // cluster so users see lifestyle info post-onboard. These are
+  // Yes/No/Frequency enums on the backend; keep the most informative.
+  const healthTags: Profile["healthTags"] = [];
+  if (stringOrUndef(raw.smoking) === "No") healthTags.push("non-smoker");
+  if (stringOrUndef(raw.drinking) === "No") healthTags.push("no-alcohol");
+  if (
+    stringOrUndef(raw.drinking) === "Occasionally" ||
+    stringOrUndef(raw.drinking) === "Often" ||
+    stringOrUndef(raw.drinking) === "Sometimes"
+  ) {
+    healthTags.push("moderate-alcohol");
+  }
+  if (
+    stringOrUndef(raw.exercise) === "Often" ||
+    stringOrUndef(raw.exercise) === "Sometimes"
+  ) {
+    healthTags.push("fitness");
+  }
   return {
-    firstName: typeof raw.name === "string" ? raw.name : undefined,
+    firstName: stringOrUndef(raw.name),
     age: typeof raw.age === "number" ? raw.age : undefined,
-    bio: typeof raw.about === "string" ? raw.about : undefined,
+    bio: stringOrUndef(raw.about),
     city,
     country,
     sex,
     children,
+    maritalStatus,
+    occupation,
+    education,
+    healthTags: healthTags.length ? healthTags : undefined,
     photos,
-    // Pass-through fields that may exist for richer profiles later.
+    // Pass-through looking_for raw value — the page's labelOf returns
+    // undefined for the backend's strings ("Long-term dating",
+    // "Marriage") which aren't in the Torah-observant Intent enum, but
+    // the rendering falls back to the raw value when labelOf misses.
     intent: typeof raw.looking_for === "string"
       ? (raw.looking_for as Profile["intent"])
       : undefined,
@@ -400,6 +450,42 @@ export default function ProfileDetailPage({ params }: Props) {
               <p className="text-body leading-relaxed text-white/85">{profile.bio}</p>
             )}
 
+            {/* About me — backend fields the page didn't have a section for
+                before (occupation, education, sex). Renders only when at
+                least one is present so an entirely-empty user doesn't get
+                an empty heading. */}
+            {(profile.occupation || profile.education || profile.sex) && (
+              <div className="flex flex-col gap-2 border-t border-white/10 pt-4">
+                <h2 className="text-meta font-semibold uppercase text-text-secondary">
+                  About
+                </h2>
+                <dl className="space-y-2">
+                  {profile.sex && (
+                    <div className="flex gap-2">
+                      <dt className="text-meta text-text-secondary">Gender:</dt>
+                      <dd className="text-meta text-white">
+                        {profile.sex === "female" ? "Woman" : "Man"}
+                      </dd>
+                    </div>
+                  )}
+                  {profile.occupation && (
+                    <div className="flex gap-2">
+                      <dt className="text-meta text-text-secondary">Work:</dt>
+                      <dd className="text-meta text-white">{profile.occupation}</dd>
+                    </div>
+                  )}
+                  {profile.education && (
+                    <div className="flex gap-2">
+                      <dt className="text-meta text-text-secondary">Education:</dt>
+                      <dd className="text-meta text-white">
+                        {labelOf(profile.education, EDUCATIONS) ?? profile.education}
+                      </dd>
+                    </div>
+                  )}
+                </dl>
+              </div>
+            )}
+
             {/* Languages cluster — Pill rows (lavender). Identity/about-me
                 bucket, mirrors Lifestyle/Personality. labelForLanguage
                 resolves canonical codes (en, he) and custom: entries. */}
@@ -431,9 +517,9 @@ export default function ProfileDetailPage({ params }: Props) {
                   <div className="flex gap-2">
                     <dt className="text-meta text-text-secondary">Intent:</dt>
                     <dd className="text-meta text-white">
-                      {profile.sex
+                      {(profile.sex
                         ? labelOf(profile.intent, intentOptionsForSex(profile.sex))
-                        : profile.intent}
+                        : null) ?? profile.intent}
                     </dd>
                   </div>
                 </dl>
