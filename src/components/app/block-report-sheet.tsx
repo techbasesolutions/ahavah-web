@@ -3,6 +3,8 @@
 import * as React from "react";
 import { useState } from "react";
 
+import { Loader2 } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import {
   Choicebox,
@@ -20,7 +22,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 
 /**
@@ -79,7 +80,6 @@ type ReportCategory = (typeof REPORT_CATEGORIES)[number]["value"];
 export type BlockReportPayload = {
   category: ReportCategory;
   details: string;
-  alsoBlock: boolean;
 };
 
 type BlockReportSheetProps = {
@@ -88,8 +88,12 @@ type BlockReportSheetProps = {
   onOpenChange: (open: boolean) => void;
   /** Display name for headings ("Report {name}"). */
   subjectName: string;
-  /** Fired when user submits a valid report. */
-  onSubmit?: (payload: BlockReportPayload) => void;
+  /**
+   * Async handler invoked on submit. Sheet shows a spinner until the
+   * promise settles, then closes on success. Callers should perform
+   * the actual POST /skip/by-uuid + any post-submit navigation here.
+   */
+  onSubmit?: (payload: BlockReportPayload) => Promise<void> | void;
 };
 
 export function BlockReportSheet({
@@ -100,16 +104,24 @@ export function BlockReportSheet({
 }: BlockReportSheetProps) {
   const [category, setCategory] = useState<ReportCategory | "">("");
   const [details, setDetails] = useState("");
-  const [alsoBlock, setAlsoBlock] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleSubmit = () => {
-    if (!category) return;
-    onSubmit?.({ category, details, alsoBlock });
-    // Reset for next open
-    setCategory("");
-    setDetails("");
-    setAlsoBlock(true);
-    onOpenChange(false);
+  const handleSubmit = async () => {
+    if (!category || submitting) return;
+    setSubmitting(true);
+    setErrorMessage(null);
+    try {
+      await onSubmit?.({ category, details });
+      // Reset for next open
+      setCategory("");
+      setDetails("");
+      onOpenChange(false);
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : "Couldn't submit. Try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -176,33 +188,49 @@ export function BlockReportSheet({
             </p>
           </section>
 
-          {/* Also-block toggle */}
-          <section className="flex items-center justify-between gap-3">
-            <div className="flex flex-col">
-              <h3 className="text-meta font-medium text-white">
-                Also block {subjectName}
-              </h3>
-              <p className="text-caption text-text-secondary">
-                You won&apos;t see each other&apos;s profiles or messages again.
-              </p>
-            </div>
-            <Switch checked={alsoBlock} onCheckedChange={setAlsoBlock} />
+          {/* Reporting always blocks for safety — no separate "report
+              without blocking" path on the backend (the skipped table
+              is queried as a hard exclusion regardless of the reported
+              flag), so we surface that explicitly instead of a misleading
+              opt-out toggle. */}
+          <section className="rounded-xl border border-white/10 bg-bg-elevated/50 px-4 py-3">
+            <p className="text-caption text-text-secondary">
+              Reporting always blocks {subjectName}. You won&apos;t see each
+              other&apos;s profiles or messages again.
+            </p>
           </section>
         </div>
 
         <SheetFooter className="gap-2 px-5 pb-6">
+          {errorMessage ? (
+            <p
+              role="alert"
+              aria-live="polite"
+              className="text-center text-caption font-semibold text-pink"
+            >
+              {errorMessage}
+            </p>
+          ) : null}
           <Button
             size="cta"
             tone="brand"
-            disabled={!category}
-            onClick={handleSubmit}
+            disabled={!category || submitting}
+            onClick={() => void handleSubmit()}
           >
-            {alsoBlock ? "Submit & block" : "Submit report"}
+            {submitting ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                Submitting…
+              </>
+            ) : (
+              "Submit & block"
+            )}
           </Button>
           <Button
             variant="link"
             size="sm"
             className="self-center text-text-secondary underline"
+            disabled={submitting}
             onClick={() => onOpenChange(false)}
           >
             Cancel

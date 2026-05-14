@@ -659,8 +659,16 @@ export default function ProfileDetailPage({ params }: Props) {
         open={reportOpen}
         onOpenChange={setReportOpen}
         subjectName={profile.firstName ?? "this person"}
-        onSubmit={(payload) => {
-          console.log("REPORT", profile.firstName, payload);
+        onSubmit={async (payload) => {
+          // Concatenate category + free-text details into the report
+          // reason so moderators see both. Backend sets reported=true
+          // automatically when reason is non-empty.
+          const reason = payload.details
+            ? `${payload.category}: ${payload.details}`
+            : payload.category;
+          await apiClient.post(`/skip/by-uuid/${uuid}`, { report_reason: reason });
+          // Block is immediate — leave the profile we just blocked.
+          router.push("/discover");
         }}
       />
     </PageShell>

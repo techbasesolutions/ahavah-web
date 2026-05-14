@@ -231,8 +231,17 @@ export default function ChatThreadPage({ params }: Props) {
         open={reportOpen}
         onOpenChange={setReportOpen}
         subjectName={subject.name}
-        onSubmit={(payload) => {
-          console.log("REPORT", subject.name, payload);
+        onSubmit={async (payload) => {
+          // Backend's skip_by_uuid sets reported=true whenever
+          // report_reason is non-empty, so every submission both
+          // reports + blocks. Concatenate category + free-text details
+          // into the reason field for moderator visibility.
+          const reason = payload.details
+            ? `${payload.category}: ${payload.details}`
+            : payload.category;
+          await apiClient.post(`/skip/by-uuid/${id}`, { report_reason: reason });
+          // Block is immediate — bounce out of the chat.
+          window.location.assign("/inbox");
         }}
       />
     </div>
