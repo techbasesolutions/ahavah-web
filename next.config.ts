@@ -14,6 +14,27 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+
+  // Force /sw.js to bypass Vercel's edge cache. Without this, the CDN
+  // cached sw.js for ~3 minutes between deploys — returning users got
+  // the stale sw.js, never noticed the new build's per-deploy CACHE
+  // name, never triggered the activate-handler eviction, and kept
+  // seeing UI from the previous deploy ("the cards still load like
+  // this on refresh"). Surrogate-Control tells Vercel's CDN to skip
+  // caching; Cache-Control tells the browser to always revalidate
+  // against origin.
+  async headers() {
+    return [
+      {
+        source: "/sw.js",
+        headers: [
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+          { key: "Surrogate-Control", value: "no-store" },
+          { key: "Pragma", value: "no-cache" },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;
