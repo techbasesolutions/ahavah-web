@@ -202,24 +202,26 @@ export default function DiscoverPage() {
                 <Progress value={100} className="flex-1" />
               </div>
 
-              {/* Tap zones — left third = previous (skip back, no-op until
-                  we keep history), right two-thirds = next (treat as a
-                  pass). Buttons sit BELOW these via z-index, so the tap
-                  zone wins on the photo area but the action row still
-                  catches taps on its circles. */}
-              <Button
-                variant="ghost"
-                size="block"
+              {/* Symmetric tap zones — left 50% = previous, right 50% =
+                  next. Plain transparent <button> elements (NOT the
+                  Button kit) — the kit's `ghost` variant added
+                  hover/active backgrounds that produced a visible
+                  vertical seam down the card. These are pure tap
+                  surfaces, visually invisible at every state except
+                  focus-visible (subtle keyboard-only indicator).
+                  Re-discovered: previously fixed in 6242b47 + 583690e;
+                  do not regress. */}
+              <button
+                type="button"
                 aria-label="Previous candidate"
                 onClick={() => advance("nope")}
-                className="absolute inset-y-0 left-0 z-10 h-full w-1/3 rounded-none p-0 hover:bg-transparent"
+                className="absolute inset-y-0 left-0 z-10 h-full w-1/2 cursor-pointer bg-transparent outline-none focus-visible:bg-white/5"
               />
-              <Button
-                variant="ghost"
-                size="block"
+              <button
+                type="button"
                 aria-label="Next candidate"
                 onClick={() => advance("nope")}
-                className="absolute inset-y-0 right-0 z-10 h-full w-2/3 rounded-none p-0 hover:bg-transparent"
+                className="absolute inset-y-0 right-0 z-10 h-full w-1/2 cursor-pointer bg-transparent outline-none focus-visible:bg-white/5"
               />
 
               <PhotoCaption className="px-6 pb-24">
