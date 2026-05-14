@@ -1,11 +1,22 @@
 /**
- * Minimal service worker — Phase 6 PWA wrapper.
- * Cache strategy: cache-first for the app shell + Next static assets,
- * network-first for everything else. Bumped on each ahavah-web build.
+ * Ahavah service worker — PWA wrapper.
+ *
+ * Cache strategy:
+ *   - app shell + Next static assets: cache-first (offline-resilient)
+ *   - /api/* + cross-origin requests: NEVER cached (private data + freshness)
+ *   - everything else: network-first with cache fallback
+ *
+ * CACHE name bumps every release that changes static assets (so a
+ * stale older bundle gets evicted in `activate`).
  */
 
-const CACHE = "ahavah-v1";
-const APP_SHELL = ["/", "/design-system", "/manifest.json", "/icon-192.svg", "/icon-512.svg"];
+const CACHE = "ahavah-v3";
+
+// Routes whose HTML we want available offline. Must all return 200 on
+// install or addAll() rejects the whole batch — keep this conservative
+// (root only). The /design-system + /paywall + /verify screens used to
+// be here and broke addAll when /design-system was removed.
+const APP_SHELL = ["/", "/manifest.json", "/icon-192.svg", "/icon-512.svg"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -27,13 +38,24 @@ self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;
 
-  // Network-first for API + dynamic data; cache-first for static.
   const url = new URL(req.url);
+
+  // PRIVACY + FRESHNESS: never cache anything under /api/ (proxied
+  // backend calls — /me, /profile-info, /matches, photo proxy, etc.).
+  // Caching these would leak private data across users on shared
+  // devices and serve stale state after sign-out. Let the browser's
+  // normal request flow handle them; do not even respondWith.
+  if (url.pathname.startsWith("/api/")) return;
+
+  // Cross-origin requests aren't ours to cache (Stripe, Spaces, etc.).
+  if (url.origin !== self.location.origin) return;
+
   const isStatic =
     url.pathname.startsWith("/_next/") ||
     url.pathname.endsWith(".svg") ||
     url.pathname.endsWith(".png") ||
     url.pathname.endsWith(".jpg") ||
+    url.pathname.endsWith(".webp") ||
     url.pathname.endsWith(".woff2") ||
     url.pathname.endsWith(".ico") ||
     url.pathname === "/manifest.json";
@@ -49,6 +71,8 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // App-shell HTML routes: network-first, fall back to cache, fall
+  // back to root shell on full offline.
   event.respondWith(
     fetch(req).then((res) => {
       const clone = res.clone();
