@@ -4,12 +4,10 @@ import Link from "next/link";
 import { motion } from "motion/react";
 import {
   ArrowLeft,
-  Bell,
   ChevronRight,
   HelpCircle,
   ShieldAlert,
   ShieldCheck,
-  Sparkles,
   UserCog,
   UserX,
 } from "lucide-react";
@@ -47,7 +45,7 @@ const SETTINGS_GROUPS: ReadonlyArray<{
   label: string;
   accent: string;
   items: ReadonlyArray<{
-    Icon: typeof Bell;
+    Icon: typeof HelpCircle;
     title: string;
     subtitle?: string;
     href: string;
@@ -70,11 +68,14 @@ const SETTINGS_GROUPS: ReadonlyArray<{
     label: "App",
     accent: "bg-lavender/60",
     items: [
-      { Icon: Bell,        title: "Notifications",  subtitle: "Push, sounds, sync",         href: "/settings/notifications", tone: "muted" },
-      { Icon: ShieldAlert, title: "Privacy",        subtitle: "What others see about you",  href: "/settings/privacy",       tone: "muted" },
-      { Icon: UserX,       title: "Blocked users",  subtitle: "People you've blocked",      href: "/settings/blocked",       tone: "muted" },
-      { Icon: ShieldCheck, title: "Safety center",  subtitle: "Tips, reports, emergencies", href: "/settings/safety",        tone: "muted" },
-      { Icon: Sparkles,    title: "Auto-translate", subtitle: "On · English",               href: "/settings/translate",     tone: "muted" },
+      // Notifications + Auto-translate intentionally NOT here — web push
+      // and DeepL translations are deferred per Phase W §9. Restore when
+      // those features actually ship; until then the entries would be
+      // 'looks done but does nothing' (the same pattern user has flagged
+      // repeatedly).
+      { Icon: ShieldAlert, title: "Privacy",       subtitle: "What others see about you",  href: "/settings/privacy", tone: "muted" },
+      { Icon: UserX,       title: "Blocked users", subtitle: "People you've blocked",      href: "/settings/blocked", tone: "muted" },
+      { Icon: ShieldCheck, title: "Safety center", subtitle: "Tips, reports, emergencies", href: "/settings/safety",  tone: "muted" },
     ],
   },
   {

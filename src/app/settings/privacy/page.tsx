@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
 import { ArrowLeft, ChevronRight } from "lucide-react";
@@ -15,7 +15,6 @@ import {
   ItemTitle,
 } from "@/components/ui/item";
 import { Switch } from "@/components/ui/switch";
-import { Pill } from "@/components/kibo-ui/pill";
 
 import { BottomNav } from "@/components/app/bottom-nav";
 import {
@@ -23,6 +22,7 @@ import {
   PageHeaderTitle,
   PageShell,
 } from "@/components/app/page-shell";
+import { apiClient } from "@/lib/api-client";
 import { useShowOnMap } from "@/lib/use-show-on-map";
 
 const fadeUp = {
@@ -30,63 +30,16 @@ const fadeUp = {
   animate: { opacity: 1, y: 0 },
 };
 
-type ToggleKey =
-  | "showAge"
-  | "showDistance"
-  | "showLastActive"
-  | "showOnMap"
-  | "incognito"
-  | "readReceipts"
-  | "limitWhoCanMessage"
-  | "shareLocationOnMap";
+// Backend accepts these fields on PATCH /profile-info as Optional[str]
+// with "Yes" / "No" values. Other privacy toggles previously listed on
+// this page (showDistance, showLastActive, incognito, readReceipts,
+// shareLocationOnMap) had no backend equivalent and have been removed
+// rather than left as fake controls.
+type BackedKey = "showAge" | "hideFromStrangers";
 
-const PRIVACY_GROUPS: ReadonlyArray<{
-  label: string;
-  description?: string;
-  items: ReadonlyArray<{
-    key: ToggleKey;
-    title: string;
-    description: string;
-    premium?: boolean;
-  }>;
-}> = [
-  {
-    label: "Profile visibility",
-    description: "Control what other people see on your profile.",
-    items: [
-      { key: "showAge",         title: "Show my age",         description: "Display age next to your name" },
-      { key: "showDistance",    title: "Show distance",       description: "Show how far you are from matches" },
-      { key: "showLastActive",  title: "Show last active",    description: '"Online now" / "Active 2h ago"' },
-      // Sub-plan 14 / T7 — surfaces the showOnMap opt-in. Bound to a
-      // dedicated hook (useShowOnMap) below, not the in-memory toggles
-      // map, so the value persists to localStorage across reloads.
-      { key: "showOnMap",       title: "Show me on the map",  description: "Others see your avatar pinned to your country on the discovery map. Turn off to stay hidden." },
-    ],
-  },
-  {
-    label: "Browsing",
-    items: [
-      { key: "incognito",          title: "Incognito mode",       description: "Browse without appearing in their swipe deck", premium: true },
-      { key: "readReceipts",       title: "Read receipts",        description: "Send and receive read indicators" },
-      { key: "limitWhoCanMessage", title: "Verified-only messages", description: "Only verified users can message you", premium: true },
-      { key: "shareLocationOnMap", title: "Share live location",  description: "Approximate city only, never exact" },
-    ],
-  },
-];
-
-const DEFAULTS: Record<ToggleKey, boolean> = {
-  showAge:             true,
-  showDistance:        true,
-  showLastActive:      false,
-  // Note: the actual source of truth for `showOnMap` is the
-  // `useShowOnMap` localStorage hook. This default mirrors the hook's
-  // own default so the SSR render matches the hydrated value for fresh
-  // users (avoids a flash of "off" before hydration).
-  showOnMap:           true,
-  incognito:           false,
-  readReceipts:        true,
-  limitWhoCanMessage:  false,
-  shareLocationOnMap:  true,
+const SERVER_FIELD: Record<BackedKey, string> = {
+  showAge: "show_my_age",
+  hideFromStrangers: "hide_me_from_strangers",
 };
 
 const SHORTCUT_LINKS: ReadonlyArray<{
@@ -94,26 +47,60 @@ const SHORTCUT_LINKS: ReadonlyArray<{
   subtitle: string;
   href: string;
 }> = [
-  { title: "Blocked users",    subtitle: "Manage people you've blocked", href: "/settings/blocked" },
-  { title: "Account & data",   subtitle: "Email, phone, account deletion", href: "/settings/account" },
+  { title: "Blocked users",  subtitle: "Manage people you've blocked",   href: "/settings/blocked" },
+  { title: "Account & data", subtitle: "Email, account deletion",        href: "/settings/account" },
 ];
 
+function yesNoToBool(v: unknown): boolean {
+  return typeof v === "string" && v.toLowerCase() === "yes";
+}
+
 export default function PrivacySettingsPage() {
-  const [toggles, setToggles] = useState<Record<ToggleKey, boolean>>(DEFAULTS);
-  // Sub-plan 14 / T7 — `showOnMap` is the only toggle on this page
-  // currently backed by real persistent storage (localStorage). The
-  // rest are in-memory placeholders until the backend lands.
+  // Load current values from GET /profile-info on mount.
+  const [toggles, setToggles] = useState<Record<BackedKey, boolean>>({
+    showAge: true,
+    hideFromStrangers: false,
+  });
+  const [savingKey, setSavingKey] = useState<BackedKey | null>(null);
   const { value: showOnMap, setValue: setShowOnMap } = useShowOnMap();
 
-  const checkedFor = (key: ToggleKey): boolean =>
-    key === "showOnMap" ? showOnMap : toggles[key];
+  useEffect(() => {
+    let cancelled = false;
+    void apiClient
+      .get<Record<string, unknown>>("/profile-info")
+      .then((p) => {
+        if (cancelled) return;
+        setToggles({
+          showAge: yesNoToBool(p["show my age"] ?? p.show_my_age),
+          hideFromStrangers: yesNoToBool(
+            p["hide me from strangers"] ?? p.hide_me_from_strangers,
+          ),
+        });
+      })
+      .catch(() => {
+        // Quiet fail — defaults stay; user can still toggle (PATCH will
+        // reflect on next reload).
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  const set = (key: ToggleKey, value: boolean) => {
-    if (key === "showOnMap") {
-      setShowOnMap(value);
-      return;
+  const setBacked = async (key: BackedKey, value: boolean) => {
+    if (savingKey) return;
+    const prev = toggles[key];
+    setToggles((curr) => ({ ...curr, [key]: value }));
+    setSavingKey(key);
+    try {
+      await apiClient.patch("/profile-info", {
+        [SERVER_FIELD[key]]: value ? "Yes" : "No",
+      });
+    } catch {
+      // Rollback on failure.
+      setToggles((curr) => ({ ...curr, [key]: prev }));
+    } finally {
+      setSavingKey(null);
     }
-    setToggles((prev) => ({ ...prev, [key]: value }));
   };
 
   return (
@@ -132,69 +119,82 @@ export default function PrivacySettingsPage() {
       </PageHeader>
 
       <div className="flex flex-col gap-6 px-3 pt-4">
-        {PRIVACY_GROUPS.map((group, gi) => (
-          <motion.section
-            key={group.label}
-            {...fadeUp}
-            transition={{ duration: 0.4, delay: 0.05 + gi * 0.08 }}
-            className="flex flex-col gap-2"
-          >
-            <h2 className="px-3 text-overline text-text-muted">{group.label}</h2>
-            {group.description ? (
-              <p className="px-3 text-caption text-text-muted">
-                {group.description}
-              </p>
-            ) : null}
-            <ItemGroup className="gap-1">
-              {group.items.map((item) => (
-                <Item key={item.key} variant="muted">
-                  <ItemContent>
-                    <ItemTitle className="flex items-center gap-2 text-meta text-white">
-                      {item.title}
-                      {item.premium ? (
-                        <Pill variant="lime" size="sm">
-                          Premium
-                        </Pill>
-                      ) : null}
-                    </ItemTitle>
-                    <ItemDescription className="text-caption text-text-muted">
-                      {item.description}
-                    </ItemDescription>
-                  </ItemContent>
-                  <Switch
-                    checked={checkedFor(item.key)}
-                    onCheckedChange={(checked) => set(item.key, checked)}
-                    aria-label={item.title}
-                  />
-                </Item>
-              ))}
-            </ItemGroup>
-          </motion.section>
-        ))}
+        <motion.section
+          {...fadeUp}
+          transition={{ duration: 0.4, delay: 0.05 }}
+          className="flex flex-col gap-2"
+        >
+          <h2 className="px-3 text-overline text-text-muted">Profile visibility</h2>
+          <ItemGroup className="gap-1">
+            <Item variant="muted">
+              <ItemContent>
+                <ItemTitle className="text-meta text-white">Show my age</ItemTitle>
+                <ItemDescription className="text-caption text-text-muted">
+                  Display age next to your name on your profile and the swipe deck.
+                </ItemDescription>
+              </ItemContent>
+              <Switch
+                checked={toggles.showAge}
+                disabled={savingKey === "showAge"}
+                onCheckedChange={(checked) => void setBacked("showAge", checked)}
+                aria-label="Show my age"
+              />
+            </Item>
+
+            <Item variant="muted">
+              <ItemContent>
+                <ItemTitle className="text-meta text-white">
+                  Show me on the map
+                </ItemTitle>
+                <ItemDescription className="text-caption text-text-muted">
+                  Others see your avatar pinned to your country on the
+                  discovery map. Turn off to stay hidden.
+                </ItemDescription>
+              </ItemContent>
+              <Switch
+                checked={showOnMap}
+                onCheckedChange={(checked) => setShowOnMap(checked)}
+                aria-label="Show me on the map"
+              />
+            </Item>
+
+            <Item variant="muted">
+              <ItemContent>
+                <ItemTitle className="text-meta text-white">
+                  Hide me from strangers
+                </ItemTitle>
+                <ItemDescription className="text-caption text-text-muted">
+                  Only people you&apos;ve liked or messaged can see your
+                  full profile. Others see a limited view.
+                </ItemDescription>
+              </ItemContent>
+              <Switch
+                checked={toggles.hideFromStrangers}
+                disabled={savingKey === "hideFromStrangers"}
+                onCheckedChange={(checked) =>
+                  void setBacked("hideFromStrangers", checked)
+                }
+                aria-label="Hide me from strangers"
+              />
+            </Item>
+          </ItemGroup>
+        </motion.section>
 
         <motion.section
           {...fadeUp}
-          transition={{ duration: 0.4, delay: 0.05 + PRIVACY_GROUPS.length * 0.08 }}
+          transition={{ duration: 0.4, delay: 0.13 }}
           className="flex flex-col gap-2"
         >
-          <h2 className="px-3 text-overline text-text-muted">Shortcuts</h2>
+          <h2 className="px-3 text-overline text-text-muted">Related</h2>
           <ItemGroup className="gap-1">
             {SHORTCUT_LINKS.map((link) => (
               <Item
-                key={link.href + link.title}
+                key={link.title}
                 variant="muted"
-                render={
-                  <Link
-                    href={link.href}
-                    prefetch={false}
-                    className="rounded-2xl"
-                  />
-                }
+                render={<Link href={link.href} prefetch={false} className="rounded-2xl" />}
               >
                 <ItemContent>
-                  <ItemTitle className="text-meta text-white">
-                    {link.title}
-                  </ItemTitle>
+                  <ItemTitle className="text-meta text-white">{link.title}</ItemTitle>
                   <ItemDescription className="text-caption text-text-muted">
                     {link.subtitle}
                   </ItemDescription>
