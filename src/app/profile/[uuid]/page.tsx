@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { use, useMemo, useState } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
   ChevronLeft,
@@ -52,6 +52,39 @@ import {
 } from "@/lib/profile-schema";
 import { labelForLanguage } from "@/lib/languages";
 import { sampleByName } from "@/lib/profile-sample";
+import { apiClient, ApiError } from "@/lib/api-client";
+import type { Profile } from "@/lib/profile-schema";
+
+// Adapter — backend GET /prospect-profile/<uuid> returns a rich JSON
+// with snake_case fields. Map to the Profile shape the page reads.
+// Many Torah-observant fields (assembly, torahLevel, shabbat, calendar,
+// polygyny, headCovering, tzitzit) aren't modeled on the backend yet;
+// they render empty for production users, which is acceptable for v1.
+function adaptProspect(raw: Record<string, unknown>): Profile & { country?: string } {
+  const loc = typeof raw.location === "string" ? raw.location : "";
+  const parts = loc.split(",").map((s) => s.trim()).filter(Boolean);
+  const country = parts[parts.length - 1];
+  const city = parts[0];
+  const has_kids = typeof raw.has_kids === "string" ? raw.has_kids.toLowerCase() : null;
+  const children =
+    has_kids === "yes" ? 1 : has_kids === "no" ? 0 : undefined;
+  const gender = typeof raw.gender === "string" ? raw.gender.toLowerCase() : undefined;
+  const sex: "male" | "female" | undefined =
+    gender === "woman" ? "female" : gender === "man" ? "male" : undefined;
+  return {
+    firstName: typeof raw.name === "string" ? raw.name : undefined,
+    age: typeof raw.age === "number" ? raw.age : undefined,
+    bio: typeof raw.about === "string" ? raw.about : undefined,
+    city,
+    country,
+    sex,
+    children,
+    // Pass-through fields that may exist for richer profiles later.
+    intent: typeof raw.looking_for === "string"
+      ? (raw.looking_for as Profile["intent"])
+      : undefined,
+  } as Profile & { country?: string };
+}
 
 type Props = { params: Promise<{ uuid: string }> };
 
@@ -64,7 +97,45 @@ function labelOf<T extends string>(
 
 export default function ProfileDetailPage({ params }: Props) {
   const { uuid } = use(params);
-  const profile = sampleByName(uuid);
+  // Try backend first; fall back to sampleByName for legacy/test URLs
+  // (where uuid is actually a sample firstName like 'sarah'). Loading
+  // and 404 are surfaced explicitly so the page never shows stale data
+  // for a uuid the backend doesn't know about.
+  const [fetched, setFetched] = useState<Profile | null>(null);
+  const [fetchState, setFetchState] = useState<"idle" | "loading" | "ready" | "not-found" | "error">("idle");
+  useEffect(() => {
+    // Sample fallback first — keeps prototype URLs working in dev.
+    const fallback = sampleByName(uuid);
+    if (fallback && !/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(uuid)) {
+      // It's a non-UUID string and we have a sample match — use it.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setFetched(fallback);
+      setFetchState("ready");
+      return;
+    }
+    // Real UUID — fetch from backend.
+    setFetchState("loading");
+    let cancelled = false;
+    apiClient
+      .get<Record<string, unknown>>(`/prospect-profile/${uuid}`)
+      .then((raw) => {
+        if (cancelled) return;
+        setFetched(adaptProspect(raw));
+        setFetchState("ready");
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        if (err instanceof ApiError && err.status === 404) {
+          setFetchState("not-found");
+        } else {
+          setFetchState("error");
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [uuid]);
+  const profile = fetched;
   const { profile: userProfile, loaded: profileLoaded } = useProfile();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -109,6 +180,18 @@ export default function ProfileDetailPage({ params }: Props) {
   const compatResult = userProfile && profile
     ? computeCompatibility(userProfile, profile)
     : null;
+
+  if (fetchState === "loading" || fetchState === "idle") {
+    return (
+      <PageShell bottomPad="none">
+        <div className="flex flex-1 items-center justify-center px-5">
+          <p className="text-body text-text-secondary" aria-live="polite">
+            Loading profile…
+          </p>
+        </div>
+      </PageShell>
+    );
+  }
 
   if (!profile) {
     return (
