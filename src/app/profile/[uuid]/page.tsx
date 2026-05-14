@@ -217,21 +217,21 @@ export default function ProfileDetailPage({ params }: Props) {
   const backHref = fromMap ? "/map" : "/discover";
   const backLabel = fromMap ? "Back to map" : "Back to discover";
 
-  // SP21 T8: photo carousel maps 3 slots to photos[0..2] with gradient
-  // fallback per slot. Real photos render via <img>; gradient fallback
-  // (sample profiles ship without photos) keeps the deterministic stamp.
-  // Profile lookup uses the actual profile when present so SP21 photos on
-  // sample-like records would render; gradient seed remains `uuid` for
-  // stability across reloads.
+  // Photo carousel — slot count is the actual photos length (clamped
+  // 1..3 so the page never collapses to zero AND a power-user with 7
+  // photos still gets a reasonably-sized timeline). When a slot is
+  // empty for a thin profile, photoOrGradient returns the deterministic
+  // gradient seeded on the prospect uuid for stability across reloads.
+  const photoSlots = Math.max(1, Math.min(profile?.photos?.length ?? 1, 3));
   const photoSources = useMemo(
     () =>
-      [0, 1, 2].map((i) =>
+      Array.from({ length: photoSlots }, (_, i) =>
         photoOrGradient(
           { firstName: uuid, photos: profile?.photos },
           i,
         ),
       ),
-    [uuid, profile?.photos],
+    [uuid, profile?.photos, photoSlots],
   );
   const [photoIndex, setPhotoIndex] = useState(0);
   const nextPhoto = () =>

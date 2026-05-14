@@ -86,11 +86,10 @@ export default function ProfilePage() {
       ? verificationLevelRaw
       : null;
 
-  // Build the row list at render time so the Verification subtitle
-  // reflects the user's ACTUAL level instead of the hardcoded
-  // "Bronze · upgrade to Silver". Backend ships 'verification level'
-  // as the human-readable label ('No verification', 'Photos',
-  // 'Photos + ID').
+  // Build the row list at render time so the Verification + Subscription
+  // subtitles reflect ACTUAL state instead of hardcoded copy. Backend
+  // ships 'verification level' ("No verification" / "Photos" / "Photos + ID")
+  // and `has_gold` (boolean premium flag).
   const verifySubtitle =
     !verificationLevelRaw || verificationLevelRaw === "No verification"
       ? "Verify your identity"
@@ -99,10 +98,14 @@ export default function ProfilePage() {
         : verificationLevelRaw === "Photos + ID"
           ? "Gold · highest trust"
           : String(verificationLevelRaw);
+  const hasGold = (profile as Record<string, unknown>).has_gold === true;
+  const subscriptionSubtitle = hasGold
+    ? "Premium · manage subscription"
+    : "Upgrade to Premium →";
   const PROFILE_LINKS: ReadonlyArray<ProfileLink> = [
     { Icon: UserPen,     title: "Edit profile", subtitle: "Photos, bio, basics",             href: "/profile/edit", tone: "brand" },
     { Icon: ShieldCheck, title: "Verification", subtitle: verifySubtitle,                    href: "/verify",       tone: "success" },
-    { Icon: CreditCard,  title: "Subscription", subtitle: "Upgrade to Premium →",            href: "/paywall",      tone: "success" },
+    { Icon: CreditCard,  title: "Subscription", subtitle: subscriptionSubtitle,              href: "/paywall",      tone: "success" },
     { Icon: Settings,    title: "Settings",     subtitle: "Notifications, privacy, account", href: "/settings",     tone: "muted" },
   ];
 
@@ -153,17 +156,23 @@ export default function ProfilePage() {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="px-5 pb-5">
-            <Button
-              nativeButton={false}
-              size="cta"
-              tone="cta"
-              render={<Link href="/paywall" prefetch={false} />}
-            >
-              <Sparkles size={14} className="mr-2" />
-              Upgrade to Premium
-            </Button>
-          </CardContent>
+          {/* Hero CTA hides entirely for paid users — the row below
+              already gives them a Subscription entry to manage. Keeping
+              the Upgrade banner up after they've already paid is the
+              dating-app equivalent of nagging a paying customer. */}
+          {!hasGold && (
+            <CardContent className="px-5 pb-5">
+              <Button
+                nativeButton={false}
+                size="cta"
+                tone="cta"
+                render={<Link href="/paywall" prefetch={false} />}
+              >
+                <Sparkles size={14} className="mr-2" />
+                Upgrade to Premium
+              </Button>
+            </CardContent>
+          )}
         </Card>
       </motion.div>
 

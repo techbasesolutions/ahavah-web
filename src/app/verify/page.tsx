@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "motion/react";
-import { ArrowLeft, IdCard, Scan, Smartphone } from "lucide-react";
+import { ArrowLeft, Check, IdCard, Scan, Smartphone } from "lucide-react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -10,6 +10,7 @@ import { IconBadge } from "@/components/ui/icon-badge";
 import { Pill } from "@/components/kibo-ui/pill";
 
 import { cn } from "@/lib/utils";
+import { useProfile } from "@/lib/use-profile";
 
 import {
   PageHeader,
@@ -59,6 +60,15 @@ const TIERS = [
 ];
 
 export default function VerifyPage() {
+  // Reflect real verification state instead of treating every user as
+  // un-verified. Backend ships `verification level` from /profile-info
+  // as "No verification" | "Photos" | "Photos + ID".
+  const { profile } = useProfile();
+  const verificationLevel = (profile as Record<string, unknown>)["verification level"];
+  const isBronzeDone =
+    verificationLevel === "Photos" || verificationLevel === "Photos + ID";
+  const isGoldDone = verificationLevel === "Photos + ID";
+
   return (
     <PageShell bottomPad="default">
       <PageHeader pad="tight" className="flex items-center gap-3">
@@ -85,7 +95,11 @@ export default function VerifyPage() {
       {/* Tier cards stagger in (bronze → silver → gold) matching the
           visual progression of the tier system. */}
       <div className="flex flex-col gap-4 px-5">
-        {TIERS.map((tier, i) => (
+        {TIERS.map((tier, i) => {
+          const tierDone =
+            (tier.key === "bronze" && isBronzeDone) ||
+            (tier.key === "gold" && isGoldDone);
+          return (
           <motion.div
             key={tier.key}
             {...fadeUp}
@@ -105,9 +119,13 @@ export default function VerifyPage() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <h2 className="text-h3 text-white">{tier.label}</h2>
-                    {tier.soon && (
+                    {tierDone ? (
+                      <Pill variant="lavender">
+                        <Check size={12} /> Verified
+                      </Pill>
+                    ) : tier.soon ? (
                       <Pill variant="lavender">Coming soon</Pill>
-                    )}
+                    ) : null}
                   </div>
                   <p className="text-meta text-text-secondary">{tier.sub}</p>
                 </div>
@@ -124,12 +142,13 @@ export default function VerifyPage() {
                     "mt-4 w-full rounded-full",
                   )}
                 >
-                  {tier.cta}
+                  {tierDone ? "View status" : tier.cta}
                 </Link>
               </CardContent>
             </Card>
           </motion.div>
-        ))}
+          );
+        })}
       </div>
     </PageShell>
   );

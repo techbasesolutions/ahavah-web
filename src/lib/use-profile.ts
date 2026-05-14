@@ -191,9 +191,12 @@ function reverseTranslateValue(
     case "maritalStatus":
       return MARITAL_STATUS_REVERSE[serverValue as string] ?? undefined;
     case "children":
-      // Lossy: backend tracks Yes/No only, not the integer count. Restore
-      // 0 for No, leave the local cached number for Yes.
+      // Lossy: backend tracks Yes/No only, not the integer count.
+      // Restore 0 for "No", 1 for "Yes" so the completeness gate
+      // sees a filled field. Precise count lives in the local cache
+      // until the user explicitly edits it.
       if (serverValue === "No") return 0;
+      if (serverValue === "Yes") return 1;
       return undefined;
     case "intent":
       // looking_for "Marriage" / "Long-term dating" / etc. — no inverse
