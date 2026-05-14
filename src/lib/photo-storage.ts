@@ -55,17 +55,18 @@ export const MAX_PHOTOS = 7;
 export const NSFW_APPROVED_BELOW = 0.4;
 export const NSFW_REJECTED_AT = 0.75;
 
-/** Base URL for the image CDN. Filenames follow `${size}-${uuid}.jpg`,
+/** Base URL for image serving. Filenames follow `${size}-${uuid}.jpg`,
  *  where size ∈ { "original", 900, 450 }. We render the 450 variant in
  *  most UI surfaces (matches ahavah-frontend convention).
  *
- *  Default points at the DO Spaces bucket (nyc3 region, CDN endpoint)
- *  configured in the backend's DUO_R2_BUCKET_NAME. The earlier default
- *  (https://user-images.ahavah.app) was aspirational and never set up,
- *  causing every photo in production to fail to load. */
+ *  Default routes to the backend's `/image/<filename>` proxy, which
+ *  streams from the private S3-compatible bucket. This avoids needing
+ *  the bucket to be public-read and avoids depending on a CDN domain
+ *  that wasn't set up. NEXT_PUBLIC_IMAGES_URL still wins when set, so
+ *  we can swap to a real CDN later without code changes. */
 const IMAGES_BASE_URL =
   process.env.NEXT_PUBLIC_IMAGES_URL ??
-  "https://ahavah-photos-prod.nyc3.cdn.digitaloceanspaces.com";
+  `${process.env.NEXT_PUBLIC_API_BASE_URL ?? ""}/image`;
 
 // ---------------------------------------------------------------------------
 // Pure helpers (tested directly)
