@@ -54,6 +54,9 @@ export default function DiscoverPage() {
   const [photoIndex, setPhotoIndex] = useState(0);
   const [cyclePhotos, setCyclePhotos] = useState(false);
   const [resettingDecisions, setResettingDecisions] = useState(false);
+  // FiltersSheet is hoisted to /discover so the empty-state CTA can open
+  // it. The header trigger uses the same sheet via a render prop.
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const resetDecisions = async () => {
     if (resettingDecisions) return;
@@ -233,6 +236,8 @@ export default function DiscoverPage() {
                 <SlidersHorizontal className="text-lavender" />
               </Button>
             }
+            open={filtersOpen}
+            onOpenChange={setFiltersOpen}
             onApply={(f) => setFilters(f)}
           />
           <Button
@@ -383,7 +388,10 @@ export default function DiscoverPage() {
                 description="No more matches nearby — try widening your filters or reset to re-see everyone."
                 action={{
                   label: "Adjust filters",
-                  onClick: () => setFilters({}),
+                  // Open the FiltersSheet so the user can actually edit
+                  // filters. Earlier this called setFilters({}) which
+                  // was a no-op when filters were already empty.
+                  onClick: () => setFiltersOpen(true),
                 }}
                 className="mx-0 mt-0 rounded-2xl border border-white/10 bg-bg-elevated"
               />
