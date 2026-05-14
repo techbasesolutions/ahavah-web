@@ -243,10 +243,27 @@ export default function ProfileDetailPage({ params }: Props) {
   // BlockReportSheet wiring for the kebab — same pattern as /chat.
   const [reportOpen, setReportOpen] = useState(false);
 
-  // Compute compatibility between viewer and sample profile
+  // Compute compatibility between viewer and prospect. With sparse
+  // profiles (e.g. fresh production users where Duolicious schema
+  // doesn't store the Torah-observant fields), most axes return their
+  // 0.5 no-data neutral default → the composite score is mostly noise
+  // around 50%. We compute it but only surface the pill when enough
+  // axes have signal to make the number meaningful.
   const compatResult = userProfile && profile
     ? computeCompatibility(userProfile, profile)
     : null;
+  const meaningfulAxes = compatResult
+    ? Object.values(compatResult.breakdown).filter(
+        // 0.5 is the documented no-data return across every rule.
+        // Treat anything outside the [0.45, 0.55] band as carrying
+        // real signal — tolerates rounding without false negatives.
+        (v) => v < 0.45 || v > 0.55,
+      ).length
+    : 0;
+  // Need at least 2 informative axes before the % is more meaningful
+  // than the underlying neutral baseline. Below that, hide it rather
+  // than mislead the viewer about a "real" compatibility number.
+  const showCompatPill = compatResult !== null && meaningfulAxes >= 2;
 
   if (fetchState === "loading" || fetchState === "idle") {
     return (
@@ -384,8 +401,11 @@ export default function ProfileDetailPage({ params }: Props) {
           />
 
           {/* Compat chip — anchors the carousel bottom-right instead of
-              competing with the name inside the bio card. */}
-          {compatResult && (
+              competing with the name inside the bio card. Only shown
+              when the underlying breakdown has real signal; otherwise
+              the % is essentially the no-data baseline and would
+              mislead the viewer. */}
+          {showCompatPill && compatResult && (
             <div className="absolute bottom-12 right-4 z-10">
               <CompatPill
                 score={compatResult.score}

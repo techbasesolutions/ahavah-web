@@ -153,8 +153,11 @@ function MatchesGrid({
             {...fadeUp}
             transition={{ duration: 0.3, delay: staggerDelay(i) }}
           >
+            {/* Tap card → /chat/<peer>. The dating-app default action
+                on a match is to message, not re-inspect the profile.
+                Profile is still reachable from the chat header. */}
             <Link
-              href={`/profile/${partner.id}?from=matches`}
+              href={`/chat/${partner.id}`}
               prefetch={false}
               className={cn(
                 buttonVariants({ variant: "ghost", size: "block" }),
