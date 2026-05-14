@@ -1,55 +1,52 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { motion } from "motion/react";
-import { MapPin, SlidersHorizontal, X } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { Globe, Heart, MapPin, Pause, X } from "lucide-react";
 
 import { Avatar, AvatarBadge, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 
 import { BrandMark } from "@/components/brand/sparkle-mark";
 import { BottomNav } from "@/components/app/bottom-nav";
-import { DiscoverCardFace } from "@/components/app/discover-card-face";
 import { EmptyState } from "@/components/app/empty-state";
 import { FiltersSheet } from "@/components/app/filters-sheet";
 import { PageHeader, PageShell } from "@/components/app/page-shell";
-import { SwipeDeck, type DeckItem } from "@/components/app/swipe-deck";
+import { PhotoCaption } from "@/components/app/photo-caption";
 import { useProfile } from "@/lib/use-profile";
 import { firstMissingStepFor, isDiscoverEligible } from "@/lib/profile-completeness";
 import { useDecisions } from "@/lib/use-decisions";
-import { useDiscoverDeck, type DiscoverFilters as HttpFilters } from "@/lib/use-discover-deck";
+import { useDiscoverDeck } from "@/lib/use-discover-deck";
 import { useFilters } from "@/lib/use-filters";
+import { photoOrGradient } from "@/lib/photo-or-gradient";
 
 /**
- * /discover — the dating app's central swipe surface.
+ * /discover — central candidate-browsing surface.
  *
- * Phase W rewire (this file):
- *   - Deck is fetched from `GET /search` via `useDiscoverDeck`. Filter
- *     changes reset the deck and refetch from the head. SwipeDeck's
- *     `onNeedMore` triggers prefetch when only ~3 cards remain.
- *   - Each swipe POSTs to `/decisions` via `useDecisions().decide`.
- *   - Mutual matches navigate to `/match?matchId=<id>` (handled by the
- *     /match page).
+ * UX (restored from the original prototype, NOT the Tinder-style swipe-deck
+ * the Phase W draft introduced):
+ *   - One candidate card at a time, full-bleed photo or gradient.
+ *   - Tap zones: left third = previous, right two-thirds = next.
+ *   - Action row inside the card: Skip / Pause / Like (Pause is the
+ *     auto-advance toggle — currently a no-op since we do not auto-advance).
+ *   - Progress bar at top tracks position in the visible deck.
  *
- * Local-decision tracking (the legacy `recordLike`/`hasDecided` flow) is
- * deliberately removed here — the backend owns swipe state post-Phase W,
- * and the local `useDecisions` legacy surface is only kept for /map and
- * /profile/[uuid] cosmetic affordances.
+ * Backend wiring (this is what Phase W kept):
+ *   - Deck fetched from GET /search via useDiscoverDeck.
+ *   - Skip / Like POSTs to /decisions via useDecisions().decide.
+ *   - Mutual matches navigate to /match?matchId=<id>.
  */
+
 export default function DiscoverPage() {
   const router = useRouter();
   const { profile: userProfile, loaded } = useProfile();
   const { decide, pendingIds } = useDecisions();
-  const [filtersOpen, setFiltersOpen] = useState(false);
-  // Local filter state powers the FiltersSheet; we adapt its shape to the
-  // useDiscoverDeck HTTP filter shape just below.
   const { filters, setFilters } = useFilters();
+  const [exitDirection, setExitDirection] = useState<"left" | "right">("left");
 
-  // Soft-completeness gate — redirect incomplete profiles to first missing
-  // step. If the missing field has no wizard step (config drift), fall
-  // through to /profile/edit instead of stranding the user on this page.
+  // Soft-completeness gate.
   useEffect(() => {
     if (loaded && !isDiscoverEligible(userProfile)) {
       const missingStep = firstMissingStepFor(userProfile);
@@ -57,13 +54,8 @@ export default function DiscoverPage() {
     }
   }, [loaded, userProfile, router]);
 
-  // Map FiltersSheet's local filter shape onto the HTTP filter shape that
-  // useDiscoverDeck expects. The local filters object carries far more
-  // facets than the backend exposes today (assemblies, intents, etc.);
-  // those are silently dropped here — they will return as discovery-prefs
-  // wiring lands in a future phase. age + countries + languages cover the
-  // current backend `/search` query-string shape.
-  const httpFilters: HttpFilters = useMemo(
+  // Map FiltersSheet shape onto the HTTP filter shape.
+  const httpFilters = useMemo(
     () => ({
       ageMin: filters.ageMin,
       ageMax: filters.ageMax,
@@ -75,51 +67,32 @@ export default function DiscoverPage() {
 
   const { items, loadMore, hasMore } = useDiscoverDeck(httpFilters);
 
-  // Filter out candidates currently mid-decision so the deck doesn't double-
-  // count a card the user just swiped while the server response is in flight.
-  // The hook still tracks them in pendingIds; we just hide them visually.
+  // Hide candidates currently mid-decision so the visible card never goes
+  // back to one we just acted on while the network call is in flight.
   const visibleItems = useMemo(
     () => items.filter((c) => !pendingIds.has(c.id)),
     [items, pendingIds],
   );
 
-  // Map candidates to DeckItem shape consumed by SwipeDeck. render() is
-  // a thunk so SwipeDeck can call it once per visible slot without us
-  // re-binding callbacks each parent render.
-  const deckItems: DeckItem[] = useMemo(
-    () =>
-      visibleItems.map((candidate) => ({
-        id: candidate.id,
-        render: () => <DiscoverCardFace candidate={candidate} />,
-      })),
-    [visibleItems],
-  );
+  const candidate = visibleItems[0];
 
-  const handleDecide = async (
-    item: DeckItem,
-    decision: "like" | "nope",
-  ) => {
+  const advance = async (decision: "like" | "nope") => {
+    if (!candidate) return;
+    setExitDirection(decision === "like" ? "right" : "left");
     try {
-      const result = await decide(item.id, decision);
+      const result = await decide(candidate.id, decision);
       if (decision === "like" && result.matchId) {
         router.push(`/match?matchId=${encodeURIComponent(result.matchId)}`);
+        return;
       }
     } catch {
-      // Errors are surfaced through useDecisions().error; the deck
-      // returns to its prior visible state automatically because the
-      // failed id is removed from pendingIds in the hook's finally.
-      // Future: toast via global notification rail when the
-      // notifications primitive lands.
+      // useDecisions surfaces error; visible state recovers via pendingIds.
     }
+    // Prefetch when the deck is running low.
+    if (hasMore && visibleItems.length <= 3) void loadMore();
   };
 
-  const handleNeedMore = () => {
-    if (hasMore) {
-      void loadMore();
-    }
-  };
-
-  // During hydration or completeness redirect, render minimal scaffolding.
+  // During hydration / redirect, render minimal scaffolding.
   if (!loaded || (loaded && !isDiscoverEligible(userProfile))) {
     return (
       <PageShell bottomPad="nav">
@@ -127,13 +100,8 @@ export default function DiscoverPage() {
         <PageHeader pad="default" className="flex items-center justify-between">
           <BrandMark size="sm" />
           <div className="flex items-center gap-3">
-            <Button
-              size="circle"
-              tone="elevated"
-              aria-label="Discovery filters"
-              disabled
-            >
-              <SlidersHorizontal className="text-lavender" />
+            <Button size="circle" tone="elevated" aria-label="Discovery filters" disabled>
+              <Globe className="text-lavender" />
             </Button>
             <Button
               size="circle"
@@ -143,7 +111,9 @@ export default function DiscoverPage() {
               disabled
             >
               <Avatar size="tap-lg">
-                <AvatarFallback variant="brand">E</AvatarFallback>
+                <AvatarFallback variant="brand">
+                  {userProfile.firstName?.[0] ?? "•"}
+                </AvatarFallback>
                 <AvatarBadge className="top-0 right-0 bottom-auto bg-lime ring-bg-indigo" />
               </Avatar>
             </Button>
@@ -153,103 +123,174 @@ export default function DiscoverPage() {
           className="relative mt-3 flex flex-1 flex-col items-center justify-center px-5"
           aria-live="polite"
         >
-          <div className="text-center">
-            <p className="text-body text-text-secondary">
-              {!loaded
-                ? "Loading…"
-                : "Taking you to finish your profile…"}
-            </p>
-          </div>
+          <p className="text-body text-text-secondary">
+            {!loaded ? "Loading…" : "Taking you to finish your profile…"}
+          </p>
         </div>
         <BottomNav />
       </PageShell>
     );
   }
 
+  const photoSource = candidate ? photoOrGradient(candidate, 0) : null;
+
   return (
     <PageShell bottomPad="nav">
-      {/* Visually-hidden page heading for screen readers. */}
       <h1 className="sr-only">Discover</h1>
 
       <PageHeader pad="default" className="flex items-center justify-between">
         <BrandMark size="sm" />
         <div className="flex items-center gap-3">
           <FiltersSheet
-            open={filtersOpen}
-            onOpenChange={setFiltersOpen}
-            initialFilters={filters}
             trigger={
-              <Button
-                size="circle"
-                tone="elevated"
-                aria-label="Discovery filters"
-              >
-                <SlidersHorizontal className="text-lavender" />
+              <Button size="circle" tone="elevated" aria-label="Discovery filters">
+                <Globe className="text-lavender" />
               </Button>
             }
             onApply={(f) => setFilters(f)}
           />
           <Button
-            nativeButton={false}
             size="circle"
             variant="ghost"
             aria-label="My profile"
             className="p-0"
-            render={<Link href="/profile" prefetch={false} />}
           >
             <Avatar size="tap-lg">
-              <AvatarFallback variant="brand">E</AvatarFallback>
+              <AvatarFallback variant="brand">
+                {userProfile.firstName?.[0] ?? "•"}
+              </AvatarFallback>
               <AvatarBadge className="top-0 right-0 bottom-auto bg-lime ring-bg-indigo" />
             </Avatar>
           </Button>
         </div>
       </PageHeader>
 
-      {/* "Filtered by map view" pill — same UX as the pre-Phase-W version.
-          /map writes filters.country when the user pans to a narrow region;
-          this row gives a single-tap escape. */}
-      {filters.country && filters.country.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: -4 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.2 }}
-          className="flex justify-center px-3 pt-1"
-        >
-          <button
-            type="button"
-            onClick={() => setFilters({ ...filters, country: undefined })}
-            className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-bg-elevated/80 px-3 py-1.5 text-caption text-white backdrop-blur-sm transition-colors hover:bg-bg-elevated"
-            aria-label={`Filtered by map view, ${filters.country.length} ${filters.country.length === 1 ? "region" : "regions"}. Tap to clear.`}
-          >
-            <MapPin className="size-3" aria-hidden />
-            <span>
-              Filtered by map view · {filters.country.length}{" "}
-              {filters.country.length === 1 ? "region" : "regions"}
-            </span>
-            <X className="size-3" aria-hidden />
-          </button>
-        </motion.div>
-      )}
+      <div className="relative mt-3 flex flex-1 flex-col px-5">
+        <AnimatePresence mode="wait" initial={false}>
+          {candidate ? (
+            <motion.div
+              key={candidate.id}
+              initial={{ opacity: 0, x: exitDirection === "left" ? 60 : -60 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: exitDirection === "left" ? -60 : 60 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+              className="relative w-full flex-1 overflow-hidden rounded-2xl bg-cover bg-center shadow-2xl"
+              style={
+                photoSource?.kind === "gradient"
+                  ? ({
+                      backgroundImage: photoSource.css,
+                    } as React.CSSProperties)
+                  : undefined
+              }
+            >
+              {photoSource?.kind === "photo" && (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={photoSource.src}
+                  alt={`${candidate.firstName ?? "Candidate"} photo`}
+                  className="absolute inset-0 z-0 size-full object-cover"
+                />
+              )}
 
-      <div className="relative mt-3 flex flex-1 flex-col px-5 pb-2">
-        <SwipeDeck
-          items={deckItems}
-          onDecide={handleDecide}
-          onNeedMore={handleNeedMore}
-          pageThreshold={3}
-          emptyState={
-            <EmptyState
-              variant="no-matches"
-              title="You're all caught up."
-              description="Try widening your filters or check back later."
-              action={{
-                label: "Adjust filters",
-                onClick: () => setFiltersOpen(true),
-              }}
-              className="mx-0 mt-0 rounded-2xl border border-white/10 bg-bg-elevated"
-            />
-          }
-        />
+              {/* Progress bar — single-photo mode for now (one segment).
+                  When multi-photo lands, this becomes one segment per photo
+                  with the active one filled. */}
+              <div
+                aria-hidden
+                className="absolute top-5 right-5 left-5 z-20 flex gap-1.5"
+              >
+                <Progress value={100} className="flex-1" />
+              </div>
+
+              {/* Tap zones — left third = previous (skip back, no-op until
+                  we keep history), right two-thirds = next (treat as a
+                  pass). Buttons sit BELOW these via z-index, so the tap
+                  zone wins on the photo area but the action row still
+                  catches taps on its circles. */}
+              <Button
+                variant="ghost"
+                size="block"
+                aria-label="Previous candidate"
+                onClick={() => advance("nope")}
+                className="absolute inset-y-0 left-0 z-10 h-full w-1/3 rounded-none p-0 hover:bg-transparent"
+              />
+              <Button
+                variant="ghost"
+                size="block"
+                aria-label="Next candidate"
+                onClick={() => advance("nope")}
+                className="absolute inset-y-0 right-0 z-10 h-full w-2/3 rounded-none p-0 hover:bg-transparent"
+              />
+
+              <PhotoCaption className="px-6 pb-24">
+                <h2 className="text-h2 leading-tight text-white">
+                  {candidate.firstName ?? "Someone"}
+                  {candidate.age ? `, ${candidate.age}` : ""}
+                </h2>
+                {candidate.city && candidate.country ? (
+                  <p className="mt-1 flex items-center gap-1 text-caption text-white/85">
+                    <MapPin className="size-3" /> {candidate.city}, {candidate.country}
+                  </p>
+                ) : candidate.country ? (
+                  <p className="mt-1 flex items-center gap-1 text-caption text-white/85">
+                    <MapPin className="size-3" /> {candidate.country}
+                  </p>
+                ) : null}
+              </PhotoCaption>
+
+              {/* Action row — Skip / Pause / Like, floating at the bottom
+                  of the card. z-30 wins over the tap zones (z-10). */}
+              <div className="absolute bottom-4 left-1/2 z-30 flex -translate-x-1/2 items-center gap-5">
+                <Button
+                  size="circle"
+                  tone="brand"
+                  lift="float"
+                  aria-label="Skip"
+                  onClick={() => advance("nope")}
+                >
+                  <X className="text-black" />
+                </Button>
+                <Button
+                  size="circle-lg"
+                  tone="cta"
+                  lift="float"
+                  aria-label="Pause"
+                  // No-op for now. Reserved for the auto-advance toggle
+                  // when slideshow mode lands.
+                >
+                  <Pause className="text-black" fill="currentColor" />
+                </Button>
+                <Button
+                  size="circle"
+                  tone="action"
+                  lift="float"
+                  aria-label="Like"
+                  onClick={() => advance("like")}
+                >
+                  <Heart className="text-white" fill="currentColor" />
+                </Button>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="empty"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+            >
+              <EmptyState
+                variant="filter-too-narrow"
+                title="You're all caught up"
+                description="No more matches nearby — try widening your filters or check back later."
+                action={{
+                  label: "Adjust filters",
+                  onClick: () => setFilters({}),
+                }}
+                className="mx-0 mt-0 rounded-2xl border border-white/10 bg-bg-elevated"
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <BottomNav />
