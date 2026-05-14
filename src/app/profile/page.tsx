@@ -65,9 +65,25 @@ const PROFILE_LINKS: ReadonlyArray<{
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { signOut } = useProfile();
+  const { profile, signOut } = useProfile();
   const [signOutOpen, setSignOutOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+
+  // Real values from useProfile (cache + /me + /profile-info). The hero
+  // card previously hardcoded 'Ehud, 30' and 'Bronze verified' — those
+  // never updated. Defaults below cover the brief mount-before-fetch
+  // window without showing someone else's name.
+  const firstName = profile.firstName ?? "";
+  const age = typeof profile.age === "number" && profile.age > 0 ? profile.age : null;
+  const initial = firstName ? firstName[0].toUpperCase() : "•";
+  // /profile-info returns 'verification level' (space-separated key) as
+  // the human-readable string ('No verification', 'Photos', 'Photos + ID').
+  // Show the Pill only when the user has cleared at least the lowest tier.
+  const verificationLevelRaw = (profile as Record<string, unknown>)["verification level"];
+  const verificationLevel =
+    typeof verificationLevelRaw === "string" && verificationLevelRaw !== "No verification"
+      ? verificationLevelRaw
+      : null;
 
   const handleSignOut = async () => {
     if (signingOut) return;
@@ -94,22 +110,22 @@ export default function ProfilePage() {
                 aria-label="Your profile"
                 className="ring-2 ring-white/40"
               >
-                <AvatarFallback variant="brand">E</AvatarFallback>
+                <AvatarFallback variant="brand">{initial}</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                {/* Hero name — text-h1 (was text-h3, which read as caption
-                    on the "this is YOU" screen). Verification status is a
-                    Pill chip, not a paragraph caption. */}
-                <h1 className="text-h1 leading-tight text-white">Ehud, 30</h1>
-                {/* Variant `glassDark` (not lavenderOutline) — the parent
-                    Card is tone="gradient" (Persian-Indigo → Lavender), so
-                    lavender-on-lavender fails AA. Translucent black fill +
-                    white text gives ~12:1 contrast against the gradient's
-                    lightest stop (#BC96FF). */}
-                <Pill variant="glassDark" className="mt-2">
-                  <ShieldCheck size={12} />
-                  Bronze verified
-                </Pill>
+                {/* Hero — real firstName + age from useProfile (no more
+                    hardcoded 'Ehud, 30'). Pill only renders when the
+                    user actually has a verification level past 'None'. */}
+                <h1 className="text-h1 leading-tight text-white">
+                  {firstName || "Your profile"}
+                  {age ? `, ${age}` : ""}
+                </h1>
+                {verificationLevel ? (
+                  <Pill variant="glassDark" className="mt-2">
+                    <ShieldCheck size={12} />
+                    {verificationLevel}
+                  </Pill>
+                ) : null}
               </div>
             </div>
           </CardHeader>
