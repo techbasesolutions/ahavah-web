@@ -68,10 +68,9 @@ import { PageShell } from "@/components/app/page-shell";
 import { BrandMark } from "@/components/brand/sparkle-mark";
 import { Button } from "@/components/ui/button";
 
+import { apiClient } from "@/lib/api-client";
 import { centroidOf, countriesInBounds } from "@/lib/country-centroids";
-import { simulateLikesBack } from "@/lib/decision-engine";
 import type { DiscoverCandidate } from "@/lib/discover-engine";
-import { ACTIVE_CHAT_IDS } from "@/lib/inbox-seed";
 import { resolveMarkerState } from "@/lib/map-avatar-state";
 import {
   firstMissingStepFor,
@@ -223,6 +222,39 @@ export default function MapPage() {
     [realCandidates],
   );
 
+  // Real matched-uuid set from GET /matches. Drives the 'match' marker
+  // halo + (since every match IS a chat thread by design) the
+  // 'active-chat' halo too. Earlier code used simulateLikesBack +
+  // hardcoded ACTIVE_CHAT_IDS sample slugs — neither reflected real
+  // backend state. Local `decisions` store still drives the 'liked'
+  // halo for the just-swiped feedback.
+  const [matchedUuids, setMatchedUuids] = useState<ReadonlySet<string>>(
+    () => new Set<string>(),
+  );
+  useEffect(() => {
+    if (!loaded || !viewer) return;
+    let cancelled = false;
+    void apiClient
+      .get<{ matches?: Array<{ peer_uuid?: string }> } | Array<{ peer_uuid?: string }>>(
+        "/matches",
+      )
+      .then((res) => {
+        if (cancelled) return;
+        const list = Array.isArray(res) ? res : (res.matches ?? []);
+        const uuids = new Set<string>();
+        for (const m of list) {
+          if (typeof m?.peer_uuid === "string") uuids.add(m.peer_uuid);
+        }
+        setMatchedUuids(uuids);
+      })
+      .catch(() => {
+        // Quiet fail — markers stay neutral.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [loaded, viewer]);
+
   // Pre-hydration or in-flight redirect — render minimal scaffold to
   // keep the map from flashing for an ineligible viewer.
   if (!loaded || (loaded && !isDiscoverEligible(viewer))) {
@@ -254,22 +286,21 @@ export default function MapPage() {
           bbox={initialBbox}
         >
           {visibleCandidates.map((p) => {
-            // SP16 T5: resolve per-candidate marker state.
-            //   - `id` is the lowercased firstName slug used everywhere
-            //     in the app (chat seed, decisions store, profile route).
-            //   - `matched` is pre-computed here so the resolver stays
-            //     free of decision-engine internals (cleaner unit tests).
-            //   - `viewer` may be undefined during hydration; `matched`
-            //     defaults to false in that window so a liked candidate
-            //     renders as "liked"/"active-chat" rather than a false
-            //     "match". Resolver re-runs once useProfile() loads.
+            // Real marker state:
+            //   - `matched` = candidate uuid in matchedUuids (from GET
+            //     /matches; established mutual-like)
+            //   - `activeChatIds` = same set (every match has a chat
+            //     thread by design; separate inbox query would just
+            //     duplicate /matches)
+            //   - `decisions` = local-only swipe store, drives 'liked'
+            //     halo for just-swiped feedback within this session
             const id = p.id;
-            const matched = !!viewer && simulateLikesBack(viewer, p);
+            const matched = matchedUuids.has(id);
             const state = resolveMarkerState({
               candidate: { id },
               decisions,
               matched,
-              activeChatIds: ACTIVE_CHAT_IDS,
+              activeChatIds: matchedUuids,
             });
             return <MapAvatar key={id} candidate={p} state={state} />;
           })}
