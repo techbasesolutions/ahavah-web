@@ -138,6 +138,17 @@ export default function WelcomePage() {
             Sign in
           </Button>
         </div>
+        {/* Tertiary "Take the tour" surfaces the /onboarding intro
+            carousel (3 slides) for users who want to see what the app
+            is before committing. Was previously orphaned. */}
+        <Button
+          variant="link"
+          size="tap"
+          className="self-center text-text-muted"
+          onClick={() => goTo("/onboarding")}
+        >
+          Take the tour
+        </Button>
         <p className="text-center text-caption leading-relaxed text-text-muted">
           By signing up you agree to our{" "}
           <Link

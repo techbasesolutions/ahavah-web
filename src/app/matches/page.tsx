@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { MapPin, Search } from "lucide-react";
+import { MapPin } from "lucide-react";
 
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardDescription,
@@ -92,11 +92,12 @@ export default function MatchesPage() {
 
   return (
     <PageShell bottomPad="nav">
-      <PageHeader className="flex items-center justify-between">
+      <PageHeader>
         <PageHeaderTitle>Liked you</PageHeaderTitle>
-        <Button size="circle" tone="elevated" aria-label="Search likes">
-          <Search className="text-white" />
-        </Button>
+        {/* Removed: 'Search likes' button had no onClick handler and no
+            backend search. Match lists are short; visual scan is fine
+            for now. Restore when the list grows and a filter modal is
+            built. */}
       </PageHeader>
 
       {state.kind === "loading" ? (

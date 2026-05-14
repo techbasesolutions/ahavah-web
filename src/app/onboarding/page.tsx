@@ -122,7 +122,11 @@ export default function OnboardingIntroPage() {
             nativeButton={false}
             size="cta"
             lift="float"
-            render={<Link href="/onboarding/verify-email" prefetch={false} />}
+            // Tour ends → sign-up. Was pointing at /onboarding/verify-email
+            // which expects PENDING_EMAIL_KEY in sessionStorage; a fresh
+            // visitor has nothing to verify, so the page would just show
+            // a blank OTP input that never resolved.
+            render={<Link href="/auth/sign-up" prefetch={false} />}
           >
             Get started
           </Button>

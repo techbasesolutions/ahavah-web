@@ -85,12 +85,52 @@ export class ApiError extends Error {
   }
 }
 
+/** Edge-state redirect signal. The api-client detects 503 (maintenance)
+ *  and 426 (upgrade required) and redirects the browser to the matching
+ *  edge surface so the user gets a real explanation instead of cryptic
+ *  fetch errors. SSR-safe: window guard avoids the redirect on the
+ *  server (a hard-server crash there is fine — there's no user to show
+ *  a maintenance page to).
+ *
+ *  Some backend endpoints return 503 to signal "feature not configured"
+ *  (Stripe Identity / Checkout when keys are unset, etc.). Those are
+ *  per-endpoint feature gates, NOT app-wide maintenance — the user
+ *  shouldn't be redirected to a global /maintenance page. We whitelist
+ *  those endpoints here. Once backend introduces a distinct status code
+ *  (501 Not Implemented) for feature gates, this whitelist can shrink. */
+const FEATURE_GATE_503_PATHS = [
+  "/checkout/web",
+  "/verification/start-id-flow",
+  "/translate-preview",
+];
+
+function isFeatureGate503(url: string): boolean {
+  return FEATURE_GATE_503_PATHS.some((p) => url.includes(p));
+}
+
+function maybeRedirectForEdgeStatus(status: number, url: string): void {
+  if (typeof window === "undefined") return;
+  // Don't redirect when already on the edge page itself (avoids loops).
+  const path = window.location.pathname;
+  if (status === 503 && !isFeatureGate503(url) && path !== "/maintenance") {
+    window.location.assign("/maintenance");
+  } else if (status === 426 && path !== "/update-required") {
+    window.location.assign("/update-required");
+  }
+}
+
 async function parseResponse<T>(res: Response): Promise<T> {
   const contentType = res.headers.get("content-type") ?? "";
   const isJson = contentType.includes("application/json");
   const body: unknown = isJson ? await res.json().catch(() => null) : await res.text();
 
   if (!res.ok) {
+    // Global edge-status handling — fires BEFORE we throw so the
+    // catching consumer's error handler doesn't even need to know
+    // about /maintenance / /update-required. The caller's promise
+    // still rejects (no awaiting code mistakenly proceeds), but the
+    // browser's already navigating away.
+    maybeRedirectForEdgeStatus(res.status, res.url);
     const message =
       isJson && body && typeof body === "object" && "message" in body
         ? String((body as { message: unknown }).message)

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
-import { Globe, Heart, MapPin, Pause, X } from "lucide-react";
+import { Globe, Heart, MapPin, Pause, Play, X } from "lucide-react";
 
 import { Avatar, AvatarBadge, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -46,6 +46,12 @@ export default function DiscoverPage() {
   const { decide, pendingIds } = useDecisions();
   const { filters, setFilters } = useFilters();
   const [exitDirection, setExitDirection] = useState<"left" | "right">("left");
+  // Auto-advance: when enabled, /discover auto-skips through candidates
+  // every AUTO_ADVANCE_MS so a user can browse hands-free. The Pause
+  // button in the action row toggles this. Default off — user opts in
+  // explicitly with the first tap. Auto-skip records a 'nope' (same as
+  // tapping X), not a 'like', so passive viewing doesn't create matches.
+  const [autoAdvancing, setAutoAdvancing] = useState(false);
 
   // Soft-completeness gate.
   useEffect(() => {
@@ -92,6 +98,31 @@ export default function DiscoverPage() {
     // Prefetch when the deck is running low.
     if (hasMore && visibleItems.length <= 3) void loadMore();
   };
+
+  // Auto-advance timer. Wakes every AUTO_ADVANCE_MS and skips the
+  // current candidate. Disables itself if the deck runs dry (nothing to
+  // advance to) so we don't spin a no-op timer.
+  const AUTO_ADVANCE_MS = 8_000;
+  useEffect(() => {
+    if (!autoAdvancing) return;
+    if (!candidate) {
+      // Empty deck — kill the timer so we don't spin a no-op. The
+      // lint rule fires generically here, but this IS the canonical
+      // pattern (external state → react state).
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAutoAdvancing(false);
+      return;
+    }
+    const id = setTimeout(() => {
+      void advance("nope");
+    }, AUTO_ADVANCE_MS);
+    return () => clearTimeout(id);
+    // candidate.id is the only thing that should restart the timer.
+    // `advance` closes over candidate/decide/router but is stable
+    // enough for the use case — re-running on every render would
+    // reset the timer constantly.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoAdvancing, candidate?.id]);
 
   // During hydration / redirect, render minimal scaffolding.
   if (!loaded || (loaded && !isDiscoverEligible(userProfile))) {
@@ -258,11 +289,15 @@ export default function DiscoverPage() {
                   size="circle-lg"
                   tone="cta"
                   lift="float"
-                  aria-label="Pause"
-                  // No-op for now. Reserved for the auto-advance toggle
-                  // when slideshow mode lands.
+                  aria-label={autoAdvancing ? "Pause auto-advance" : "Start auto-advance (8s skips)"}
+                  aria-pressed={autoAdvancing}
+                  onClick={() => setAutoAdvancing((on) => !on)}
                 >
-                  <Pause className="text-black" fill="currentColor" />
+                  {autoAdvancing ? (
+                    <Pause className="text-black" fill="currentColor" />
+                  ) : (
+                    <Play className="text-black" fill="currentColor" />
+                  )}
                 </Button>
                 <Button
                   size="circle"

@@ -197,13 +197,9 @@ export default function PaywallPage() {
             {errorMessage}
           </p>
         ) : null}
-        <Button
-          variant="link"
-          size="tap"
-          className="self-center text-text-secondary underline"
-        >
-          Restore purchases
-        </Button>
+        {/* "Restore purchases" removed — concept is iOS/Android IAP
+            specific. On web, subscription state is server-side via
+            Stripe Customer ID; nothing to restore client-side. */}
         <p className="text-center text-caption leading-relaxed text-text-muted">
           Auto-renews. Cancel anytime in settings. By continuing you accept our{" "}
           <Link

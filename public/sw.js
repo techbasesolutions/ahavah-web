@@ -10,13 +10,13 @@
  * stale older bundle gets evicted in `activate`).
  */
 
-const CACHE = "ahavah-v3";
+const CACHE = "ahavah-v4";
 
 // Routes whose HTML we want available offline. Must all return 200 on
-// install or addAll() rejects the whole batch — keep this conservative
-// (root only). The /design-system + /paywall + /verify screens used to
-// be here and broke addAll when /design-system was removed.
-const APP_SHELL = ["/", "/manifest.json", "/icon-192.svg", "/icon-512.svg"];
+// install or addAll() rejects the whole batch — keep this conservative.
+// /offline is the dedicated edge-state page used as the navigation
+// fallback when the network is unreachable.
+const APP_SHELL = ["/", "/offline", "/manifest.json", "/icon-192.svg", "/icon-512.svg"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -72,12 +72,23 @@ self.addEventListener("fetch", (event) => {
   }
 
   // App-shell HTML routes: network-first, fall back to cache, fall
-  // back to root shell on full offline.
+  // back to /offline page on full network failure for navigation
+  // requests (so users get a real "you're offline" surface, not a
+  // confusing root-page fallback). Non-nav requests fall back to
+  // cached root.
   event.respondWith(
     fetch(req).then((res) => {
       const clone = res.clone();
       caches.open(CACHE).then((c) => c.put(req, clone)).catch(() => {});
       return res;
-    }).catch(() => caches.match(req).then((hit) => hit ?? caches.match("/")))
+    }).catch(() =>
+      caches.match(req).then((hit) => {
+        if (hit) return hit;
+        if (req.mode === "navigate") {
+          return caches.match("/offline").then((off) => off ?? caches.match("/"));
+        }
+        return caches.match("/");
+      })
+    )
   );
 });
