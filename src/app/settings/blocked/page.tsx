@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
@@ -27,34 +27,92 @@ import {
   PageShell,
 } from "@/components/app/page-shell";
 
+import { apiClient } from "@/lib/api-client";
+
 const fadeUp = {
   initial: { opacity: 0, y: 12 },
   animate: { opacity: 1, y: 0 },
 };
 
-// Cap stagger at 6 so a long block list doesn't slow-cascade.
 const staggerDelay = (i: number) => 0.05 + Math.min(i, 5) * 0.06;
 
-const SEED_BLOCKED = [
-  { id: "joao",   name: "João",   blockedAt: "Yesterday" },
-  { id: "amir",   name: "Amir",   blockedAt: "Last week" },
-  { id: "isabel", name: "Isabel", blockedAt: "2 weeks ago" },
-];
+type BlockedRow = {
+  uuid: string;
+  name: string;
+  blocked_at: string | null; // ISO timestamp
+};
 
-type State = "happy" | "loading" | "empty" | "error";
+type State = "loading" | "happy" | "empty" | "error";
+
+/** Format an ISO timestamp as a relative phrase ("Yesterday", "3 days ago"). */
+function relativeBlockedAt(iso: string | null): string {
+  if (!iso) return "Recently";
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "Recently";
+  const diffMs = Date.now() - then;
+  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (days < 1) return "Today";
+  if (days === 1) return "Yesterday";
+  if (days < 7) return `${days} days ago`;
+  if (days < 14) return "Last week";
+  if (days < 30) return `${Math.floor(days / 7)} weeks ago`;
+  if (days < 365) return `${Math.floor(days / 30)} months ago`;
+  return `${Math.floor(days / 365)} years ago`;
+}
 
 function BlockedContent() {
   const params = useSearchParams();
-  const state = (params.get("state") as State | null) ?? "happy";
+  // ?state=loading|empty|error overrides — used by design QA.
+  const debugState = params.get("state") as State | null;
 
-  const [users, setUsers] = useState(SEED_BLOCKED);
+  const [users, setUsers] = useState<BlockedRow[]>([]);
+  const [state, setState] = useState<State>("loading");
+  const [unblocking, setUnblocking] = useState<string | null>(null);
 
-  const visible = state === "empty" ? [] : users;
+  const refresh = useCallback(async () => {
+    setState("loading");
+    try {
+      const rows = await apiClient.get<BlockedRow[]>("/blocked");
+      setUsers(rows);
+      setState(rows.length === 0 ? "empty" : "happy");
+    } catch {
+      setState("error");
+    }
+  }, []);
+
+  useEffect(() => {
+    // Initial fetch — refresh() flips loading→happy/empty/error via
+    // setState. The lint rule fires generically here, but a one-shot
+    // backend fetch on mount IS the canonical effect use.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void refresh();
+  }, [refresh]);
+
+  const handleUnblock = async (uuid: string) => {
+    if (unblocking) return;
+    setUnblocking(uuid);
+    // Optimistic — drop immediately, restore on failure.
+    const prev = users;
+    setUsers((curr) => curr.filter((u) => u.uuid !== uuid));
+    try {
+      await apiClient.post(`/unskip/by-uuid/${uuid}`, {});
+      // Refresh to pick up empty-state transition correctly.
+      const remaining = prev.filter((u) => u.uuid !== uuid);
+      setState(remaining.length === 0 ? "empty" : "happy");
+    } catch {
+      setUsers(prev);
+    } finally {
+      setUnblocking(null);
+    }
+  };
+
+  const effectiveState: State = debugState ?? state;
+  const visible = effectiveState === "empty" ? [] : users;
 
   const body =
-    state === "loading" ? (
+    effectiveState === "loading" ? (
       <BlockedLoading />
-    ) : state === "error" ? (
+    ) : effectiveState === "error" ? (
       <motion.div
         {...fadeUp}
         transition={{ duration: 0.4, delay: 0.1 }}
@@ -62,7 +120,7 @@ function BlockedContent() {
       >
         <ErrorState
           description="We couldn't load your blocked users. Please try again."
-          retry={{ label: "Try again", onClick: () => window.location.reload() }}
+          retry={{ label: "Try again", onClick: () => void refresh() }}
         />
       </motion.div>
     ) : visible.length === 0 ? (
@@ -81,7 +139,7 @@ function BlockedContent() {
       <ItemGroup className="gap-1 px-3 pt-4">
         {visible.map((u, i) => (
           <motion.div
-            key={u.id}
+            key={u.uuid}
             {...fadeUp}
             transition={{ duration: 0.3, delay: staggerDelay(i) }}
             className="contents"
@@ -89,27 +147,24 @@ function BlockedContent() {
             <Item variant="muted">
               <ItemMedia>
                 <Avatar size="tap">
-                  <AvatarFallback variant="brand">{u.name[0]}</AvatarFallback>
+                  <AvatarFallback variant="brand">{u.name[0] ?? "?"}</AvatarFallback>
                 </Avatar>
               </ItemMedia>
               <ItemContent>
                 <ItemTitle className="text-meta text-white">{u.name}</ItemTitle>
                 <ItemDescription className="text-caption text-text-muted">
-                  Blocked {u.blockedAt}
+                  Blocked {relativeBlockedAt(u.blocked_at)}
                 </ItemDescription>
               </ItemContent>
               <ItemActions>
-                {/* Per-row aria-label so SRs hear "Unblock João" not just
-                    repeated "Unblock". Visible button text stays "Unblock". */}
                 <Button
                   variant="outlineSubtle"
                   size="tap"
                   aria-label={`Unblock ${u.name}`}
-                  onClick={() =>
-                    setUsers((prev) => prev.filter((p) => p.id !== u.id))
-                  }
+                  disabled={unblocking === u.uuid}
+                  onClick={() => void handleUnblock(u.uuid)}
                 >
-                  Unblock
+                  {unblocking === u.uuid ? "…" : "Unblock"}
                 </Button>
               </ItemActions>
             </Item>
@@ -149,9 +204,6 @@ export default function BlockedSettingsPage() {
 }
 
 function BlockedLoading() {
-  // Skeleton row mirrors the eventual Item shape (ItemMedia / ItemContent
-  // / ItemActions) so the load-to-loaded transition does not shift any
-  // element. Per Phase 6 R8 ("skeleton matches eventual layout's bones").
   return (
     <ItemGroup className="gap-1 px-3 pt-4">
       {[0, 1, 2].map((i) => (
