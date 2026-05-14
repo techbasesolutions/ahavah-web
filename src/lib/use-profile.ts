@@ -310,12 +310,16 @@ export type UseProfileResult = {
 };
 
 export function useProfile(): UseProfileResult {
-  // Seed from cache. `useState(initFn)` runs the initialiser exactly once
-  // per component instance and is SSR-safe because `loadProfileFromCache`
-  // no-ops on the server (returns null).
-  const [profile, setProfileState] = useState<Partial<Profile>>(
-    () => loadProfileFromCache() ?? {},
-  );
+  // Seed empty so SSR + first-client render match. The cache is read
+  // in a post-mount effect below — without this gating, every consumer
+  // that derives UI from `profile.X` triggers an SSR/CSR hydration
+  // mismatch (server has no localStorage, client does). React then
+  // bails out and re-renders the subtree, which intermittently breaks
+  // event handler binding on radio cards / pickers / form controls.
+  // Bug class first surfaced on /onboarding/country (2026-05-13);
+  // moving the gate up to the hook fixes every cache-derived consumer
+  // at once instead of per-page mounted-flag patches.
+  const [profile, setProfileState] = useState<Partial<Profile>>({});
   const [loaded, setLoaded] = useState(false);
   // Last successful server snapshot — kept for debugging / future
   // reconciliation logic (e.g. server-wins conflict resolution). Not part
@@ -387,11 +391,20 @@ export function useProfile(): UseProfileResult {
   }, []);
 
   useEffect(() => {
-    // Syncing React state with an external system (the backend) is the
-    // canonical use case for `useEffect`. eslint's `set-state-in-effect`
-    // rule fires generically because `refreshProfile` eventually calls
-    // setState; here that is exactly the intended behavior.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // Hydrate state from localStorage AFTER mount. This is what was
+    // previously the useState initialiser; moving it here is the
+    // SSR/CSR-safe form. Without this, every consumer that derives UI
+    // from `profile.X` triggers a hydration mismatch (server has no
+    // localStorage; client does).
+    const cached = loadProfileFromCache();
+    if (cached) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setProfileState(cached);
+      profileRef.current = cached;
+    }
+    // Then fire the network-side hydration. Syncing React state with an
+    // external system (the backend) is the canonical use case for
+    // `useEffect`.
     void refreshProfile();
   }, [refreshProfile]);
 
