@@ -14,17 +14,27 @@ import { cn } from "@/lib/utils";
 // viewport bottom) plus a small gap. Was previously pb-24 (96px) — too
 // generous, leaving a visible gap of bg-indigo between content and nav.
 //
-// `min-h-screen` (NOT `min-h-full` and NOT `h-full`):
+// `min-h-dvh` (NOT `min-h-screen` / `h-full` / `min-h-full`):
 //   - `h-full`     was clamping content to exactly 100% of parent — broke
 //                  scroll when content overflowed.
 //   - `min-h-full` allowed growing but `flex-1` children got ZERO height
 //                  because the parent's height was content-driven (no
 //                  reference height to share) — broke /discover where the
 //                  swipe deck depends on flex-1 to fill the viewport.
-//   - `min-h-screen` guarantees AT LEAST 100vh (a known reference height
-//                  for flex-1 children to share) AND lets the shell grow
-//                  past 100vh when content overflows. Best of both.
-const pageShellVariants = cva("flex min-h-screen flex-col", {
+//   - `min-h-screen` (= 100vh) is the LARGE-viewport unit on mobile —
+//                  computed as if the URL bar is hidden. On first paint
+//                  with the address bar shown, the page renders taller
+//                  than the visible area, the /discover card overflows
+//                  the viewport, and its `absolute bottom-4` action row
+//                  ends up off-screen behind the BottomNav. Surfaced
+//                  by user 2026-05-14: "the card still loads like this"
+//                  with screenshots showing buttons clipped on first
+//                  render, then correct after any interaction.
+//   - `min-h-dvh`  uses the DYNAMIC viewport height — recomputes as
+//                  browser chrome shows/hides, so the layout always
+//                  matches the actually-visible area. Safari/Chrome
+//                  mobile have supported it since 2022.
+const pageShellVariants = cva("flex min-h-dvh flex-col", {
   variants: {
     bottomPad: {
       none:    "",
