@@ -63,6 +63,10 @@ export default function DiscoverPage() {
     setResettingDecisions(true);
     try {
       await apiClient.post("/decisions/reset", {});
+      // Clear the local decided set too — without this, candidates the
+      // user swiped on stay hidden client-side even though the backend
+      // now has them back in the deck.
+      setDecidedIds(new Set());
       // Bounce filters to trigger useDiscoverDeck's effect: setFilters
       // with the same shape re-fetches /search since the backend now
       // has an empty search_cache for us. A no-op spread is enough
@@ -96,11 +100,21 @@ export default function DiscoverPage() {
 
   const { items, loadMore, hasMore } = useDiscoverDeck(httpFilters);
 
-  // Hide candidates currently mid-decision so the visible card never goes
-  // back to one we just acted on while the network call is in flight.
+  // Locally-decided ids. The backend records the decision in `liked` /
+  // `skipped` / `swipe` and Q_UNCACHED_SEARCH_2 excludes them on the
+  // NEXT /search call — but the items list is paginated and not
+  // refetched per swipe, so without a local filter the just-swiped
+  // candidate stays in the deck and the Like / Skip buttons appear to
+  // do nothing.
+  const [decidedIds, setDecidedIds] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+
+  // Hide candidates currently mid-decision OR already decided in this
+  // session so the visible card never repeats one we just acted on.
   const visibleItems = useMemo(
-    () => items.filter((c) => !pendingIds.has(c.id)),
-    [items, pendingIds],
+    () => items.filter((c) => !pendingIds.has(c.id) && !decidedIds.has(c.id)),
+    [items, pendingIds, decidedIds],
   );
 
   const candidate = visibleItems[0];
@@ -120,15 +134,29 @@ export default function DiscoverPage() {
   const advance = useCallback(
     async (decision: "like" | "nope") => {
       if (!candidate) return;
+      const candidateId = candidate.id;
       setExitDirection(decision === "like" ? "right" : "left");
+      // Optimistically remove this candidate from the visible deck so the
+      // card animates out + the next one comes in even if the backend is
+      // slow. If the decide() POST throws, undo below.
+      setDecidedIds((prev) => {
+        const next = new Set(prev);
+        next.add(candidateId);
+        return next;
+      });
       try {
-        const result = await decide(candidate.id, decision);
+        const result = await decide(candidateId, decision);
         if (decision === "like" && result.matchId) {
           router.push(`/match?matchId=${encodeURIComponent(result.matchId)}`);
           return;
         }
       } catch {
-        // useDecisions surfaces error; visible state recovers via pendingIds.
+        // POST failed — un-hide the candidate so the user can try again.
+        setDecidedIds((prev) => {
+          const next = new Set(prev);
+          next.delete(candidateId);
+          return next;
+        });
       }
       // Prefetch when the deck is running low.
       if (hasMore && visibleItems.length <= 3) void loadMore();

@@ -11,7 +11,7 @@ import {
 
 import { useProfile } from "@/lib/use-profile";
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
@@ -76,6 +76,12 @@ export default function ProfilePage() {
   const firstName = profile.firstName ?? "";
   const age = typeof profile.age === "number" && profile.age > 0 ? profile.age : null;
   const initial = firstName ? firstName[0].toUpperCase() : "•";
+  // Primary photo for the hero avatar — first uploaded photo with a
+  // resolved cdn_url. Falls back to the initial when no photos exist
+  // (covers the brief signup → /onboarding/photos window).
+  const primaryPhotoUrl = profile.photos?.find(
+    (p) => p && p.cdn_url && p.cdn_url.length > 0,
+  )?.cdn_url;
   // /profile-info returns 'verification level' (space-separated key) as
   // the human-readable string ('No verification', 'Photos', 'Photos + ID').
   // Show the Pill only when the user has cleared at least the lowest tier.
@@ -110,6 +116,9 @@ export default function ProfilePage() {
                 aria-label="Your profile"
                 className="ring-2 ring-white/40"
               >
+                {primaryPhotoUrl ? (
+                  <AvatarImage src={primaryPhotoUrl} alt={firstName || "Your photo"} />
+                ) : null}
                 <AvatarFallback variant="brand">{initial}</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">

@@ -10,6 +10,8 @@ import {
 } from "@/lib/use-profile-storage";
 import { apiClient, ApiError, setSessionToken } from "@/lib/api-client";
 import { clearChatSession, writeChatSession } from "@/lib/chat-session";
+import { cdnUrlFor } from "@/lib/photo-storage";
+import type { PhotoRecord } from "@/lib/photo-types";
 import {
   readOnboarded,
   writeOnboarded,
@@ -206,6 +208,34 @@ function reverseTranslateValue(
       return typeof serverValue === "string" ? serverValue : undefined;
     case "ethnicities":
       return typeof serverValue === "string" ? [serverValue] : undefined;
+    case "photos": {
+      // Backend `photo` field: sparse map `{ "1": uuid1, "2": uuid2, ... }`.
+      // Convert to a position-ordered PhotoRecord[] so consumers reading
+      // profile.photos[i].cdn_url get a real CDN URL. Holes (missing
+      // positions) collapse — we don't preserve gaps, the UI doesn't need
+      // them and the gradient fallback handles missing slots.
+      if (
+        serverValue === null ||
+        typeof serverValue !== "object" ||
+        Array.isArray(serverValue)
+      ) {
+        return undefined;
+      }
+      const entries = Object.entries(serverValue as Record<string, unknown>)
+        .filter(([, v]) => typeof v === "string" && (v as string).length > 0)
+        .map(([k, v]) => [Number(k), v as string] as const)
+        .filter(([k]) => Number.isFinite(k))
+        .sort(([a], [b]) => a - b);
+      const photos: PhotoRecord[] = entries.map(([position, uuid]) => ({
+        uuid,
+        cdn_url: cdnUrlFor(uuid),
+        position,
+        moderation_state: "approved",
+        nsfw_score: null,
+        created_at: "",
+      }));
+      return photos;
+    }
     default:
       return serverValue;
   }
@@ -221,6 +251,10 @@ const SERVER_TO_CLIENT_KEY: Record<string, keyof Profile> = {
   "looking for": "intent",
   "relationship status": "maritalStatus",
   "has kids": "children",
+  // /profile-info returns `photo` as a sparse `{ "1": uuid1, "2": uuid2 }`
+  // map. Map it to the client-side `photos` array (PhotoRecord[]) so the
+  // hero card + edit screen see the real uploads.
+  photo: "photos",
 };
 
 function translateInbound(server: Partial<Profile> | Record<string, unknown>): Partial<Profile> {
