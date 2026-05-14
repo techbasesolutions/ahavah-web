@@ -7,15 +7,15 @@ import { motion } from "motion/react";
 import {
   ArrowLeft,
   AtSign,
+  Check,
   ChevronRight,
-  KeyRound,
   Languages,
   Loader2,
   LogOut,
-  Phone,
   Trash2,
 } from "lucide-react";
 
+import { apiClient } from "@/lib/api-client";
 import { useProfile } from "@/lib/use-profile";
 
 import { Button } from "@/components/ui/button";
@@ -52,29 +52,96 @@ const fadeUp = {
   animate: { opacity: 1, y: 0 },
 };
 
-const ACCOUNT_FIELDS: ReadonlyArray<{
-  Icon: typeof AtSign;
-  title: string;
-  value: string;
-}> = [
-  { Icon: AtSign,    title: "Email",            value: "ehud@example.com" },
-  { Icon: Phone,     title: "Phone number",     value: "+1 (246) 555-0118" },
-  { Icon: KeyRound,  title: "Password",         value: "Last changed 3 months ago" },
-  { Icon: Languages, title: "Preferred language", value: "English (US)" },
+// Languages the user can pick as their primary. Maps to backend's
+// person.primary_language column (default 'EN-US'). Drives the auto-
+// translate target language and any future i18n surface.
+const LANGUAGES: ReadonlyArray<{ code: string; label: string }> = [
+  { code: "EN-US", label: "English (US)" },
+  { code: "EN-GB", label: "English (UK)" },
+  { code: "ES",    label: "Spanish" },
+  { code: "FR",    label: "French" },
+  { code: "PT",    label: "Portuguese" },
+  { code: "RU",    label: "Russian" },
+  { code: "AR",    label: "Arabic" },
+  { code: "DE",    label: "German" },
+  { code: "IT",    label: "Italian" },
+  { code: "HE",    label: "Hebrew" },
 ];
+
+function languageLabel(code: string | undefined): string {
+  if (!code) return "English (US)";
+  return LANGUAGES.find((l) => l.code === code)?.label ?? code;
+}
 
 export default function AccountSettingsPage() {
   const router = useRouter();
-  const { signOut } = useProfile();
+  const { profile, update, signOut } = useProfile();
+  // /me adds `email` + `primary_language` to the profile cache; they
+  // aren't on the Profile type yet so cast at this consumer.
+  const accountFields = profile as Partial<Record<string, unknown>>;
+  const email = typeof accountFields.email === "string" ? accountFields.email : "";
+  const primaryLanguage =
+    typeof accountFields.primary_language === "string"
+      ? accountFields.primary_language
+      : undefined;
+
   const [signOutOpen, setSignOutOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [langOpen, setLangOpen] = useState(false);
+  const [savingLang, setSavingLang] = useState(false);
+  const [emailChangeOpen, setEmailChangeOpen] = useState(false);
 
   const handleSignOut = async () => {
     if (signingOut) return;
     setSigningOut(true);
     await signOut();
     router.push("/");
+  };
+
+  const handleDelete = async () => {
+    if (deleting) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await apiClient.delete("/account");
+      // Backend hard-deletes; clear local state via signOut and bounce home.
+      await signOut();
+      router.push("/");
+    } catch {
+      setDeleteError("Couldn't delete your account. Try again or contact admin@ahavah.app.");
+      setDeleting(false);
+    }
+  };
+
+  const handleLanguagePick = async (code: string) => {
+    if (savingLang) return;
+    setSavingLang(true);
+    try {
+      // primary_language is a top-level column on the person table;
+      // PATCH /profile-info accepts it directly. We bypass `update()`'s
+      // outbound translator (which doesn't yet map primary_language) and
+      // PATCH directly, then merge into local profile cache.
+      await apiClient.patch("/profile-info", { primary_language: code });
+      await update({} as never);
+      // Defensive — also write through to local cache via update's
+      // ref-based merge so the row reflects immediately. We pass the
+      // raw key since translateOutbound has no mapping; the empty patch
+      // above just triggers a re-render.
+      const next = { ...(profile as Record<string, unknown>), primary_language: code };
+      try {
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem("ahavah.profile.v1", JSON.stringify(next));
+        }
+      } catch { /* localStorage full / disabled — non-fatal */ }
+      setLangOpen(false);
+    } catch {
+      // Quiet failure; row keeps the prior value.
+    } finally {
+      setSavingLang(false);
+    }
   };
 
   return (
@@ -93,6 +160,10 @@ export default function AccountSettingsPage() {
       </PageHeader>
 
       <div className="flex flex-col gap-6 px-3 pt-4">
+        {/* Sign-in details — email + preferred language. Phone + password
+            rows deliberately removed: app uses OTP-only auth (no
+            password), and phone-number swapping requires backend
+            endpoints that don't exist yet. */}
         <motion.section
           {...fadeUp}
           transition={{ duration: 0.3, delay: 0.05 }}
@@ -100,26 +171,101 @@ export default function AccountSettingsPage() {
         >
           <h2 className="px-3 text-overline text-text-muted">Sign-in</h2>
           <ItemGroup className="gap-1">
-            {ACCOUNT_FIELDS.map((field) => (
-              <Item key={field.title} variant="muted">
-                <ItemMedia>
-                  <IconBadge tone="brand">
-                    <field.Icon />
-                  </IconBadge>
-                </ItemMedia>
-                <ItemContent>
-                  <ItemTitle className="text-meta text-white">
-                    {field.title}
-                  </ItemTitle>
-                  <ItemDescription className="text-caption text-text-muted">
-                    {field.value}
-                  </ItemDescription>
-                </ItemContent>
-                <ItemActions>
-                  <ChevronRight className="size-4 text-text-muted" />
-                </ItemActions>
-              </Item>
-            ))}
+            {/* Email row — opens a modal explaining how to change it.
+                Real change-email flow needs a backend endpoint that
+                doesn't exist yet; for now we surface the value and a
+                clear path (contact admin) instead of a fake button. */}
+            <Dialog open={emailChangeOpen} onOpenChange={setEmailChangeOpen}>
+              <DialogTrigger
+                nativeButton={false}
+                render={
+                  <Item variant="muted" className="cursor-pointer text-left">
+                    <ItemMedia>
+                      <IconBadge tone="brand">
+                        <AtSign />
+                      </IconBadge>
+                    </ItemMedia>
+                    <ItemContent>
+                      <ItemTitle className="text-meta text-white">Email</ItemTitle>
+                      <ItemDescription className="text-caption text-text-muted">
+                        {email || "Loading…"}
+                      </ItemDescription>
+                    </ItemContent>
+                    <ItemActions>
+                      <ChevronRight className="size-4 text-text-muted" />
+                    </ItemActions>
+                  </Item>
+                }
+              />
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Change your email</DialogTitle>
+                  <DialogDescription>
+                    Email changes require support assistance for security.
+                    Contact <span className="text-white">admin@ahavah.app</span> from
+                    your current email and we&apos;ll switch it within 24 hours.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <DialogClose
+                    render={<Button variant="outlineSubtle" size="lg">Got it</Button>}
+                  />
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={langOpen} onOpenChange={setLangOpen}>
+              <DialogTrigger
+                nativeButton={false}
+                render={
+                  <Item variant="muted" className="cursor-pointer text-left">
+                    <ItemMedia>
+                      <IconBadge tone="brand">
+                        <Languages />
+                      </IconBadge>
+                    </ItemMedia>
+                    <ItemContent>
+                      <ItemTitle className="text-meta text-white">
+                        Preferred language
+                      </ItemTitle>
+                      <ItemDescription className="text-caption text-text-muted">
+                        {languageLabel(primaryLanguage)}
+                      </ItemDescription>
+                    </ItemContent>
+                    <ItemActions>
+                      <ChevronRight className="size-4 text-text-muted" />
+                    </ItemActions>
+                  </Item>
+                }
+              />
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Preferred language</DialogTitle>
+                  <DialogDescription>
+                    Used for auto-translate and account emails. Changes apply immediately.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex max-h-80 flex-col gap-1 overflow-y-auto py-2">
+                  {LANGUAGES.map((lang) => {
+                    const active = (primaryLanguage ?? "EN-US") === lang.code;
+                    return (
+                      <button
+                        key={lang.code}
+                        type="button"
+                        disabled={savingLang}
+                        onClick={() => void handleLanguagePick(lang.code)}
+                        className="flex items-center justify-between rounded-xl px-4 py-3 text-meta text-white outline-none hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-lavender disabled:opacity-50"
+                      >
+                        <span>{lang.label}</span>
+                        {active ? (
+                          <Check className="size-4 text-lime" aria-label="Selected" />
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              </DialogContent>
+            </Dialog>
           </ItemGroup>
         </motion.section>
 
@@ -134,19 +280,14 @@ export default function AccountSettingsPage() {
               <DialogTrigger
                 nativeButton={false}
                 render={
-                  <Item
-                    variant="muted"
-                    className="cursor-pointer text-left"
-                  >
+                  <Item variant="muted" className="cursor-pointer text-left">
                     <ItemMedia>
                       <IconBadge tone="brand">
                         <LogOut />
                       </IconBadge>
                     </ItemMedia>
                     <ItemContent>
-                      <ItemTitle className="text-meta text-white">
-                        Log out
-                      </ItemTitle>
+                      <ItemTitle className="text-meta text-white">Log out</ItemTitle>
                     </ItemContent>
                     <ItemActions>
                       <ChevronRight className="size-4 text-text-muted" />
@@ -188,10 +329,7 @@ export default function AccountSettingsPage() {
               <DialogTrigger
                 nativeButton={false}
                 render={
-                  <Item
-                    variant="muted"
-                    className="cursor-pointer text-left"
-                  >
+                  <Item variant="muted" className="cursor-pointer text-left">
                     <ItemMedia>
                       <IconBadge tone="destructive">
                         <Trash2 />
@@ -215,21 +353,38 @@ export default function AccountSettingsPage() {
                 <DialogHeader>
                   <DialogTitle>Delete your account?</DialogTitle>
                   <DialogDescription>
-                    This will permanently erase your profile, photos, matches, and messages.
-                    This cannot be undone.
+                    This will permanently erase your profile, photos, matches, and
+                    messages. This cannot be undone.
                   </DialogDescription>
                 </DialogHeader>
+                {deleteError ? (
+                  <p
+                    role="alert"
+                    aria-live="polite"
+                    className="text-caption font-semibold text-pink"
+                  >
+                    {deleteError}
+                  </p>
+                ) : null}
                 <DialogFooter>
                   <DialogClose
                     render={<Button variant="outlineSubtle" size="lg">Cancel</Button>}
                   />
-                  <DialogClose
-                    render={
-                      <Button size="lg" variant="destructive">
-                        Delete forever
-                      </Button>
-                    }
-                  />
+                  <Button
+                    size="lg"
+                    variant="destructive"
+                    onClick={handleDelete}
+                    disabled={deleting}
+                  >
+                    {deleting ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" />
+                        Deleting...
+                      </>
+                    ) : (
+                      "Delete forever"
+                    )}
+                  </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
