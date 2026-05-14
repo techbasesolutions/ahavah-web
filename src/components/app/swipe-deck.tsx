@@ -87,11 +87,13 @@ export function SwipeDeck({
     [items.length, onDecide, onNeedMore, pageThreshold],
   );
 
-  // Tap-button fallback — NOPE / LIKE. The brief calls for these to always
-  // be rendered so keyboard / non-touch users have a path to commit. We
-  // hide them at `lg:` when motion is allowed (touch users get swipe);
-  // reduce-motion forces them visible at every breakpoint.
-  const fallbackHidden = reduceMotion ? "" : "lg:hidden";
+  // Tap-button fallback — NOPE / LIKE. Always visible on every breakpoint.
+  // The earlier `lg:hidden` conditional accidentally hid them in production
+  // for users without prefers-reduced-motion (and was confusing UX anyway —
+  // having buttons appear/disappear by viewport width is a bad pattern).
+  // Swipe gesture + tap-buttons coexist on every device.
+  void reduceMotion;
+  const fallbackHidden = "";
 
   if (items.length === 0) {
     return (
@@ -108,13 +110,9 @@ export function SwipeDeck({
 
   return (
     <div className={cn("relative flex w-full flex-1 flex-col", className)}>
-      {/* Card stack — sized purely by `aspect-3/4 w-full` so its height
-          is `width × 4/3` and never grows to consume the parent's
-          remaining height. The OUTER deck container gets `flex-1` (it
-          fills the route), then the card stack sits at top with the
-          tap-buttons immediately below. Earlier `flex-1` here pushed
-          the buttons off-screen. */}
-      <div className="relative aspect-3/4 w-full shrink-0">
+      {/* Card stack — fills available vertical space (flex-1) inside the
+          deck container; cards inside are `absolute inset-0`. */}
+      <div className="relative aspect-3/4 w-full flex-1">
         <AnimatePresence initial={false}>
           {visible.map((item, index) => {
             const offsetY = index * STACK_OFFSET_PER_INDEX;
