@@ -444,16 +444,20 @@ export function useProfile(): UseProfileResult {
   }, [profile]);
 
   const refreshProfile = useCallback(async () => {
-    // /me requires a person row. Onboardees don't have one yet and the
-    // endpoint 401s for them. Hitting it anyway and then clobbering local
-    // state on 401 wipes the optimistically-cached answers from earlier
-    // onboarding steps (sex, dob, ...), so the next page redirects back
-    // to "fix" the now-missing field. During onboarding, the cache *is*
-    // the source of truth — don't touch it.
-    if (!readOnboarded()) {
-      setLoaded(true);
-      return;
-    }
+    // The localStorage `ahavah.onboarded` flag is a CACHE of server
+    // truth, NOT the source of truth. We probe /me first — if the
+    // backend treats the session as onboarded (returns 200 with a
+    // person_uuid) we trust that, regardless of what the local flag
+    // says. This is what makes "re-onboard on every sign-in" stop
+    // happening: any time anything wipes localStorage (browser cache
+    // clear, incognito-to-normal transition, SW unregister) but the
+    // session cookie/token survives, /me restores the flag.
+    //
+    // If /me 401s (no session at all), or 400s ("Not authorized" for
+    // onboardees who lack a person row), we leave the cache alone —
+    // the wizard's optimistic state IS the source of truth during
+    // onboarding and clobbering it would redirect users back to "fix"
+    // a step they already completed locally.
     try {
       // /me is lean (just person_id + name post-Q&A-strip), so we
       // separately pull GET /profile-info for the full record (gender,
@@ -471,7 +475,13 @@ export function useProfile(): UseProfileResult {
       // /finish-onboarding. Without it `useInbox` sits in a permanent
       // skeleton and the chat WebSocket can't SASL-bind.
       const personUuid = typeof me.person_uuid === "string" ? me.person_uuid : null;
-      if (personUuid) writeChatSession({ myUuid: personUuid });
+      if (personUuid) {
+        writeChatSession({ myUuid: personUuid });
+        // Self-heal: the backend says this user has a person row, so
+        // they are onboarded. Restore the local flag if it was wiped.
+        // Idempotent — re-writing "1" on every refresh is cheap.
+        if (!readOnboarded()) writeOnboarded(true);
+      }
       const translated = {
         ...translateInbound(me),
         ...translateInbound(profileInfo),
@@ -484,15 +494,23 @@ export function useProfile(): UseProfileResult {
       setProfileState((prev) => ({ ...prev, ...translated }));
       saveProfileToCache({ ...readCachedOrEmpty(), ...translated });
     } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
-        // Session expired post-onboarding. Drop the cache so we don't
-        // paint stale data on the next mount.
+      // 401 from /me means EITHER (a) session expired post-onboarding,
+      // (b) we're an onboardee (no person row yet → /me decorator
+      // returns 401). Tell them apart by what the local cache+flag said
+      // at the time of the request:
+      //   - flag set → user WAS onboarded → 401 = session truly expired,
+      //     clear the cache so a stale snapshot doesn't paint.
+      //   - flag unset → user is an onboardee; keep their wizard cache
+      //     untouched. /me 401 here is expected and harmless.
+      // Non-401 errors are swallowed so the app stays usable offline.
+      if (
+        err instanceof ApiError &&
+        err.status === 401 &&
+        readOnboarded()
+      ) {
         clearProfileCache();
         setProfileState({});
       }
-      // Non-401 errors (network down, 5xx, etc.) are swallowed: we keep
-      // the cached state visible so the app stays usable offline. A
-      // re-mount or explicit `refreshProfile()` call will retry.
     } finally {
       setLoaded(true);
     }
