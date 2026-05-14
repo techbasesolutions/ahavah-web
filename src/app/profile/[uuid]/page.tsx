@@ -247,6 +247,52 @@ export default function ProfileDetailPage({ params }: Props) {
         ? "Back to matches"
         : "Back to discover";
 
+  // Swipe-down-to-dismiss — pairs with /discover's swipe-up-to-open
+  // for gestural symmetry. Only active when ?from=discover so it
+  // doesn't hijack scrolling on /map / /matches entries.
+  //
+  // Implemented with raw touch handlers (NOT motion drag) so the
+  // page's native vertical scrolling stays intact: we only count
+  // the gesture as "dismiss" when (a) the page is scrolled to the
+  // very top at gesture start AND (b) the user pulled down at
+  // least 100px (or 60px with strong velocity). Anywhere else and
+  // it's a normal scroll, untouched.
+  useEffect(() => {
+    if (from !== "discover") return;
+    if (typeof window === "undefined") return;
+    let start: { y: number; scrollY: number; t: number } | null = null;
+    const onStart = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      start = {
+        y: e.touches[0].clientY,
+        scrollY: window.scrollY,
+        t: Date.now(),
+      };
+    };
+    const onEnd = (e: TouchEvent) => {
+      const s = start;
+      start = null;
+      if (!s) return;
+      // Only trigger when the page started AT the top — otherwise the
+      // user was just scrolling and we'd hijack their gesture.
+      if (s.scrollY > 4) return;
+      const last = e.changedTouches[0];
+      if (!last) return;
+      const dy = last.clientY - s.y;
+      const dt = Math.max(1, Date.now() - s.t);
+      const velocity = dy / dt; // px / ms; positive = downward
+      if (dy > 100 || (dy > 60 && velocity > 0.4)) {
+        router.push(backHref);
+      }
+    };
+    window.addEventListener("touchstart", onStart, { passive: true });
+    window.addEventListener("touchend", onEnd, { passive: true });
+    return () => {
+      window.removeEventListener("touchstart", onStart);
+      window.removeEventListener("touchend", onEnd);
+    };
+  }, [from, backHref, router]);
+
   // Photo carousel — slot count is the actual photos length (clamped
   // 1..3 so the page never collapses to zero AND a power-user with 7
   // photos still gets a reasonably-sized timeline). When a slot is
