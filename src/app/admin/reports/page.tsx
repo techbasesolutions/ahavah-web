@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ShieldAlert, TriangleAlert } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Pill } from "@/components/kibo-ui/pill";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState, ErrorState } from "@/components/app/empty-state";
 import {
   PageHeader,
   PageHeaderTitle,
@@ -28,7 +30,7 @@ import { isAdminOrMod } from "@/lib/profile-schema";
  *
  * Auth (defense in depth):
  *   1. Client-side: profile.roles must include 'admin' or 'mod' —
- *      page renders a 403 surface otherwise. Doesn't actually
+ *      page renders a Forbidden empty state otherwise. Doesn't actually
  *      protect anything (the data isn't fetched until the gate
  *      passes), it just stops the network call.
  *   2. Server-side: GET /admin/reports re-validates roles in
@@ -56,15 +58,17 @@ type ReportsResponse = {
   count: number;
 };
 
+type State =
+  | { kind: "loading" }
+  | { kind: "happy"; reports: ReadonlyArray<AdminReport> }
+  | { kind: "empty" }
+  | { kind: "forbidden" }
+  | { kind: "error"; message: string };
+
 export default function AdminReportsPage() {
   const { profile, loaded } = useProfile();
-  const [state, setState] = useState<
-    | { kind: "loading" }
-    | { kind: "happy"; reports: ReadonlyArray<AdminReport> }
-    | { kind: "empty" }
-    | { kind: "forbidden" }
-    | { kind: "error"; message: string }
-  >({ kind: "loading" });
+  const [state, setState] = useState<State>({ kind: "loading" });
+  const [reloadKey, setReloadKey] = useState(0);
 
   const isAuthorized = isAdminOrMod(profile);
 
@@ -80,6 +84,7 @@ export default function AdminReportsPage() {
     }
 
     let cancelled = false;
+    setState({ kind: "loading" });
     void apiClient
       .get<ReportsResponse>("/admin/reports")
       .then((res) => {
@@ -107,7 +112,7 @@ export default function AdminReportsPage() {
     return () => {
       cancelled = true;
     };
-  }, [loaded, isAuthorized]);
+  }, [loaded, isAuthorized, reloadKey]);
 
   return (
     <PageShell>
@@ -125,17 +130,30 @@ export default function AdminReportsPage() {
 
       <div className="px-5 pb-12 pt-4">
         {state.kind === "loading" ? (
-          <div className="space-y-3">
+          <div className="space-y-3" aria-busy="true" aria-live="polite">
             {[0, 1, 2].map((i) => (
               <Skeleton key={i} className="h-24 w-full rounded-2xl" />
             ))}
           </div>
         ) : state.kind === "forbidden" ? (
-          <ForbiddenState />
+          <EmptyState
+            variant="you-blocked-everyone"
+            title="Moderator access required"
+            description="This surface is only available to operators with the admin or mod role on their account."
+            action={{ label: "Back to profile", href: "/profile" }}
+          />
         ) : state.kind === "error" ? (
-          <ErrorState message={state.message} />
+          <ErrorState
+            title="Couldn't load reports"
+            description={state.message}
+            retry={{ onClick: () => setReloadKey((k) => k + 1) }}
+          />
         ) : state.kind === "empty" ? (
-          <EmptyState />
+          <EmptyState
+            variant="no-messages"
+            title="Inbox zero — no open reports"
+            description="Anyone the community blocks with a report reason shows up here."
+          />
         ) : (
           <ReportsList reports={state.reports} />
         )}
@@ -146,128 +164,96 @@ export default function AdminReportsPage() {
 
 function ReportsList({ reports }: { reports: ReadonlyArray<AdminReport> }) {
   return (
-    <div className="space-y-3">
+    <section
+      role="region"
+      aria-label="Abuse reports"
+      className="space-y-3"
+    >
       <p className="text-caption text-text-secondary">
         Showing {reports.length} most recent. Server caps at 200.
       </p>
       {reports.map((r) => (
-        <article
+        <Card
           key={`${r.reporter_id}-${r.reported_id}-${r.created_at}`}
-          className="rounded-2xl bg-bg-elevated p-4 text-body text-white"
+          tone="elevated"
+          size="sm"
         >
-          <header className="flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <p className="text-meta font-medium leading-tight">
-                {r.reporter_name} reported {r.reported_name}
-              </p>
-              <p className="mt-0.5 text-caption leading-tight text-text-secondary">
-                {formatStamp(r.created_at)}
-              </p>
+          <CardHeader>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-meta font-medium leading-tight text-white">
+                  {r.reporter_name} reported {r.reported_name}
+                </p>
+                <p className="mt-0.5 text-caption leading-tight text-text-secondary">
+                  {formatStamp(r.created_at)}
+                </p>
+              </div>
+              <div className="flex flex-wrap justify-end gap-1.5">
+                {!r.reported_active ? (
+                  <Pill variant="lavender" size="sm">
+                    Account inactive
+                  </Pill>
+                ) : null}
+                {r.reported_verification_required ? (
+                  <Pill variant="lavender" size="sm">
+                    Verification flagged
+                  </Pill>
+                ) : null}
+              </div>
             </div>
-            <div className="flex flex-wrap justify-end gap-1.5">
-              {!r.reported_active ? (
-                <Pill variant="lavender" size="sm">
-                  Account inactive
-                </Pill>
-              ) : null}
-              {r.reported_verification_required ? (
-                <Pill variant="lavender" size="sm">
-                  Verification flagged
-                </Pill>
-              ) : null}
-            </div>
-          </header>
+          </CardHeader>
 
-          <p className="mt-3 rounded-lg bg-bg-canvas/40 px-3 py-2 text-caption italic text-white/85">
-            &ldquo;{r.reason || "(no reason given)"}&rdquo;
-          </p>
+          <CardContent className="space-y-3">
+            <p className="rounded-lg bg-bg-canvas/40 px-3 py-2 text-caption italic text-white/85">
+              &ldquo;{r.reason || "(no reason given)"}&rdquo;
+            </p>
 
-          <dl className="mt-3 grid grid-cols-1 gap-1 text-caption text-text-secondary">
-            <div className="flex justify-between gap-2">
-              <dt>Reporter</dt>
-              <dd className="truncate text-right text-white">
-                {r.reporter_email}
-              </dd>
-            </div>
-            <div className="flex justify-between gap-2">
-              <dt>Reported</dt>
-              <dd className="truncate text-right text-white">
-                {r.reported_email}
-              </dd>
-            </div>
-          </dl>
+            <dl className="grid grid-cols-1 gap-1 text-caption text-text-secondary">
+              <div className="flex justify-between gap-2">
+                <dt>Reporter</dt>
+                <dd className="truncate text-right text-white">
+                  {r.reporter_email}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-2">
+                <dt>Reported</dt>
+                <dd className="truncate text-right text-white">
+                  {r.reported_email}
+                </dd>
+              </div>
+            </dl>
 
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Link
-              href={`/profile/${r.reported_uuid}?from=admin`}
-              prefetch={false}
-              className="text-caption text-lavender underline-offset-2 hover:underline"
-            >
-              View reported profile →
-            </Link>
-            <Link
-              href={`/profile/${r.reporter_uuid}?from=admin`}
-              prefetch={false}
-              className="text-caption text-text-secondary underline-offset-2 hover:underline"
-            >
-              View reporter profile →
-            </Link>
-          </div>
-        </article>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="link"
+                size="sm"
+                render={
+                  <Link
+                    href={`/profile/${r.reported_uuid}?from=admin`}
+                    prefetch={false}
+                  />
+                }
+              >
+                View reported profile →
+              </Button>
+              <Button
+                variant="link"
+                size="sm"
+                className="text-text-secondary"
+                render={
+                  <Link
+                    href={`/profile/${r.reporter_uuid}?from=admin`}
+                    prefetch={false}
+                  />
+                }
+              >
+                View reporter profile →
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       ))}
-    </div>
-  );
-}
-
-function ForbiddenState() {
-  return (
-    <div className="flex flex-col items-center gap-4 px-6 py-12 text-center">
-      <div
-        aria-hidden
-        className="flex size-12 items-center justify-center rounded-full bg-bg-elevated text-warning"
-      >
-        <ShieldAlert className="size-6" />
-      </div>
-      <p className="text-body text-white">Moderator access required</p>
-      <p className="max-w-sm text-caption text-text-secondary">
-        This surface is only available to operators with the{" "}
-        <code className="text-meta">admin</code> or{" "}
-        <code className="text-meta">mod</code> role on their account.
-      </p>
-      <Button
-        variant="default"
-        size="tap"
-        render={<Link href="/profile" prefetch={false} />}
-      >
-        Back to profile
-      </Button>
-    </div>
-  );
-}
-
-function EmptyState() {
-  return (
-    <div className="flex flex-col items-center gap-3 px-6 py-12 text-center">
-      <p className="text-body text-white">Inbox zero — no open reports</p>
-      <p className="max-w-sm text-caption text-text-secondary">
-        Anyone the community blocks with a report reason shows up here.
-      </p>
-    </div>
-  );
-}
-
-function ErrorState({ message }: { message: string }) {
-  return (
-    <div className="flex flex-col items-center gap-3 px-6 py-12 text-center">
-      <div
-        aria-hidden
-        className="flex size-12 items-center justify-center rounded-full bg-bg-elevated text-warning"
-      >
-        <TriangleAlert className="size-6" />
-      </div>
-      <p className="text-body text-white">Couldn&apos;t load reports</p>
-      <p className="max-w-sm text-caption text-text-secondary">{message}</p>
-    </div>
+    </section>
   );
 }
 
