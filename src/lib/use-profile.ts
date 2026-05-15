@@ -125,12 +125,18 @@ const TRANSFORMS: Record<string, FieldTransform> = {
   education: (v) =>
     typeof v === "string" && v.length > 0 ? { education: v } : null,
 
-  // Ethnicities — backend takes a single string; send the first entry.
-  ethnicities: (v) => {
-    if (!Array.isArray(v) || v.length === 0) return null;
-    const first = v[0];
-    return typeof first === "string" ? { ethnicity: first } : null;
-  },
+  // Ethnicities — bundle into ahavah_extra. The upstream Duolicious
+  // `ethnicity` column has a fixed 11-row enum table (Black/African
+  // Descent, East Asian, Hispanic/Latino, etc.) which doesn't match
+  // Ahavah's finer Torah-observant diaspora taxonomy (Afro-Caribbean,
+  // Afro-American, West/East/Southern African, Mediterranean, etc.).
+  // Trying to PATCH `{ ethnicity: "afro-caribbean" }` against that
+  // table joins to zero rows + silently saves nothing. Storing in
+  // ahavah_extra preserves the full multi-select array AND the
+  // precise category names, same pattern as nationality/interests/
+  // healthTags/etc. Backend reads it back via the ahavah_extra
+  // JSONB spread in translateInbound.
+  ethnicities: (v) => bundleExtra("ethnicities", v),
 
   // Languages — backend column is `languages_spoken TEXT[]` (migration
   // 0001). Pass through as-is; PatchProfileInfo accepts the array.
@@ -236,8 +242,6 @@ function reverseTranslateValue(
     case "location":
     case "firstName":
       return typeof serverValue === "string" ? serverValue : undefined;
-    case "ethnicities":
-      return typeof serverValue === "string" ? [serverValue] : undefined;
     case "age":
       return typeof serverValue === "number" ? serverValue : undefined;
     case "dob":
@@ -282,7 +286,10 @@ const SERVER_TO_CLIENT_KEY: Record<string, keyof Profile> = {
   // /profile-info (same key + space-keys)
   about: "bio",
   gender: "sex",
-  ethnicity: "ethnicities",
+  // NOTE: server's upstream `ethnicity` (singular, scalar) is NOT
+  // mapped to client's `ethnicities` — see TRANSFORMS comment for
+  // ethnicities. Source of truth is `ahavah_extra.ethnicities`
+  // (array), spread by the inbound translator below.
   "looking for": "intent",
   "relationship status": "maritalStatus",
   "has kids": "children",
