@@ -4,7 +4,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
-import { MapPin, MessageCircle, User } from "lucide-react";
+import { MapPin, MessageCircle } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -346,35 +346,25 @@ function MatchesGrid({
                   </CardDescription>
                 ) : null}
               </CardHeader>
-              {/* Action row — two equal-width pills, each h-tap (44px+)
-                  per the kit's mobile touch-target primitive. Outline
-                  for Profile (secondary), default/lime for Message
-                  (primary). gap-2 = 8px between targets per
-                  mobile-responsive skill rule §1. */}
-              <div className="flex gap-2 pt-1">
-                <Link
-                  href={`/profile/${partner.id}?from=matches`}
-                  prefetch={false}
-                  className={cn(
-                    buttonVariants({ variant: "outlineSubtle", size: "tap" }),
-                    "flex-1 rounded-full",
-                  )}
-                >
-                  <User aria-hidden />
-                  Profile
-                </Link>
-                <Link
-                  href={`/chat/${partner.id}`}
-                  prefetch={false}
-                  className={cn(
-                    buttonVariants({ variant: "default", size: "tap" }),
-                    "flex-1 rounded-full",
-                  )}
-                >
-                  <MessageCircle aria-hidden />
-                  Message
-                </Link>
-              </div>
+              {/* Single primary CTA — Message. Two text pills don't fit
+                  the 179px-wide grid card at 414px viewport
+                  ((414 - 40 page padding - 16 gap) / 2 = 179px); the
+                  earlier two-pill design clipped "Message" past the
+                  card edge. Profile is reachable by tapping the photo
+                  above, which is the discoverable industry pattern
+                  (Bumble/Hinge/Tinder all use photo-tap → profile in
+                  matches grids). */}
+              <Link
+                href={`/chat/${partner.id}`}
+                prefetch={false}
+                className={cn(
+                  buttonVariants({ variant: "default", size: "tap" }),
+                  "w-full rounded-full",
+                )}
+              >
+                <MessageCircle aria-hidden />
+                Message
+              </Link>
             </Card>
           </motion.div>
         );
@@ -438,22 +428,30 @@ function LikesGrid({ likes }: { likes: ReadonlyArray<LikeRecord> }) {
                       className="absolute inset-0 size-full object-cover"
                     />
                   )}
-                  {isOnline(liker.seconds_since_last_online) ? (
-                    <span
-                      aria-label="Online now"
-                      className="absolute right-2 top-2 z-10 inline-block size-3 rounded-full bg-lime ring-2 ring-bg-indigo"
-                    />
-                  ) : null}
                 </PhotoTile>
                 <CardHeader className="px-0">
-                  <CardTitle className="text-body font-semibold leading-tight text-white">
-                    {likerName}
-                    {likerAge ? `, ${likerAge}` : ""}
+                  <CardTitle className="flex items-center gap-2 text-body font-semibold leading-tight text-white">
+                    <span className="truncate">
+                      {likerName}
+                      {likerAge ? `, ${likerAge}` : ""}
+                    </span>
+                    {/* Online indicator inline (consistent with
+                        MatchesGrid) — never clipped by photo's
+                        rounded corner. */}
+                    {isOnline(liker.seconds_since_last_online) ? (
+                      <span className="flex shrink-0 items-center gap-1">
+                        <span
+                          aria-hidden
+                          className="inline-block size-2 rounded-full bg-lime"
+                        />
+                        <span className="sr-only">Online now</span>
+                      </span>
+                    ) : null}
                   </CardTitle>
                   {likerLocation ? (
                     <CardDescription className="flex items-center gap-1 text-caption text-text-secondary">
-                      <MapPin className="size-3" />
-                      {likerLocation}
+                      <MapPin className="size-3" aria-hidden />
+                      <span className="truncate">{likerLocation}</span>
                     </CardDescription>
                   ) : null}
                 </CardHeader>

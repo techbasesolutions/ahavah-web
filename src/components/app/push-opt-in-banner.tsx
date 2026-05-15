@@ -15,6 +15,18 @@ import { usePushSubscription } from "@/lib/use-push-subscription";
  *
  * The "Enable" CTA triggers the browser permission prompt + subscription
  * + POST /notifications/subscribe in one go via the hook.
+ *
+ * Design rules applied (2026-05-15 redo):
+ *   - All interactive elements ≥ 44×44 (Enable button uses kit `size="tap"`,
+ *     dismiss is a 44×44 icon-button via `size="icon-tap"`).
+ *   - 8px-grid spacing (gap-3 = 12px is rounded to grid; outer mx-4 mb-4 +
+ *     px-4 py-3 = 16/12 grid).
+ *   - Tokens only: `bg-elevated` for surface, `text-secondary` for sub-text,
+ *     brand `lavender` + `lime` accents. No raw hex.
+ *   - Color is not the only signal: error state adds a leading word
+ *     ("Couldn't…") so a low-vision user knows it's an error without color.
+ *   - role="region" + aria-label so screen readers can land on the banner;
+ *     Enable button focusable in DOM order; dismiss has aria-label.
  */
 export function PushOptInBanner() {
   const { state, isDismissed, subscribe, dismiss } = usePushSubscription();
@@ -33,36 +45,40 @@ export function PushOptInBanner() {
       aria-label="Notification opt-in"
       className="mx-4 mb-4 flex items-center gap-3 rounded-2xl bg-bg-elevated px-4 py-3 text-body text-white"
     >
-      <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-lavender/20 text-lavender">
-        <Bell className="size-4" aria-hidden />
+      <div
+        aria-hidden
+        className="flex size-10 shrink-0 items-center justify-center rounded-full bg-lavender/20 text-lavender"
+      >
+        <Bell className="size-5" />
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-meta font-medium leading-tight">
+      <div className="min-w-0 flex-1">
+        <p className="text-meta font-medium leading-tight text-white">
           Get notified about new matches
         </p>
-        <p className="text-caption text-text-secondary leading-tight">
+        <p className="text-caption leading-tight text-text-secondary">
           {isError
-            ? "Couldn't enable notifications — try again."
-            : "Tap Enable to allow Ahavah to send a quick ping."}
+            ? "Couldn't enable notifications. Try again."
+            : "We'll send a quick ping when someone likes you back."}
         </p>
       </div>
       <Button
         variant="default"
-        size="sm"
+        size="tap"
         disabled={isSubscribing}
         onClick={() => void subscribe()}
-        className="shrink-0"
+        className="shrink-0 rounded-full"
       >
         {isSubscribing ? "Enabling…" : "Enable"}
       </Button>
-      <button
-        type="button"
-        aria-label="Dismiss"
+      <Button
+        variant="ghost"
+        size="icon-tap"
+        aria-label="Dismiss notification opt-in"
         onClick={dismiss}
-        className="shrink-0 rounded-full p-1 text-text-secondary hover:text-white"
+        className="shrink-0 rounded-full text-text-secondary"
       >
-        <X className="size-4" aria-hidden />
-      </button>
+        <X aria-hidden />
+      </Button>
     </div>
   );
 }
