@@ -10,7 +10,7 @@
  * stale older bundle gets evicted in `activate`).
  */
 
-const CACHE = "ahavah-v4";
+const CACHE = "ahavah-v5";
 
 // Routes whose HTML we want available offline. Must all return 200 on
 // install or addAll() rejects the whole batch — keep this conservative.
@@ -90,5 +90,59 @@ self.addEventListener("fetch", (event) => {
         return caches.match("/");
       })
     )
+  );
+});
+
+// ---------- Web Push (Phase W) ---------------------------------------------
+//
+// Server payload shape (see service/notifications/__init__.py):
+//   { title: string, body: string, url?: string, tag?: string }
+//
+// `tag` collapses repeat notifications for the same conversation /
+// match so a user with the app closed for an hour doesn't get N stacked
+// banners. `url` drives the route opened on click. We always show
+// SOMETHING — silent push without a notification breaks the iOS
+// Safari permission grant and risks the browser revoking subscription.
+
+self.addEventListener("push", (event) => {
+  let data = { title: "Ahavah", body: "You have a new notification", url: "/" };
+  try {
+    if (event.data) data = { ...data, ...event.data.json() };
+  } catch {
+    // Non-JSON payload — keep defaults so we still surface SOMETHING.
+  }
+
+  const opts = {
+    body: data.body,
+    icon: "/icon-192.svg",
+    badge: "/icon-192.svg",
+    tag: data.tag || undefined,
+    data: { url: data.url || "/" },
+  };
+
+  event.waitUntil(self.registration.showNotification(data.title, opts));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = (event.notification.data && event.notification.data.url) || "/";
+
+  event.waitUntil(
+    self.clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((wins) => {
+        // If a window is already open on the same origin, focus it and
+        // navigate. Otherwise spawn a new window. This avoids spawning
+        // a new tab every time a user taps a notification while the
+        // PWA is already foregrounded.
+        for (const w of wins) {
+          if (w.url.startsWith(self.location.origin) && "focus" in w) {
+            w.navigate(target).catch(() => {});
+            return w.focus();
+          }
+        }
+        if (self.clients.openWindow) return self.clients.openWindow(target);
+        return undefined;
+      }),
   );
 });

@@ -26,6 +26,7 @@ import {
   PageShell,
 } from "@/components/app/page-shell";
 import { PhotoTile } from "@/components/app/photo-tile";
+import { PushOptInBanner } from "@/components/app/push-opt-in-banner";
 import { apiClient, ApiError } from "@/lib/api-client";
 import type {
   IncomingLikesResponse,
@@ -181,6 +182,17 @@ function MatchesPageContent() {
           </span>
         </TabButton>
       </div>
+
+      {/* Push opt-in — only renders when the user has at least one match
+          (most natural moment to ask), browser supports push, and the
+          user hasn't already enabled or dismissed within 14 days. */}
+      {tab === "matches" &&
+      matchesState.kind === "happy" &&
+      matchesState.items.length > 0 ? (
+        <div className="pt-3">
+          <PushOptInBanner />
+        </div>
+      ) : null}
 
       {activeState.kind === "loading" ? (
         <MatchesLoadingSkeleton />
