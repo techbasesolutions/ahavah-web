@@ -168,6 +168,15 @@ function adaptProspect(raw: Record<string, unknown>): Profile & { country?: stri
     intent: typeof raw.looking_for === "string"
       ? (raw.looking_for as Profile["intent"])
       : undefined,
+    // Languages — server ships `languages_spoken: TEXT[]` (migration
+    // 0001). Filter to strings to satisfy ReadonlyArray<string>.
+    languages: Array.isArray(raw.languages_spoken)
+      ? (raw.languages_spoken.filter((x) => typeof x === "string") as string[])
+      : undefined,
+    primaryLanguage:
+      typeof raw.primary_language === "string"
+        ? raw.primary_language
+        : undefined,
     // Spread Torah-observant fields LAST so they overwrite the
     // narrower mappings above (e.g. ahavah_extra.healthTags from
     // onboarding should win over the smoking/drinking-derived list).

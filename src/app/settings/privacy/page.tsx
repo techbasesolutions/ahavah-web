@@ -24,6 +24,7 @@ import {
 } from "@/components/app/page-shell";
 import { apiClient } from "@/lib/api-client";
 import { useShowOnMap } from "@/lib/use-show-on-map";
+import { useProfile } from "@/lib/use-profile";
 
 const fadeUp = {
   initial: { opacity: 0, y: 12 },
@@ -62,7 +63,16 @@ export default function PrivacySettingsPage() {
     hideFromStrangers: false,
   });
   const [savingKey, setSavingKey] = useState<BackedKey | null>(null);
-  const { value: showOnMap, setValue: setShowOnMap } = useShowOnMap();
+  const { value: showOnMap, setValue: setShowOnMapLocal } = useShowOnMap();
+  const { update: updateProfile } = useProfile();
+  // Fan the toggle out to BOTH localStorage (instant UI feedback) and
+  // the server (so the choice survives cache clears + new devices).
+  // Server PATCH is fire-and-forget — failures don't block the local
+  // toggle since useProfile's update queues a retry on next refresh.
+  const setShowOnMap = (next: boolean) => {
+    setShowOnMapLocal(next);
+    void updateProfile({ showOnMap: next });
+  };
 
   useEffect(() => {
     let cancelled = false;

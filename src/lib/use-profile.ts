@@ -208,6 +208,14 @@ const TRANSFORMS: Record<string, FieldTransform> = {
   // `photos` field here is the cached client-side list and should not
   // PATCH directly. Skip.
   photos: () => null,
+
+  // Map visibility — persists to ahavah_extra.showOnMap so the user's
+  // privacy choice survives cache clears, PWA reinstalls, and new
+  // devices. Was previously localStorage-only (lib/use-show-on-map),
+  // silently reverting to the default (true) on any storage wipe.
+  // The /map page filters on showOnMap !== false; reading from server
+  // via the ahavah_extra spread keeps that working.
+  showOnMap: (v) => bundleExtra("showOnMap", typeof v === "boolean" ? v : null),
 };
 
 /** Helper: wrap a single Ahavah-specific field into the ahavah_extra
@@ -271,7 +279,15 @@ function reverseTranslateValue(
     case "education":
     case "location":
     case "firstName":
+    case "primaryLanguage":
       return typeof serverValue === "string" ? serverValue : undefined;
+    case "languages":
+      // Backend ships back the same TEXT[] we sent in
+      // languages_spoken — pass through as-is. Custom-language
+      // tokens like "custom:Aramaic" survive verbatim.
+      return Array.isArray(serverValue)
+        ? (serverValue.filter((x) => typeof x === "string") as string[])
+        : undefined;
     case "age":
       return typeof serverValue === "number" ? serverValue : undefined;
     case "dob":
@@ -316,6 +332,14 @@ const SERVER_TO_CLIENT_KEY: Record<string, keyof Profile> = {
   // /profile-info (same key + space-keys)
   about: "bio",
   gender: "sex",
+  // Backend serialises arrays / scalars under upstream Duolicious
+  // names that don't match Profile field names. Without these
+  // mappings, the value lands on `profile.languages_spoken` (where
+  // nothing reads it) instead of `profile.languages` — so a user
+  // who set languages in /onboarding sees an empty languages list
+  // after a refresh.
+  languages_spoken: "languages",
+  primary_language: "primaryLanguage",
   // NOTE: server's upstream `ethnicity` (singular, scalar) is NOT
   // mapped to client's `ethnicities` — see TRANSFORMS comment for
   // ethnicities. Source of truth is `ahavah_extra.ethnicities`
