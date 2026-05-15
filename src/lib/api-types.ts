@@ -79,7 +79,24 @@ export type {
 // Discovery — service/search/__init__.py + service/discovery/__init__.py
 // ---------------------------------------------------------------------------
 
-export type DiscoverCandidate = Profile & { id: string };
+export type DiscoverCandidate = Profile & {
+  id: string;
+  /**
+   * Seconds since the prospect's last keepalive ping. Drives the
+   * green-dot / "Last seen Xm ago" indicator (see lib/last-seen.ts).
+   * Undefined when the prospect has never been signed in.
+   */
+  seconds_since_last_online?: number;
+};
+
+/** Peer-profile fields surfaced inside MatchRecord.with_profile and
+ *  LikeRecord.with_profile. Backend ships snake_case; Profile inherits
+ *  camelCase fields, so we merge with `seconds_since_last_online` as
+ *  the only addition. */
+type PeerProfile = Partial<Profile> & {
+  id: string;
+  seconds_since_last_online?: number;
+};
 
 export type SearchRequest = {
   cursor?: string;
@@ -105,7 +122,7 @@ export type DecisionResponse = {
 
 export type MatchRecord = {
   match_id: string;
-  with_profile: Partial<Profile> & { id: string };
+  with_profile: PeerProfile;
   created_at: string;
 };
 
@@ -118,7 +135,7 @@ export type MatchesResponse = {
  *  difference is `liked_at` instead of `created_at` (= when THEY
  *  liked you, not when a mutual match formed). */
 export type LikeRecord = {
-  with_profile: Partial<Profile> & { id: string };
+  with_profile: PeerProfile;
   liked_at: string;
 };
 

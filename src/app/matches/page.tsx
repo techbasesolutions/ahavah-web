@@ -34,6 +34,7 @@ import type {
   MatchRecord,
 } from "@/lib/api-types";
 import { photoOrGradient, photosFromUuids, type PhotoSource } from "@/lib/photo-or-gradient";
+import { isOnline } from "@/lib/last-seen";
 
 const fadeUp = {
   initial: { opacity: 0, y: 12 },
@@ -297,6 +298,12 @@ function MatchesGrid({
                       className="absolute inset-0 size-full object-cover"
                     />
                   )}
+                  {isOnline(partner.seconds_since_last_online) ? (
+                    <span
+                      aria-label="Online now"
+                      className="absolute right-2 top-2 z-10 inline-block size-3 rounded-full bg-lime ring-2 ring-bg-indigo"
+                    />
+                  ) : null}
                 </PhotoTile>
                 <CardHeader className="px-0">
                   <CardTitle className="text-body font-semibold leading-tight text-white">
@@ -374,6 +381,12 @@ function LikesGrid({ likes }: { likes: ReadonlyArray<LikeRecord> }) {
                       className="absolute inset-0 size-full object-cover"
                     />
                   )}
+                  {isOnline(liker.seconds_since_last_online) ? (
+                    <span
+                      aria-label="Online now"
+                      className="absolute right-2 top-2 z-10 inline-block size-3 rounded-full bg-lime ring-2 ring-bg-indigo"
+                    />
+                  ) : null}
                 </PhotoTile>
                 <CardHeader className="px-0">
                   <CardTitle className="text-body font-semibold leading-tight text-white">

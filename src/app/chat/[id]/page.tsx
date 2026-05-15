@@ -14,6 +14,7 @@ import { readChatSession } from "@/lib/chat-session";
 import { useChatThread } from "@/lib/use-chat-thread";
 import { apiClient, ApiError } from "@/lib/api-client";
 import type { Profile } from "@/lib/profile-schema";
+import { isOnline } from "@/lib/last-seen";
 import { cn } from "@/lib/utils";
 
 type Props = { params: Promise<{ id: string }> };
@@ -73,7 +74,9 @@ export default function ChatThreadPage({ params }: Props) {
   // like a uuid. Backend endpoint is /prospect-profile/, not /profile/
   // — the wrong URL silently 404'd, parking every chat header on the
   // "Person" fallback.
-  const [serverProfile, setServerProfile] = useState<Partial<Profile> | null>(null);
+  const [serverProfile, setServerProfile] = useState<
+    (Partial<Profile> & { seconds_since_last_online?: number }) | null
+  >(null);
   useEffect(() => {
     if (!isUuidLike(id)) return;
     let cancelled = false;
@@ -83,9 +86,15 @@ export default function ChatThreadPage({ params }: Props) {
         if (cancelled) return;
         // Map snake-case backend fields onto the Profile shape this
         // page reads. Same adapter pattern as /inbox + /profile/[uuid].
+        // seconds_since_last_online drives the "Online" / "Last seen
+        // Xm ago" subline in the chat header.
         setServerProfile({
           firstName: typeof raw.name === "string" ? raw.name : undefined,
           age: typeof raw.age === "number" ? raw.age : undefined,
+          seconds_since_last_online:
+            typeof raw.seconds_since_last_online === "number"
+              ? raw.seconds_since_last_online
+              : undefined,
         });
       })
       .catch((err: unknown) => {
@@ -102,7 +111,7 @@ export default function ChatThreadPage({ params }: Props) {
       return {
         name: serverProfile.firstName,
         age: serverProfile.age ?? 0,
-        online: false,
+        online: isOnline(serverProfile.seconds_since_last_online),
       };
     }
     if (legacy) return legacy;

@@ -163,6 +163,14 @@ export function useDiscoverDeck(
           city: city || undefined,
           country: countryIso,
           photos,
+          // seconds_since_last_online — drives the green-dot / "Last seen
+          // Xm ago" affordance on the discover card. NULL upstream when
+          // the prospect has never been signed in; we leave it as
+          // undefined and let formatLastSeen() default to "recently".
+          seconds_since_last_online:
+            typeof r.seconds_since_last_online === "number"
+              ? r.seconds_since_last_online
+              : undefined,
         } as DiscoverCandidate;
       });
       setItems((prev) => [...prev, ...results]);

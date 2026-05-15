@@ -24,6 +24,7 @@ import { useDecisions } from "@/lib/use-decisions";
 import { useDiscoverDeck } from "@/lib/use-discover-deck";
 import { useFilters } from "@/lib/use-filters";
 import { photoOrGradient } from "@/lib/photo-or-gradient";
+import { formatLastSeen, isOnline } from "@/lib/last-seen";
 
 /**
  * /discover — central candidate-browsing surface.
@@ -445,6 +446,23 @@ export default function DiscoverPage() {
                       <MapPin className="size-3" /> {candidate.country}
                     </p>
                   ) : null}
+                  {/* Online dot OR last-seen text. Tiny lime dot when
+                      active in last 5 min; otherwise grey "Last seen
+                      Xm ago" so the user can decide whether to send a
+                      message expecting a quick reply. */}
+                  <p className="mt-1 flex items-center gap-1.5 text-caption text-white/75">
+                    {isOnline(candidate.seconds_since_last_online) ? (
+                      <>
+                        <span
+                          aria-hidden
+                          className="inline-block size-2 rounded-full bg-lime"
+                        />
+                        Online now
+                      </>
+                    ) : (
+                      formatLastSeen(candidate.seconds_since_last_online)
+                    )}
+                  </p>
                 </Link>
               </PhotoCaption>
 
