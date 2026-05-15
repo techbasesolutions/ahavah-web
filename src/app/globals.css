@@ -232,6 +232,15 @@
        even when .ahavah-app has overflow content. With min-height, body
        grows with content, document grows, browser scrolls. */
     min-height: 100%;
+    /* Suppress browser pull-to-refresh + horizontal overscroll bounce.
+       Pull-to-refresh isn't useful in a PWA with client-side routing
+       (feeds auto-refresh via WebSocket; / and /discover refetch on
+       focus). It actively breaks the swipe-down-to-dismiss gesture
+       on /profile/[uuid]?from=discover, which is the gestural pair
+       to /discover's swipe-up-to-open. `contain` keeps scroll chains
+       contained to descendants without disabling normal scrolling. */
+    overscroll-behavior-y: contain;
+    overscroll-behavior-x: contain;
   }
   body {
     background-color: #000000;
