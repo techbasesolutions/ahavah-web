@@ -4,7 +4,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
-import { MapPin } from "lucide-react";
+import { MapPin, MessageCircle, User } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -276,24 +276,31 @@ function MatchesGrid({
           { firstName: partnerName, photos: partnerPhotos },
           0,
         );
+        const online = isOnline(partner.seconds_since_last_online);
         return (
           <motion.div
             key={m.match_id}
             {...fadeUp}
             transition={{ duration: 0.3, delay: staggerDelay(i) }}
           >
-            {/* Tap card → /chat/<peer>. The dating-app default action
-                on a match is to message, not re-inspect the profile.
-                Profile is still reachable from the chat header. */}
-            <Link
-              href={`/chat/${partner.id}`}
-              prefetch={false}
-              className={cn(
-                buttonVariants({ variant: "ghost", size: "block" }),
-                "h-auto",
-              )}
-            >
-              <Card tone="flat" size="sm" className="w-full gap-2 p-0">
+            {/* Card structure (per user feedback 2026-05-15): tapping
+                the PHOTO opens the profile, a separate Message button
+                opens chat. Both actions are visible without nesting
+                links (which is invalid HTML). The kit's PhotoTile
+                provides the rounded image; Card wraps the actions
+                row. Online indicator lives inline next to the name —
+                NOT as a corner dot, where it conflicted with the
+                rounded-2xl corner curve. */}
+            <Card tone="flat" size="sm" className="w-full gap-2 p-0">
+              <Link
+                href={`/profile/${partner.id}?from=matches`}
+                prefetch={false}
+                aria-label={`View ${partnerName}'s profile`}
+                className={cn(
+                  buttonVariants({ variant: "ghost", size: "block" }),
+                  "h-auto p-0",
+                )}
+              >
                 <PhotoTile
                   aspect="4/5"
                   radius="lg"
@@ -301,6 +308,7 @@ function MatchesGrid({
                   bg={
                     photoSource.kind === "gradient" ? photoSource.css : undefined
                   }
+                  className="w-full"
                 >
                   {photoSource.kind === "photo" && (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -310,27 +318,62 @@ function MatchesGrid({
                       className="absolute inset-0 size-full object-cover"
                     />
                   )}
-                  {isOnline(partner.seconds_since_last_online) ? (
-                    <span
-                      aria-label="Online now"
-                      className="absolute right-2 top-2 z-10 inline-block size-3 rounded-full bg-lime ring-2 ring-bg-indigo"
-                    />
-                  ) : null}
                 </PhotoTile>
-                <CardHeader className="px-0">
-                  <CardTitle className="text-body font-semibold leading-tight text-white">
+              </Link>
+              <CardHeader className="px-0">
+                <CardTitle className="flex items-center gap-2 text-body font-semibold leading-tight text-white">
+                  <span className="truncate">
                     {partnerName}
                     {partnerAge ? `, ${partnerAge}` : ""}
-                  </CardTitle>
-                  {partnerLocation ? (
-                    <CardDescription className="flex items-center gap-1 text-caption text-text-secondary">
-                      <MapPin className="size-3" />
-                      {partnerLocation}
-                    </CardDescription>
+                  </span>
+                  {/* Online indicator inline — never clipped by the
+                      photo's rounded corner. Lime dot + sr-only label
+                      satisfies WCAG (color is not the sole signal). */}
+                  {online ? (
+                    <span className="flex shrink-0 items-center gap-1">
+                      <span
+                        aria-hidden
+                        className="inline-block size-2 rounded-full bg-lime"
+                      />
+                      <span className="sr-only">Online now</span>
+                    </span>
                   ) : null}
-                </CardHeader>
-              </Card>
-            </Link>
+                </CardTitle>
+                {partnerLocation ? (
+                  <CardDescription className="flex items-center gap-1 text-caption text-text-secondary">
+                    <MapPin className="size-3" aria-hidden />
+                    <span className="truncate">{partnerLocation}</span>
+                  </CardDescription>
+                ) : null}
+              </CardHeader>
+              {/* Action row — two equal-width pills, each ≥44px tall
+                  per mobile-responsive skill rule §1. Lavender for
+                  Profile (secondary), lime for Message (primary). */}
+              <div className="flex gap-2 pt-1">
+                <Link
+                  href={`/profile/${partner.id}?from=matches`}
+                  prefetch={false}
+                  className={cn(
+                    buttonVariants({ variant: "ghost", size: "sm" }),
+                    "h-11 flex-1 gap-1.5 rounded-full border border-border text-meta",
+                  )}
+                >
+                  <User className="size-4" aria-hidden />
+                  Profile
+                </Link>
+                <Link
+                  href={`/chat/${partner.id}`}
+                  prefetch={false}
+                  className={cn(
+                    buttonVariants({ variant: "default", size: "sm" }),
+                    "h-11 flex-1 gap-1.5 rounded-full text-meta",
+                  )}
+                >
+                  <MessageCircle className="size-4" aria-hidden />
+                  Message
+                </Link>
+              </div>
+            </Card>
           </motion.div>
         );
       })}
