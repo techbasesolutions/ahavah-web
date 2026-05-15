@@ -222,8 +222,16 @@ export default function MapPage() {
   );
   const { items: realCandidates } = useDiscoverDeck(httpFilters);
   // Drop candidates without a country ISO — the map can't position them.
+  // Also drop candidates who opted out via /settings/privacy → "Show me
+  // on the map" → off (server ships `showOnMap = false` from
+  // ahavah_extra; default TRUE means visible). /discover does NOT filter
+  // on this so opted-out users still appear in the swipe deck — the
+  // toggle is map-specific.
   const visibleCandidates = useMemo<readonly DiscoverCandidate[]>(
-    () => realCandidates.filter((c) => Boolean(c.country)),
+    () =>
+      realCandidates.filter(
+        (c) => Boolean(c.country) && c.showOnMap !== false,
+      ),
     [realCandidates],
   );
 

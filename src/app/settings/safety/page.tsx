@@ -80,12 +80,12 @@ const RESOURCES: ReadonlyArray<{
   /** null = render as plain text (no destination yet). */
   href: string | null;
 }> = [
-  // Community guidelines + privacy policy now live as stub pages
-  // pending real legal copy. Local emergency numbers are intentionally
-  // left as plain text — international app, no single number to link.
+  // Community guidelines + privacy policy live as in-app legal pages.
+  // Emergency numbers links to a curated /safety/emergency list with
+  // tel: links covering the regions Ahavah is most active in.
   { Icon: BookOpen,    title: "Community guidelines",    href: "/legal/community-guidelines" },
   { Icon: ShieldCheck, title: "Privacy policy",          href: "/legal/privacy" },
-  { Icon: PhoneCall,   title: "Local emergency numbers", href: null },
+  { Icon: PhoneCall,   title: "Local emergency numbers", href: "/safety/emergency" },
 ];
 
 export default function SafetyCenterPage() {

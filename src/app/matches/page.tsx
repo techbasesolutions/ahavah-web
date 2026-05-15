@@ -27,6 +27,7 @@ import {
 } from "@/components/app/page-shell";
 import { PhotoTile } from "@/components/app/photo-tile";
 import { PushOptInBanner } from "@/components/app/push-opt-in-banner";
+import { InstallPromptBanner } from "@/components/app/install-prompt-banner";
 import { apiClient, ApiError } from "@/lib/api-client";
 import type {
   IncomingLikesResponse,
@@ -202,16 +203,16 @@ function MatchesPageContent() {
         </TabButton>
       </div>
 
-      {/* Push opt-in — only renders when the user has at least one match
-          (most natural moment to ask), browser supports push, and the
-          user hasn't already enabled or dismissed within 14 days. */}
-      {tab === "matches" &&
-      matchesState.kind === "happy" &&
-      matchesState.items.length > 0 ? (
-        <div className="pt-3">
-          <PushOptInBanner />
-        </div>
-      ) : null}
+      {/* Install + push opt-in. Both are gated internally by their own
+          dismissal + capability checks, so they render here whenever
+          the user hasn't already installed / opted in (no longer
+          gated on ">=1 match" — the user couldn't see them at all
+          before they had a match, which made them effectively
+          invisible on the live app). */}
+      <div className="flex flex-col gap-2 pt-3">
+        <InstallPromptBanner />
+        <PushOptInBanner />
+      </div>
 
       {activeState.kind === "loading" ? (
         <MatchesLoadingSkeleton />

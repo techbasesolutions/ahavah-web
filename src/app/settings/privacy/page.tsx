@@ -33,13 +33,14 @@ const fadeUp = {
 
 // Backend accepts these fields on PATCH /profile-info as Optional[str]
 // with "Yes" / "No" values. Other privacy toggles previously listed on
-// this page (showDistance, showLastActive, incognito, readReceipts,
-// shareLocationOnMap) had no backend equivalent and have been removed
-// rather than left as fake controls.
-type BackedKey = "showAge" | "hideFromStrangers";
+// this page (showDistance, showLastActive, incognito, readReceipts)
+// had no backend equivalent and have been removed rather than left as
+// fake controls.
+type BackedKey = "showAge" | "showLocation" | "hideFromStrangers";
 
 const SERVER_FIELD: Record<BackedKey, string> = {
   showAge: "show_my_age",
+  showLocation: "show_my_location",
   hideFromStrangers: "hide_me_from_strangers",
 };
 
@@ -60,6 +61,7 @@ export default function PrivacySettingsPage() {
   // Load current values from GET /profile-info on mount.
   const [toggles, setToggles] = useState<Record<BackedKey, boolean>>({
     showAge: true,
+    showLocation: true,
     hideFromStrangers: false,
   });
   const [savingKey, setSavingKey] = useState<BackedKey | null>(null);
@@ -82,6 +84,11 @@ export default function PrivacySettingsPage() {
         if (cancelled) return;
         setToggles({
           showAge: yesNoToBool(p["show my age"] ?? p.show_my_age),
+          // Default TRUE matches the backend column default (init-api.sql:311).
+          showLocation:
+            "show my location" in p || "show_my_location" in p
+              ? yesNoToBool(p["show my location"] ?? p.show_my_location)
+              : true,
           hideFromStrangers: yesNoToBool(
             p["hide me from strangers"] ?? p.hide_me_from_strangers,
           ),
@@ -165,6 +172,26 @@ export default function PrivacySettingsPage() {
                 checked={showOnMap}
                 onCheckedChange={(checked) => setShowOnMap(checked)}
                 aria-label="Show me on the map"
+              />
+            </Item>
+
+            <Item variant="muted">
+              <ItemContent>
+                <ItemTitle className="text-meta text-white">
+                  Show my location
+                </ItemTitle>
+                <ItemDescription className="text-caption text-text-muted">
+                  Display your city and country on your profile. Turn off
+                  to hide both — peers see only your name and age.
+                </ItemDescription>
+              </ItemContent>
+              <Switch
+                checked={toggles.showLocation}
+                disabled={savingKey === "showLocation"}
+                onCheckedChange={(checked) =>
+                  void setBacked("showLocation", checked)
+                }
+                aria-label="Show my location"
               />
             </Item>
 

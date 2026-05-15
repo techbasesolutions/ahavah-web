@@ -38,6 +38,8 @@ import type { Profile } from "@/lib/profile-schema";
 
 import { BottomNav } from "@/components/app/bottom-nav";
 import { EmptyState, ErrorState } from "@/components/app/empty-state";
+import { InstallPromptBanner } from "@/components/app/install-prompt-banner";
+import { PushOptInBanner } from "@/components/app/push-opt-in-banner";
 import {
   PageHeader,
   PageHeaderTitle,
@@ -230,6 +232,15 @@ function InboxContent() {
           </SheetContent>
         </Sheet>
       </PageHeader>
+
+      {/* Install + push opt-in banners. Both gate themselves on
+          capability + dismissal so they only render when actionable.
+          Mounted on /inbox AND /matches so users encounter them
+          regardless of which tab they land on after onboarding. */}
+      <div className="flex flex-col gap-2 pt-2">
+        <InstallPromptBanner />
+        <PushOptInBanner />
+      </div>
 
       {body}
 

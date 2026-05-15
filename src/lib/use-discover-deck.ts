@@ -171,6 +171,11 @@ export function useDiscoverDeck(
             typeof r.seconds_since_last_online === "number"
               ? r.seconds_since_last_online
               : undefined,
+          // Map opt-out flag: server returns `show_on_map` (boolean,
+          // default TRUE when absent in ahavah_extra). /map filters
+          // markers on `showOnMap !== false`; /discover ignores it.
+          showOnMap:
+            typeof r.show_on_map === "boolean" ? r.show_on_map : undefined,
         } as DiscoverCandidate;
       });
       setItems((prev) => [...prev, ...results]);
