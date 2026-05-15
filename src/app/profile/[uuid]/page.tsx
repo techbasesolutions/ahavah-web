@@ -46,6 +46,7 @@ import {
   HEALTH_TAGS,
   INTERESTS,
   EDUCATIONS,
+  ETHNICITIES,
   MARITAL_STATUSES,
   NATIONALITIES,
   PERSONALITY_TRAITS,
@@ -555,6 +556,14 @@ export default function ProfileDetailPage({ params }: Props) {
               <h1 className="text-h1 text-white">
                 {profile.firstName}, {profile.age}
               </h1>
+              {/* Optional preferred name. Renders only when distinct from
+                  firstName so we don't show '"Ehud"' under "Ehud". */}
+              {profile.displayName &&
+              profile.displayName !== profile.firstName ? (
+                <p className="mt-0.5 text-meta italic text-text-secondary">
+                  also known as &ldquo;{profile.displayName}&rdquo;
+                </p>
+              ) : null}
               {profile.country && (
                 <p className="mt-1 flex items-center gap-1.5 text-meta text-text-secondary">
                   <MapPin className="size-3" /> {profile.country}
@@ -562,13 +571,23 @@ export default function ProfileDetailPage({ params }: Props) {
               )}
               {(profile.nationality ||
                 profile.maritalStatus !== undefined ||
-                profile.children !== undefined) && (
+                profile.children !== undefined ||
+                (profile.ethnicities && profile.ethnicities.length > 0)) && (
                 <div className="mt-2 flex flex-wrap gap-2">
                   {profile.nationality && (
                     <Pill variant="lavender" size="sm">
                       {labelOf(profile.nationality, NATIONALITIES) ?? profile.nationality}
                     </Pill>
                   )}
+                  {/* Ethnicities — multi-select; one Pill per entry. Stored
+                      in ahavah_extra (commit f6b997a) so the full list
+                      round-trips with precise Torah-observant diaspora
+                      labels (Afro-Caribbean, West African, etc.). */}
+                  {profile.ethnicities?.map((eth) => (
+                    <Pill key={eth} variant="lavender" size="sm">
+                      {labelOf(eth, ETHNICITIES) ?? eth}
+                    </Pill>
+                  ))}
                   {profile.maritalStatus !== undefined && (
                     <Pill variant="lavender" size="sm">
                       {labelOf(profile.maritalStatus, MARITAL_STATUSES) ?? profile.maritalStatus}

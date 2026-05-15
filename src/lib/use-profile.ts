@@ -79,15 +79,21 @@ const TRANSFORMS: Record<string, FieldTransform> = {
     return null;
   },
 
-  // ISO country code (e.g. "BB", "TT"). Bundled into ahavah_extra so
-  // /profile/edit can change country post-onboarding without losing
-  // the value across cache clears (was previously a no-op — every
-  // edit silently dropped). NOTE: the upstream person.country column
-  // (which /search filters against) is set by the /onboarding/location
-  // pycountry path; this PATCH does NOT update that column. Future
-  // enhancement: backend handler for `country` PATCH that updates
-  // person.country directly so search-pool follows profile edits.
-  country: (v) => bundleExtra("country", v),
+  // ISO country code (e.g. "BB", "TT"). Dual-write: direct `country`
+  // PATCH updates person.country (CHAR(2)) so /search pool follows
+  // (Q_UNCACHED_SEARCH_2 filters on p.country = ANY(preferred)). Also
+  // bundleExtra so the precise client-side value is preserved in
+  // ahavah_extra and round-trips into the spread. Backend's
+  // PatchProfileInfo accepts both `country` and `ahavah_extra` per
+  // duotypes/__init__.py:503; the "exactly one field" validator
+  // means each gets fanned out into a separate PATCH by the caller.
+  country: (v) => {
+    if (typeof v !== "string" || v.length !== 2) return null;
+    return {
+      country: v.toUpperCase(),
+      ahavah_extra: { country: v.toUpperCase() },
+    };
+  },
 
   // Resolved location string — must be an exact long_friendly match. The
   // country page populates this asynchronously after the user picks a
