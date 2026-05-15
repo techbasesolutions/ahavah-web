@@ -706,7 +706,23 @@ export type Profile = {
   // Map visibility (sub-plan 14 / T7) — soft default `true` at consumer
   // level. When false, the profile is filtered out of the /map view.
   showOnMap?: boolean;
+  // Phase W premium (Stripe Checkout, 2026-05-15). `entitlements` is the
+  // canonical source of truth for paywall gates — `'premium'` ∈ array
+  // grants access to /matches "Liked you" content + advanced filters.
+  // `subscriptionExpiresAt` is the auto-revoke timestamp (ISO 8601 UTC).
+  entitlements?: ReadonlyArray<string>;
+  subscriptionExpiresAt?: string;
 };
+
+/** Pure paywall-gate predicate. Reads only from the entitlements array
+ *  (not the upstream `has_gold` boolean — that's a separate Duolicious
+ *  concept tied to the verification ladder, not the Stripe paywall).
+ *  Returns false for null / undefined / missing-key inputs so caller
+ *  can be liberal with the `Profile | undefined | null` it passes. */
+export function isPremium(profile: Pick<Profile, "entitlements"> | null | undefined): boolean {
+  if (!profile?.entitlements) return false;
+  return profile.entitlements.includes("premium");
+}
 
 /**
  * Soft-required field names. Users can finish minimal onboarding by filling

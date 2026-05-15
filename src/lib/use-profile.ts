@@ -295,6 +295,10 @@ const SERVER_TO_CLIENT_KEY: Record<string, keyof Profile> = {
   // post-onboarding users back to /onboarding/dob.
   age: "age",
   date_of_birth: "dob",
+  // Phase W premium (Stripe Checkout). entitlements is the canonical
+  // paywall-gate source per lib/profile-schema.ts isPremium().
+  entitlements: "entitlements",
+  subscription_expires_at: "subscriptionExpiresAt",
 };
 
 function translateInbound(server: Partial<Profile> | Record<string, unknown>): Partial<Profile> {

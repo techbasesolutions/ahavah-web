@@ -140,7 +140,16 @@ export type LikeRecord = {
 };
 
 export type IncomingLikesResponse = {
+  /** Total count regardless of premium tier — used for the upgrade
+   *  CTA copy ("3 people like you"). Always populated. */
+  count: number;
+  /** Full like records. EMPTY for free users — server redacts to
+   *  prevent DevTools paywall bypass. Populated only when premium. */
   likes: ReadonlyArray<LikeRecord>;
+  /** Mirrors the server's premium gate so the frontend doesn't need
+   *  to re-derive from /profile-info. Premium users always get
+   *  `likes.length === count`. */
+  premium: boolean;
 };
 
 // ---------------------------------------------------------------------------

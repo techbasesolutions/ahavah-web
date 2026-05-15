@@ -4,7 +4,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
-import { MapPin, MessageCircle } from "lucide-react";
+import { Lock, MapPin, MessageCircle, Sparkles } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -49,6 +49,11 @@ type LoadState<T> =
   | { kind: "loading" }
   | { kind: "happy"; items: ReadonlyArray<T> }
   | { kind: "empty" }
+  // Premium gate hit on /likes/incoming — viewer is non-premium but
+  // people DO like them. Render the count + paywall CTA + blurred
+  // placeholder grid (silhouettes + lock icon over each card). Only
+  // populated for the LikesGrid tab; matches never goes through this.
+  | { kind: "locked"; count: number }
   | { kind: "error"; message: string };
 
 type Tab = "matches" | "likes";
@@ -121,11 +126,21 @@ function MatchesPageContent() {
         const res = await apiClient.get<IncomingLikesResponse>(
           "/likes/incoming",
         );
-        setLikesState(
-          res.likes.length === 0
-            ? { kind: "empty" }
-            : { kind: "happy", items: res.likes },
-        );
+        // Tolerate older deploys that returned just `{likes: [...]}`
+        // — derive count from likes.length and assume premium=true so
+        // the grid still renders. Once every droplet has the new
+        // backend (post Phase W cutover), this fallback can go.
+        const count =
+          typeof res.count === "number" ? res.count : res.likes.length;
+        const premium =
+          typeof res.premium === "boolean" ? res.premium : true;
+        if (count === 0) {
+          setLikesState({ kind: "empty" });
+        } else if (!premium) {
+          setLikesState({ kind: "locked", count });
+        } else {
+          setLikesState({ kind: "happy", items: res.likes });
+        }
       } catch (e) {
         const msg =
           e instanceof ApiError
@@ -153,7 +168,11 @@ function MatchesPageContent() {
   }, [fetchMatches, fetchLikes]);
 
   const likesCount =
-    likesState.kind === "happy" ? likesState.items.length : 0;
+    likesState.kind === "happy"
+      ? likesState.items.length
+      : likesState.kind === "locked"
+        ? likesState.count
+        : 0;
 
   const activeState = tab === "matches" ? matchesState : likesState;
   const onRetry = tab === "matches" ? fetchMatches : fetchLikes;
@@ -200,6 +219,12 @@ function MatchesPageContent() {
         <MatchesErrorState onRetry={() => void onRetry()} />
       ) : activeState.kind === "empty" ? (
         tab === "matches" ? <MatchesEmptyState /> : <LikesEmptyState />
+      ) : activeState.kind === "locked" ? (
+        // Premium gate hit on the Liked-you tab. Render the locked
+        // surface — count + blurred placeholder grid + paywall CTA.
+        // Only reachable when tab === "likes" since matches never
+        // sets kind: "locked".
+        <LikesLockedState count={activeState.count} />
       ) : tab === "matches" ? (
         <MatchesGrid matches={activeState.items as ReadonlyArray<MatchRecord>} />
       ) : (
@@ -471,6 +496,71 @@ function LikesEmptyState() {
       title="No likes yet"
       description="When someone likes you, they'll show up here so you can decide whether to like them back."
     />
+  );
+}
+
+/**
+ * Premium-gate surface for the 'Liked you' tab. Renders when the
+ * viewer has incoming likes but lacks the 'premium' entitlement.
+ * Shows the COUNT (proven by the server, not derivable client-side
+ * because /likes/incoming returns an empty array for non-premium
+ * viewers) + a blurred placeholder grid + an Upgrade CTA → /paywall.
+ *
+ * Design rules applied:
+ *   - Single primary CTA (h-tap, lime brand). Mobile-responsive §1.
+ *   - Color is not the only signal — Lock icon + "Premium" label
+ *     accompany the lime accents. Accessibility skill §3.
+ *   - Tokens only (lime, lavender, bg-elevated, text-secondary).
+ *   - 8px-grid spacing (gap-4 / gap-6 / px-5).
+ */
+function LikesLockedState({ count }: { count: number }) {
+  const headline =
+    count === 1
+      ? "1 person likes you"
+      : `${count} people like you`;
+  return (
+    <div className="flex flex-col gap-6 px-5 pt-6">
+      <div className="flex flex-col items-center gap-3 rounded-3xl bg-bg-elevated px-6 py-8 text-center">
+        <div
+          aria-hidden
+          className="flex size-12 items-center justify-center rounded-full bg-lime/15 text-lime"
+        >
+          <Sparkles className="size-6" />
+        </div>
+        <h2 className="text-h3 text-white">{headline}</h2>
+        <p className="max-w-xs text-body text-text-secondary">
+          See exactly who and what they liked about your profile with Ahavah Premium.
+        </p>
+        <Link
+          href="/paywall"
+          prefetch={false}
+          className={cn(
+            buttonVariants({ variant: "default", size: "tap" }),
+            "mt-2 w-full max-w-xs rounded-full",
+          )}
+        >
+          <Sparkles aria-hidden />
+          Upgrade to see
+        </Link>
+      </div>
+      {/* Blurred placeholder grid — mirrors the real LikesGrid layout
+          so the unlock-then-reveal transition has zero visual jump.
+          Lock icon is the COLOR-INDEPENDENT signal (per WCAG 1.4.1). */}
+      <div className="grid grid-cols-2 gap-4" aria-hidden>
+        {Array.from({ length: Math.min(count, 4) }).map((_, i) => (
+          <div key={i} className="flex w-full flex-col gap-2">
+            <div className="relative aspect-4/5 w-full overflow-hidden rounded-2xl bg-bg-elevated">
+              <div className="absolute inset-0 bg-linear-to-br from-lavender/30 to-pink/20 blur-xl" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Lock className="size-8 text-white/70" />
+              </div>
+            </div>
+            <Skeleton className="h-4 w-3/4 rounded-md" />
+            <Skeleton className="h-3 w-1/2 rounded-md" />
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 

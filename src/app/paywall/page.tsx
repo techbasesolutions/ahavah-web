@@ -43,10 +43,16 @@ const FEATURES = [
   "5 boosts per month",
 ];
 
+// Prices match the Stripe products created 2026-05-15 in test mode
+// (sk_test_3o33...). When swapping to live keys, re-create products
+// with these same amounts in live mode + update STRIPE_PRICE_PREMIUM_*
+// env vars on the droplet. tier_key strings MUST stay as 'month' /
+// 'quart' / 'year' — they map to backend env-var lookups in
+// service/checkout/__init__.py:_TIER_ENV.
 const TIERS = [
-  { key: "month", label: "1 month",  price: "$14.99", per: "$14.99 / month",       badge: null },
-  { key: "quart", label: "3 months", price: "$39.99", per: "$13.33 / month",       badge: "POPULAR" },
-  { key: "year",  label: "1 year",   price: "$89.99", per: "$7.50 / month",        badge: "BEST VALUE" },
+  { key: "month", label: "1 month",  price: "$4.99",  per: "$4.99 / month",  badge: null },
+  { key: "quart", label: "3 months", price: "$11.99", per: "$4.00 / month",  badge: "POPULAR" },
+  { key: "year",  label: "1 year",   price: "$34.99", per: "$2.92 / month",  badge: "BEST VALUE" },
 ];
 
 export default function PaywallPage() {
