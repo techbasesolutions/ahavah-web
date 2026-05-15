@@ -1,14 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { motion } from "motion/react";
-import { ArrowLeft, ChevronRight } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import {
   Item,
-  ItemActions,
   ItemContent,
   ItemDescription,
   ItemGroup,
@@ -16,6 +11,7 @@ import {
 } from "@/components/ui/item";
 import { Switch } from "@/components/ui/switch";
 
+import { BackButton } from "@/components/app/back-button";
 import { BottomNav } from "@/components/app/bottom-nav";
 import {
   PageHeader,
@@ -26,32 +22,28 @@ import { apiClient } from "@/lib/api-client";
 import { useShowOnMap } from "@/lib/use-show-on-map";
 import { useProfile } from "@/lib/use-profile";
 
-const fadeUp = {
-  initial: { opacity: 0, y: 12 },
-  animate: { opacity: 1, y: 0 },
-};
-
 // Backend accepts these fields on PATCH /profile-info as Optional[str]
 // with "Yes" / "No" values. Other privacy toggles previously listed on
 // this page (showDistance, showLastActive, incognito, readReceipts)
 // had no backend equivalent and have been removed rather than left as
 // fake controls.
-type BackedKey = "showAge" | "showLocation" | "hideFromStrangers";
+//
+// Phase W cutover added `requireVerifiedMatches` (Task 4). The
+// "Related" shortcut block (Blocked users + Account & data) was
+// removed in Task 10 — those have canonical homes on /settings and
+// reachable in one tap.
+type BackedKey =
+  | "showAge"
+  | "showLocation"
+  | "hideFromStrangers"
+  | "requireVerifiedMatches";
 
 const SERVER_FIELD: Record<BackedKey, string> = {
   showAge: "show_my_age",
   showLocation: "show_my_location",
   hideFromStrangers: "hide_me_from_strangers",
+  requireVerifiedMatches: "verification_required",
 };
-
-const SHORTCUT_LINKS: ReadonlyArray<{
-  title: string;
-  subtitle: string;
-  href: string;
-}> = [
-  { title: "Blocked users",  subtitle: "Manage people you've blocked",   href: "/settings/blocked" },
-  { title: "Account & data", subtitle: "Email, account deletion",        href: "/settings/account" },
-];
 
 function yesNoToBool(v: unknown): boolean {
   return typeof v === "string" && v.toLowerCase() === "yes";
@@ -63,6 +55,7 @@ export default function PrivacySettingsPage() {
     showAge: true,
     showLocation: true,
     hideFromStrangers: false,
+    requireVerifiedMatches: false,
   });
   const [savingKey, setSavingKey] = useState<BackedKey | null>(null);
   const { value: showOnMap, setValue: setShowOnMapLocal } = useShowOnMap();
@@ -91,6 +84,9 @@ export default function PrivacySettingsPage() {
               : true,
           hideFromStrangers: yesNoToBool(
             p["hide me from strangers"] ?? p.hide_me_from_strangers,
+          ),
+          requireVerifiedMatches: yesNoToBool(
+            p["verification required"] ?? p.verification_required,
           ),
         });
       })
@@ -123,31 +119,24 @@ export default function PrivacySettingsPage() {
   return (
     <PageShell bottomPad="nav">
       <PageHeader pad="tight" className="flex items-center gap-3">
-        <Button
-          nativeButton={false}
-          size="circle"
-          tone="elevated"
-          aria-label="Back to settings"
-          render={<Link href="/settings" prefetch={false} />}
-        >
-          <ArrowLeft className="text-white" />
-        </Button>
+        <BackButton fallback="/settings" label="Back to settings" />
         <PageHeaderTitle>Privacy</PageHeaderTitle>
       </PageHeader>
 
       <div className="flex flex-col gap-6 px-3 pt-4">
-        <motion.section
-          {...fadeUp}
-          transition={{ duration: 0.4, delay: 0.05 }}
-          className="flex flex-col gap-2"
-        >
-          <h2 className="px-3 text-overline text-text-muted">Profile visibility</h2>
+        <section className="flex flex-col gap-2">
+          <h2 className="px-3 text-overline text-text-muted">
+            Profile visibility
+          </h2>
           <ItemGroup className="gap-1">
             <Item variant="muted">
               <ItemContent>
-                <ItemTitle className="text-meta text-white">Show my age</ItemTitle>
+                <ItemTitle className="text-meta text-white">
+                  Show my age
+                </ItemTitle>
                 <ItemDescription className="text-caption text-text-muted">
-                  Display age next to your name on your profile and the swipe deck.
+                  Display age next to your name on your profile and the
+                  swipe deck.
                 </ItemDescription>
               </ItemContent>
               <Switch
@@ -214,35 +203,28 @@ export default function PrivacySettingsPage() {
                 aria-label="Hide me from strangers"
               />
             </Item>
-          </ItemGroup>
-        </motion.section>
 
-        <motion.section
-          {...fadeUp}
-          transition={{ duration: 0.4, delay: 0.13 }}
-          className="flex flex-col gap-2"
-        >
-          <h2 className="px-3 text-overline text-text-muted">Related</h2>
-          <ItemGroup className="gap-1">
-            {SHORTCUT_LINKS.map((link) => (
-              <Item
-                key={link.title}
-                variant="muted"
-                render={<Link href={link.href} prefetch={false} className="rounded-2xl" />}
-              >
-                <ItemContent>
-                  <ItemTitle className="text-meta text-white">{link.title}</ItemTitle>
-                  <ItemDescription className="text-caption text-text-muted">
-                    {link.subtitle}
-                  </ItemDescription>
-                </ItemContent>
-                <ItemActions>
-                  <ChevronRight className="size-4 text-text-muted" />
-                </ItemActions>
-              </Item>
-            ))}
+            <Item variant="muted">
+              <ItemContent>
+                <ItemTitle className="text-meta text-white">
+                  Require verified matches
+                </ItemTitle>
+                <ItemDescription className="text-caption text-text-muted">
+                  Only show profiles that have completed Bronze, Silver,
+                  or Gold verification in your discover feed.
+                </ItemDescription>
+              </ItemContent>
+              <Switch
+                checked={toggles.requireVerifiedMatches}
+                disabled={savingKey === "requireVerifiedMatches"}
+                onCheckedChange={(checked) =>
+                  void setBacked("requireVerifiedMatches", checked)
+                }
+                aria-label="Require verified matches"
+              />
+            </Item>
           </ItemGroup>
-        </motion.section>
+        </section>
       </div>
 
       <BottomNav />

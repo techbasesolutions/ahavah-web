@@ -236,6 +236,15 @@ const TRANSFORMS: Record<string, FieldTransform> = {
   // The /map page filters on showOnMap !== false; reading from server
   // via the ahavah_extra spread keeps that working.
   showOnMap: (v) => bundleExtra("showOnMap", typeof v === "boolean" ? v : null),
+
+  // Phase W cutover (2026-05-15) — "Require my matches to be verified".
+  // Backend column person.verification_required (BOOLEAN). Frontend
+  // sends "Yes"/"No" to match the show_my_age + sibling toggles'
+  // convention; backend handler converts to BOOLEAN before UPDATE.
+  requireVerifiedMatches: (v) =>
+    typeof v === "boolean"
+      ? { verification_required: v ? "Yes" : "No" }
+      : null,
 };
 
 /** Helper: wrap a single Ahavah-specific field into the ahavah_extra
@@ -293,6 +302,15 @@ function reverseTranslateValue(
       // looking_for "Marriage" / "Long-term dating" / etc. — no inverse
       // that recovers the original intent enum cleanly. Leave undefined;
       // the local cache holds the precise value.
+      return undefined;
+    case "requireVerifiedMatches":
+      // Backend ships "Yes" / "No" (mirrors the show_my_age convention).
+      // Translate to a plain boolean so the toggle in /settings/privacy
+      // can bind to it directly without re-parsing.
+      if (typeof serverValue === "string") {
+        return serverValue.toLowerCase() === "yes";
+      }
+      if (typeof serverValue === "boolean") return serverValue;
       return undefined;
     case "bio":
     case "occupation":
@@ -387,6 +405,12 @@ const SERVER_TO_CLIENT_KEY: Record<string, keyof Profile> = {
   // Operator roles — gates client-side visibility of /admin/* pages.
   // Server-side endpoints re-validate via the same column.
   roles: "roles",
+  // Phase W cutover: "Require my matches to be verified". Backend
+  // ships both space-keyed ("verification required") and snake_case
+  // ("verification_required") variants depending on the response
+  // shape; map both to the camelCase client field.
+  "verification required": "requireVerifiedMatches",
+  verification_required: "requireVerifiedMatches",
 };
 
 function translateInbound(server: Partial<Profile> | Record<string, unknown>): Partial<Profile> {

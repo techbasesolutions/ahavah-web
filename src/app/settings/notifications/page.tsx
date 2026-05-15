@@ -1,10 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { motion } from "motion/react";
-import { ArrowLeft, BellOff } from "lucide-react";
+import { BellOff } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import {
   Item,
   ItemContent,
@@ -14,6 +12,7 @@ import {
 } from "@/components/ui/item";
 import { Switch } from "@/components/ui/switch";
 
+import { BackButton } from "@/components/app/back-button";
 import { BottomNav } from "@/components/app/bottom-nav";
 import {
   PageHeader,
@@ -21,6 +20,10 @@ import {
   PageShell,
 } from "@/components/app/page-shell";
 
+import {
+  type NotificationPreferences,
+  useNotificationPreferences,
+} from "@/lib/use-notification-preferences";
 import { usePushSubscription } from "@/lib/use-push-subscription";
 
 const fadeUp = {
@@ -29,56 +32,69 @@ const fadeUp = {
 };
 
 /**
- * /settings/notifications — single-toggle wired surface.
+ * /settings/notifications — master push subscription + four per-event
+ * preferences backed by mig 0013's notification_preference table.
  *
- * Was previously a long-form mockup with 8 per-event toggles, every
- * one a no-op `useState` (no PATCH, no localStorage). Audit flagged
- * those as silent stubs that misled users into thinking they could
- * scope notifications.
+ *   Master push (subscribe / unsubscribe)
+ *     - usePushSubscription owns the SW + VAPID + permission flow.
+ *     - When OFF, the per-event toggles below disable (no subscription
+ *       = nothing to gate).
  *
- * Replaced with a single master toggle that actually runs the push
- * subscription state machine (usePushSubscription): subscribing
- * registers with the SW, requests permission, and POSTs the
- * subscription to /notifications/subscribe; un-subscribing removes
- * the row server-side AND calls pushManager.unsubscribe() locally.
- *
- * Per-event filtering (matches / messages / likes / weekly summary)
- * isn't built yet on the backend. Surfaced as a static informational
- * note rather than fake toggles.
+ *   Per-event toggles (4)
+ *     - push_matches (default ON)
+ *     - push_messages (default ON)
+ *     - push_likes (default OFF — gated read surface)
+ *     - push_weekly_digest (default OFF — feature not yet built)
  */
+
+type ToggleKey = keyof NotificationPreferences;
+
+const TOGGLES: ReadonlyArray<{
+  key: ToggleKey;
+  title: string;
+  description: string;
+}> = [
+  {
+    key: "push_matches",
+    title: "Matches",
+    description: "Someone you liked liked you back",
+  },
+  {
+    key: "push_messages",
+    title: "Messages",
+    description: "Someone sent you a chat message",
+  },
+  {
+    key: "push_likes",
+    title: "Likes",
+    description: "Someone liked your profile (premium read surface)",
+  },
+  {
+    key: "push_weekly_digest",
+    title: "Weekly digest",
+    description:
+      "A weekly summary of new matches and activity (coming soon)",
+  },
+];
+
 export default function NotificationsSettingsPage() {
-  const { state, subscribe, unsubscribe } = usePushSubscription();
+  const push = usePushSubscription();
+  const prefs = useNotificationPreferences();
 
-  const isSupported = state !== "unsupported";
-  const isOn = state === "subscribed";
-  const isBusy = state === "subscribing";
-  const isDenied = state === "denied";
-
-  const onToggle = (next: boolean) => {
-    if (!isSupported || isDenied) return;
-    if (next) {
-      void subscribe();
-    } else {
-      void unsubscribe();
-    }
-  };
+  const masterSupported = push.state !== "unsupported";
+  const masterOn = push.state === "subscribed";
+  const masterBusy = push.state === "subscribing";
+  const masterDenied = push.state === "denied";
 
   return (
     <PageShell bottomPad="nav">
       <PageHeader pad="tight" className="flex items-center gap-3">
-        <Button
-          nativeButton={false}
-          size="circle"
-          tone="elevated"
-          aria-label="Back to settings"
-          render={<Link href="/settings" prefetch={false} />}
-        >
-          <ArrowLeft className="text-white" />
-        </Button>
+        <BackButton fallback="/settings" label="Back to settings" />
         <PageHeaderTitle>Notifications</PageHeaderTitle>
       </PageHeader>
 
       <div className="flex flex-col gap-6 px-3 pt-4">
+        {/* Master push toggle */}
         <motion.section
           {...fadeUp}
           transition={{ duration: 0.4, delay: 0.05 }}
@@ -92,52 +108,88 @@ export default function NotificationsSettingsPage() {
                   Enable push notifications
                 </ItemTitle>
                 <ItemDescription className="text-caption text-text-muted">
-                  {isDenied
+                  {masterDenied
                     ? "Blocked at the browser / OS level. Re-enable in Site Settings, then come back."
-                    : !isSupported
+                    : !masterSupported
                       ? "This browser doesn't support push (iOS Safari needs Add to Home Screen first)."
-                      : "Get a ping when someone matches you, messages you, or likes you back."}
+                      : "Get a ping when something happens in Ahavah."}
                 </ItemDescription>
               </ItemContent>
               <Switch
-                checked={isOn}
-                disabled={!isSupported || isDenied || isBusy}
-                onCheckedChange={onToggle}
+                checked={masterOn}
+                disabled={!masterSupported || masterDenied || masterBusy}
+                onCheckedChange={(next) => {
+                  if (next) void push.subscribe();
+                  else void push.unsubscribe();
+                }}
                 aria-label="Enable push notifications"
               />
             </Item>
           </ItemGroup>
         </motion.section>
 
+        {/* Per-event preferences */}
         <motion.section
           {...fadeUp}
           transition={{ duration: 0.4, delay: 0.13 }}
           className="flex flex-col gap-2"
         >
           <h2 className="px-3 text-overline text-text-muted">
-            Per-event preferences
+            What to notify me about
           </h2>
-          <div className="mx-3 rounded-2xl bg-bg-elevated px-4 py-4 text-body text-text-secondary">
-            <div className="flex items-start gap-3">
-              <span
+          <ItemGroup className="gap-1">
+            {(() => {
+              const happy = prefs.state.kind === "happy" ? prefs.state : null;
+              return TOGGLES.map((t) => {
+                const value = happy ? happy.prefs[t.key] : false;
+                const savingThis = happy?.savingKey === t.key;
+                return (
+                  <Item key={t.key} variant="muted">
+                    <ItemContent>
+                      <ItemTitle className="text-meta text-white">
+                        {t.title}
+                      </ItemTitle>
+                      <ItemDescription className="text-caption text-text-muted">
+                        {t.description}
+                      </ItemDescription>
+                    </ItemContent>
+                    <Switch
+                      checked={value}
+                      disabled={!happy || savingThis || !masterOn}
+                      onCheckedChange={(next) =>
+                        void prefs.setOne(t.key, next)
+                      }
+                      aria-label={t.title}
+                    />
+                  </Item>
+                );
+              });
+            })()}
+          </ItemGroup>
+
+          {/* Helper text when push is OFF — explain why the per-event
+              toggles are disabled. */}
+          {!masterOn ? (
+            <p
+              className="mx-3 mt-1 flex items-start gap-2 text-caption leading-relaxed text-text-muted"
+              role="status"
+            >
+              <BellOff
+                className="mt-0.5 size-3.5 shrink-0 text-text-muted"
                 aria-hidden
-                className="flex size-9 shrink-0 items-center justify-center rounded-full bg-lavender/20 text-lavender"
-              >
-                <BellOff className="size-4" />
+              />
+              <span>
+                Turn on push above to enable per-event preferences.
+                Until then nothing pushes at all.
               </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-meta text-white">
-                  Granular controls coming soon
-                </p>
-                <p className="mt-1 text-caption leading-relaxed text-text-muted">
-                  Today, push is all-or-nothing — match, message and
-                  like notifications all share the master toggle above.
-                  Per-event opt-out (e.g. messages only) lands in a
-                  later release.
-                </p>
-              </div>
-            </div>
-          </div>
+            </p>
+          ) : null}
+
+          {prefs.state.kind === "error" ? (
+            <p role="alert" className="mx-3 mt-1 text-caption text-pink">
+              {prefs.state.message}
+            </p>
+          ) : null}
         </motion.section>
       </div>
 

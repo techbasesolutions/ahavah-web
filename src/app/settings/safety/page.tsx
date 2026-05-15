@@ -3,18 +3,14 @@
 import Link from "next/link";
 import { motion } from "motion/react";
 import {
-  ArrowLeft,
   BookOpen,
   ChevronRight,
-  EyeOff,
   Lock,
   MapPin,
   PhoneCall,
   ShieldCheck,
-  UserX,
 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { IconBadge } from "@/components/ui/icon-badge";
 import {
@@ -27,6 +23,7 @@ import {
   ItemTitle,
 } from "@/components/ui/item";
 
+import { BackButton } from "@/components/app/back-button";
 import { BottomNav } from "@/components/app/bottom-nav";
 import {
   PageHeader,
@@ -39,19 +36,20 @@ const fadeUp = {
   animate: { opacity: 1, y: 0 },
 };
 
-const QUICK_ACTIONS: ReadonlyArray<{
-  Icon: typeof ShieldCheck;
-  title: string;
-  subtitle: string;
-  href: string;
-  destructive?: boolean;
-}> = [
-  // Block + report flows live on the profile / chat kebab menu, not a
-  // standalone surface (BlockReportSheet posts /skip/by-uuid). The
-  // settings-level entry is a list of who you've already blocked.
-  { Icon: UserX,  title: "Manage blocked users", subtitle: "Review or unblock people you've blocked", href: "/settings/blocked" },
-  { Icon: EyeOff, title: "Privacy settings",     subtitle: "Control who sees what",                   href: "/settings/privacy" },
-];
+/**
+ * /settings/safety — safety tips + a hero + legal-resource shortcuts.
+ *
+ * Phase W cutover (2026-05-15): page was previously a "Safety Center"
+ * with Quick Actions duplicating /settings/blocked + /settings/privacy.
+ * The audit flagged Blocked users as reachable from 3 places — fixed
+ * by stripping the Quick Actions block here. Blocked users + Privacy
+ * each now live in exactly one settings home (the canonical
+ * /settings App group entry).
+ *
+ * "Local emergency numbers" tile + the /safety/emergency route were
+ * removed in the same wave — the user explicitly asked for it to come
+ * off and the tile had a maintenance cost without earning its keep.
+ */
 
 const SAFETY_TIPS: ReadonlyArray<{
   Icon: typeof ShieldCheck;
@@ -78,31 +76,21 @@ const SAFETY_TIPS: ReadonlyArray<{
 const RESOURCES: ReadonlyArray<{
   Icon: typeof BookOpen;
   title: string;
-  /** null = render as plain text (no destination yet). */
-  href: string | null;
+  href: string;
 }> = [
-  // Community guidelines + privacy policy live as in-app legal pages.
-  // Emergency numbers links to a curated /safety/emergency list with
-  // tel: links covering the regions Ahavah is most active in.
-  { Icon: BookOpen,    title: "Community guidelines",    href: "/legal/community-guidelines" },
-  { Icon: ShieldCheck, title: "Privacy policy",          href: "/legal/privacy" },
-  { Icon: PhoneCall,   title: "Local emergency numbers", href: "/safety/emergency" },
+  // Legal pages — kept here for quick access from the safety surface,
+  // in addition to their canonical entries under /settings → "Safety
+  // & Legal" group.
+  { Icon: BookOpen,    title: "Community guidelines", href: "/legal/community-guidelines" },
+  { Icon: ShieldCheck, title: "Privacy policy",       href: "/legal/privacy" },
 ];
 
-export default function SafetyCenterPage() {
+export default function SafetyTipsPage() {
   return (
     <PageShell bottomPad="nav">
       <PageHeader pad="tight" className="flex items-center gap-3">
-        <Button
-          nativeButton={false}
-          size="circle"
-          tone="elevated"
-          aria-label="Back to settings"
-          render={<Link href="/settings" prefetch={false} />}
-        >
-          <ArrowLeft className="text-white" />
-        </Button>
-        <PageHeaderTitle>Safety center</PageHeaderTitle>
+        <BackButton fallback="/settings" label="Back to settings" />
+        <PageHeaderTitle>Safety tips</PageHeaderTitle>
       </PageHeader>
 
       <div className="flex flex-col gap-6 px-3 pt-4">
@@ -133,55 +121,14 @@ export default function SafetyCenterPage() {
           </Card>
         </motion.div>
 
-        {/* Quick actions */}
-        <motion.section
-          {...fadeUp}
-          transition={{ duration: 0.25, delay: 0.11 }}
-          className="flex flex-col gap-2"
-        >
-          <h2 className="px-3 text-overline text-text-muted">Quick actions</h2>
-          <ItemGroup className="gap-1">
-            {QUICK_ACTIONS.map((item) => (
-              <Item
-                key={item.title}
-                variant="muted"
-                render={
-                  <Link
-                    href={item.href}
-                    prefetch={false}
-                    className="rounded-2xl"
-                  />
-                }
-              >
-                <ItemMedia>
-                  <IconBadge tone={item.destructive ? "destructive" : "brand"}>
-                    <item.Icon />
-                  </IconBadge>
-                </ItemMedia>
-                <ItemContent>
-                  <ItemTitle className="text-meta text-white">
-                    {item.title}
-                  </ItemTitle>
-                  <ItemDescription className="text-caption text-text-muted">
-                    {item.subtitle}
-                  </ItemDescription>
-                </ItemContent>
-                <ItemActions>
-                  <ChevronRight className="size-4 text-text-muted" />
-                </ItemActions>
-              </Item>
-            ))}
-          </ItemGroup>
-        </motion.section>
-
         {/* Safety tips — kit Item composition. ItemGroup gives role="list"
             so each tip is a list item semantically (no raw ul/li needed). */}
         <motion.section
           {...fadeUp}
-          transition={{ duration: 0.25, delay: 0.17 }}
+          transition={{ duration: 0.25, delay: 0.11 }}
           className="flex flex-col gap-3"
         >
-          <h2 className="px-3 text-overline text-text-muted">Safety tips</h2>
+          <h2 className="px-3 text-overline text-text-muted">Tips</h2>
           <ItemGroup className="gap-3 px-3">
             {SAFETY_TIPS.map((tip) => (
               <Item key={tip.title} className="items-start px-0 py-0">
@@ -203,10 +150,12 @@ export default function SafetyCenterPage() {
           </ItemGroup>
         </motion.section>
 
-        {/* Resources */}
+        {/* Resources — quick link to community guidelines + privacy policy.
+            These also live under /settings → "Safety & Legal" group as
+            canonical entries. */}
         <motion.section
           {...fadeUp}
-          transition={{ duration: 0.25, delay: 0.23 }}
+          transition={{ duration: 0.25, delay: 0.17 }}
           className="flex flex-col gap-2"
         >
           <h2 className="px-3 text-overline text-text-muted">Resources</h2>
@@ -216,41 +165,25 @@ export default function SafetyCenterPage() {
                 key={item.title}
                 variant="muted"
                 render={
-                  item.href != null ? (
-                    <Link
-                      href={item.href}
-                      prefetch={false}
-                      className="rounded-2xl"
-                    />
-                  ) : undefined
+                  <Link
+                    href={item.href}
+                    prefetch={false}
+                    className="rounded-2xl"
+                  />
                 }
-                aria-disabled={item.href == null ? true : undefined}
               >
                 <ItemMedia>
-                  <IconBadge tone={item.href == null ? "muted" : "brand"}>
+                  <IconBadge tone="brand">
                     <item.Icon />
                   </IconBadge>
                 </ItemMedia>
                 <ItemContent>
-                  <ItemTitle
-                    className={
-                      item.href == null
-                        ? "text-meta text-text-muted"
-                        : "text-meta text-white"
-                    }
-                  >
+                  <ItemTitle className="text-meta text-white">
                     {item.title}
-                    {item.href == null ? (
-                      <span className="ml-2 text-caption text-text-muted">
-                        (coming soon)
-                      </span>
-                    ) : null}
                   </ItemTitle>
                 </ItemContent>
                 <ItemActions>
-                  {item.href != null ? (
-                    <ChevronRight className="size-4 text-text-muted" />
-                  ) : null}
+                  <ChevronRight className="size-4 text-text-muted" />
                 </ItemActions>
               </Item>
             ))}

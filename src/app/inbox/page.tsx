@@ -65,6 +65,10 @@ type DebugState = "happy" | "loading" | "empty" | "error";
 type DisplayThread = ChatThread & {
   name: string;
   age: number;
+  // True when the prospect-profile fetch has resolved with a real
+  // name. Render layer shows a skeleton placeholder while false so
+  // "Person" never flashes.
+  nameLoaded: boolean;
 };
 
 function InboxContent() {
@@ -119,7 +123,25 @@ function InboxContent() {
   // Fetch display name + age for every peer once. Cached in this component
   // for the lifetime of /inbox; profile photos / online state come from
   // discovery's existing UI (out of scope for this hook).
-  const [profiles, setProfiles] = useState<Record<string, Partial<Profile>>>({});
+  //
+  // Phase W cutover (2026-05-15): seed from sessionStorage so subsequent
+  // /inbox mounts within the same session don't re-flash a skeleton.
+  // Names are stable enough that a per-session cache is safe;
+  // sessionStorage clears on tab close so a profile-name update lands
+  // on next cold start.
+  const [profiles, setProfiles] = useState<Record<string, Partial<Profile>>>(
+    () => {
+      if (typeof window === "undefined") return {};
+      try {
+        const cached = sessionStorage.getItem("ahavah:inbox-names");
+        return cached
+          ? (JSON.parse(cached) as Record<string, Partial<Profile>>)
+          : {};
+      } catch {
+        return {};
+      }
+    },
+  );
   useEffect(() => {
     const missing = threads.filter((t) => !profiles[t.id]).map((t) => t.id);
     if (missing.length === 0) return;
@@ -147,6 +169,15 @@ function InboxContent() {
       setProfiles((prev) => {
         const next = { ...prev };
         for (const [uuid, p] of results) next[uuid] = p;
+        // Persist for subsequent /inbox mounts in the same session.
+        // sessionStorage clears on tab close so a profile-name update
+        // lands on next cold start; quota errors are non-fatal since
+        // in-memory state still works for the current session.
+        try {
+          sessionStorage.setItem("ahavah:inbox-names", JSON.stringify(next));
+        } catch {
+          // Quota exceeded — skip the cache write.
+        }
         return next;
       });
     });
@@ -157,11 +188,20 @@ function InboxContent() {
 
   const display: DisplayThread[] = useMemo(
     () =>
-      threads.map((t) => ({
-        ...t,
-        name: profiles[t.id]?.firstName ?? "Person",
-        age: profiles[t.id]?.age ?? 0,
-      })),
+      threads.map((t) => {
+        const peer = profiles[t.id];
+        const hasName =
+          typeof peer?.firstName === "string" && peer.firstName.length > 0;
+        return {
+          ...t,
+          // Phase W cutover: render layer checks `nameLoaded` to decide
+          // skeleton vs. real text so the user never sees a "Person"
+          // placeholder. Empty string when name not yet resolved.
+          name: hasName ? peer!.firstName! : "",
+          age: peer?.age ?? 0,
+          nameLoaded: hasName,
+        };
+      }),
     [threads, profiles],
   );
 
@@ -279,15 +319,24 @@ function ChatList({ chats }: { chats: DisplayThread[] }) {
           >
             <ItemMedia>
               <StoryAvatar
-                name={c.name}
+                name={c.nameLoaded ? c.name : "?"}
                 ring={c.unreadCount > 0 ? "lime" : "none"}
                 size="sm"
               />
             </ItemMedia>
             <ItemContent>
               <ItemTitle className="text-body text-white">
-                {c.name}
-                {c.age ? `, ${c.age}` : ""}
+                {c.nameLoaded ? (
+                  <>
+                    {c.name}
+                    {c.age ? `, ${c.age}` : ""}
+                  </>
+                ) : (
+                  <span
+                    aria-hidden
+                    className="inline-block h-4 w-24 animate-pulse rounded bg-white/10 align-middle"
+                  />
+                )}
               </ItemTitle>
               <ItemDescription
                 aria-live={c.unreadCount > 0 ? "polite" : undefined}

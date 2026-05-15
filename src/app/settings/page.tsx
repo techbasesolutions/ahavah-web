@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { motion } from "motion/react";
 import {
-  ArrowLeft,
   BellRing,
+  BookOpen,
   ChevronRight,
+  FileText,
   HelpCircle,
   ShieldAlert,
   ShieldCheck,
@@ -13,7 +14,6 @@ import {
   UserX,
 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { IconBadge } from "@/components/ui/icon-badge";
 import {
   Item,
@@ -25,6 +25,7 @@ import {
   ItemTitle,
 } from "@/components/ui/item";
 
+import { BackButton } from "@/components/app/back-button";
 import { BottomNav } from "@/components/app/bottom-nav";
 import {
   PageHeader,
@@ -58,6 +59,16 @@ const SETTINGS_GROUPS: ReadonlyArray<{
   // they live on /profile (the personal-actions surface). Settings is
   // for granular toggles + account management only. Earlier duplication
   // gave users two ways to reach the same screens.
+  // Phase W cutover (2026-05-15) — regrouped per audit:
+  //   - Blocked users + Privacy + Notifications stay in "App" (single
+  //     canonical home each, no more duplicate doors from
+  //     /settings/privacy or /settings/safety).
+  //   - "Safety & Legal" group consolidates safety tips with all three
+  //     legal pages. Terms of service was previously unreachable from
+  //     settings — only the landing footer + sign-up consent linked to
+  //     it. Now lives alongside the other policies.
+  //   - Edit profile / Verification / Subscription deliberately NOT
+  //     here — they live on /profile (the personal-actions surface).
   {
     label: "Account",
     accent: "bg-lavender",
@@ -69,14 +80,19 @@ const SETTINGS_GROUPS: ReadonlyArray<{
     label: "App",
     accent: "bg-lavender/60",
     items: [
-      // Auto-translate intentionally NOT here — DeepL translations are
-      // deferred per Phase W §9. Restore when the feature actually
-      // ships. Notifications now wired to a real master push toggle
-      // (sub/unsub via usePushSubscription).
-      { Icon: BellRing,    title: "Notifications", subtitle: "Push notifications",         href: "/settings/notifications", tone: "muted" },
-      { Icon: ShieldAlert, title: "Privacy",       subtitle: "What others see about you",  href: "/settings/privacy",       tone: "muted" },
-      { Icon: UserX,       title: "Blocked users", subtitle: "People you've blocked",      href: "/settings/blocked",       tone: "muted" },
-      { Icon: ShieldCheck, title: "Safety center", subtitle: "Tips, blocks, emergencies",  href: "/settings/safety",        tone: "muted" },
+      { Icon: BellRing,    title: "Notifications", subtitle: "Push notifications",        href: "/settings/notifications", tone: "muted" },
+      { Icon: ShieldAlert, title: "Privacy",       subtitle: "What others see about you", href: "/settings/privacy",       tone: "muted" },
+      { Icon: UserX,       title: "Blocked users", subtitle: "People you've blocked",     href: "/settings/blocked",       tone: "muted" },
+    ],
+  },
+  {
+    label: "Safety & Legal",
+    accent: "bg-lavender/60",
+    items: [
+      { Icon: ShieldCheck, title: "Safety tips",          subtitle: "Stay safe on Ahavah",     href: "/settings/safety",            tone: "muted" },
+      { Icon: BookOpen,    title: "Community guidelines", subtitle: "How we keep it kind",     href: "/legal/community-guidelines", tone: "muted" },
+      { Icon: ShieldCheck, title: "Privacy policy",       subtitle: "How we handle your data", href: "/legal/privacy",              tone: "muted" },
+      { Icon: FileText,    title: "Terms of service",     subtitle: "What you agree to",       href: "/legal/terms",                tone: "muted" },
     ],
   },
   {
@@ -92,15 +108,7 @@ export default function SettingsPage() {
   return (
     <PageShell bottomPad="nav">
       <PageHeader pad="tight" className="flex items-center gap-3">
-        <Button
-          nativeButton={false}
-          size="circle"
-          tone="elevated"
-          aria-label="Back to profile"
-          render={<Link href="/profile" prefetch={false} />}
-        >
-          <ArrowLeft className="text-white" />
-        </Button>
+        <BackButton fallback="/profile" label="Back to profile" />
         <PageHeaderTitle>Settings</PageHeaderTitle>
       </PageHeader>
 

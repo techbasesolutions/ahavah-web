@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { motion } from "motion/react";
-import { ArrowLeft, Check, IdCard, Scan, Smartphone } from "lucide-react";
+import { Check, IdCard, Scan, Smartphone } from "lucide-react";
 
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
+import { BackButton } from "@/components/app/back-button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { IconBadge } from "@/components/ui/icon-badge";
 import { Pill } from "@/components/kibo-ui/pill";
@@ -87,15 +88,7 @@ export default function VerifyPage() {
   return (
     <PageShell bottomPad="default">
       <PageHeader pad="tight" className="flex items-center gap-3">
-        <Button
-          nativeButton={false}
-          size="circle"
-          tone="elevated"
-          aria-label="Back to profile"
-          render={<Link href="/profile" prefetch={false} />}
-        >
-          <ArrowLeft className="text-white" />
-        </Button>
+        <BackButton fallback="/profile" label="Back to profile" />
         <PageHeaderTitle>Get verified</PageHeaderTitle>
       </PageHeader>
 

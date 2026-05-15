@@ -1,13 +1,12 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
-import { ArrowLeft } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { BackButton } from "@/components/app/back-button";
 import {
   Item,
   ItemActions,
@@ -176,15 +175,7 @@ function BlockedContent() {
   return (
     <PageShell bottomPad="nav">
       <PageHeader pad="tight" className="flex items-center gap-3">
-        <Button
-          nativeButton={false}
-          size="circle"
-          tone="elevated"
-          aria-label="Back to settings"
-          render={<Link href="/settings" prefetch={false} />}
-        >
-          <ArrowLeft className="text-white" />
-        </Button>
+        <BackButton fallback="/settings" label="Back to settings" />
         <PageHeaderTitle>Blocked users</PageHeaderTitle>
       </PageHeader>
 

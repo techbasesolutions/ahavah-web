@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { motion } from "motion/react";
-import { ArrowLeft, Bug, ChevronDown, Mail } from "lucide-react";
+import { Bug, ChevronDown, Mail } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { BackButton } from "@/components/app/back-button";
 import { IconBadge } from "@/components/ui/icon-badge";
 import {
   Item,
@@ -81,15 +81,7 @@ export default function HelpPage() {
   return (
     <PageShell bottomPad="nav">
       <PageHeader pad="tight" className="flex items-center gap-3">
-        <Button
-          nativeButton={false}
-          size="circle"
-          tone="elevated"
-          aria-label="Back to settings"
-          render={<Link href="/settings" prefetch={false} />}
-        >
-          <ArrowLeft className="text-white" />
-        </Button>
+        <BackButton fallback="/settings" label="Back to settings" />
         <PageHeaderTitle>Help</PageHeaderTitle>
       </PageHeader>
 

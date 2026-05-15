@@ -877,6 +877,10 @@ export type Profile = {
   // Map visibility (sub-plan 14 / T7) — soft default `true` at consumer
   // level. When false, the profile is filtered out of the /map view.
   showOnMap?: boolean;
+  // Phase W cutover (2026-05-15) — "Require my matches to be verified".
+  // Drives the /search verified_only filter as a sticky setting (lives
+  // on /settings/privacy, persists per-account). Free for any user.
+  requireVerifiedMatches?: boolean;
   // Phase W premium (Stripe Checkout, 2026-05-15). `entitlements` is the
   // canonical source of truth for paywall gates — `'premium'` ∈ array
   // grants access to /matches "Liked you" content + advanced filters.

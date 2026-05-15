@@ -24,6 +24,11 @@ export type DiscoverFilters = {
   ageMax?: number;
   countries?: ReadonlyArray<string>;
   languages?: ReadonlyArray<string>;
+  // Phase W: filter discover pool to verified prospects only. Driven by
+  // either the discover-sheet toggle or the privacy setting "Require my
+  // matches to be verified" (the wrapper OR's both at the call site).
+  // Backend treats undefined and false identically.
+  verifiedOnly?: boolean;
 };
 
 export type UseDiscoverDeckResult = {
@@ -55,6 +60,9 @@ export function buildSearchPath(
   }
   if (filters.languages && filters.languages.length > 0) {
     params.set("languages", filters.languages.join(","));
+  }
+  if (filters.verifiedOnly) {
+    params.set("verified_only", "1");
   }
   const qs = params.toString();
   return qs ? `/search?${qs}` : "/search";

@@ -1,10 +1,8 @@
 "use client";
 
-import Link from "next/link";
-import { ArrowLeft, Mail } from "lucide-react";
+import { Mail } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-
+import { BackButton } from "@/components/app/back-button";
 import {
   PageHeader,
   PageHeaderTitle,
@@ -15,15 +13,7 @@ export default function CommunityGuidelinesPage() {
   return (
     <PageShell bottomPad="default">
       <PageHeader pad="tight" className="flex items-center gap-3">
-        <Button
-          nativeButton={false}
-          size="circle"
-          tone="elevated"
-          aria-label="Back"
-          render={<Link href="/" prefetch={false} />}
-        >
-          <ArrowLeft className="text-white" />
-        </Button>
+        <BackButton fallback="/" label="Back" />
         <PageHeaderTitle>Community Guidelines</PageHeaderTitle>
       </PageHeader>
 

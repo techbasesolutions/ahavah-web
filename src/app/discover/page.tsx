@@ -106,14 +106,29 @@ export default function DiscoverPage() {
   }, [loaded, userProfile, router]);
 
   // Map FiltersSheet shape onto the HTTP filter shape.
+  // Phase W: feed forwards `verifiedOnly` so the backend can drop
+  // unverified prospects. Two sources OR together:
+  //   1. The discover sheet's per-session toggle (filters.verifiedOnly).
+  //   2. The user's profile-level "Require verified matches" setting
+  //      (userProfile.requireVerifiedMatches) — a sticky default.
   const httpFilters = useMemo(
     () => ({
       ageMin: filters.ageMin,
       ageMax: filters.ageMax,
       countries: filters.country,
       languages: filters.languages,
+      verifiedOnly: Boolean(
+        filters.verifiedOnly || userProfile?.requireVerifiedMatches,
+      ),
     }),
-    [filters.ageMin, filters.ageMax, filters.country, filters.languages],
+    [
+      filters.ageMin,
+      filters.ageMax,
+      filters.country,
+      filters.languages,
+      filters.verifiedOnly,
+      userProfile?.requireVerifiedMatches,
+    ],
   );
 
   const { items, loadMore, hasMore } = useDiscoverDeck(httpFilters);

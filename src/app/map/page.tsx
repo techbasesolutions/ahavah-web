@@ -217,8 +217,18 @@ export default function MapPage() {
       ageMax: filters.ageMax,
       countries: filters.country,
       languages: filters.languages,
+      verifiedOnly: Boolean(
+        filters.verifiedOnly || viewer?.requireVerifiedMatches,
+      ),
     }),
-    [filters.ageMin, filters.ageMax, filters.country, filters.languages],
+    [
+      filters.ageMin,
+      filters.ageMax,
+      filters.country,
+      filters.languages,
+      filters.verifiedOnly,
+      viewer?.requireVerifiedMatches,
+    ],
   );
   const { items: realCandidates } = useDiscoverDeck(httpFilters);
   // Drop candidates without a country ISO — the map can't position them.
