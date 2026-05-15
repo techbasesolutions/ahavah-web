@@ -113,6 +113,19 @@ export type MatchesResponse = {
   matches: ReadonlyArray<MatchRecord>;
 };
 
+/** Incoming-like (someone liked YOU but you haven't decided). Same
+ *  with_profile shape as MatchRecord for frontend reuse — the only
+ *  difference is `liked_at` instead of `created_at` (= when THEY
+ *  liked you, not when a mutual match formed). */
+export type LikeRecord = {
+  with_profile: Partial<Profile> & { id: string };
+  liked_at: string;
+};
+
+export type IncomingLikesResponse = {
+  likes: ReadonlyArray<LikeRecord>;
+};
+
 // ---------------------------------------------------------------------------
 // Chat — REST companion endpoints (real-time goes via WebSocket; see
 // chat-types.ts in Agent 4's module).

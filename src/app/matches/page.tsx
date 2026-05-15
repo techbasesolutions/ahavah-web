@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
 import { MapPin } from "lucide-react";
 
@@ -13,6 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Pill } from "@/components/kibo-ui/pill";
 
 import { cn } from "@/lib/utils";
 
@@ -25,7 +27,12 @@ import {
 } from "@/components/app/page-shell";
 import { PhotoTile } from "@/components/app/photo-tile";
 import { apiClient, ApiError } from "@/lib/api-client";
-import type { MatchesResponse, MatchRecord } from "@/lib/api-types";
+import type {
+  IncomingLikesResponse,
+  LikeRecord,
+  MatchesResponse,
+  MatchRecord,
+} from "@/lib/api-types";
 import { photoOrGradient, photosFromUuids, type PhotoSource } from "@/lib/photo-or-gradient";
 
 const fadeUp = {
@@ -36,11 +43,13 @@ const fadeUp = {
 // Stagger cap so a long matches list doesn't slow-cascade for seconds.
 const staggerDelay = (i: number) => 0.05 + Math.min(i, 5) * 0.06;
 
-type LoadState =
+type LoadState<T> =
   | { kind: "loading" }
-  | { kind: "happy"; matches: ReadonlyArray<MatchRecord> }
+  | { kind: "happy"; items: ReadonlyArray<T> }
   | { kind: "empty" }
   | { kind: "error"; message: string };
+
+type Tab = "matches" | "likes";
 
 /**
  * /matches — Your mutual matches list.
@@ -58,18 +67,38 @@ type LoadState =
  * forcing states via querystring lived in pre-Phase-W code and is dropped.)
  */
 export default function MatchesPage() {
-  const [state, setState] = useState<LoadState>({ kind: "loading" });
+  // Next 16 requires useSearchParams to live inside a Suspense boundary.
+  // See /app/match/page.tsx for the same pattern.
+  return (
+    <Suspense fallback={null}>
+      <MatchesPageContent />
+    </Suspense>
+  );
+}
+
+function MatchesPageContent() {
+  const searchParams = useSearchParams();
+  // ?tab=likes lets /profile/[uuid]?from=likes back-button land users
+  // on the right tab. Default Matches.
+  const initialTab: Tab = searchParams.get("tab") === "likes" ? "likes" : "matches";
+  const [tab, setTab] = useState<Tab>(initialTab);
+  const [matchesState, setMatchesState] = useState<LoadState<MatchRecord>>({
+    kind: "loading",
+  });
+  const [likesState, setLikesState] = useState<LoadState<LikeRecord>>({
+    kind: "loading",
+  });
 
   const fetchMatches = useMemo(
     () => async () => {
-      setState({ kind: "loading" });
+      setMatchesState({ kind: "loading" });
       try {
         const res = await apiClient.get<MatchesResponse>("/matches");
-        if (res.matches.length === 0) {
-          setState({ kind: "empty" });
-        } else {
-          setState({ kind: "happy", matches: res.matches });
-        }
+        setMatchesState(
+          res.matches.length === 0
+            ? { kind: "empty" }
+            : { kind: "happy", items: res.matches },
+        );
       } catch (e) {
         const msg =
           e instanceof ApiError
@@ -77,41 +106,128 @@ export default function MatchesPage() {
             : e instanceof Error
               ? e.message
               : "Couldn't load matches.";
-        setState({ kind: "error", message: msg });
+        setMatchesState({ kind: "error", message: msg });
       }
     },
     [],
   );
 
+  const fetchLikes = useMemo(
+    () => async () => {
+      setLikesState({ kind: "loading" });
+      try {
+        const res = await apiClient.get<IncomingLikesResponse>(
+          "/likes/incoming",
+        );
+        setLikesState(
+          res.likes.length === 0
+            ? { kind: "empty" }
+            : { kind: "happy", items: res.likes },
+        );
+      } catch (e) {
+        const msg =
+          e instanceof ApiError
+            ? e.message
+            : e instanceof Error
+              ? e.message
+              : "Couldn't load likes.";
+        setLikesState({ kind: "error", message: msg });
+      }
+    },
+    [],
+  );
+
+  // Fetch BOTH lists on mount so the tab toggle's badge count is
+  // correct from the first paint. Empty / error states are handled
+  // per-tab below. The setState-in-effect lint warns generically here
+  // — these are mount-driven async fetches that own their own state
+  // transitions, the canonical pattern in this codebase (see /matches'
+  // earlier single-fetch + /map's match-uuid prefetch).
   useEffect(() => {
-    // Initial fetch — fetchMatches calls setState inside. The rule warns
-    // generically; this is the correct mount-driven pattern.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void fetchMatches();
-  }, [fetchMatches]);
+     
+    void fetchLikes();
+  }, [fetchMatches, fetchLikes]);
+
+  const likesCount =
+    likesState.kind === "happy" ? likesState.items.length : 0;
+
+  const activeState = tab === "matches" ? matchesState : likesState;
+  const onRetry = tab === "matches" ? fetchMatches : fetchLikes;
 
   return (
     <PageShell bottomPad="nav">
       <PageHeader>
         <PageHeaderTitle>Matches</PageHeaderTitle>
-        {/* Removed: 'Search likes' button had no onClick handler and no
-            backend search. Match lists are short; visual scan is fine
-            for now. Restore when the list grows and a filter modal is
-            built. */}
       </PageHeader>
 
-      {state.kind === "loading" ? (
+      {/* Tab toggle — shows lime badge with the incoming-likes count
+          when there are any. Tap routes the same page through a
+          different fetch + grid. */}
+      <div className="flex items-center gap-2 px-5 pt-4">
+        <TabButton active={tab === "matches"} onClick={() => setTab("matches")}>
+          Matches
+        </TabButton>
+        <TabButton active={tab === "likes"} onClick={() => setTab("likes")}>
+          <span className="flex items-center gap-2">
+            Liked you
+            {likesCount > 0 ? (
+              <Pill variant="lime" size="sm">
+                {likesCount > 99 ? "99+" : likesCount}
+              </Pill>
+            ) : null}
+          </span>
+        </TabButton>
+      </div>
+
+      {activeState.kind === "loading" ? (
         <MatchesLoadingSkeleton />
-      ) : state.kind === "error" ? (
-        <MatchesErrorState onRetry={() => void fetchMatches()} />
-      ) : state.kind === "empty" ? (
-        <MatchesEmptyState />
+      ) : activeState.kind === "error" ? (
+        <MatchesErrorState onRetry={() => void onRetry()} />
+      ) : activeState.kind === "empty" ? (
+        tab === "matches" ? <MatchesEmptyState /> : <LikesEmptyState />
+      ) : tab === "matches" ? (
+        <MatchesGrid matches={activeState.items as ReadonlyArray<MatchRecord>} />
       ) : (
-        <MatchesGrid matches={state.matches} />
+        <LikesGrid likes={activeState.items as ReadonlyArray<LikeRecord>} />
       )}
 
       <BottomNav />
     </PageShell>
+  );
+}
+
+// Local tab-pill primitive — matches the lavender/lime palette without
+// pulling in the kit ToggleGroup (which doesn't compose well with the
+// active-with-badge pattern we want here).
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      // The jsx-a11y/aria-proptypes rule rejects expression values for
+      // aria-pressed even when both branches are literal "true"/"false".
+      // The runtime value is correct; suppress the lint just here.
+       
+      aria-pressed={active ? "true" : "false"}
+      className={cn(
+        "h-tap rounded-full border px-4 text-meta font-semibold transition-colors",
+        active
+          ? "border-lime bg-lime text-black"
+          : "border-white/15 bg-transparent text-text-secondary hover:bg-white/5",
+      )}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -200,6 +316,93 @@ function MatchesGrid({
         );
       })}
     </div>
+  );
+}
+
+// LikesGrid — 'Liked you' tab. Same card layout as MatchesGrid but tap
+// routes to /profile/<peer>?from=likes (so the user can like back to
+// CREATE the match) instead of going straight to chat.
+function LikesGrid({ likes }: { likes: ReadonlyArray<LikeRecord> }) {
+  return (
+    <div className="grid grid-cols-2 gap-4 px-5 pt-6">
+      {likes.map((l, i) => {
+        const liker = l.with_profile;
+        const likerName = liker.firstName ?? "Someone";
+        const likerAge = liker.age;
+        const likerLocation =
+          liker.city && liker.country
+            ? `${liker.city}, ${liker.country}`
+            : (liker.country ?? "");
+        const likerPhotos =
+          liker.photos && liker.photos.length > 0
+            ? liker.photos
+            : photosFromUuids(
+                (liker as { photo_uuids?: unknown }).photo_uuids,
+              );
+        const photoSource: PhotoSource = photoOrGradient(
+          { firstName: likerName, photos: likerPhotos },
+          0,
+        );
+        return (
+          <motion.div
+            key={liker.id}
+            {...fadeUp}
+            transition={{ duration: 0.3, delay: staggerDelay(i) }}
+          >
+            <Link
+              href={`/profile/${liker.id}?from=likes`}
+              prefetch={false}
+              className={cn(
+                buttonVariants({ variant: "ghost", size: "block" }),
+                "h-auto",
+              )}
+            >
+              <Card tone="flat" size="sm" className="w-full gap-2 p-0">
+                <PhotoTile
+                  aspect="4/5"
+                  radius="lg"
+                  surface="none"
+                  bg={
+                    photoSource.kind === "gradient" ? photoSource.css : undefined
+                  }
+                >
+                  {photoSource.kind === "photo" && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={photoSource.src}
+                      alt={`${likerName}'s photo`}
+                      className="absolute inset-0 size-full object-cover"
+                    />
+                  )}
+                </PhotoTile>
+                <CardHeader className="px-0">
+                  <CardTitle className="text-body font-semibold leading-tight text-white">
+                    {likerName}
+                    {likerAge ? `, ${likerAge}` : ""}
+                  </CardTitle>
+                  {likerLocation ? (
+                    <CardDescription className="flex items-center gap-1 text-caption text-text-secondary">
+                      <MapPin className="size-3" />
+                      {likerLocation}
+                    </CardDescription>
+                  ) : null}
+                </CardHeader>
+              </Card>
+            </Link>
+          </motion.div>
+        );
+      })}
+    </div>
+  );
+}
+
+function LikesEmptyState() {
+  return (
+    <EmptyState
+      variant="no-matches"
+      title="No likes yet"
+      description="When someone likes you, they'll show up here so you can decide whether to like them back."
+    />
   );
 }
 

@@ -237,17 +237,19 @@ export default function ProfileDetailPage({ params }: Props) {
   const backHref =
     from === "map"
       ? "/map"
-      : from === "matches"
+      : from === "matches" || from === "match"
         ? "/matches"
-        : from === "match"
-          ? "/matches"
+        : from === "likes"
+          ? "/matches?tab=likes"
           : "/discover";
   const backLabel =
     from === "map"
       ? "Back to map"
       : from === "matches" || from === "match"
         ? "Back to matches"
-        : "Back to discover";
+        : from === "likes"
+          ? "Back to Liked you"
+          : "Back to discover";
 
   // Swipe-down-to-dismiss — pairs with /discover's swipe-up-to-open
   // for gestural symmetry. Only active when ?from=discover so it
