@@ -299,6 +299,10 @@ const SERVER_TO_CLIENT_KEY: Record<string, keyof Profile> = {
   // paywall-gate source per lib/profile-schema.ts isPremium().
   entitlements: "entitlements",
   subscription_expires_at: "subscriptionExpiresAt",
+  stripe_customer_id: "stripeCustomerId",
+  // Phase W cutover soft-delete grace. Surfaced via /profile banner +
+  // POST /account/cancel-deletion CTA when set.
+  deletion_requested_at: "deletionRequestedAt",
 };
 
 function translateInbound(server: Partial<Profile> | Record<string, unknown>): Partial<Profile> {

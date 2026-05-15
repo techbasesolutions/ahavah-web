@@ -5,10 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import {
-  ChevronRight, CreditCard, Loader2, LogOut, Settings,
-  ShieldCheck, Sparkles, UserPen,
+  ChevronRight, CreditCard, Loader2, LogOut, RotateCcw, Settings,
+  ShieldCheck, Sparkles, TriangleAlert, UserPen,
 } from "lucide-react";
 
+import { apiClient, ApiError } from "@/lib/api-client";
+import { isPremium } from "@/lib/profile-schema";
 import { useProfile } from "@/lib/use-profile";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -60,9 +62,14 @@ type ProfileLink = {
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { profile, signOut } = useProfile();
+  const { profile, signOut, refreshProfile } = useProfile();
   const [signOutOpen, setSignOutOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  // Phase W cutover (2026-05-15) — cancel-deletion self-service. The
+  // billing portal flow uses a dedicated /billing-portal redirect page
+  // (handles its own busy/error state) so it doesn't need state here.
+  const [restoreBusy, setRestoreBusy] = useState(false);
+  const [restoreError, setRestoreError] = useState<string | null>(null);
 
   // Real values from useProfile (cache + /me + /profile-info). The hero
   // card previously hardcoded 'Ehud, 30' and 'Bronze verified' — those
@@ -98,14 +105,20 @@ export default function ProfilePage() {
         : verificationLevelRaw === "Photos + ID"
           ? "Gold · highest trust"
           : String(verificationLevelRaw);
-  const hasGold = (profile as Record<string, unknown>).has_gold === true;
-  const subscriptionSubtitle = hasGold
+  // Premium gate (Phase W cutover, 2026-05-15) — drives both copy and
+  // destination of the Subscription row. isPremium reads
+  // profile.entitlements (the canonical source). Premium users land on
+  // /billing-portal which redirects to Stripe's hosted portal; free
+  // users land on the in-app paywall to start a checkout.
+  const premium = isPremium(profile);
+  const subscriptionSubtitle = premium
     ? "Premium · manage subscription"
     : "Upgrade to Premium →";
+  const subscriptionHref = premium ? "/billing-portal" : "/paywall";
   const PROFILE_LINKS: ReadonlyArray<ProfileLink> = [
     { Icon: UserPen,     title: "Edit profile", subtitle: "Photos, bio, basics",             href: "/profile/edit", tone: "brand" },
     { Icon: ShieldCheck, title: "Verification", subtitle: verifySubtitle,                    href: "/verify",       tone: "success" },
-    { Icon: CreditCard,  title: "Subscription", subtitle: subscriptionSubtitle,              href: "/paywall",      tone: "success" },
+    { Icon: CreditCard,  title: "Subscription", subtitle: subscriptionSubtitle,              href: subscriptionHref, tone: "success" },
     { Icon: Settings,    title: "Settings",     subtitle: "Notifications, privacy, account", href: "/settings",     tone: "muted" },
   ];
 
@@ -118,8 +131,74 @@ export default function ProfilePage() {
     router.push("/");
   };
 
+  // Phase W cutover (2026-05-15) — soft-delete cancel handler.
+  // Counterpart to /settings/account "Delete account" → /account
+  // (which sets activated=FALSE + stamps deletion_requested_at).
+  // Without this surface, the only way to undo was emailing
+  // admin@ahavah.app — a mailbox that doesn't exist yet.
+  const deletionRequestedAt = profile.deletionRequestedAt;
+  const handleCancelDeletion = async () => {
+    if (restoreBusy) return;
+    setRestoreBusy(true);
+    setRestoreError(null);
+    try {
+      await apiClient.post("/account/cancel-deletion", {});
+      // refreshProfile clears deletionRequestedAt on the next fetch,
+      // which makes this banner disappear.
+      await refreshProfile();
+    } catch (err) {
+      const msg =
+        err instanceof ApiError
+          ? err.message || "Couldn't cancel deletion."
+          : "Couldn't reach the server.";
+      setRestoreError(msg);
+      setRestoreBusy(false);
+    }
+  };
+
   return (
     <PageShell bottomPad="nav">
+      {/* Soft-delete grace banner — only when deletion_requested_at
+          is set. Sits ABOVE the hero so it's the first thing the
+          user sees on returning to /profile during their 7-day
+          cancel window. */}
+      {deletionRequestedAt ? (
+        <div className="px-5 pt-4">
+          <div
+            role="alert"
+            className="flex flex-col gap-3 rounded-2xl border border-pink/40 bg-pink/10 p-4 text-body text-white"
+          >
+            <div className="flex items-start gap-3">
+              <TriangleAlert
+                aria-hidden
+                className="size-5 shrink-0 text-pink"
+              />
+              <div className="flex-1 min-w-0">
+                <p className="text-meta font-medium leading-tight">
+                  Your account is scheduled for deletion
+                </p>
+                <p className="text-caption leading-tight text-text-secondary">
+                  Cancel within 7 days of {formatDeletionDate(deletionRequestedAt)} to keep your profile.
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="default"
+              size="tap"
+              disabled={restoreBusy}
+              onClick={() => void handleCancelDeletion()}
+              className="w-full rounded-full"
+            >
+              <RotateCcw aria-hidden />
+              {restoreBusy ? "Restoring…" : "Cancel deletion"}
+            </Button>
+            {restoreError ? (
+              <p className="text-caption text-pink">{restoreError}</p>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
       {/* Hero card — own profile + free badge + Upgrade CTA */}
       <motion.div
         {...fadeUp}
@@ -160,7 +239,7 @@ export default function ProfilePage() {
               already gives them a Subscription entry to manage. Keeping
               the Upgrade banner up after they've already paid is the
               dating-app equivalent of nagging a paying customer. */}
-          {!hasGold && (
+          {!premium && (
             <CardContent className="px-5 pb-5">
               <Button
                 nativeButton={false}
@@ -269,4 +348,20 @@ export default function ProfilePage() {
       <BottomNav />
     </PageShell>
   );
+}
+
+/** Format a deletion-requested ISO 8601 stamp for the grace banner.
+ *  Returns "Mar 12, 2026" style (locale-aware fallback to ISO date if
+ *  Intl is missing). Used only for cosmetic display; no timezone math
+ *  beyond what the runtime defaults to. */
+function formatDeletionDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  } catch {
+    return iso.slice(0, 10);
+  }
 }

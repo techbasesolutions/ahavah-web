@@ -710,8 +710,17 @@ export type Profile = {
   // canonical source of truth for paywall gates — `'premium'` ∈ array
   // grants access to /matches "Liked you" content + advanced filters.
   // `subscriptionExpiresAt` is the auto-revoke timestamp (ISO 8601 UTC).
+  // `stripeCustomerId` (presence-only) gates visibility of the
+  // "Manage subscription" CTA — only users who've ever subscribed
+  // have one, and /billing-portal 400s without it.
   entitlements?: ReadonlyArray<string>;
   subscriptionExpiresAt?: string;
+  stripeCustomerId?: string;
+  // Phase W cutover soft-delete grace (2026-05-15). When set, the
+  // user is mid-7-day grace window — UI surfaces a banner + Cancel
+  // button that calls /account/cancel-deletion. NULL/undefined for
+  // active accounts.
+  deletionRequestedAt?: string;
 };
 
 /** Pure paywall-gate predicate. Reads only from the entitlements array
