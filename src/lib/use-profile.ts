@@ -364,6 +364,9 @@ const SERVER_TO_CLIENT_KEY: Record<string, keyof Profile> = {
   // Phase W cutover soft-delete grace. Surfaced via /profile banner +
   // POST /account/cancel-deletion CTA when set.
   deletion_requested_at: "deletionRequestedAt",
+  // Operator roles — gates client-side visibility of /admin/* pages.
+  // Server-side endpoints re-validate via the same column.
+  roles: "roles",
 };
 
 function translateInbound(server: Partial<Profile> | Record<string, unknown>): Partial<Profile> {

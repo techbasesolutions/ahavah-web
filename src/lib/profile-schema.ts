@@ -892,7 +892,19 @@ export type Profile = {
   // button that calls /account/cancel-deletion. NULL/undefined for
   // active accounts.
   deletionRequestedAt?: string;
+  // Operator roles (TEXT[] on backend person.roles). Read-only on the
+  // client — gates visibility of /admin/* surfaces. Empty array for
+  // ordinary users; ['admin'] or ['mod'] (or both) for operators.
+  roles?: ReadonlyArray<string>;
 };
+
+/** Pure admin/mod gate. Reads only from `roles` (the backend's
+ *  person.roles TEXT[]). Returns false for null/undefined inputs so
+ *  the caller can liberally pass `Profile | undefined`. */
+export function isAdminOrMod(profile: Pick<Profile, "roles"> | null | undefined): boolean {
+  if (!profile?.roles) return false;
+  return profile.roles.includes("admin") || profile.roles.includes("mod");
+}
 
 /** Pure paywall-gate predicate. Reads only from the entitlements array
  *  (not the upstream `has_gold` boolean — that's a separate Duolicious
