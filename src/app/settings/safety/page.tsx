@@ -7,7 +7,6 @@ import {
   BookOpen,
   ChevronRight,
   EyeOff,
-  Flag,
   Lock,
   MapPin,
   PhoneCall,
@@ -47,9 +46,11 @@ const QUICK_ACTIONS: ReadonlyArray<{
   href: string;
   destructive?: boolean;
 }> = [
-  { Icon: UserX,  title: "Block someone",   subtitle: "Stop a user from contacting you", href: "/settings/blocked" },
-  { Icon: Flag,   title: "Report a profile", subtitle: "Tell us about a violation",      href: "/settings/blocked" },
-  { Icon: EyeOff, title: "Privacy settings", subtitle: "Control who sees what",          href: "/settings/privacy" },
+  // Block + report flows live on the profile / chat kebab menu, not a
+  // standalone surface (BlockReportSheet posts /skip/by-uuid). The
+  // settings-level entry is a list of who you've already blocked.
+  { Icon: UserX,  title: "Manage blocked users", subtitle: "Review or unblock people you've blocked", href: "/settings/blocked" },
+  { Icon: EyeOff, title: "Privacy settings",     subtitle: "Control who sees what",                   href: "/settings/privacy" },
 ];
 
 const SAFETY_TIPS: ReadonlyArray<{

@@ -37,6 +37,7 @@ import {
   ASSEMBLIES,
   TORAH_LEVELS,
   SHABBATS,
+  FEAST_DAYS,
   CALENDARS,
   POLYGYNY_VIEWS,
   HEAD_COVERINGS,
@@ -52,6 +53,8 @@ import {
   PERSONALITY_TRAITS,
   VERIFICATION_TAGS,
   RELOCATIONS,
+  COMMUNICATION_PREFS,
+  BOUNDARY_TAGS,
   intentOptionsForSex,
 } from "@/lib/profile-schema";
 import { labelForLanguage } from "@/lib/languages";
@@ -148,6 +151,26 @@ function adaptProspect(raw: Record<string, unknown>): Profile & { country?: stri
       if (v !== null && v !== undefined) extras[k] = v;
     }
   }
+  // Derive verificationTags from real backend signals — was previously
+  // mock-only via profile-sample data, so live peers always rendered an
+  // empty Verified cluster regardless of their tier. Maps real signals
+  // onto the existing VerificationTag enum (profile-schema.ts:735) so
+  // the cluster surfaces what the user has actually earned.
+  //   Bronze (selfie+photo cross-check) → 'video-selfie'
+  //   Gold   (Stripe Identity verified) → 'government-id'
+  // Silver tier is intentionally a stub; nothing maps to 'assembly' or
+  // 'community-references' yet.
+  const verifiedTags: Profile["verificationTags"] = [];
+  const tier =
+    typeof raw.ahavah_verification_tier === "string"
+      ? raw.ahavah_verification_tier
+      : "none";
+  if (raw.verified_age || raw.verified_gender || raw.verified_ethnicity || tier !== "none") {
+    verifiedTags.push("video-selfie");
+  }
+  if (tier === "gold") {
+    verifiedTags.push("government-id");
+  }
   return {
     firstName: stringOrUndef(raw.name),
     age: typeof raw.age === "number" ? raw.age : undefined,
@@ -177,10 +200,21 @@ function adaptProspect(raw: Record<string, unknown>): Profile & { country?: stri
       typeof raw.primary_language === "string"
         ? raw.primary_language
         : undefined,
+    // Real verificationTags derived above from ahavah_verification_tier
+    // + verified_age/gender/ethnicity. Empty list means the user hasn't
+    // completed any verification step.
+    verificationTags: verifiedTags.length > 0 ? verifiedTags : undefined,
     // Spread Torah-observant fields LAST so they overwrite the
     // narrower mappings above (e.g. ahavah_extra.healthTags from
     // onboarding should win over the smoking/drinking-derived list).
-    ...extras,
+    // ahavah_extra.verificationTags from old mock data is intentionally
+    // shadowed by the server-derived list above — delete it before
+    // spreading so a stale onboarding draft can't re-poison the page.
+    ...(() => {
+      const cleaned = { ...extras };
+      delete cleaned.verificationTags;
+      return cleaned;
+    })(),
   } as Profile & { country?: string };
 }
 
@@ -308,11 +342,12 @@ export default function ProfileDetailPage({ params }: Props) {
   }, [from, backHref, router]);
 
   // Photo carousel — slot count is the actual photos length (clamped
-  // 1..3 so the page never collapses to zero AND a power-user with 7
-  // photos still gets a reasonably-sized timeline). When a slot is
+  // 1..7 to mirror the editor cap MAX_PHOTO_POSITION on /profile/edit).
+  // Was previously clamped at 3 which silently hid photos 4-7 from peer
+  // viewers even when the user had uploaded all seven. When a slot is
   // empty for a thin profile, photoOrGradient returns the deterministic
   // gradient seeded on the prospect uuid for stability across reloads.
-  const photoSlots = Math.max(1, Math.min(profile?.photos?.length ?? 1, 3));
+  const photoSlots = Math.max(1, Math.min(profile?.photos?.length ?? 1, 7));
   const photoSources = useMemo(
     () =>
       Array.from({ length: photoSlots }, (_, i) =>
@@ -654,46 +689,106 @@ export default function ProfileDetailPage({ params }: Props) {
 
             {/* Languages cluster — Pill rows (lavender). Identity/about-me
                 bucket, mirrors Lifestyle/Personality. labelForLanguage
-                resolves canonical codes (en, he) and custom: entries. */}
+                resolves canonical codes (en, he) and custom: entries.
+                primaryLanguage gets a star prefix when it appears in the
+                list (and the list is sorted to put it first). */}
             {profile.languages?.length ? (
               <div className="flex flex-col gap-2 border-t border-white/10 pt-4">
                 <h2 className="text-meta font-semibold uppercase text-text-secondary">
                   Languages
                 </h2>
                 <div className="flex flex-wrap gap-2">
-                  {profile.languages.map((code) => (
-                    <Pill key={code} variant="lavender" size="sm">
-                      {labelForLanguage(code)}
-                    </Pill>
-                  ))}
+                  {[...profile.languages]
+                    .sort((a, b) =>
+                      a === profile.primaryLanguage
+                        ? -1
+                        : b === profile.primaryLanguage
+                          ? 1
+                          : 0,
+                    )
+                    .map((code) => (
+                      <Pill key={code} variant="lavender" size="sm">
+                        {code === profile.primaryLanguage ? "★ " : ""}
+                        {labelForLanguage(code)}
+                      </Pill>
+                    ))}
                 </div>
               </div>
             ) : null}
 
-            {/* Looking for — intent is the primary matching signal, NOT a
-                doctrinal item. Sits right under the bio so it lands before
-                the faith / practice clusters. Matches the editor's
-                'Practical compatibility' cluster placement. */}
-            {profile.intent && (
+            {/* Practical compatibility — intent + relocation + comms +
+                boundaries. Sits right under the bio so it lands before
+                the faith / doctrine clusters. Mirrors the editor's
+                'Practical compatibility' section so what the user fills
+                during onboarding shows up here for peers. */}
+            {(profile.intent ||
+              profile.relocation ||
+              profile.communicationPrefs?.length ||
+              profile.boundaryTags?.length) && (
               <div className="flex flex-col gap-2 border-t border-white/10 pt-4">
                 <h2 className="text-meta font-semibold uppercase text-text-secondary">
                   Looking for
                 </h2>
                 <dl className="space-y-2">
-                  <div className="flex gap-2">
-                    <dt className="text-meta text-text-secondary">Intent:</dt>
-                    <dd className="text-meta text-white">
-                      {(profile.sex
-                        ? labelOf(profile.intent, intentOptionsForSex(profile.sex))
-                        : null) ?? profile.intent}
-                    </dd>
-                  </div>
+                  {profile.intent && (
+                    <div className="flex gap-2">
+                      <dt className="text-meta text-text-secondary">Intent:</dt>
+                      <dd className="text-meta text-white">
+                        {(profile.sex
+                          ? labelOf(
+                              profile.intent,
+                              intentOptionsForSex(profile.sex),
+                            )
+                          : null) ?? profile.intent}
+                      </dd>
+                    </div>
+                  )}
+                  {profile.relocation && (
+                    <div className="flex gap-2">
+                      <dt className="text-meta text-text-secondary">Relocation:</dt>
+                      <dd className="text-meta text-white">
+                        {labelOf(profile.relocation, RELOCATIONS)}
+                      </dd>
+                    </div>
+                  )}
                 </dl>
+                {profile.communicationPrefs?.length ? (
+                  <div className="mt-1 flex flex-col gap-1">
+                    <span className="text-caption text-text-secondary">
+                      Communication style
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {profile.communicationPrefs.map((pref) => (
+                        <Pill key={pref} variant="lavender" size="sm">
+                          {labelOf(pref, COMMUNICATION_PREFS) ?? pref}
+                        </Pill>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+                {profile.boundaryTags?.length ? (
+                  <div className="mt-1 flex flex-col gap-1">
+                    <span className="text-caption text-text-secondary">
+                      Boundaries
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {profile.boundaryTags.map((tag) => (
+                        <Pill key={tag} variant="lavender" size="sm">
+                          {labelOf(tag, BOUNDARY_TAGS) ?? tag}
+                        </Pill>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
               </div>
             )}
 
-            {/* Faith cluster — dl/dt/dd fact rows */}
-            {(profile.assembly || profile.torahLevel || profile.shabbat || profile.calendar) && (
+            {/* Faith cluster — dl/dt/dd fact rows + feast-days pills */}
+            {(profile.assembly ||
+              profile.torahLevel ||
+              profile.shabbat ||
+              profile.calendar ||
+              profile.feastDays?.length) && (
               <div className="flex flex-col gap-2 border-t border-white/10 pt-4">
                 <h2 className="text-meta font-semibold uppercase text-text-secondary">
                   Faith
@@ -732,6 +827,20 @@ export default function ProfileDetailPage({ params }: Props) {
                     </div>
                   )}
                 </dl>
+                {profile.feastDays?.length ? (
+                  <div className="mt-1 flex flex-col gap-1">
+                    <span className="text-caption text-text-secondary">
+                      Feast days kept
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {profile.feastDays.map((day) => (
+                        <Pill key={day} variant="lavender" size="sm">
+                          {labelOf(day, FEAST_DAYS) ?? day}
+                        </Pill>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
               </div>
             )}
 
@@ -772,8 +881,11 @@ export default function ProfileDetailPage({ params }: Props) {
               </div>
             )}
 
-            {/* Lifestyle cluster — Pill rows (lavender) */}
-            {(profile.familyViews?.length || profile.livingPreferences?.length || profile.healthTags?.length || profile.relocation) && (
+            {/* Lifestyle cluster — Pill rows (lavender). Relocation moved
+                to the Practical cluster above. */}
+            {(profile.familyViews?.length ||
+              profile.livingPreferences?.length ||
+              profile.healthTags?.length) && (
               <div className="flex flex-col gap-2 border-t border-white/10 pt-4">
                 <h2 className="text-meta font-semibold uppercase text-text-secondary">
                   Lifestyle
@@ -804,16 +916,6 @@ export default function ProfileDetailPage({ params }: Props) {
                       </Pill>
                     ))}
                   </div>
-                )}
-                {profile.relocation && (
-                  <dl className="space-y-2">
-                    <div className="flex gap-2">
-                      <dt className="text-meta text-text-secondary">Relocation:</dt>
-                      <dd className="text-meta text-white">
-                        {labelOf(profile.relocation, RELOCATIONS)}
-                      </dd>
-                    </div>
-                  </dl>
                 )}
               </div>
             )}

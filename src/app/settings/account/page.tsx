@@ -126,9 +126,13 @@ export default function AccountSettingsPage() {
     setDeleteError(null);
     try {
       await apiClient.delete("/account");
-      // Backend hard-deletes; clear local state via signOut and bounce home.
-      await signOut();
-      router.push("/");
+      // Backend SOFT-deletes (mig 0008): activated=false +
+      // deletion_requested_at=NOW(), purge after 7 days. Bounce to
+      // /profile so the grace banner + Cancel deletion CTA are visible
+      // (those only render on /profile gated by deletionRequestedAt).
+      // Don't signOut — the user's session needs to stay live for them
+      // to see + use the "Cancel deletion" CTA during the grace window.
+      router.push("/profile");
     } catch {
       setDeleteError("Couldn't delete your account. Try again or contact admin@ahavah.app.");
       setDeleting(false);
@@ -421,11 +425,11 @@ export default function AccountSettingsPage() {
                   <DialogTitle>Delete your account?</DialogTitle>
                   <DialogDescription>
                     Your profile will go invisible immediately and be
-                    permanently deleted in 7 days. To cancel within
-                    that window, email{" "}
-                    <span className="text-white">admin@ahavah.app</span>{" "}
-                    from your sign-in address. After 7 days deletion is
-                    irreversible.
+                    permanently deleted in 7 days. You&apos;ll see a
+                    &ldquo;Cancel deletion&rdquo; banner on your{" "}
+                    <span className="text-white">Profile</span> page
+                    during the 7-day window — tap it any time to undo.
+                    After 7 days deletion is irreversible.
                   </DialogDescription>
                 </DialogHeader>
                 {deleteError ? (

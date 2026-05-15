@@ -34,13 +34,16 @@ const fadeUp = {
   animate: { opacity: 1, y: 0 },
 };
 
+// Feature list — only items that are ACTUALLY enforced server-side
+// for premium right now. Items that aren't gated (verified-only filter,
+// language/country filters, translation, "unlimited swipes" — there's
+// no swipe limit to begin with) and items that don't exist (boosts,
+// super likes, who-viewed) were removed rather than left as false
+// promises. Restore each entry here when its gate ships.
 const FEATURES = [
-  "Unlimited swipes",
-  "See who liked you",
-  "Unlimited message translation",
-  "Verified-only filter",
-  "Advanced country + language filters",
-  "5 boosts per month",
+  "See everyone who liked you (full list, not just the count)",
+  "Help build a Torah-observant community at the price of a coffee",
+  "Cancel anytime from the billing portal",
 ];
 
 // Prices match the Stripe products created 2026-05-15 in test mode

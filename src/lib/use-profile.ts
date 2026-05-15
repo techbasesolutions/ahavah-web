@@ -102,10 +102,20 @@ const TRANSFORMS: Record<string, FieldTransform> = {
     typeof v === "string" && v.length > 0 ? { location: v } : null,
 
   // Relationship status --------------------------------------------------
+  // Two-step write: coarse upstream `relationship_status` (Single /
+  // Married / Divorced / Widowed — the only values its enum table
+  // accepts) PLUS the precise client value in ahavah_extra. The
+  // upstream column collapses re-married -> Married; storing the exact
+  // pick in ahavah_extra (and reading it back via the JSONB spread)
+  // means a user who selects "Re-married" gets that back on reload.
   maritalStatus: (v) => {
     if (typeof v !== "string") return null;
     const mapped = MARITAL_STATUS_MAP[v];
-    return mapped ? { relationship_status: mapped } : null;
+    if (!mapped) return null;
+    return {
+      relationship_status: mapped,
+      ahavah_extra: { maritalStatus: v },
+    };
   },
 
   // Children: integer count. Writes BOTH the upstream coarse
@@ -203,6 +213,16 @@ const TRANSFORMS: Record<string, FieldTransform> = {
   verificationTags:   (v) => bundleExtra("verificationTags", v),
   boundaryTags:       (v) => bundleExtra("boundaryTags", v),
   nationality:        (v) => bundleExtra("nationality", v),
+
+  // City + state/province — bundle into ahavah_extra. The backend's
+  // `location_short_friendly` is a derived "City, State, Country" string
+  // built from the country lookup at signup; there's no first-class
+  // column to PATCH city or state independently. Storing them in
+  // ahavah_extra lets the editor round-trip the user's typed values
+  // (so they don't disappear on save) and gives the peer view a path
+  // to render finer locality if ever needed.
+  city:               (v) => bundleExtra("city", v),
+  stateOrProvince:    (v) => bundleExtra("stateOrProvince", v),
 
   // Photos go through photo-storage.ts (multipart-style PATCH); the
   // `photos` field here is the cached client-side list and should not

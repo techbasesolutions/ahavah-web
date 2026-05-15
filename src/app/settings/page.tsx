@@ -4,6 +4,7 @@ import Link from "next/link";
 import { motion } from "motion/react";
 import {
   ArrowLeft,
+  BellRing,
   ChevronRight,
   HelpCircle,
   ShieldAlert,
@@ -61,21 +62,21 @@ const SETTINGS_GROUPS: ReadonlyArray<{
     label: "Account",
     accent: "bg-lavender",
     items: [
-      { Icon: UserCog, title: "Account", subtitle: "Email, password, sign out", href: "/settings/account", tone: "muted" },
+      { Icon: UserCog, title: "Account", subtitle: "Email & sign out", href: "/settings/account", tone: "muted" },
     ],
   },
   {
     label: "App",
     accent: "bg-lavender/60",
     items: [
-      // Notifications + Auto-translate intentionally NOT here — web push
-      // and DeepL translations are deferred per Phase W §9. Restore when
-      // those features actually ship; until then the entries would be
-      // 'looks done but does nothing' (the same pattern user has flagged
-      // repeatedly).
-      { Icon: ShieldAlert, title: "Privacy",       subtitle: "What others see about you",  href: "/settings/privacy", tone: "muted" },
-      { Icon: UserX,       title: "Blocked users", subtitle: "People you've blocked",      href: "/settings/blocked", tone: "muted" },
-      { Icon: ShieldCheck, title: "Safety center", subtitle: "Tips, reports, emergencies", href: "/settings/safety",  tone: "muted" },
+      // Auto-translate intentionally NOT here — DeepL translations are
+      // deferred per Phase W §9. Restore when the feature actually
+      // ships. Notifications now wired to a real master push toggle
+      // (sub/unsub via usePushSubscription).
+      { Icon: BellRing,    title: "Notifications", subtitle: "Push notifications",         href: "/settings/notifications", tone: "muted" },
+      { Icon: ShieldAlert, title: "Privacy",       subtitle: "What others see about you",  href: "/settings/privacy",       tone: "muted" },
+      { Icon: UserX,       title: "Blocked users", subtitle: "People you've blocked",      href: "/settings/blocked",       tone: "muted" },
+      { Icon: ShieldCheck, title: "Safety center", subtitle: "Tips, blocks, emergencies",  href: "/settings/safety",        tone: "muted" },
     ],
   },
   {

@@ -58,6 +58,7 @@ export function usePushSubscription(): {
   state: PushPermissionState;
   isDismissed: boolean;
   subscribe: () => Promise<void>;
+  unsubscribe: () => Promise<void>;
   dismiss: () => void;
 } {
   const [state, setState] = useState<PushPermissionState>("default");
@@ -154,5 +155,33 @@ export function usePushSubscription(): {
     }
   }, [state]);
 
-  return { state, isDismissed, subscribe, dismiss };
+  const unsubscribe = useCallback(async () => {
+    if (typeof window === "undefined") return;
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) {
+        // Tell the backend BEFORE we kill the subscription so we still
+        // know the endpoint to remove.
+        try {
+          await apiClient.delete("/notifications/subscribe", {
+            endpoint: sub.endpoint,
+          });
+        } catch {
+          // Best-effort — keep going so the local subscription is gone
+          // even if the server cleanup failed.
+        }
+        await sub.unsubscribe();
+      }
+      // Permission stays granted at the OS level — flipping back to
+      // "granted" matches the real browser state. User can re-subscribe
+      // without re-prompting.
+      setState("granted");
+    } catch (err) {
+      console.warn("usePushSubscription: unsubscribe failed", err);
+      setState("error");
+    }
+  }, []);
+
+  return { state, isDismissed, subscribe, unsubscribe, dismiss };
 }

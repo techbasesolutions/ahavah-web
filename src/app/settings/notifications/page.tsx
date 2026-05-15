@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, BellOff } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -22,65 +21,47 @@ import {
   PageShell,
 } from "@/components/app/page-shell";
 
+import { usePushSubscription } from "@/lib/use-push-subscription";
+
 const fadeUp = {
   initial: { opacity: 0, y: 12 },
   animate: { opacity: 1, y: 0 },
 };
 
-type ToggleKey =
-  | "pushAll"
-  | "newMatches"
-  | "newMessages"
-  | "messageReactions"
-  | "likes"
-  | "profileVisits"
-  | "marketing"
-  | "weeklySummary";
-
-const TOGGLE_GROUPS: ReadonlyArray<{
-  label: string;
-  items: ReadonlyArray<{
-    key: ToggleKey;
-    title: string;
-    description: string;
-  }>;
-}> = [
-  {
-    label: "Push notifications",
-    items: [
-      { key: "pushAll",          title: "All push notifications", description: "Master switch for everything below" },
-      { key: "newMatches",       title: "New matches",            description: "Someone you liked liked you back" },
-      { key: "newMessages",      title: "New messages",           description: "When someone messages you" },
-      { key: "messageReactions", title: "Message reactions",      description: "Likes and replies on your messages" },
-      { key: "likes",            title: "Likes",                  description: "When someone likes your profile" },
-      { key: "profileVisits",    title: "Profile visits",         description: "When someone views your profile" },
-    ],
-  },
-  {
-    label: "Email",
-    items: [
-      { key: "marketing",     title: "Product updates",  description: "New features and tips for matches" },
-      { key: "weeklySummary", title: "Weekly summary",   description: "What you missed this week" },
-    ],
-  },
-];
-
-const DEFAULTS: Record<ToggleKey, boolean> = {
-  pushAll:          true,
-  newMatches:       true,
-  newMessages:      true,
-  messageReactions: true,
-  likes:            true,
-  profileVisits:    false,
-  marketing:        false,
-  weeklySummary:    true,
-};
-
+/**
+ * /settings/notifications — single-toggle wired surface.
+ *
+ * Was previously a long-form mockup with 8 per-event toggles, every
+ * one a no-op `useState` (no PATCH, no localStorage). Audit flagged
+ * those as silent stubs that misled users into thinking they could
+ * scope notifications.
+ *
+ * Replaced with a single master toggle that actually runs the push
+ * subscription state machine (usePushSubscription): subscribing
+ * registers with the SW, requests permission, and POSTs the
+ * subscription to /notifications/subscribe; un-subscribing removes
+ * the row server-side AND calls pushManager.unsubscribe() locally.
+ *
+ * Per-event filtering (matches / messages / likes / weekly summary)
+ * isn't built yet on the backend. Surfaced as a static informational
+ * note rather than fake toggles.
+ */
 export default function NotificationsSettingsPage() {
-  const [toggles, setToggles] = useState<Record<ToggleKey, boolean>>(DEFAULTS);
+  const { state, subscribe, unsubscribe } = usePushSubscription();
 
-  const set = (key: ToggleKey, value: boolean) =>
-    setToggles((prev) => ({ ...prev, [key]: value }));
+  const isSupported = state !== "unsupported";
+  const isOn = state === "subscribed";
+  const isBusy = state === "subscribing";
+  const isDenied = state === "denied";
+
+  const onToggle = (next: boolean) => {
+    if (!isSupported || isDenied) return;
+    if (next) {
+      void subscribe();
+    } else {
+      void unsubscribe();
+    }
+  };
 
   return (
     <PageShell bottomPad="nav">
@@ -98,40 +79,66 @@ export default function NotificationsSettingsPage() {
       </PageHeader>
 
       <div className="flex flex-col gap-6 px-3 pt-4">
-        {TOGGLE_GROUPS.map((group, gi) => (
-          <motion.section
-            key={group.label}
-            {...fadeUp}
-            transition={{ duration: 0.4, delay: 0.05 + gi * 0.08 }}
-            className="flex flex-col gap-2"
-          >
-            <h2 className="px-3 text-overline text-text-muted">{group.label}</h2>
-            <ItemGroup className="gap-1">
-              {group.items.map((item) => {
-                const isMaster = item.key === "pushAll";
-                const masterOff = !isMaster && !toggles.pushAll;
-                return (
-                  <Item key={item.key} variant="muted">
-                    <ItemContent>
-                      <ItemTitle className="text-meta text-white">
-                        {item.title}
-                      </ItemTitle>
-                      <ItemDescription className="text-caption text-text-muted">
-                        {item.description}
-                      </ItemDescription>
-                    </ItemContent>
-                    <Switch
-                      checked={toggles[item.key]}
-                      disabled={masterOff && group.label === "Push notifications"}
-                      onCheckedChange={(checked) => set(item.key, checked)}
-                      aria-label={item.title}
-                    />
-                  </Item>
-                );
-              })}
-            </ItemGroup>
-          </motion.section>
-        ))}
+        <motion.section
+          {...fadeUp}
+          transition={{ duration: 0.4, delay: 0.05 }}
+          className="flex flex-col gap-2"
+        >
+          <h2 className="px-3 text-overline text-text-muted">Push</h2>
+          <ItemGroup className="gap-1">
+            <Item variant="muted">
+              <ItemContent>
+                <ItemTitle className="text-meta text-white">
+                  Enable push notifications
+                </ItemTitle>
+                <ItemDescription className="text-caption text-text-muted">
+                  {isDenied
+                    ? "Blocked at the browser / OS level. Re-enable in Site Settings, then come back."
+                    : !isSupported
+                      ? "This browser doesn't support push (iOS Safari needs Add to Home Screen first)."
+                      : "Get a ping when someone matches you, messages you, or likes you back."}
+                </ItemDescription>
+              </ItemContent>
+              <Switch
+                checked={isOn}
+                disabled={!isSupported || isDenied || isBusy}
+                onCheckedChange={onToggle}
+                aria-label="Enable push notifications"
+              />
+            </Item>
+          </ItemGroup>
+        </motion.section>
+
+        <motion.section
+          {...fadeUp}
+          transition={{ duration: 0.4, delay: 0.13 }}
+          className="flex flex-col gap-2"
+        >
+          <h2 className="px-3 text-overline text-text-muted">
+            Per-event preferences
+          </h2>
+          <div className="mx-3 rounded-2xl bg-bg-elevated px-4 py-4 text-body text-text-secondary">
+            <div className="flex items-start gap-3">
+              <span
+                aria-hidden
+                className="flex size-9 shrink-0 items-center justify-center rounded-full bg-lavender/20 text-lavender"
+              >
+                <BellOff className="size-4" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-meta text-white">
+                  Granular controls coming soon
+                </p>
+                <p className="mt-1 text-caption leading-relaxed text-text-muted">
+                  Today, push is all-or-nothing — match, message and
+                  like notifications all share the master toggle above.
+                  Per-event opt-out (e.g. messages only) lands in a
+                  later release.
+                </p>
+              </div>
+            </div>
+          </div>
+        </motion.section>
       </div>
 
       <BottomNav />

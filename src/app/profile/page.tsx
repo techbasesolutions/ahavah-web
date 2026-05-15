@@ -76,8 +76,19 @@ export default function ProfilePage() {
   // never updated. Defaults below cover the brief mount-before-fetch
   // window without showing someone else's name.
   const firstName = profile.firstName ?? "";
+  // displayName is an optional preferred-name field stored in
+  // ahavah_extra. When set + distinct from firstName, prefer it for
+  // the hero so users see what others see (peer profile uses it too).
+  const displayName =
+    typeof profile.displayName === "string" && profile.displayName.length > 0
+      ? profile.displayName
+      : null;
+  const heroName =
+    displayName && displayName.toLowerCase() !== firstName.toLowerCase()
+      ? displayName
+      : firstName;
   const age = typeof profile.age === "number" && profile.age > 0 ? profile.age : null;
-  const initial = firstName ? firstName[0].toUpperCase() : "•";
+  const initial = (heroName || firstName || "•")[0].toUpperCase();
   // Primary photo for the hero avatar — first uploaded photo with a
   // resolved cdn_url. Falls back to the initial when no photos exist
   // (covers the brief signup → /onboarding/photos window).
@@ -223,9 +234,16 @@ export default function ProfilePage() {
                     hardcoded 'Ehud, 30'). Pill only renders when the
                     user actually has a verification level past 'None'. */}
                 <h1 className="text-h1 leading-tight text-white">
-                  {firstName || "Your profile"}
+                  {heroName || "Your profile"}
                   {age ? `, ${age}` : ""}
                 </h1>
+                {displayName &&
+                displayName.toLowerCase() !== firstName.toLowerCase() &&
+                firstName ? (
+                  <p className="text-caption leading-tight text-text-secondary">
+                    {firstName}
+                  </p>
+                ) : null}
                 {verificationLevel ? (
                   <Pill variant="glassDark" className="mt-2">
                     <ShieldCheck size={12} />

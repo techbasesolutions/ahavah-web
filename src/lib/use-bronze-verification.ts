@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { apiClient, ApiError } from "@/lib/api-client";
 import { compressImage } from "@/lib/image-compress";
 import { stripDataUrlPrefix } from "@/lib/photo-storage";
+import { useProfile } from "@/lib/use-profile";
 
 /**
  * Bronze-tier verification flow (real backend wiring).
@@ -55,6 +56,11 @@ export function useBronzeVerification(): {
   const [state, setState] = useState<BronzeState>({ kind: "idle" });
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollDeadlineRef = useRef<number>(0);
+  // Refresh /profile-info on success so the cached `verification level`
+  // string flips from "No verification" to "Photos" without forcing the
+  // user to reload. Otherwise /verify and /profile show stale values
+  // until the next natural refresh.
+  const { refreshProfile } = useProfile();
 
   const stopPolling = useCallback(() => {
     if (pollTimerRef.current) {
@@ -82,6 +88,10 @@ export function useBronzeVerification(): {
       if (status === "success") {
         stopPolling();
         setState({ kind: "approved" });
+        // Pull fresh /profile-info so /verify + /profile + the peer
+        // view all see the new tier ("Photos" + ahavah_verification_tier
+        // = 'bronze') without forcing a manual reload.
+        void refreshProfile();
         return;
       }
       if (status === "failure") {
@@ -105,7 +115,7 @@ export function useBronzeVerification(): {
         err instanceof ApiError ? err.message : "Couldn't reach verification.";
       setState({ kind: "error", message: msg });
     }
-  }, [stopPolling]);
+  }, [stopPolling, refreshProfile]);
 
   useEffect(() => {
     tickRef.current = tickImpl;
