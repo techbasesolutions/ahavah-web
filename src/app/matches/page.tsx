@@ -346,30 +346,32 @@ function MatchesGrid({
                   </CardDescription>
                 ) : null}
               </CardHeader>
-              {/* Action row — two equal-width pills, each ≥44px tall
-                  per mobile-responsive skill rule §1. Lavender for
-                  Profile (secondary), lime for Message (primary). */}
+              {/* Action row — two equal-width pills, each h-tap (44px+)
+                  per the kit's mobile touch-target primitive. Outline
+                  for Profile (secondary), default/lime for Message
+                  (primary). gap-2 = 8px between targets per
+                  mobile-responsive skill rule §1. */}
               <div className="flex gap-2 pt-1">
                 <Link
                   href={`/profile/${partner.id}?from=matches`}
                   prefetch={false}
                   className={cn(
-                    buttonVariants({ variant: "ghost", size: "sm" }),
-                    "h-11 flex-1 gap-1.5 rounded-full border border-border text-meta",
+                    buttonVariants({ variant: "outlineSubtle", size: "tap" }),
+                    "flex-1 rounded-full",
                   )}
                 >
-                  <User className="size-4" aria-hidden />
+                  <User aria-hidden />
                   Profile
                 </Link>
                 <Link
                   href={`/chat/${partner.id}`}
                   prefetch={false}
                   className={cn(
-                    buttonVariants({ variant: "default", size: "sm" }),
-                    "h-11 flex-1 gap-1.5 rounded-full text-meta",
+                    buttonVariants({ variant: "default", size: "tap" }),
+                    "flex-1 rounded-full",
                   )}
                 >
-                  <MessageCircle className="size-4" aria-hidden />
+                  <MessageCircle aria-hidden />
                   Message
                 </Link>
               </div>
