@@ -37,10 +37,43 @@
 import "leaflet/dist/leaflet.css";
 
 import { useEffect, type ReactNode } from "react";
+import L from "leaflet";
 import { MapContainer, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import MarkerClusterGroup from "react-leaflet-cluster";
 
 import { cn } from "@/lib/utils";
 import type { BBox } from "@/lib/continent-bbox";
+
+/**
+ * Cluster icon factory — replaces the library default red/blue circles
+ * with a lavender-on-bg-elevated bubble matching the rest of the app.
+ * Cluster bubble size scales mildly with count so a 20-marker cluster
+ * looks bigger than a 2-marker one without becoming a sprawling blob.
+ */
+function clusterIcon(cluster: { getChildCount: () => number }): L.DivIcon {
+  const n = cluster.getChildCount();
+  const sz = n < 10 ? 36 : n < 100 ? 44 : 52;
+  const html = `
+    <div style="
+      display:flex;align-items:center;justify-content:center;
+      width:${sz}px;height:${sz}px;
+      border-radius:9999px;
+      background:#1A1340;
+      color:#D7FF81;
+      border:2px solid #D7FF81;
+      font-weight:800;
+      font-size:${n < 100 ? 14 : 12}px;
+      box-shadow:0 4px 12px rgba(0,0,0,0.35);
+      font-variant-numeric:tabular-nums;
+    ">${n}</div>
+  `;
+  return L.divIcon({
+    html,
+    className: "ahavah-cluster-icon",
+    iconSize: [sz, sz],
+    iconAnchor: [sz / 2, sz / 2],
+  });
+}
 
 export type Bbox = BBox;
 
@@ -135,7 +168,20 @@ export function WorldMap({
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <MapEventHandler onBoundsChange={onBoundsChange} bbox={bbox} />
-      {children}
+      {/* MarkerClusterGroup collapses overlapping markers into a single
+          numeric bubble. Without this, every additional candidate at a
+          country centroid pinned on top of the previous one. Click on a
+          cluster zooms in until the children spread out. chunkedLoading
+          keeps the UI responsive when there are 100+ markers. */}
+      <MarkerClusterGroup
+        chunkedLoading
+        maxClusterRadius={45}
+        showCoverageOnHover={false}
+        spiderfyOnMaxZoom
+        iconCreateFunction={clusterIcon}
+      >
+        {children}
+      </MarkerClusterGroup>
     </MapContainer>
   );
 }
