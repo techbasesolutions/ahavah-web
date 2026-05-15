@@ -79,13 +79,15 @@ const TRANSFORMS: Record<string, FieldTransform> = {
     return null;
   },
 
-  // ISO country code is client-only. The backend's
-  // onboardee.coordinates lookup requires the canonical long_friendly
-  // string (e.g. "Bridgetown, Saint Michael, Barbados") via
-  // location.long_friendly. The country page resolves that via
-  // /search-locations and stores it on Profile.location, which has its
-  // own transform below.
-  country: () => null,
+  // ISO country code (e.g. "BB", "TT"). Bundled into ahavah_extra so
+  // /profile/edit can change country post-onboarding without losing
+  // the value across cache clears (was previously a no-op — every
+  // edit silently dropped). NOTE: the upstream person.country column
+  // (which /search filters against) is set by the /onboarding/location
+  // pycountry path; this PATCH does NOT update that column. Future
+  // enhancement: backend handler for `country` PATCH that updates
+  // person.country directly so search-pool follows profile edits.
+  country: (v) => bundleExtra("country", v),
 
   // Resolved location string — must be an exact long_friendly match. The
   // country page populates this asynchronously after the user picks a
@@ -100,21 +102,43 @@ const TRANSFORMS: Record<string, FieldTransform> = {
     return mapped ? { relationship_status: mapped } : null;
   },
 
-  // Children: integer count -> yes/no for backend's has_kids
+  // Children: integer count. Writes BOTH the upstream coarse
+  // `has_kids` (Yes/No — the only enum the backend column accepts)
+  // AND the precise integer in ahavah_extra. Read-back prefers the
+  // ahavah_extra value (via the JSONB spread) so user gets back
+  // exactly what they entered (3, not "Yes" → 1). Two PATCHes go out
+  // since translateOutbound iterates Object.entries() and the
+  // backend enforces "one field per PATCH".
   children: (v) => {
     if (typeof v !== "number") return null;
-    return { has_kids: v > 0 ? "Yes" : "No" };
+    return {
+      has_kids: v > 0 ? "Yes" : "No",
+      ahavah_extra: { children: v },
+    };
   },
 
-  // Looking-for / intent ------------------------------------------------
+  // Looking-for / intent — same dual-write pattern as children.
+  // Backend's `looking_for` enum has only "Marriage" / "Long-term
+  // dating" (loses Ahavah's 12-value Intent enum: first-wife,
+  // additional-wife, unmarried-man, married-man, courtship, etc.).
+  // Write the coarse value for any backend feature that filters on
+  // looking_for, plus the precise enum in ahavah_extra so /profile
+  // can render the exact phrasing the user picked.
   intent: (v) => {
     if (typeof v !== "string") return null;
     return {
       looking_for: INTENT_TO_LOOKING_FOR_MARRIAGE.has(v)
         ? "Marriage"
         : "Long-term dating",
+      ahavah_extra: { intent: v },
     };
   },
+
+  // Display name — optional preferred-name field separate from the
+  // canonical firstName. Bundled into ahavah_extra so users can set a
+  // "called by" name without overwriting their firstName (which the
+  // backend uses for system messages, abuse reports, etc.).
+  displayName: (v) => bundleExtra("displayName", v),
 
   // Bio -----------------------------------------------------------------
   bio: (v) => (typeof v === "string" && v.length > 0 ? { about: v } : null),
@@ -314,16 +338,24 @@ const SERVER_TO_CLIENT_KEY: Record<string, keyof Profile> = {
 
 function translateInbound(server: Partial<Profile> | Record<string, unknown>): Partial<Profile> {
   const out: Record<string, unknown> = {};
+
+  // Two-pass read so ahavah_extra ALWAYS wins over upstream Duolicious
+  // columns. Several fields write to BOTH locations for backward compat
+  // (children → has_kids + ahavah_extra.children; intent → looking_for
+  // + ahavah_extra.intent; ethnicities → ahavah_extra.ethnicities only,
+  // upstream `ethnicity` column is no longer the source of truth) — the
+  // upstream columns are coarse / lossy so we want the precise
+  // ahavah_extra value to take precedence in the merged Profile.
+  //
+  // Pass 1: every key EXCEPT ahavah_extra.
+  // Pass 2: spread ahavah_extra so its keys overwrite anything from
+  //         pass 1.
+  let extra: Record<string, unknown> | null = null;
+
   for (const [k, v] of Object.entries(server)) {
-    // ahavah_extra is the JSONB blob the backend uses for Torah-observant
-    // fields that don't have first-class columns. Spread its keys into
-    // the output so consumers read them as regular Profile fields
-    // (profile.assembly, profile.torahLevel, etc.).
-    if (k === "ahavah_extra" && v && typeof v === "object" && !Array.isArray(v)) {
-      for (const [extraKey, extraVal] of Object.entries(v as Record<string, unknown>)) {
-        if (extraVal !== null && extraVal !== undefined) {
-          out[extraKey] = extraVal;
-        }
+    if (k === "ahavah_extra") {
+      if (v && typeof v === "object" && !Array.isArray(v)) {
+        extra = v as Record<string, unknown>;
       }
       continue;
     }
@@ -331,6 +363,15 @@ function translateInbound(server: Partial<Profile> | Record<string, unknown>): P
     const value = reverseTranslateValue(clientKey, v);
     if (value !== undefined) out[clientKey] = value;
   }
+
+  if (extra) {
+    for (const [extraKey, extraVal] of Object.entries(extra)) {
+      if (extraVal !== null && extraVal !== undefined) {
+        out[extraKey] = extraVal;
+      }
+    }
+  }
+
   return out as Partial<Profile>;
 }
 
