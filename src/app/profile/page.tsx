@@ -95,27 +95,48 @@ export default function ProfilePage() {
   const primaryPhotoUrl = profile.photos?.find(
     (p) => p && p.cdn_url && p.cdn_url.length > 0,
   )?.cdn_url;
-  // /profile-info returns 'verification level' (space-separated key) as
-  // the human-readable string ('No verification', 'Photos', 'Photos + ID').
-  // Show the Pill only when the user has cleared at least the lowest tier.
-  const verificationLevelRaw = (profile as Record<string, unknown>)["verification level"];
+  // Two backend signals (mig 0003 + 0012): legacy 'verification level'
+  // string ("No verification" / "Photos" / "Photos + ID") AND the new
+  // 'ahavah_verification_tier' ENUM ('none'|'bronze'|'silver'|'gold').
+  // Silver only exists on the new ENUM (the legacy column has no slot
+  // for it), so we prefer the ENUM for label + subtitle and fall back
+  // to the legacy string only when the ENUM is absent.
+  const profileRaw = profile as Record<string, unknown>;
+  const verificationLevelRaw = profileRaw["verification level"];
+  const userTier =
+    typeof profileRaw.ahavah_verification_tier === "string"
+      ? profileRaw.ahavah_verification_tier
+      : "none";
+  const tierLabel =
+    userTier === "gold"
+      ? "Gold verified"
+      : userTier === "silver"
+        ? "Silver verified"
+        : userTier === "bronze"
+          ? "Bronze verified"
+          : null;
+  // Show the Pill only when the user has cleared at least the lowest
+  // tier. Prefer the new tier label; fall back to the legacy string.
   const verificationLevel =
-    typeof verificationLevelRaw === "string" && verificationLevelRaw !== "No verification"
+    tierLabel ??
+    (typeof verificationLevelRaw === "string" && verificationLevelRaw !== "No verification"
       ? verificationLevelRaw
-      : null;
+      : null);
 
   // Build the row list at render time so the Verification + Subscription
-  // subtitles reflect ACTUAL state instead of hardcoded copy. Backend
-  // ships 'verification level' ("No verification" / "Photos" / "Photos + ID")
-  // and `has_gold` (boolean premium flag).
+  // subtitles reflect ACTUAL state instead of hardcoded copy.
   const verifySubtitle =
-    !verificationLevelRaw || verificationLevelRaw === "No verification"
-      ? "Verify your identity"
-      : verificationLevelRaw === "Photos"
-        ? "Bronze · upgrade to Silver"
-        : verificationLevelRaw === "Photos + ID"
-          ? "Gold · highest trust"
-          : String(verificationLevelRaw);
+    userTier === "gold"
+      ? "Gold · highest trust"
+      : userTier === "silver"
+        ? "Silver · upgrade to Gold"
+        : userTier === "bronze"
+          ? "Bronze · upgrade to Silver"
+          : verificationLevelRaw === "Photos + ID"
+            ? "Gold · highest trust"
+            : verificationLevelRaw === "Photos"
+              ? "Bronze · upgrade to Silver"
+              : "Verify your identity";
   // Premium gate (Phase W cutover, 2026-05-15) — drives both copy and
   // destination of the Subscription row. isPremium reads
   // profile.entitlements (the canonical source). Premium users land on

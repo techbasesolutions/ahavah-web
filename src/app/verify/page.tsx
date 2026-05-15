@@ -40,11 +40,11 @@ const TIERS = [
     color: "#C0C0C0",
     label: "Silver",
     sub: "Liveness verified",
-    body: "Quick face-liveness check (anti-spoofing). Launching soon — Bronze or Gold today.",
+    body: "Three quick selfies at different angles confirm you're a real person, not a static photo.",
     Icon: Scan,
-    cta: "Coming soon",
+    cta: "Take 3 selfies",
     ctaState: "next" as const,
-    soon: true,
+    soon: false,
   },
   {
     key: "gold",
@@ -62,12 +62,27 @@ const TIERS = [
 export default function VerifyPage() {
   // Reflect real verification state instead of treating every user as
   // un-verified. Backend ships `verification level` from /profile-info
-  // as "No verification" | "Photos" | "Photos + ID".
+  // as "No verification" | "Photos" | "Photos + ID" (legacy upstream
+  // ladder), AND `ahavah_verification_tier` ('none'|'bronze'|'silver'
+  // |'gold') from migrations 0003 + 0012 (the new ladder Silver lives
+  // on). Bronze stays gated on the legacy string for back-compat;
+  // Silver + Gold prefer the tier ENUM since they only exist there.
   const { profile } = useProfile();
-  const verificationLevel = (profile as Record<string, unknown>)["verification level"];
+  const raw = profile as Record<string, unknown>;
+  const verificationLevel = raw["verification level"];
+  const userTier =
+    typeof raw.ahavah_verification_tier === "string"
+      ? raw.ahavah_verification_tier
+      : "none";
   const isBronzeDone =
-    verificationLevel === "Photos" || verificationLevel === "Photos + ID";
-  const isGoldDone = verificationLevel === "Photos + ID";
+    verificationLevel === "Photos" ||
+    verificationLevel === "Photos + ID" ||
+    userTier === "bronze" ||
+    userTier === "silver" ||
+    userTier === "gold";
+  const isSilverDone = userTier === "silver" || userTier === "gold";
+  const isGoldDone =
+    verificationLevel === "Photos + ID" || userTier === "gold";
 
   return (
     <PageShell bottomPad="default">
@@ -98,6 +113,7 @@ export default function VerifyPage() {
         {TIERS.map((tier, i) => {
           const tierDone =
             (tier.key === "bronze" && isBronzeDone) ||
+            (tier.key === "silver" && isSilverDone) ||
             (tier.key === "gold" && isGoldDone);
           return (
           <motion.div
