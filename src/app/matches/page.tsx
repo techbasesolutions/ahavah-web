@@ -7,6 +7,7 @@ import { motion } from "motion/react";
 import { Lock, MapPin, MessageCircle, Sparkles } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Card,
   CardDescription,
@@ -184,23 +185,28 @@ function MatchesPageContent() {
         <PageHeaderTitle>Matches</PageHeaderTitle>
       </PageHeader>
 
-      {/* Tab toggle — shows lime badge with the incoming-likes count
-          when there are any. Tap routes the same page through a
-          different fetch + grid. */}
-      <div className="flex items-center gap-2 px-5 pt-4">
-        <TabButton active={tab === "matches"} onClick={() => setTab("matches")}>
-          Matches
-        </TabButton>
-        <TabButton active={tab === "likes"} onClick={() => setTab("likes")}>
-          <span className="flex items-center gap-2">
-            Liked you
-            {likesCount > 0 ? (
-              <Pill variant="lime" size="sm">
-                {likesCount > 99 ? "99+" : likesCount}
-              </Pill>
-            ) : null}
-          </span>
-        </TabButton>
+      {/* frontend-design pass 1: migrated from the local hand-rolled
+          TabButton primitive to the kit Tabs (variant="brand") so the
+          /matches tab vocabulary matches /inbox + the rest of the app.
+          The lime count Pill nests as a child of the Liked-you
+          TabsTrigger (kit-supported pattern). */}
+      <div className="px-5 pt-4 lg:mx-auto lg:max-w-7xl lg:px-10">
+        <Tabs
+          value={tab}
+          onValueChange={(v) => setTab((v === "likes" ? "likes" : "matches"))}
+        >
+          <TabsList variant="brand" aria-label="Filter matches">
+            <TabsTrigger value="matches">Matches</TabsTrigger>
+            <TabsTrigger value="likes" className="gap-2">
+              Liked you
+              {likesCount > 0 ? (
+                <Pill variant="lime" size="sm">
+                  {likesCount > 99 ? "99+" : likesCount}
+                </Pill>
+              ) : null}
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
       {/* Install + push opt-in. Both are gated internally by their own
@@ -234,39 +240,6 @@ function MatchesPageContent() {
 
       <BottomNav />
     </PageShell>
-  );
-}
-
-// Local tab-pill primitive — matches the lavender/lime palette without
-// pulling in the kit ToggleGroup (which doesn't compose well with the
-// active-with-badge pattern we want here).
-function TabButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      // The jsx-a11y/aria-proptypes rule rejects expression values for
-      // aria-pressed even when both branches are literal "true"/"false".
-      // The runtime value is correct; suppress the lint just here.
-       
-      aria-pressed={active ? "true" : "false"}
-      className={cn(
-        "h-tap rounded-full border px-4 text-meta font-semibold transition-colors",
-        active
-          ? "border-lime bg-lime text-black"
-          : "border-white/15 bg-transparent text-text-secondary hover:bg-white/5",
-      )}
-    >
-      {children}
-    </button>
   );
 }
 
