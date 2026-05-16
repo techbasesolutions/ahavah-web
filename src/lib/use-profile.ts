@@ -185,7 +185,11 @@ const TRANSFORMS: Record<string, FieldTransform> = {
   // path. Future cleanup could split out the prefixed tokens.
   languages: (v) => (Array.isArray(v) && v.length > 0 ? { languages_spoken: v } : null),
 
-  // Primary language — backend column `primary_language` (DeepL target).
+  // Primary spoken language — backend column `primary_language`. Marks
+  // the user's preferred language from their `languages` list (drives
+  // the ★ prefix on the primary pill in /profile/[uuid]). Distinct
+  // from the legacy DeepL-target use of the same column; chat-side
+  // translation was removed 2026-05-15.
   primaryLanguage: (v) =>
     typeof v === "string" && v.length > 0 ? { primary_language: v } : null,
 

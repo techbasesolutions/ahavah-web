@@ -15,17 +15,12 @@ const SLIDES = [
   {
     color: "#D7FF81",
     title: "Match without borders",
-    body:  "People from anywhere, in any language.",
+    body:  "People from anywhere who share your values.",
   },
   {
     color: "#BC96FF",
     title: "Built for trust",
     body:  "Verified profiles. Anti-scam protection.",
-  },
-  {
-    color: "#FF4566",
-    title: "Translated for you",
-    body:  "Chat in your language. We translate in real time.",
   },
 ];
 

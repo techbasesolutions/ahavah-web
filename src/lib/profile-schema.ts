@@ -836,7 +836,10 @@ export type Profile = {
   nationality?: Nationality;
   ethnicities?: Ethnicity[];
   languages?: string[];    // language codes from /onboarding/languages
-  primaryLanguage?: string; // backend person.primary_language (DeepL target)
+  // The user's primary spoken language (one of `languages`). Drives
+  // the ★ prefix on the primary-language pill on /profile/[uuid] so
+  // peers see which language the user prefers to be approached in.
+  primaryLanguage?: string;
   occupation?: string;
   education?: EducationLevel;
   bio?: string;            // also called "Testimony" in copy for this audience

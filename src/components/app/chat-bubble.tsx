@@ -2,13 +2,9 @@
 
 import * as React from "react";
 import { motion } from "motion/react";
-import { Pause } from "lucide-react";
 import { cva, type VariantProps } from "class-variance-authority";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-
-import { cn } from "@/lib/utils";
 
 // Shared entrance animation — bubble fades up + slides in from the side it
 // belongs to (them from left, me from right). Caller passes `delay` for
@@ -92,103 +88,9 @@ export function TextBubble({
   );
 }
 
-// ---------------------------------------------------------------------------
-// ImageBubble — 1×N or 2×N image grid inside a lime bubble
-// ---------------------------------------------------------------------------
-
-type ImageBubbleProps = VariantProps<typeof bubbleRowVariants> & {
-  /** Backgrounds for each image cell. Real `src` URLs go here once the
-      photo upload pipeline is wired; for now mock gradients render via
-      data-driven `--photo-bg` CSS var. */
-  images: string[];
-  /** Entrance-animation delay (seconds). See TextBubble. */
-  delay?: number;
-};
-
-export function ImageBubble({ side, images, delay = 0 }: ImageBubbleProps) {
-  const resolvedSide = side ?? "them";
-  return (
-    <motion.div
-      className={cn(bubbleRowVariants({ side }), "items-end")}
-      {...bubbleEnter(resolvedSide)}
-      transition={{ duration: 0.28, ease: "easeOut", delay }}
-    >
-      <div className="flex gap-1 rounded-2xl bg-lime p-1">
-        {images.map((bg, i) => (
-          <div
-            key={i}
-            className="size-24 rounded-xl bg-cover bg-center"
-            style={
-              { "--photo-bg": bg,
-                backgroundImage: "var(--photo-bg)" } as React.CSSProperties
-            }
-          />
-        ))}
-      </div>
-    </motion.div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// VoiceBubble — lime play button + waveform + duration
-// ---------------------------------------------------------------------------
-
-const VOICE_WAVEFORM_HEIGHTS = [
-  "h-1",   "h-1.5", "h-2",   "h-3.5", "h-2",   "h-4",
-  "h-1.5", "h-3",   "h-1",   "h-2",   "h-3",   "h-1",
-  "h-2.5", "h-2",   "h-3",   "h-1",   "h-2",
-];
-
-type VoiceBubbleProps = VariantProps<typeof bubbleRowVariants> & {
-  /** Duration as already-formatted string (e.g. "0:13"). Real audio
-      duration plumbing comes when the audio service is wired. */
-  duration: string;
-  /** Avatar fallback initial — only rendered when side="them". */
-  avatar?: string;
-  /** Entrance-animation delay (seconds). See TextBubble. */
-  delay?: number;
-};
-
-export function VoiceBubble({
-  side,
-  avatar,
-  duration,
-  delay = 0,
-}: VoiceBubbleProps) {
-  const resolvedSide = side ?? "them";
-  return (
-    <motion.div
-      className={bubbleRowVariants({ side })}
-      {...bubbleEnter(resolvedSide)}
-      transition={{ duration: 0.28, ease: "easeOut", delay }}
-    >
-      {resolvedSide === "them" &&
-        (avatar ? (
-          <Avatar size="xs">
-            <AvatarFallback variant="brand">{avatar}</AvatarFallback>
-          </Avatar>
-        ) : (
-          <span aria-hidden className="size-7" />
-        ))}
-      <div className={cn(bubbleSurfaceVariants({ side }), "flex items-center gap-3 py-2")}>
-        {/* Play control bumped to icon-tap (44px) — was icon-sm (32px) which
-            failed mobile-responsive rule 1 / WCAG 2.5.5 (interactive
-            element). */}
-        <Button
-          size="icon-tap"
-          tone="dark"
-          aria-label="Play voice message"
-          className="rounded-full"
-        >
-          <Pause className="text-lavender" fill="currentColor" />
-        </Button>
-        <div className="flex h-6 items-end gap-0.5">
-          {VOICE_WAVEFORM_HEIGHTS.map((h, i) => (
-            <span key={i} className={cn("w-0.5 rounded-full bg-black", h)} />
-          ))}
-        </div>
-        <span className="text-caption font-medium tabular-nums">{duration}</span>
-      </div>
-    </motion.div>
-  );
-}
+// ImageBubble + VoiceBubble removed 2026-05-15: never imported anywhere
+// in the app. Photo attachments and voice memos in chat are deferred
+// features (no backend, no chat-input affordance). Restore from git
+// history when those features actually ship — the kit's bubble shells
+// (TextBubble + bubbleRowVariants + bubbleSurfaceVariants) are the
+// canonical starting points for any new bubble type.

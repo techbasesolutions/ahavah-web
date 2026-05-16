@@ -331,12 +331,6 @@ export default function AccountSettingsPage() {
               </DialogContent>
             </Dialog>
 
-            {/* Preferred-language picker hidden until DeepL translations
-                ship (Phase W §9 deliberately defers i18n/translation).
-                The person.primary_language column is real and the picker
-                works, but exposing it now creates the 'looks done but
-                does nothing' pattern the user has flagged. Restore when
-                /chat actually translates incoming messages. */}
           </ItemGroup>
         </motion.section>
 
