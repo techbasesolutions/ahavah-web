@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button, buttonVariants } from "@/components/ui/button";
 
 import { cn } from "@/lib/utils";
+import { formatLastSeen, isOnline } from "@/lib/last-seen";
 import type { PhotoSource } from "@/lib/photo-or-gradient";
 
 /**
@@ -32,8 +33,17 @@ type ChatHeaderProps = {
   name: string;
   /** Display age. */
   age: number;
-  /** Online presence — drives the "Online" / "Last seen recently" subline. */
-  online: boolean;
+  /**
+   * Phase W cutover (2026-05-15) — `seconds_since_last_online` carries
+   * the real presence signal from the backend (`/prospect-profile`).
+   * When provided, the header renders "Online" / "Last seen Xm ago" /
+   * "Last seen Xh ago" / etc. via formatLastSeen(). The legacy
+   * `online` boolean is kept for back-compat with sample profiles that
+   * don't ship a numeric signal — `online=true` is treated as "Online",
+   * `online=false` + null seconds is treated as "Last seen recently".
+   */
+  online?: boolean;
+  secondsSinceLastOnline?: number | null;
   /** Callback for the kebab "More" button. */
   onMoreClick?: () => void;
   /**
@@ -51,9 +61,23 @@ export function ChatHeader({
   name,
   age,
   online,
+  secondsSinceLastOnline,
   onMoreClick,
   photoSource,
 }: ChatHeaderProps) {
+  // Prefer the real numeric signal when present; fall back to the
+  // legacy boolean for sample profiles. Result: real "Last seen 14m
+  // ago" strings instead of the previous hardcoded "Last seen recently".
+  const presenceLabel =
+    typeof secondsSinceLastOnline === "number"
+      ? formatLastSeen(secondsSinceLastOnline)
+      : online
+        ? "Online"
+        : "Last seen recently";
+  const presenceIsOnline =
+    typeof secondsSinceLastOnline === "number"
+      ? isOnline(secondsSinceLastOnline)
+      : Boolean(online);
   return (
     <header className="flex items-center gap-3 border-b border-white/10 px-3 py-3">
       <Link
@@ -89,10 +113,10 @@ export function ChatHeader({
           <p
             className={cn(
               "mt-0.5 text-caption",
-              online ? "text-success" : "text-text-muted",
+              presenceIsOnline ? "text-success" : "text-text-muted",
             )}
           >
-            {online ? "Online" : "Last seen recently"}
+            {presenceLabel}
           </p>
         </div>
       </Link>

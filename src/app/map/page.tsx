@@ -220,6 +220,17 @@ export default function MapPage() {
       verifiedOnly: Boolean(
         filters.verifiedOnly || viewer?.requireVerifiedMatches,
       ),
+      // Phase W cutover: pill-grid filters from FiltersSheet now reach
+      // /search. /map inherits the same filter behavior as /discover.
+      intents: filters.intents,
+      maritalStatuses: filters.maritalStatuses,
+      hasChildrenBuckets: filters.hasChildrenBuckets,
+      assemblies: filters.assemblies,
+      torahLevels: filters.torahLevels,
+      polygynyStances: filters.polygynyStances,
+      calendars: filters.calendars,
+      educations: filters.educations,
+      healthTags: filters.healthTags,
     }),
     [
       filters.ageMin,
@@ -228,9 +239,41 @@ export default function MapPage() {
       filters.languages,
       filters.verifiedOnly,
       viewer?.requireVerifiedMatches,
+      filters.intents,
+      filters.maritalStatuses,
+      filters.hasChildrenBuckets,
+      filters.assemblies,
+      filters.torahLevels,
+      filters.polygynyStances,
+      filters.calendars,
+      filters.educations,
+      filters.healthTags,
     ],
   );
   const { items: realCandidates } = useDiscoverDeck(httpFilters);
+
+  // Phase W cutover (2026-05-15) — count active filters for the badge
+  // on the top-bar filter button. Age range counts only when narrowed
+  // from the full 18-80 default. country is excluded because it's
+  // driven by the map viewport itself (panning sets it) — surfacing
+  // a "country filter active" badge on the map is confusing since the
+  // user IS the one moving the map.
+  const activeFilterCount = useMemo(() => {
+    let n = 0;
+    if ((filters.ageMin ?? 18) > 18 || (filters.ageMax ?? 80) < 80) n += 1;
+    if (filters.languages?.length) n += 1;
+    if (filters.verifiedOnly) n += 1;
+    if (filters.intents?.length) n += 1;
+    if (filters.maritalStatuses?.length) n += 1;
+    if (filters.hasChildrenBuckets?.length) n += 1;
+    if (filters.assemblies?.length) n += 1;
+    if (filters.torahLevels?.length) n += 1;
+    if (filters.polygynyStances?.length) n += 1;
+    if (filters.calendars?.length) n += 1;
+    if (filters.educations?.length) n += 1;
+    if (filters.healthTags?.length) n += 1;
+    return n;
+  }, [filters]);
   // Drop candidates without a country ISO — the map can't position them.
   // Also drop candidates who opted out via /settings/privacy → "Show me
   // on the map" → off (server ships `showOnMap = false` from
@@ -347,7 +390,13 @@ export default function MapPage() {
           translucent backdrop + blur lets the map texture show through
           while keeping the brand mark legible. Icon matches /discover
           (SlidersHorizontal) so the user reads "open filters" not
-          "switch to map view". */}
+          "switch to map view".
+
+          Phase W cutover (2026-05-15): badge on the filter button
+          shows the count of active filters. Was the missing piece in
+          the "Jada disappeared from the map" investigation — users
+          couldn't tell whether any filters were applied. Now they
+          see a lime dot with the count. */}
       <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between gap-3 bg-bg-canvas/80 px-4 py-3 supports-backdrop-filter:bg-bg-canvas/60 supports-backdrop-filter:backdrop-blur-md">
         <BrandMark size="sm" />
         <FiltersSheet
@@ -355,9 +404,19 @@ export default function MapPage() {
           onOpenChange={setFiltersOpen}
           initialFilters={filters}
           trigger={
-            <Button size="circle" tone="elevated" aria-label="Filter map">
-              <SlidersHorizontal className="text-white" />
-            </Button>
+            <div className="relative">
+              <Button size="circle" tone="elevated" aria-label="Filter map">
+                <SlidersHorizontal className="text-white" />
+              </Button>
+              {activeFilterCount > 0 ? (
+                <span
+                  aria-label={`${activeFilterCount} active filters`}
+                  className="absolute -top-1 -right-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-lime px-1.5 text-caption font-bold tabular-nums text-black ring-2 ring-bg-canvas"
+                >
+                  {activeFilterCount}
+                </span>
+              ) : null}
+            </div>
           }
           onApply={(f) => setFilters(f)}
         />

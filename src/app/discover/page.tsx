@@ -120,6 +120,19 @@ export default function DiscoverPage() {
       verifiedOnly: Boolean(
         filters.verifiedOnly || userProfile?.requireVerifiedMatches,
       ),
+      // Phase W cutover: all 9 pill-grid filters now actually reach
+      // /search. Each is a comma-joined list of client-side enum
+      // values; backend filters against ahavah_extra JSONB so values
+      // round-trip exactly (avoids lossy enum-table joins).
+      intents: filters.intents,
+      maritalStatuses: filters.maritalStatuses,
+      hasChildrenBuckets: filters.hasChildrenBuckets,
+      assemblies: filters.assemblies,
+      torahLevels: filters.torahLevels,
+      polygynyStances: filters.polygynyStances,
+      calendars: filters.calendars,
+      educations: filters.educations,
+      healthTags: filters.healthTags,
     }),
     [
       filters.ageMin,
@@ -128,10 +141,42 @@ export default function DiscoverPage() {
       filters.languages,
       filters.verifiedOnly,
       userProfile?.requireVerifiedMatches,
+      filters.intents,
+      filters.maritalStatuses,
+      filters.hasChildrenBuckets,
+      filters.assemblies,
+      filters.torahLevels,
+      filters.polygynyStances,
+      filters.calendars,
+      filters.educations,
+      filters.healthTags,
     ],
   );
 
   const { items, loadMore, hasMore } = useDiscoverDeck(httpFilters);
+
+  // Phase W cutover (2026-05-15) — count active filters for the badge
+  // on the top-bar filter button. Age range counts only when narrowed
+  // from the full 18-80 default. Country counts as 1 when the user
+  // has explicitly set countries (the panning-driven country list on
+  // /map is reflected only there; /discover doesn't auto-populate it).
+  const activeFilterCount = useMemo(() => {
+    let n = 0;
+    if ((filters.ageMin ?? 18) > 18 || (filters.ageMax ?? 80) < 80) n += 1;
+    if (filters.country?.length) n += 1;
+    if (filters.languages?.length) n += 1;
+    if (filters.verifiedOnly) n += 1;
+    if (filters.intents?.length) n += 1;
+    if (filters.maritalStatuses?.length) n += 1;
+    if (filters.hasChildrenBuckets?.length) n += 1;
+    if (filters.assemblies?.length) n += 1;
+    if (filters.torahLevels?.length) n += 1;
+    if (filters.polygynyStances?.length) n += 1;
+    if (filters.calendars?.length) n += 1;
+    if (filters.educations?.length) n += 1;
+    if (filters.healthTags?.length) n += 1;
+    return n;
+  }, [filters]);
 
   // Locally-decided ids. The backend records the decision in `liked` /
   // `skipped` / `swipe` and Q_UNCACHED_SEARCH_2 excludes them on the
@@ -311,9 +356,19 @@ export default function DiscoverPage() {
         <div className="flex items-center gap-3">
           <FiltersSheet
             trigger={
-              <Button size="circle" tone="elevated" aria-label="Discovery filters">
-                <SlidersHorizontal className="text-lavender" />
-              </Button>
+              <div className="relative">
+                <Button size="circle" tone="elevated" aria-label="Discovery filters">
+                  <SlidersHorizontal className="text-lavender" />
+                </Button>
+                {activeFilterCount > 0 ? (
+                  <span
+                    aria-label={`${activeFilterCount} active filters`}
+                    className="absolute -top-1 -right-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-lime px-1.5 text-caption font-bold tabular-nums text-black ring-2 ring-bg-canvas"
+                  >
+                    {activeFilterCount}
+                  </span>
+                ) : null}
+              </div>
             }
             open={filtersOpen}
             onOpenChange={setFiltersOpen}

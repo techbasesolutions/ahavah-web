@@ -151,9 +151,23 @@ function MatchPageContent() {
     }
   }, [fetchAttempted]);
 
+  // Phase W cutover (2026-05-15) — "Say hi" input is now controlled
+  // and carried via ?prefill=<msg> into /chat/<id>. Chat page reads
+  // it on mount, pre-fills the draft (one-shot), and clears it from
+  // the URL. Lets the user edit/send rather than retyping — and
+  // doesn't silently discard their first-message intent like before.
+  const [hello, setHello] = useState("");
+
   // Where Message routes — known subject id if we have it, else /matches
-  // so the user lands on their list rather than a 404.
-  const messageHref = subject.id ? `/chat/${subject.id}` : "/matches";
+  // so the user lands on their list rather than a 404. If they typed
+  // a hello, append it as a URL-encoded query param for the chat page
+  // to pick up on mount.
+  const helloTrimmed = hello.trim();
+  const helloParam =
+    subject.id && helloTrimmed.length > 0
+      ? `?prefill=${encodeURIComponent(helloTrimmed)}`
+      : "";
+  const messageHref = subject.id ? `/chat/${subject.id}${helloParam}` : "/matches";
   const profileHref = subject.id ? `/profile/${subject.id}` : "/matches";
 
   return (
@@ -351,13 +365,18 @@ function MatchPageContent() {
             placeholder="Say hi"
             aria-label="Say hi message"
             className="text-body text-white placeholder:text-text-muted"
+            value={hello}
+            onChange={(e) => setHello(e.target.value)}
+            maxLength={500}
           />
           <InputGroupAddon align="inline-end" className="pr-0">
             <Button
               nativeButton={false}
               size="circle"
               tone="cta"
-              aria-label="Send a message"
+              aria-label={
+                helloTrimmed.length > 0 ? "Send message" : "Open chat"
+              }
               render={<Link href={messageHref} prefetch={false} />}
             >
               <Send className="text-black" />

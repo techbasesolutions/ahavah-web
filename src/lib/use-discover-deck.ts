@@ -29,6 +29,20 @@ export type DiscoverFilters = {
   // matches to be verified" (the wrapper OR's both at the call site).
   // Backend treats undefined and false identically.
   verifiedOnly?: boolean;
+  // Phase W cutover (2026-05-15) — Torah-observant + Duolicious filter
+  // sheet fields. All wire through to /search via comma-joined query
+  // params and the backend filters against p.ahavah_extra->>'<field>'
+  // (the canonical store; upstream Duolicious columns are coarse and
+  // lossy). Empty array / undefined = no filter.
+  intents?: ReadonlyArray<string>;
+  maritalStatuses?: ReadonlyArray<string>;
+  hasChildrenBuckets?: ReadonlyArray<"has" | "none">;
+  assemblies?: ReadonlyArray<string>;
+  torahLevels?: ReadonlyArray<string>;
+  polygynyStances?: ReadonlyArray<string>;
+  calendars?: ReadonlyArray<string>;
+  educations?: ReadonlyArray<string>;
+  healthTags?: ReadonlyArray<string>;
 };
 
 export type UseDiscoverDeckResult = {
@@ -63,6 +77,36 @@ export function buildSearchPath(
   }
   if (filters.verifiedOnly) {
     params.set("verified_only", "1");
+  }
+  // Pill-grid filters — comma-joined enum values. Backend filters
+  // against ahavah_extra JSONB so kebab-case client values round-trip
+  // exactly (avoids the lossy enum-table joins for re-married / etc.).
+  if (filters.intents?.length) {
+    params.set("intents", filters.intents.join(","));
+  }
+  if (filters.maritalStatuses?.length) {
+    params.set("marital_statuses", filters.maritalStatuses.join(","));
+  }
+  if (filters.hasChildrenBuckets?.length) {
+    params.set("has_children", filters.hasChildrenBuckets.join(","));
+  }
+  if (filters.assemblies?.length) {
+    params.set("assemblies", filters.assemblies.join(","));
+  }
+  if (filters.torahLevels?.length) {
+    params.set("torah_levels", filters.torahLevels.join(","));
+  }
+  if (filters.polygynyStances?.length) {
+    params.set("polygyny", filters.polygynyStances.join(","));
+  }
+  if (filters.calendars?.length) {
+    params.set("calendars", filters.calendars.join(","));
+  }
+  if (filters.educations?.length) {
+    params.set("educations", filters.educations.join(","));
+  }
+  if (filters.healthTags?.length) {
+    params.set("health_tags", filters.healthTags.join(","));
   }
   const qs = params.toString();
   return qs ? `/search?${qs}` : "/search";

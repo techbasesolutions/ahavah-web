@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 import { BlockReportSheet } from "@/components/app/block-report-sheet";
 import { TextBubble } from "@/components/app/chat-bubble";
@@ -112,10 +113,14 @@ export default function ChatThreadPage({ params }: Props) {
         name: serverProfile.firstName,
         age: serverProfile.age ?? 0,
         online: isOnline(serverProfile.seconds_since_last_online),
+        // Phase W cutover (2026-05-15): forward the raw seconds so the
+        // header renders "Last seen Xm ago" instead of the previous
+        // hardcoded "Last seen recently" fallback.
+        secondsSinceLastOnline: serverProfile.seconds_since_last_online ?? null,
       };
     }
-    if (legacy) return legacy;
-    return { name: "Person", age: 0, online: false };
+    if (legacy) return { ...legacy, secondsSinceLastOnline: null };
+    return { name: "Person", age: 0, online: false, secondsSinceLastOnline: null };
   }, [serverProfile, legacy]);
 
   const subjectProfile = sampleByName(id);
@@ -129,6 +134,30 @@ export default function ChatThreadPage({ params }: Props) {
   const [reportOpen, setReportOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const endRef = useRef<HTMLDivElement | null>(null);
+
+  // Phase W cutover (2026-05-15) — `?prefill=<msg>` honoured from the
+  // /match celebration screen's "Say hi" input. Pre-fills the draft so
+  // the user can edit/send rather than retyping. One-shot: cleared
+  // from the URL via history.replaceState so a refresh doesn't repop.
+  const searchParams = useSearchParams();
+  const prefill = searchParams?.get("prefill") ?? null;
+  useEffect(() => {
+    if (!prefill) return;
+    // Bridging an external system (URL search params) into local state
+    // — canonical hydration pattern; the rule's general advice doesn't
+    // apply to one-shot mount-time imports. Same shape as
+    // useShowOnMap + useFilters mount-hydration here.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setDraft(prefill);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("prefill");
+      window.history.replaceState({}, "", url.toString());
+    }
+    // Intentionally one-shot on mount; ignore later `prefill` changes
+    // (the URL just got cleared so it won't fire anyway).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Debounced typing-off — keep a single timer; reset on every keystroke.
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -194,6 +223,7 @@ export default function ChatThreadPage({ params }: Props) {
         name={subject.name}
         age={subject.age}
         online={subject.online}
+        secondsSinceLastOnline={subject.secondsSinceLastOnline}
         onMoreClick={() => setReportOpen(true)}
         photoSource={subjectPhotoSource}
       />
