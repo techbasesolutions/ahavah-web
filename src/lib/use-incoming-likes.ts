@@ -24,6 +24,10 @@ export type IncomingLike = {
     photo_uuids?: ReadonlyArray<string>;
   };
   liked_at: string;
+  /** Phase 6 monetization-tokens (2026-05-16): TRUE when the liker
+   *  spent 2 tokens to super-like. Drives sort order (super first)
+   *  and the lime-ring visual signal on /matches > Liked you. */
+  is_super?: boolean;
 };
 
 export type IncomingLikesResponse = {

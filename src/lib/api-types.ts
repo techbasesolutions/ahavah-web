@@ -143,6 +143,11 @@ export type LikeRecord = {
    *  the right liker_id, but firstName/age/photo_uuids are absent.
    *  Tapping a hidden card opens TokenSpendSheet. */
   hidden?: boolean;
+  /** Phase 6 monetization-tokens (2026-05-16): TRUE when the liker
+   *  spent 2 tokens to super-like. /matches sorts super-likes first
+   *  and renders the card with a lime ring + "Super" pill so the
+   *  recipient can prioritize who to like back / reveal. */
+  is_super?: boolean;
 };
 
 export type IncomingLikesResponse = {
