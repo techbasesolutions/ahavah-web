@@ -204,3 +204,12 @@ export type CheckoutWebRequest = {
 export type CheckoutWebResponse = {
   stripe_checkout_url: string;
 };
+
+// ---------------------------------------------------------------------------
+// Tokens — Phase 3 (monetization-tokens v1, 2026-05-16). Balance endpoint
+// is a thin server read over the SUM(delta) of the per-user `token_ledger`
+// rows. The frontend never sees individual ledger entries; only the
+// derived scalar balance.
+// ---------------------------------------------------------------------------
+
+export type TokenBalanceResponse = { balance: number };
