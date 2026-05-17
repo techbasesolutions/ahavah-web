@@ -5,7 +5,7 @@ import { apiClient } from "@/lib/api-client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, type PanInfo } from "motion/react";
-import { ChevronRight, Heart, MapPin, Pause, Play, SlidersHorizontal, X } from "lucide-react";
+import { ChevronRight, Heart, MapPin, Pause, Play, SlidersHorizontal, Sparkles, X } from "lucide-react";
 
 import { Avatar, AvatarBadge, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,9 @@ import { FiltersSheet } from "@/components/app/filters-sheet";
 import { PageHeader, PageShell } from "@/components/app/page-shell";
 import { PhotoCaption } from "@/components/app/photo-caption";
 import { QuotaExceededCard } from "@/components/app/quota-exceeded-card";
+import { TokenSpendSheet } from "@/components/app/token-spend-sheet";
+import { useTokenBalance } from "@/lib/use-token-balance";
+import { ApiError } from "@/lib/api-client";
 import { useProfile } from "@/lib/use-profile";
 import { readOnboarded } from "@/lib/onboarded-storage";
 import { firstMissingStepFor, isDiscoverEligible } from "@/lib/profile-completeness";
@@ -198,6 +201,15 @@ export default function DiscoverPage() {
     { resetsAt: string | null } | null
   >(null);
 
+  // Phase 6 state declared up here (alongside other state hooks). The
+  // handler that uses `candidate` + `visibleItems` lives further down,
+  // after those bindings are declared. balance + refresh come from
+  // useTokenBalance and power the sheet's cost / insufficient-balance
+  // branch.
+  const [superSheetOpen, setSuperSheetOpen] = useState(false);
+  const [superBusy, setSuperBusy] = useState(false);
+  const { balance: tokenBalance, refresh: refreshTokens } = useTokenBalance();
+
   // Hide candidates currently mid-decision OR already decided in this
   // session so the visible card never repeats one we just acted on.
   const visibleItems = useMemo(
@@ -266,6 +278,53 @@ export default function DiscoverPage() {
     },
     [candidate, decide, hasMore, visibleItems.length, loadMore, router],
   );
+
+  // Phase 6 monetization-tokens (2026-05-16): super-like spend path.
+  // Tapping the lime Sparkles button opens TokenSpendSheet → confirm
+  // → POST /tokens/super-like with the candidate's uuid. Success
+  // advances the deck (mark candidate as decided so it leaves) WITHOUT
+  // POSTing /decisions — the backend writes the `liked` row itself
+  // inside super_like.perform(). If the response carries a match_id
+  // (target had previously liked us), navigate to /match per the
+  // existing pattern.
+  const handleSuperLike = useCallback(async () => {
+    if (!candidate) return;
+    const candidateId = candidate.id;
+    setSuperBusy(true);
+    try {
+      const res = await apiClient.post<{
+        super_liked: boolean;
+        match_id: string | null;
+      }>("/tokens/super-like", { person_id: candidateId });
+      await refreshTokens();
+      setSuperSheetOpen(false);
+      // Advance deck — mark candidate as decided so it leaves the
+      // visible deck (same mechanic as the optimistic update inside
+      // advance()). We deliberately DON'T call decide()/POST /decisions
+      // because the super-like backend already wrote `liked.is_super`.
+      setHasSwiped(true);
+      setExitDirection("right");
+      setDecidedIds((prev) => {
+        const next = new Set(prev);
+        next.add(candidateId);
+        return next;
+      });
+      if (res.match_id) {
+        router.push(`/match?matchId=${encodeURIComponent(res.match_id)}`);
+        return;
+      }
+      if (hasMore && visibleItems.length <= 3) void loadMore();
+    } catch (e) {
+      // 402 surfaces via the sheet's insufficient-balance branch once
+      // refreshTokens fires; anything else we just log and let the
+      // sheet stay open for retry.
+      if (!(e instanceof ApiError && e.status === 402)) {
+        console.error("super-like failed:", e);
+      }
+    } finally {
+      setSuperBusy(false);
+    }
+  }, [candidate, hasMore, visibleItems.length, loadMore, refreshTokens, router]);
 
   // Tap-zone handlers — left zone goes back one photo (no-op at first
   // photo), right zone goes forward one photo (advances to next
@@ -662,6 +721,24 @@ export default function DiscoverPage() {
                 <Play className="text-black" fill="currentColor" />
               )}
             </Button>
+            {/* Phase 6: Super-like — spend 2 tokens, target sees us
+                at the top of their deck with a lime ring. Sits between
+                the slideshow Pause and the regular Like so the positive
+                actions (Super + Like) cluster on the right. */}
+            <div className="flex flex-col items-center gap-1">
+              <Button
+                size="circle"
+                tone="cta"
+                lift="float"
+                aria-label="Super-like"
+                onClick={() => setSuperSheetOpen(true)}
+              >
+                <Sparkles className="text-black" />
+              </Button>
+              <span className="text-meta font-medium text-text-secondary">
+                Super
+              </span>
+            </div>
             <Button
               size="circle"
               tone="action"
@@ -674,6 +751,20 @@ export default function DiscoverPage() {
           </div>
         ) : null}
       </div>
+
+      {/* Phase 6: super-like confirmation sheet. Cost is 2 tokens; the
+          sheet itself handles the insufficient-balance branch + routes
+          the user to /profile/tokens if they can't afford it. */}
+      <TokenSpendSheet
+        open={superSheetOpen}
+        onOpenChange={setSuperSheetOpen}
+        title={`Super-like ${candidate?.firstName ?? "this person"}?`}
+        description="They'll see your like at the top of their deck with a lime ring."
+        cost={2}
+        currentBalance={tokenBalance}
+        onConfirm={handleSuperLike}
+        busy={superBusy}
+      />
 
       <BottomNav />
     </PageShell>

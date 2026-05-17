@@ -473,7 +473,24 @@ function LikesGrid({
               key={liker.id}
               {...fadeUp}
               transition={{ duration: 0.3, delay: staggerDelay(i) }}
+              // Phase 6: lime ring + Super pill ALSO apply to hidden
+              // cards — surfacing is_super even before reveal helps
+              // users prioritize which token spend matters most.
+              className={cn(
+                "relative",
+                l.is_super &&
+                  "rounded-2xl ring-2 ring-lime ring-offset-2 ring-offset-bg-canvas",
+              )}
             >
+              {l.is_super ? (
+                <Pill
+                  variant="lime"
+                  size="sm"
+                  className="absolute top-2 left-2 z-10 gap-1"
+                >
+                  <Sparkles className="size-3" aria-hidden /> Super
+                </Pill>
+              ) : null}
               <button
                 type="button"
                 onClick={() => onRevealRequest(liker.id, "this person")}
@@ -508,7 +525,24 @@ function LikesGrid({
             key={liker.id}
             {...fadeUp}
             transition={{ duration: 0.3, delay: staggerDelay(i) }}
+            // Phase 6: lime ring + "Super" pill when this liker spent
+            // 2 tokens to super-like. Ring on the outer wrapper, pill
+            // pinned to the top-left of the card (absolute, z-10).
+            className={cn(
+              "relative",
+              l.is_super &&
+                "rounded-2xl ring-2 ring-lime ring-offset-2 ring-offset-bg-canvas",
+            )}
           >
+            {l.is_super ? (
+              <Pill
+                variant="lime"
+                size="sm"
+                className="absolute top-2 left-2 z-10 gap-1"
+              >
+                <Sparkles className="size-3" aria-hidden /> Super
+              </Pill>
+            ) : null}
             <Link
               href={`/profile/${liker.id}?from=likes`}
               prefetch={false}
