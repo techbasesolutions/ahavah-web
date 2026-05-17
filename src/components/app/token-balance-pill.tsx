@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Circle } from "lucide-react";
+import { Sparkles } from "lucide-react";
 
 import { Pill } from "@/components/kibo-ui/pill";
 import {
@@ -47,7 +47,7 @@ export function TokenBalancePill() {
           }
         >
           <Pill variant="lime" size="sm">
-            <Circle className="size-3 fill-current" aria-hidden />
+            <Sparkles className="size-3" aria-hidden />
             <span className="tabular-nums">{balance}</span>
           </Pill>
         </TooltipTrigger>

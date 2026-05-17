@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { Circle, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -112,7 +112,9 @@ export default function TokensPage() {
   return (
     <PageShell bottomPad="nav">
       <PageHeader>
-        <PageHeaderTitle>Tokens</PageHeaderTitle>
+        <PageHeaderTitle>
+          Tokens<span className="text-lime">.</span>
+        </PageHeaderTitle>
       </PageHeader>
 
       {/* Balance card — tone="elevated" because there's no
@@ -130,11 +132,10 @@ export default function TokensPage() {
                 Your balance
               </p>
               <p className="mt-1 flex items-center gap-2 text-display text-lime tabular-nums">
-                <Circle className="size-6 fill-current" aria-hidden />
+                <Sparkles className="size-6" aria-hidden />
                 {balance}
               </p>
             </div>
-            <Sparkles className="size-8 text-lavender" aria-hidden />
           </CardContent>
         </Card>
       </motion.div>
@@ -176,9 +177,14 @@ export default function TokensPage() {
           onClick={handleBuy}
           disabled={busy}
         >
-          {busy
-            ? "Opening checkout…"
-            : `Get ${activeSku.tokens} ${activeSku.tokens === 1 ? "token" : "tokens"} · ${activeSku.price}`}
+          {busy ? (
+            "Opening checkout…"
+          ) : (
+            <>
+              <Sparkles aria-hidden />
+              Get {activeSku.tokens} {activeSku.tokens === 1 ? "token" : "tokens"} · {activeSku.price}
+            </>
+          )}
         </Button>
         {errorMessage ? (
           <p

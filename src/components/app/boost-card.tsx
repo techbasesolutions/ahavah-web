@@ -18,7 +18,9 @@
  */
 
 import { useEffect, useState } from "react";
-import { Zap } from "lucide-react";
+import { Sparkles, Zap } from "lucide-react";
+
+import { cn } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -98,10 +100,29 @@ export function BoostCard() {
     <>
       <Card tone="elevated">
         <CardContent className="flex items-center gap-4">
-          <Zap className="size-8 text-lime" aria-hidden />
+          <Zap
+            className={cn(
+              "size-8 text-lime",
+              // Active-state signal: the boost icon pulses while the
+              // 30-min spotlight is in flight. Pure opacity animation,
+              // GPU-only, respects prefers-reduced-motion via the
+              // global stylesheet override in globals.css.
+              active?.active && "animate-pulse",
+            )}
+            aria-hidden
+          />
           <div className="flex-1">
             <p className="text-meta font-semibold text-white">
-              {active?.active ? `Boost active - ${remaining}` : "Boost your profile"}
+              {active?.active ? (
+                <>
+                  Boost active<span className="text-lime">.</span>{" "}
+                  <span className="text-text-secondary tabular-nums">
+                    {remaining}
+                  </span>
+                </>
+              ) : (
+                "Boost your profile"
+              )}
             </p>
             <p className="text-caption text-text-secondary">
               {active?.active
@@ -115,7 +136,8 @@ export function BoostCard() {
               variant="default"
               onClick={() => setSheetOpen(true)}
             >
-              Boost - 5
+              <Sparkles aria-hidden />
+              Boost · 5
             </Button>
           ) : null}
         </CardContent>

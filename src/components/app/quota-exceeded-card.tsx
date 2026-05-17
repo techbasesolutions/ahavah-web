@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -79,7 +80,9 @@ export function QuotaExceededCard({
     <>
       <Card tone="elevated">
         <CardContent className="flex flex-col gap-3 text-center">
-          <h2 className="text-h2 text-white">Out of likes for today</h2>
+          <h2 className="text-h2 text-white">
+            Out of likes for today<span className="text-lime">.</span>
+          </h2>
           {resetsLabel ? (
             <p className="text-meta text-text-secondary">
               Resets in {resetsLabel}.
@@ -98,6 +101,7 @@ export function QuotaExceededCard({
               variant="outlineSubtle"
               onClick={() => setSheetOpen(true)}
             >
+              <Sparkles aria-hidden />
               Day pass · 3 tokens
             </Button>
           </div>

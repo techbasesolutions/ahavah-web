@@ -1,6 +1,6 @@
 "use client";
 
-import { Circle } from "lucide-react";
+import { Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -62,13 +62,15 @@ export function TokenSpendSheet({
 
         <div className="mt-4 flex items-center justify-between rounded-2xl bg-bg-elevated px-4 py-3">
           <span className="text-meta text-white">Cost</span>
-          <span className="flex items-center gap-1 text-meta font-semibold text-lime tabular-nums">
-            <Circle className="size-3 fill-current" aria-hidden />
+          <span className="flex items-center gap-1.5 text-meta font-semibold text-lime tabular-nums">
+            <Sparkles className="size-4" aria-hidden />
             {cost} {cost === 1 ? "token" : "tokens"}
           </span>
         </div>
-        <p className="mt-2 text-caption text-text-muted">
-          Your balance: <span className="tabular-nums">{currentBalance}</span>
+        <p className="mt-2 flex items-center gap-1 text-caption text-text-muted">
+          Your balance:
+          <Sparkles className="size-3 text-lime" aria-hidden />
+          <span className="tabular-nums">{currentBalance}</span>
           {insufficient ? " — not enough to confirm" : ""}
         </p>
 
