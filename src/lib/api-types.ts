@@ -137,6 +137,12 @@ export type MatchesResponse = {
 export type LikeRecord = {
   with_profile: PeerProfile;
   liked_at: string;
+  /** Phase 4 monetization-tokens (2026-05-16): non-premium users get
+   *  a `hidden: true` stub for unrevealed likers — `with_profile.id`
+   *  is populated so the frontend can call POST /tokens/reveal with
+   *  the right liker_id, but firstName/age/photo_uuids are absent.
+   *  Tapping a hidden card opens TokenSpendSheet. */
+  hidden?: boolean;
 };
 
 export type IncomingLikesResponse = {

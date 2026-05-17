@@ -29,7 +29,9 @@ import {
 import { PhotoTile } from "@/components/app/photo-tile";
 import { PushOptInBanner } from "@/components/app/push-opt-in-banner";
 import { InstallPromptBanner } from "@/components/app/install-prompt-banner";
+import { TokenSpendSheet } from "@/components/app/token-spend-sheet";
 import { apiClient, ApiError } from "@/lib/api-client";
+import { useTokenBalance } from "@/lib/use-token-balance";
 import type {
   IncomingLikesResponse,
   LikeRecord,
@@ -138,9 +140,14 @@ function MatchesPageContent() {
           typeof res.premium === "boolean" ? res.premium : true;
         if (count === 0) {
           setLikesState({ kind: "empty" });
-        } else if (!premium) {
+        } else if (!premium && res.likes.length === 0) {
+          // Non-premium + nothing revealed yet → paywall surface.
           setLikesState({ kind: "locked", count });
         } else {
+          // Premium OR non-premium with at least one revealed liker.
+          // Phase 4 (2026-05-16): non-premium users land here once they
+          // POST /tokens/reveal an entry; the revealed liker(s) come
+          // back in `likes[]` and render through LikesGrid.
           setLikesState({ kind: "happy", items: res.likes });
         }
       } catch (e) {
@@ -178,6 +185,35 @@ function MatchesPageContent() {
 
   const activeState = tab === "matches" ? matchesState : likesState;
   const onRetry = tab === "matches" ? fetchMatches : fetchLikes;
+
+  // Phase 4 monetization-tokens (2026-05-16): tapping a blurred liker
+  // card opens TokenSpendSheet → POST /tokens/reveal → refetch likes.
+  // `revealing` carries the chosen liker's id+name for the sheet copy.
+  // Plan substitution: spec calls window.location.reload() after a
+  // successful reveal; this page owns the likes fetch via `fetchLikes`,
+  // so we refresh in-place instead (no full nav, preserves tab state).
+  const [revealing, setRevealing] = useState<{ id: string; name: string } | null>(null);
+  const [revealBusy, setRevealBusy] = useState(false);
+  const { balance, refresh: refreshBalance } = useTokenBalance();
+
+  const confirmReveal = async () => {
+    if (!revealing) return;
+    setRevealBusy(true);
+    try {
+      await apiClient.post("/tokens/reveal", { liker_id: revealing.id });
+      await refreshBalance();
+      await fetchLikes();
+    } catch (e) {
+      // 402 surfaces via the sheet's own insufficient-balance branch
+      // once refreshBalance fires; nothing extra to do here.
+      if (!(e instanceof ApiError && e.status === 402)) {
+        console.error("reveal failed:", e);
+      }
+    } finally {
+      setRevealBusy(false);
+      setRevealing(null);
+    }
+  };
 
   return (
     <PageShell bottomPad="nav">
@@ -235,10 +271,28 @@ function MatchesPageContent() {
       ) : tab === "matches" ? (
         <MatchesGrid matches={activeState.items as ReadonlyArray<MatchRecord>} />
       ) : (
-        <LikesGrid likes={activeState.items as ReadonlyArray<LikeRecord>} />
+        <LikesGrid
+          likes={activeState.items as ReadonlyArray<LikeRecord>}
+          onRevealRequest={(id, name) => setRevealing({ id, name })}
+        />
       )}
 
       <BottomNav />
+
+      {/* Phase 4 monetization-tokens (2026-05-16): single sheet
+          instance reused across every blurred-card tap. */}
+      <TokenSpendSheet
+        open={revealing !== null}
+        onOpenChange={(o) => {
+          if (!o) setRevealing(null);
+        }}
+        title={`Reveal ${revealing?.name ?? "this person"}?`}
+        description="Costs 1 token. Their photo will be unblurred for you."
+        cost={1}
+        currentBalance={balance}
+        onConfirm={confirmReveal}
+        busy={revealBusy}
+      />
     </PageShell>
   );
 }
@@ -375,7 +429,20 @@ function MatchesGrid({
 // LikesGrid — 'Liked you' tab. Same card layout as MatchesGrid but tap
 // routes to /profile/<peer>?from=likes (so the user can like back to
 // CREATE the match) instead of going straight to chat.
-function LikesGrid({ likes }: { likes: ReadonlyArray<LikeRecord> }) {
+//
+// Phase 4 monetization-tokens (2026-05-16): each `LikeRecord` may
+// arrive with `hidden: true` for non-premium viewers who haven't
+// revealed that liker yet. Hidden cards render as a tappable blurred
+// silhouette + Lock icon and call `onRevealRequest(id, name)` —
+// the parent owns the TokenSpendSheet and the POST /tokens/reveal
+// round-trip + refetch.
+function LikesGrid({
+  likes,
+  onRevealRequest,
+}: {
+  likes: ReadonlyArray<LikeRecord>;
+  onRevealRequest: (id: string, name: string) => void;
+}) {
   return (
     <div className="grid grid-cols-2 gap-4 px-5 pt-6">
       {likes.map((l, i) => {
@@ -396,6 +463,46 @@ function LikesGrid({ likes }: { likes: ReadonlyArray<LikeRecord> }) {
           { firstName: likerName, photos: likerPhotos },
           0,
         );
+
+        // Hidden / unrevealed cards: render a Lock placeholder over a
+        // brand-gradient tile, wrapped in a <button> that opens the
+        // TokenSpendSheet. We do NOT have name/age/photo to show here.
+        if (l.hidden) {
+          return (
+            <motion.div
+              key={liker.id}
+              {...fadeUp}
+              transition={{ duration: 0.3, delay: staggerDelay(i) }}
+            >
+              <button
+                type="button"
+                onClick={() => onRevealRequest(liker.id, "this person")}
+                aria-label="Reveal liker for 1 token"
+                className={cn(
+                  "block w-full rounded-2xl outline-none",
+                  "focus-visible:ring-2 focus-visible:ring-lavender",
+                  "transition-transform active:scale-95",
+                )}
+              >
+                <div className="flex flex-col gap-2">
+                  <div className="relative aspect-4/5 w-full overflow-hidden rounded-2xl bg-bg-elevated">
+                    <div className="absolute inset-0 bg-linear-to-br from-lavender/30 to-pink/20 blur-xl" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Lock className="size-8 text-white/70" />
+                    </div>
+                  </div>
+                  <span className="truncate text-body font-semibold leading-tight text-white text-left">
+                    Hidden
+                  </span>
+                  <span className="text-caption text-text-secondary text-left">
+                    Tap to reveal · 1 token
+                  </span>
+                </div>
+              </button>
+            </motion.div>
+          );
+        }
+
         return (
           <motion.div
             key={liker.id}
