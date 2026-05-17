@@ -12,6 +12,81 @@
 
 ---
 
+## STACK CORRECTION (added 2026-05-16 after Phase 1 shipped)
+
+**The plan's backend code blocks were originally written assuming `asyncpg` (async/await pattern). The actual `ahavah-api` codebase is SYNCHRONOUS `psycopg` via `database.api_tx()`.**
+
+When implementing any backend task in this plan (Phases 2, 4, 5, 6, 7, 8), translate the async-style code blocks to sync using this table. **Use the actual Phase 1 implementation as the canonical reference** — read `d:/Antigravity/ahavah-api/service/tokens/__init__.py`, `service/tokens/sql.py`, and the existing routes in `service/api/__init__.py` before writing new code.
+
+### Conversion table
+
+| Plan style (asyncpg, wrong) | Actual codebase style (psycopg, correct) |
+|---|---|
+| `async def perform(db, ...)` | `def perform(tx, ...)` |
+| `await db.fetchval(Q, $1, $2)` | `row = tx.execute(Q, dict(name=value)).fetchone(); val = row['col'] if row else default` |
+| `await db.execute(Q, $1, $2)` | `tx.execute(Q, dict(name=value))` |
+| `await db.fetchrow(Q, $1)` | `tx.execute(Q, dict(name=value)).fetchone()` |
+| `await db.fetch(Q, $1)` | `tx.execute(Q, dict(name=value)).fetchall()` |
+| `async with db.transaction():` | `with api_tx() as tx:` (caller-managed, or already-open) |
+| SQL: `WHERE id = $1` | SQL: `WHERE id = %(id)s` (named placeholders) |
+| `@apost("/route") async def handler(s, payload):` | `@apost('/route') def handler(s: t.SessionInfo):` + read body from `request.json` |
+| `from service.tokens import credit, debit` (await each) | Same import, but call sync: `credit(tx, ...)`, `debit(tx, ...)` |
+
+### Route handler signature
+
+Actual ahavah-api route pattern (see `service/api/__init__.py:264`):
+```python
+from flask import request
+from database import api_tx
+import service.t as t
+
+@apost('/route-path')
+def handler(s: t.SessionInfo):
+    payload = request.json or {}
+    with api_tx() as tx:
+        # synchronous DB calls
+        return {"result": "..."}
+```
+
+For routes that take a typed payload, decorate with `@validate(t.YourTypedDict)`:
+```python
+@apost('/route-path')
+@validate(t.YourPayloadType)
+def handler(req: t.YourPayloadType, s: t.SessionInfo):
+    with api_tx() as tx:
+        ...
+```
+
+### Test fixtures
+
+The plan's test code references `db`, `person`, `http`, `session_token`, `liker`, `candidate`, `candidates`, `premium_person`, `premium_token` pytest fixtures that **don't exist** in `tests/conftest.py`. Look at `tests/test_tokens.py` (created by the Phase 1 agent) for the local-fixture pattern: tests insert a real `person` row + `duo_session` row in their own setup, clean up after. Adapt this pattern for new test files.
+
+Tests run inside the docker container via `./tests/run.sh tests/path/to/test.py -v`. Outside the container, `pytest --collect-only` will fail due to module-level `os.environ['DUO_DB_HOST']` reads.
+
+### Auth failure status code
+
+Plan tests assert `401` for missing session token. Actual codebase returns `400` (`service/api/decorators.py:256`). Update test assertions accordingly.
+
+---
+
+## Phase 1 — Backend foundation (DB + ledger module)
+
+**STATUS: SHIPPED (commits `8901e84`, `3222baa`, `19f5855`)**
+
+Phase 1 was executed before the STACK CORRECTION above was added. The implementing agent caught the async/sync mismatch and adapted the code to sync `psycopg`. The actual shipped files are:
+
+- `d:/Antigravity/ahavah-api/migrations/0014_token_economy.sql` — also prepends `ALTER TABLE person ADD CONSTRAINT person_uuid_key UNIQUE USING INDEX idx__person__uuid` so the new FKs work (the original `person.uuid` index was non-UNIQUE)
+- `d:/Antigravity/ahavah-api/service/tokens/sql.py` — three named-placeholder SQL constants
+- `d:/Antigravity/ahavah-api/service/tokens/__init__.py` — sync `get_balance(tx, person_uuid) -> int`, `credit(tx, person_uuid, amount, *, reason, metadata)`, `debit(tx, person_uuid, amount, *, reason, metadata)`, `InsufficientTokens` exception
+- `d:/Antigravity/ahavah-api/service/api/__init__.py` — appended sync `GET /tokens/balance` route returning `{"balance": int}`
+- `d:/Antigravity/ahavah-api/tests/test_tokens.py` — 6 pytest cases (4 unit + 2 endpoint) with local `person_uuid` + `session_token` fixtures
+
+**Runtime verification is pending** — pytest hasn't been executed against a live database in this environment. The implementing agent confirmed all files compile + import correctly statically. First time the docker stack is up, run `./tests/run.sh tests/test_tokens.py -v` and confirm 6 passed before relying on Phase 1.
+
+The task entries below describe what the plan ORIGINALLY specified. Treat them as historical; the shipped files are the source of truth.
+
+---
+
 ## Phase 1 — Backend foundation (DB + ledger module)
 
 ### Task 1.1: Create migration 0014 — token_ledger, revealed_likers, active_boosts, is_super
