@@ -7,6 +7,7 @@ import { Globe, Heart, Home, Mail, User } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { useInboxUnreadCount } from "@/lib/use-inbox-unread-count";
+import { TokenBalancePill } from "@/components/app/token-balance-pill";
 
 const TABS = [
   { key: "discover", href: "/discover", label: "Discover", Icon: Home },
@@ -33,9 +34,13 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Primary"
-      className="fixed inset-x-4 bottom-3 z-50 mx-auto max-w-95"
+      className="fixed inset-x-4 bottom-3 z-50 mx-auto flex max-w-95 flex-col items-end gap-2"
     >
-      <div className="flex h-tap-xl items-center justify-around rounded-3xl border border-white/10 bg-bg-elevated px-2 shadow-[0_8px_24px_rgba(0,0,0,0.45)]">
+      {/* Token balance Pill — Phase 3 / monetization-tokens v1
+          (spec §4.5). Sits above the BottomNav row in lieu of a
+          sidebar user-block. Tap → /profile/tokens store. */}
+      <TokenBalancePill />
+      <div className="flex h-tap-xl w-full items-center justify-around rounded-3xl border border-white/10 bg-bg-elevated px-2 shadow-[0_8px_24px_rgba(0,0,0,0.45)]">
         {TABS.map(({ key, href, label, Icon }) => {
           const active = pathname === href || pathname.startsWith(`${href}/`);
           const showInboxBadge = key === "inbox" && unreadCount > 0;
