@@ -1039,7 +1039,14 @@ export default function ProfileDetailPage({ params }: Props) {
                     onClick={async () => {
                       try {
                         const result = await decide(uuid, "like");
-                        if (result.matchId) {
+                        // Phase 5: `decide()` now returns a discriminated
+                        // result. quota_exceeded shouldn't generally fire
+                        // here (the /profile detail-view like is from a
+                        // dedicated profile open, not the swipe deck) but
+                        // if it does we just fall through to the backHref
+                        // navigation — the swipe surface on /discover is
+                        // where QuotaExceededCard lives.
+                        if (result.kind === "ok" && result.matchId) {
                           router.push(
                             `/match?matchId=${encodeURIComponent(result.matchId)}`,
                           );

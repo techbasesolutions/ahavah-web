@@ -53,14 +53,32 @@ export type DecideOutcome = {
   matchId: string | null;
 };
 
+/**
+ * Phase 5 (monetization-tokens) — `decide()` no longer throws on the
+ * 10/day quota hit. The caller receives a discriminated result so it
+ * can render the QuotaExceededCard without a try/catch around the
+ * happy path.
+ *
+ * Other ApiErrors (network, 4xx, 5xx) still throw — quota_exceeded is
+ * the only non-throwing failure mode.
+ */
+export type DecideResult =
+  | { kind: "ok"; matchId: string | null }
+  | { kind: "quota_exceeded"; resetsAt: string | null };
+
 export type UseDecisionsResult = {
   // --- new HTTP path -----------------------------------------------------
 
-  /** POST a like/nope to the backend. Optimistic; throws on error. */
+  /**
+   * POST a like/nope to the backend. Returns a discriminated
+   * `DecideResult` — `kind: "ok"` for the happy path, `kind:
+   * "quota_exceeded"` when the free user hit the 10/day cap.
+   * Throws ApiError for all other failures (network / 4xx / 5xx).
+   */
   decide: (
     candidateId: string,
     decision: "like" | "nope",
-  ) => Promise<DecideOutcome>;
+  ) => Promise<DecideResult>;
   /** Ids with an in-flight decision request. UI can dim or animate. */
   pendingIds: ReadonlySet<string>;
   /** Most recent error from a decide call; null after a clean call. */
@@ -100,11 +118,11 @@ export function useDecisions(): UseDecisionsResult {
     async (
       candidateId: string,
       decision: "like" | "nope",
-    ): Promise<DecideOutcome> => {
+    ): Promise<DecideResult> => {
       if (inFlight.current.has(candidateId)) {
         // Already decided; return a benign no-match outcome rather than
         // throwing — callers should treat this as idempotent.
-        return { matchId: null };
+        return { kind: "ok", matchId: null };
       }
       inFlight.current.add(candidateId);
       setPendingIds((prev) => {
@@ -120,8 +138,19 @@ export function useDecisions(): UseDecisionsResult {
         };
         const res = await apiClient.post<DecisionResponse>("/decisions", body);
         setError(null);
-        return { matchId: res.match?.match_id ?? null };
+        return { kind: "ok", matchId: res.match?.match_id ?? null };
       } catch (e) {
+        // Phase 5: 429 = daily like-quota exceeded. Don't throw —
+        // surface it as a typed result so /discover can render the
+        // QuotaExceededCard without unwinding through a catch block.
+        if (e instanceof ApiError && e.status === 429) {
+          const data = e.body as { resets_at?: string | null } | undefined;
+          setError(null);
+          return {
+            kind: "quota_exceeded",
+            resetsAt: data?.resets_at ?? null,
+          };
+        }
         const apiErr =
           e instanceof ApiError
             ? e

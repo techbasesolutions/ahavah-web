@@ -17,6 +17,7 @@ import { EmptyState } from "@/components/app/empty-state";
 import { FiltersSheet } from "@/components/app/filters-sheet";
 import { PageHeader, PageShell } from "@/components/app/page-shell";
 import { PhotoCaption } from "@/components/app/photo-caption";
+import { QuotaExceededCard } from "@/components/app/quota-exceeded-card";
 import { useProfile } from "@/lib/use-profile";
 import { readOnboarded } from "@/lib/onboarded-storage";
 import { firstMissingStepFor, isDiscoverEligible } from "@/lib/profile-completeness";
@@ -188,6 +189,15 @@ export default function DiscoverPage() {
     () => new Set(),
   );
 
+  // Phase 5 (monetization-tokens): when the backend returns 429 from
+  // POST /decisions, the user has hit the 10/day free like quota.
+  // `quotaState` holds the resets-at timestamp so QuotaExceededCard
+  // can render the countdown + day-pass / upgrade CTAs. Cleared after
+  // a successful day-pass spend (the candidate becomes likeable again).
+  const [quotaState, setQuotaState] = useState<
+    { resetsAt: string | null } | null
+  >(null);
+
   // Hide candidates currently mid-decision OR already decided in this
   // session so the visible card never repeats one we just acted on.
   const visibleItems = useMemo(
@@ -225,6 +235,20 @@ export default function DiscoverPage() {
       });
       try {
         const result = await decide(candidateId, decision);
+        if (result.kind === "quota_exceeded") {
+          // Phase 5: free user hit the 10/day cap. Roll back the
+          // optimistic decidedIds add so the candidate reappears
+          // (after the user activates day-pass / upgrades, this same
+          // card is what they swipe on next). Surface the resets-at
+          // timestamp via QuotaExceededCard.
+          setDecidedIds((prev) => {
+            const next = new Set(prev);
+            next.delete(candidateId);
+            return next;
+          });
+          setQuotaState({ resetsAt: result.resetsAt });
+          return;
+        }
         if (decision === "like" && result.matchId) {
           router.push(`/match?matchId=${encodeURIComponent(result.matchId)}`);
           return;
@@ -413,7 +437,21 @@ export default function DiscoverPage() {
             squeezed away. */}
       <div className="relative mt-3 flex min-h-0 flex-1 flex-col gap-4 px-5 pb-3">
         <AnimatePresence mode="wait" initial={false}>
-          {candidate ? (
+          {quotaState ? (
+            <motion.div
+              key="quota-exceeded"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="flex flex-col gap-3"
+            >
+              <QuotaExceededCard
+                resetsAt={quotaState.resetsAt}
+                onDayPassActivated={() => setQuotaState(null)}
+              />
+            </motion.div>
+          ) : candidate ? (
             <motion.div
               key={candidate.id}
               // First card the user sees just fades in — no horizontal
@@ -597,7 +635,7 @@ export default function DiscoverPage() {
             its slot (the bug the user reported "still loads cut off").
             Hidden when there's no candidate so the empty-state CTA
             owns the slot. */}
-        {candidate ? (
+        {candidate && !quotaState ? (
           <div className="flex shrink-0 items-center justify-center gap-5">
             <Button
               size="circle"

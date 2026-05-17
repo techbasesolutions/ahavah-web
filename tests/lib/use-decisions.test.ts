@@ -3,7 +3,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 
 import { ApiError, apiClient } from "@/lib/api-client";
 import type { DecisionResponse } from "@/lib/api-types";
-import { useDecisions } from "@/lib/use-decisions";
+import { useDecisions, type DecideResult } from "@/lib/use-decisions";
 
 const originalPost = apiClient.post;
 
@@ -24,33 +24,62 @@ describe("useDecisions", () => {
 
     const { result } = renderHook(() => useDecisions());
 
-    let outcome: { matchId: string | null } | undefined;
+    let outcome: DecideResult | undefined;
     await act(async () => {
       outcome = await result.current.decide("uuid-alice", "like");
     });
 
-    expect(outcome).toEqual({ matchId: null });
+    expect(outcome).toEqual({ kind: "ok", matchId: null });
     expect(result.current.error).toBeNull();
     expect(result.current.pendingIds.size).toBe(0);
   });
 
-  // Server rejects with 429 (rate limit). Promise rejects, error is recorded,
-  // pendingIds is empty again so the deck UI can retry.
+  // Server rejects with 500 (transient error). Promise rejects, error is
+  // recorded, pendingIds is empty again so the deck UI can retry.
+  // (Phase 5: 429 is no longer thrown — it's a typed `quota_exceeded`
+  // result. See the dedicated test below.)
   it("server rejection rethrows + clears pendingIds for rollback", async () => {
     (apiClient.post as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
-      new ApiError(429, { reason: "too_fast" }, "rate limited"),
+      new ApiError(500, { reason: "boom" }, "server error"),
     );
 
     const { result } = renderHook(() => useDecisions());
 
     await act(async () => {
       await expect(result.current.decide("uuid-alice", "like")).rejects.toThrow(
-        /rate limited/,
+        /server error/,
       );
     });
 
     expect(result.current.error).toBeInstanceOf(ApiError);
-    expect(result.current.error?.status).toBe(429);
+    expect(result.current.error?.status).toBe(500);
+    expect(result.current.pendingIds.size).toBe(0);
+  });
+
+  // Phase 5: 429 from the backend is NOT thrown — it's returned as a
+  // typed `quota_exceeded` result so the caller can render
+  // QuotaExceededCard without a try/catch around the happy path.
+  it("429 surfaces as a typed quota_exceeded result (no throw)", async () => {
+    (apiClient.post as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
+      new ApiError(
+        429,
+        { error: "quota_exceeded", resets_at: "2026-05-17T10:00:00Z" },
+        "quota exceeded",
+      ),
+    );
+
+    const { result } = renderHook(() => useDecisions());
+
+    let outcome: DecideResult | undefined;
+    await act(async () => {
+      outcome = await result.current.decide("uuid-alice", "like");
+    });
+
+    expect(outcome).toEqual({
+      kind: "quota_exceeded",
+      resetsAt: "2026-05-17T10:00:00Z",
+    });
+    expect(result.current.error).toBeNull();
     expect(result.current.pendingIds.size).toBe(0);
   });
 
@@ -65,12 +94,12 @@ describe("useDecisions", () => {
 
     const { result } = renderHook(() => useDecisions());
 
-    let outcome: { matchId: string | null } | undefined;
+    let outcome: DecideResult | undefined;
     await act(async () => {
       outcome = await result.current.decide("uuid-bob", "like");
     });
 
-    expect(outcome?.matchId).toBe("m-xyz-123");
+    expect(outcome).toEqual({ kind: "ok", matchId: "m-xyz-123" });
   });
 
   // POST shape: confirm the body is {profile_uuid, decision} and the path
@@ -105,13 +134,13 @@ describe("useDecisions", () => {
 
     const { result } = renderHook(() => useDecisions());
 
-    let secondOutcome: { matchId: string | null } | undefined;
+    let secondOutcome: DecideResult | undefined;
     await act(async () => {
       void result.current.decide("uuid-alice", "like");
       secondOutcome = await result.current.decide("uuid-alice", "like");
     });
 
-    expect(secondOutcome).toEqual({ matchId: null });
+    expect(secondOutcome).toEqual({ kind: "ok", matchId: null });
     expect(postMock).toHaveBeenCalledTimes(1);
 
     await act(async () => {
