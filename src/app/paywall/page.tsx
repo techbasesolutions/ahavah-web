@@ -34,15 +34,17 @@ const fadeUp = {
   animate: { opacity: 1, y: 0 },
 };
 
-// Feature list — only items that are ACTUALLY enforced server-side
-// for premium right now. Items that aren't gated (verified-only filter,
-// language/country filters, translation, "unlimited swipes" — there's
-// no swipe limit to begin with) and items that don't exist (boosts,
-// super likes, who-viewed) were removed rather than left as false
-// promises. Restore each entry here when its gate ships.
+// Feature list — Phase 8 (monetization-tokens v1, 2026-05-16). Replaces
+// the prior 3-item list with the 5-item set spec'd in the plan, now that
+// the daily-likes quota, super-likes, boosts, and monthly token stipend
+// are all enforced server-side via the token economy. tier_key → stipend
+// mapping ('month'→10, 'quart'→12, 'year'→15) is sourced from
+// service/checkout/__init__.py:SUBSCRIPTION_TIER_TO_STIPEND.
 const FEATURES = [
+  "Unlimited daily likes",
   "See everyone who liked you (full list, not just the count)",
-  "Help build a Torah-observant community at the price of a coffee",
+  "10 / 12 / 15 tokens per month (1mo / 3mo / 1yr)",
+  "Use tokens for super-likes, boosts, and extra reveals",
   "Cancel anytime from the billing portal",
 ];
 

@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import { Globe, Heart, Home, Mail, User } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { apiClient } from "@/lib/api-client";
 import { useInboxUnreadCount } from "@/lib/use-inbox-unread-count";
 import { TokenBalancePill } from "@/components/app/token-balance-pill";
 
@@ -31,6 +33,30 @@ const TABS = [
 export function BottomNav() {
   const pathname = usePathname();
   const unreadCount = useInboxUnreadCount();
+  // Phase 8: boost-active signal. The plan called for a lime ring on the
+  // sidebar user avatar, but the current build has no sidebar — the
+  // BottomNav's Profile tab is the only user-personal target available.
+  // Ring the Profile tab's circle while a boost is in flight. Same
+  // /tokens/active-boost endpoint used by BoostCard; treat failures as
+  // "no active boost" so the nav never breaks because of a transient
+  // 401/404. Mounted on every authenticated route layout, so this runs
+  // once per route change at most (no auto-refresh — the BoostCard
+  // refresh path covers the user-side "just boosted" feedback loop).
+  const [boostActive, setBoostActive] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    void apiClient
+      .get<{ active: boolean }>("/tokens/active-boost")
+      .then((res) => {
+        if (!cancelled) setBoostActive(Boolean(res?.active));
+      })
+      .catch(() => {
+        if (!cancelled) setBoostActive(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname]);
   return (
     <nav
       aria-label="Primary"
@@ -59,6 +85,11 @@ export function BottomNav() {
                 className={cn(
                   "relative flex size-10 items-center justify-center rounded-full",
                   active ? "bg-lime" : "bg-transparent",
+                  // Boost-active ring on the Profile tab only — visual
+                  // parallel to the spec's "sidebar avatar lime ring".
+                  key === "profile" && boostActive
+                    ? "ring-2 ring-lime ring-offset-2 ring-offset-bg-elevated"
+                    : null,
                 )}
               >
                 <Icon
