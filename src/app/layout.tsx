@@ -46,8 +46,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${plusJakartaSans.variable} dark h-full antialiased`}>
-      <body className="min-h-full flex flex-col">
+    <html
+      lang="en"
+      className={`${plusJakartaSans.variable} dark h-full antialiased`}
+      suppressHydrationWarning
+    >
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
         {/* Skip link — hidden by default, surfaces on keyboard focus.
             WCAG 2.4.1 (Bypass Blocks). Lets keyboard users jump past
             decorative + repeated chrome straight to the route content. */}
