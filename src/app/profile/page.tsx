@@ -39,6 +39,7 @@ import {
 import { Pill } from "@/components/kibo-ui/pill";
 
 import { BottomNav } from "@/components/app/bottom-nav";
+import { BoostCard } from "@/components/app/boost-card";
 import { PageShell } from "@/components/app/page-shell";
 
 const fadeUp = {
@@ -292,6 +293,17 @@ export default function ProfilePage() {
             </CardContent>
           )}
         </Card>
+      </motion.div>
+
+      {/* Phase 7 — Boost spotlight (5 tokens / 30 minutes). Sits between
+          the hero and the settings drill-down rows so the spend CTA is
+          visible above the fold on most viewports. */}
+      <motion.div
+        {...fadeUp}
+        transition={{ duration: 0.35, delay: 0.04 }}
+        className="px-5 pt-4"
+      >
+        <BoostCard />
       </motion.div>
 
       <motion.div
