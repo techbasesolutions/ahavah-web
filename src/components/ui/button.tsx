@@ -56,12 +56,22 @@ const buttonVariants = cva(
       },
       // ----- Lift (shadow + tap-spring) ------------------------------------
       // Floating circular action buttons (swipe-deck Pass/Like/Boost) get a
-      // visible shadow + an active:scale-95 micro-interaction so the tap
+      // visible lift + an active:scale-95 micro-interaction so the tap
       // registers physically. Inline buttons (chat Send, match Send) opt out
       // by leaving lift at its default.
+      //
+      // 2026-05-16 — `float` shadow rewritten from `shadow-lg` (Tailwind's
+      // black drop-shadow tuned for light backgrounds) to a soft white glow
+      // tuned for the indigo canvas. On dark surfaces a black shadow reads
+      // as a literal dark frame around the button — exactly what users
+      // flagged on /onboarding's "Continue" CTA. A low-alpha white glow
+      // gives the same physical "lifted" cue without the dark halo, and
+      // works against every brand surface (lime CTA, lavender brand,
+      // pink action, dark elevated).
       lift: {
         none:  "",
-        float: "shadow-lg transition-transform active:scale-95",
+        float:
+          "shadow-[0_8px_24px_-4px_rgba(255,255,255,0.12),0_2px_8px_-2px_rgba(255,255,255,0.08)] transition-transform active:scale-95",
       },
       size: {
         // Upstream shadcn defaults — desktop-density. Used as-is for

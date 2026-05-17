@@ -354,21 +354,33 @@ export default function DiscoverPage() {
       <PageHeader pad="default" className="flex items-center justify-between">
         <BrandMark size="sm" />
         <div className="flex items-center gap-3">
+          {/* FiltersSheet trigger MUST be a native <button> (Base UI's
+              SheetTrigger asserts this for forms + a11y). The count badge
+              becomes an absolute-positioned child of the Button instead
+              of a sibling div wrapper — same visual, kept the round
+              Button as the actual interactive element. */}
           <FiltersSheet
             trigger={
-              <div className="relative">
-                <Button size="circle" tone="elevated" aria-label="Discovery filters">
-                  <SlidersHorizontal className="text-lavender" />
-                </Button>
+              <Button
+                size="circle"
+                tone="elevated"
+                aria-label={
+                  activeFilterCount > 0
+                    ? `Discovery filters (${activeFilterCount} active)`
+                    : "Discovery filters"
+                }
+                className="relative"
+              >
+                <SlidersHorizontal className="text-lavender" />
                 {activeFilterCount > 0 ? (
                   <span
-                    aria-label={`${activeFilterCount} active filters`}
+                    aria-hidden
                     className="absolute -top-1 -right-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-lime px-1.5 text-caption font-bold tabular-nums text-black ring-2 ring-bg-canvas"
                   >
                     {activeFilterCount}
                   </span>
                 ) : null}
-              </div>
+              </Button>
             }
             open={filtersOpen}
             onOpenChange={setFiltersOpen}

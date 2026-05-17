@@ -404,19 +404,29 @@ export default function MapPage() {
           onOpenChange={setFiltersOpen}
           initialFilters={filters}
           trigger={
-            <div className="relative">
-              <Button size="circle" tone="elevated" aria-label="Filter map">
-                <SlidersHorizontal className="text-white" />
-              </Button>
+            // Base UI SheetTrigger requires a native <button>; nest the
+            // count badge inside the Button as an absolute-positioned
+            // child so the trigger itself stays a real button.
+            <Button
+              size="circle"
+              tone="elevated"
+              aria-label={
+                activeFilterCount > 0
+                  ? `Filter map (${activeFilterCount} active)`
+                  : "Filter map"
+              }
+              className="relative"
+            >
+              <SlidersHorizontal className="text-white" />
               {activeFilterCount > 0 ? (
                 <span
-                  aria-label={`${activeFilterCount} active filters`}
+                  aria-hidden
                   className="absolute -top-1 -right-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-lime px-1.5 text-caption font-bold tabular-nums text-black ring-2 ring-bg-canvas"
                 >
                   {activeFilterCount}
                 </span>
               ) : null}
-            </div>
+            </Button>
           }
           onApply={(f) => setFilters(f)}
         />
