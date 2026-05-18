@@ -88,7 +88,7 @@ export default function HelpPage() {
       <motion.p
         {...fadeUp}
         transition={{ duration: 0.4 }}
-        className="px-5 pt-2 pb-4 text-meta text-text-secondary"
+        className="px-5 pt-2 pb-4 text-meta text-(--ink-2)"
       >
         Need help? Pick a topic below or reach out directly.
       </motion.p>
@@ -105,21 +105,21 @@ export default function HelpPage() {
         className="flex flex-col gap-2 px-5"
         aria-label="Frequently asked questions"
       >
-        <h2 className="text-overline text-text-muted">FAQ</h2>
+        <h2 className="text-overline text-(--ink-3)">FAQ</h2>
         <div className="flex flex-col gap-2">
           {FAQS.map((faq, i) => (
             <details
               key={i}
-              className="group/faq rounded-2xl bg-bg-elevated px-4 py-3"
+              className="group/faq rounded-2xl bg-(--card) px-4 py-3"
             >
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-meta text-white [&::-webkit-details-marker]:hidden">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-meta text-(--ink) [&::-webkit-details-marker]:hidden">
                 <span className="flex-1">{faq.q}</span>
                 <ChevronDown
                   aria-hidden
-                  className="size-4 shrink-0 text-text-muted transition-transform duration-200 group-open/faq:rotate-180"
+                  className="size-4 shrink-0 text-(--ink-3) transition-transform duration-200 group-open/faq:rotate-180"
                 />
               </summary>
-              <p className="mt-3 text-caption leading-relaxed text-text-muted">
+              <p className="mt-3 text-caption leading-relaxed text-(--ink-3)">
                 {faq.a}
               </p>
             </details>
@@ -137,7 +137,7 @@ export default function HelpPage() {
         className="mt-6 flex flex-col gap-2 px-3"
         aria-label="Get in touch"
       >
-        <h2 className="px-3 text-overline text-text-muted">Get in touch</h2>
+        <h2 className="px-3 text-overline text-(--ink-3)">Get in touch</h2>
         <ItemGroup className="gap-1">
           {CONTACTS.map((c) => (
             <Item
@@ -157,10 +157,10 @@ export default function HelpPage() {
                 </IconBadge>
               </ItemMedia>
               <ItemContent>
-                <ItemTitle className="text-meta text-white">
+                <ItemTitle className="text-meta text-(--ink)">
                   {c.title}
                 </ItemTitle>
-                <ItemDescription className="text-caption text-text-muted">
+                <ItemDescription className="text-caption text-(--ink-3)">
                   {c.description}
                 </ItemDescription>
               </ItemContent>

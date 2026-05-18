@@ -95,12 +95,12 @@ export default function VerifyBronzePage() {
       <PageHeader pad="tight" className="flex items-center gap-3">
         <Button
           nativeButton={false}
-          size="circle"
+          size="circle-lg"
           tone="elevated"
           aria-label="Back to verification"
           render={<Link href="/verify" prefetch={false} />}
         >
-          <ArrowLeft className="text-white" />
+          <ArrowLeft className="text-(--ink)" />
         </Button>
         <PageHeaderTitle>Bronze verification</PageHeaderTitle>
       </PageHeader>
@@ -131,8 +131,8 @@ export default function VerifyBronzePage() {
             </IconBadge>
           </div>
           <div className="flex max-w-sm flex-col gap-2">
-            <h2 className="text-h2 leading-tight text-white">Profile verified</h2>
-            <p className="text-body leading-relaxed text-text-secondary">
+            <h2 className="text-h2 leading-tight text-(--ink)">Profile verified</h2>
+            <p className="text-body leading-relaxed text-(--ink-2)">
               A short selfie confirms you&apos;re a real person and matches
               your profile photos. Most people finish in under two minutes.
             </p>
@@ -146,11 +146,11 @@ export default function VerifyBronzePage() {
           className="flex flex-col gap-4"
           aria-label="How it works"
         >
-          <h2 className="text-overline text-text-muted">How it works</h2>
+          <h2 className="text-overline text-(--ink-3)">How it works</h2>
           <div className="relative">
             <span
               aria-hidden
-              className="absolute top-5 bottom-5 left-5 z-0 w-px bg-white/10"
+              className="absolute top-5 bottom-5 left-5 z-0 w-px bg-foreground/10"
             />
             <ol className="flex flex-col gap-5">
               {STEPS.map((step, i) => (
@@ -166,10 +166,10 @@ export default function VerifyBronzePage() {
                       {i + 1}
                     </IconBadge>
                     <div className="flex-1 pt-1.5">
-                      <p className="text-meta font-semibold text-white">
+                      <p className="text-meta font-semibold text-(--ink)">
                         {step.title}
                       </p>
-                      <p className="mt-1 text-caption leading-relaxed text-text-muted">
+                      <p className="mt-1 text-caption leading-relaxed text-(--ink-3)">
                         {step.description}
                       </p>
                     </div>
@@ -193,8 +193,8 @@ export default function VerifyBronzePage() {
               className="flex flex-col items-center gap-2 rounded-2xl border border-lime/40 bg-lime/10 p-5 text-center"
             >
               <CheckCircle2 className="size-10 text-lime" aria-hidden />
-              <p className="text-h3 text-white">You&apos;re Bronze-verified</p>
-              <p className="text-meta text-text-secondary">
+              <p className="text-h3 text-(--ink)">You&apos;re Bronze-verified</p>
+              <p className="text-meta text-(--ink-2)">
                 Your badge is live on your profile. Try Silver or Gold to
                 level up.
               </p>
@@ -218,8 +218,8 @@ export default function VerifyBronzePage() {
               className="flex flex-col items-center gap-2 rounded-2xl border border-pink/40 bg-pink/10 p-5 text-center"
             >
               <XCircle className="size-10 text-pink" aria-hidden />
-              <p className="text-h3 text-white">Photo declined</p>
-              <p className="text-meta text-text-secondary">{state.reason}</p>
+              <p className="text-h3 text-(--ink)">Photo declined</p>
+              <p className="text-meta text-(--ink-2)">{state.reason}</p>
               <Button
                 size="lg"
                 tone="brand"
@@ -257,12 +257,12 @@ export default function VerifyBronzePage() {
             <div
               role="status"
               aria-live="polite"
-              className="flex flex-col items-center gap-3 rounded-2xl border border-white/10 bg-bg-elevated/60 p-5 text-center"
+              className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-(--card)/60 p-5 text-center"
             >
               <Loader2 className="size-8 animate-spin text-lavender" />
-              <p className="text-meta text-text-secondary">{statusLabel}</p>
+              <p className="text-meta text-(--ink-2)">{statusLabel}</p>
               {state.kind === "reviewing" ? (
-                <p className="text-caption text-text-muted">
+                <p className="text-caption text-(--ink-3)">
                   You can leave this page — we&apos;ll update your badge
                   automatically.
                 </p>
@@ -273,7 +273,7 @@ export default function VerifyBronzePage() {
           {/* Idle — primary CTA opens file picker / camera */}
           {state.kind === "idle" && (
             <>
-              <p className="text-center text-caption text-text-muted">
+              <p className="text-center text-caption text-(--ink-3)">
                 Takes about 60 seconds.
               </p>
               <Button
@@ -285,7 +285,7 @@ export default function VerifyBronzePage() {
               >
                 Take selfie
               </Button>
-              <p className="text-center text-caption leading-relaxed text-text-muted">
+              <p className="text-center text-caption leading-relaxed text-(--ink-3)">
                 The selfie is processed by our verification cron. Only a
                 yes/no result is stored on our server.
               </p>

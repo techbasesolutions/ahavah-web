@@ -30,14 +30,14 @@ export default function BioStep() {
   // doesn't shift as length grows.
   const counterTone =
     value.length === 0
-      ? "text-text-muted"
+      ? "text-(--ink-3)"
       : value.length >= ALERT_AT
         ? "text-pink"
         : value.length >= WARN_AT
           ? "text-lavender"
           : value.length >= SOFT_MIN
             ? "text-lime"
-            : "text-text-secondary";
+            : "text-(--ink-2)";
 
   return (
     <OnboardingShell
@@ -49,12 +49,12 @@ export default function BioStep() {
         transition={{ duration: 0.4 }}
         className="flex flex-col gap-2"
       >
-        <h1 className="text-display text-white">
+        <h1 className="text-display text-(--ink)">
           Tell us a bit about you<span className="text-lime">.</span>
         </h1>
-        <p className="text-body text-text-secondary">
+        <p className="text-body text-(--ink-2)">
           A short bio helps people start a conversation.{" "}
-          <span className="font-semibold text-white">You&apos;re almost done.</span>
+          <span className="font-semibold text-(--ink)">You&apos;re almost done.</span>
         </p>
       </motion.div>
 
@@ -63,8 +63,8 @@ export default function BioStep() {
         transition={{ duration: 0.3, delay: 0.1 }}
         className="mt-8 flex flex-1 flex-col gap-2"
       >
-        <Label htmlFor="bio-input" className="text-meta text-white">
-          Bio <span className="text-text-muted">(optional)</span>
+        <Label htmlFor="bio-input" className="text-meta text-(--ink)">
+          Bio <span className="text-(--ink-3)">(optional)</span>
         </Label>
         <Textarea
           id="bio-input"
@@ -81,7 +81,7 @@ export default function BioStep() {
             is felt visually, not just announced. aria-live so SRs catch
             the limit messages without re-reading the whole field. */}
         <div className="flex items-baseline justify-between gap-3">
-          <span id="bio-tip" className="text-caption text-text-muted">
+          <span id="bio-tip" className="text-caption text-(--ink-3)">
             Tip: 50–200 characters works well.
           </span>
           <span

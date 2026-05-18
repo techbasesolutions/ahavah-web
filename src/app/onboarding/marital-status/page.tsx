@@ -30,10 +30,10 @@ export default function MaritalStatusStep() {
         transition={{ duration: 0.4 }}
         className="flex flex-col gap-2"
       >
-        <h1 className="text-display text-white">
+        <h1 className="text-display text-(--ink)">
           Your marital status<span className="text-lime">?</span>
         </h1>
-        <p className="text-body text-text-secondary">
+        <p className="text-body text-(--ink-2)">
           Be upfront. Others will see this on your profile.
         </p>
       </motion.div>

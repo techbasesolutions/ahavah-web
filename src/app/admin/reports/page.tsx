@@ -169,22 +169,22 @@ function ReportsList({ reports }: { reports: ReadonlyArray<AdminReport> }) {
       aria-label="Abuse reports"
       className="space-y-3"
     >
-      <p className="text-caption text-text-secondary">
+      <p className="text-caption text-(--ink-2)">
         Showing {reports.length} most recent. Server caps at 200.
       </p>
       {reports.map((r) => (
         <Card
           key={`${r.reporter_id}-${r.reported_id}-${r.created_at}`}
-          tone="elevated"
+          tone="default"
           size="sm"
         >
           <CardHeader>
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <p className="text-meta font-medium leading-tight text-white">
+                <p className="text-meta font-medium leading-tight text-(--ink)">
                   {r.reporter_name} reported {r.reported_name}
                 </p>
-                <p className="mt-0.5 text-caption leading-tight text-text-secondary">
+                <p className="mt-0.5 text-caption leading-tight text-(--ink-2)">
                   {formatStamp(r.created_at)}
                 </p>
               </div>
@@ -204,20 +204,20 @@ function ReportsList({ reports }: { reports: ReadonlyArray<AdminReport> }) {
           </CardHeader>
 
           <CardContent className="space-y-3">
-            <p className="rounded-lg bg-bg-canvas/40 px-3 py-2 text-caption italic text-white/85">
+            <p className="rounded-lg bg-(--canvas)/40 px-3 py-2 text-caption italic text-(--ink)/85">
               &ldquo;{r.reason || "(no reason given)"}&rdquo;
             </p>
 
-            <dl className="grid grid-cols-1 gap-1 text-caption text-text-secondary">
+            <dl className="grid grid-cols-1 gap-1 text-caption text-(--ink-2)">
               <div className="flex justify-between gap-2">
                 <dt>Reporter</dt>
-                <dd className="truncate text-right text-white">
+                <dd className="truncate text-right text-(--ink)">
                   {r.reporter_email}
                 </dd>
               </div>
               <div className="flex justify-between gap-2">
                 <dt>Reported</dt>
-                <dd className="truncate text-right text-white">
+                <dd className="truncate text-right text-(--ink)">
                   {r.reported_email}
                 </dd>
               </div>
@@ -239,7 +239,7 @@ function ReportsList({ reports }: { reports: ReadonlyArray<AdminReport> }) {
               <Button
                 variant="link"
                 size="sm"
-                className="text-text-secondary"
+                className="text-(--ink-2)"
                 render={
                   <Link
                     href={`/profile/${r.reporter_uuid}?from=admin`}

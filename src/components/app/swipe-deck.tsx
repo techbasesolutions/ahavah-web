@@ -161,7 +161,7 @@ export function SwipeDeck({
           )}
         >
           <Button
-            size="circle"
+            size="circle-lg"
             variant="outline"
             aria-label="Pass on this profile"
             onClick={() => handleCommit(topItem, "nope")}
@@ -170,7 +170,7 @@ export function SwipeDeck({
             <X />
           </Button>
           <Button
-            size="circle"
+            size="circle-lg"
             variant="outline"
             aria-label="Like this profile"
             onClick={() => handleCommit(topItem, "like")}

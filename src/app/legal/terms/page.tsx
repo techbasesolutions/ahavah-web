@@ -17,7 +17,7 @@ export default function TermsPage() {
         <PageHeaderTitle>Terms of Service</PageHeaderTitle>
       </PageHeader>
 
-      <article className="flex flex-col gap-4 px-5 pt-4 text-body leading-relaxed text-text-secondary">
+      <article className="flex flex-col gap-4 px-5 pt-4 text-body leading-relaxed text-(--ink-2)">
         <p>
           We&apos;re finalising our terms with counsel. The full document
           will be published here within 14 days of soft launch.
@@ -48,13 +48,13 @@ export default function TermsPage() {
           acceptance.
         </p>
 
-        <div className="mt-6 flex flex-col gap-2 rounded-2xl border border-white/10 bg-bg-elevated/60 p-4">
-          <p className="text-meta font-semibold text-white">
+        <div className="mt-6 flex flex-col gap-2 rounded-2xl border border-(--hairline) bg-(--card) p-4">
+          <p className="text-meta font-semibold text-(--ink)">
             Questions or concerns?
           </p>
           <a
             href="mailto:admin@ahavah.app"
-            className="inline-flex items-center gap-2 text-meta text-lavender underline"
+            className="inline-flex items-center gap-2 text-meta text-(--color-lavender) underline"
           >
             <Mail className="size-4" /> admin@ahavah.app
           </a>

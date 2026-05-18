@@ -142,12 +142,12 @@ export default function VerifyEmailStep() {
           <Mail />
         </IconBadge>
         <div className="flex max-w-sm flex-col gap-2">
-          <h1 className="text-display text-white">
+          <h1 className="text-display text-(--ink)">
             Check your email<span className="text-lime">.</span>
           </h1>
-          <p className="text-body text-text-secondary">
+          <p className="text-body text-(--ink-2)">
             We sent a 6-digit code to{" "}
-            <span className="font-semibold text-white">
+            <span className="font-semibold text-(--ink)">
               {email ?? "your email"}
             </span>
             . Enter it below to confirm your address.
@@ -185,7 +185,7 @@ export default function VerifyEmailStep() {
         transition={{ duration: 0.25, delay: 0.2 }}
         className="mt-6 flex flex-col items-center gap-2"
       >
-        <p className="text-meta text-text-secondary">
+        <p className="text-meta text-(--ink-2)">
           Didn&apos;t get the code?
         </p>
         <Button

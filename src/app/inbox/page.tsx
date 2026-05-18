@@ -37,6 +37,8 @@ import type { ChatThread } from "@/lib/chat-types";
 import type { Profile } from "@/lib/profile-schema";
 
 import { BottomNav } from "@/components/app/bottom-nav";
+import { SparkleTile } from "@/components/app/sparkle-tile";
+import { ChatThreadView } from "@/components/app/chat-thread-view";
 import { EmptyState, ErrorState } from "@/components/app/empty-state";
 import { InstallPromptBanner } from "@/components/app/install-prompt-banner";
 import { PushOptInBanner } from "@/components/app/push-opt-in-banner";
@@ -71,12 +73,27 @@ type DisplayThread = ChatThread & {
   nameLoaded: boolean;
 };
 
-function InboxContent() {
+// Exported so /chat/[id]/page.tsx can mount the same desktop split-view
+// (Option B per user decision 2026-05-17). `defaultSelectedThreadId`
+// takes precedence over the `?thread=<id>` query param — used by
+// /chat/[id] which has the thread in its route path.
+export function InboxContent({
+  defaultSelectedThreadId,
+}: {
+  defaultSelectedThreadId?: string;
+} = {}) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
   const params = useSearchParams();
   // Optional ?state=loading|empty|error overrides — used by design QA.
   const debugState = params.get("state") as DebugState | null;
+
+  // Selected thread for the desktop split-view's right pane.
+  // Priority: prop (from /chat/[id] route) > ?thread=<id> query (from
+  // /inbox deep-links). Mobile ignores this entirely — mobile /inbox
+  // is just the list, /chat/[id] is a separate full-screen route.
+  const selectedThreadId =
+    defaultSelectedThreadId ?? params.get("thread") ?? null;
 
   // Wire chat-client connection. /check-otp returns person_uuid: null for
   // fresh onboardees, so users who graduated via /finish-onboarding land
@@ -242,49 +259,123 @@ function InboxContent() {
   );
 
   return (
-    <PageShell bottomPad="nav">
-      <PageHeader pad="tight" className="flex items-center justify-between">
-        <PageHeaderTitle>Chat</PageHeaderTitle>
-        <Sheet open={searchOpen} onOpenChange={setSearchOpen}>
-          <SheetTrigger
-            render={
-              <Button size="circle" tone="elevated" aria-label="Search messages">
-                <Search className="text-white" />
-              </Button>
-            }
-          />
-          <SheetContent side="top" className="rounded-b-3xl border-white/10 bg-bg-indigo">
-            <SheetHeader>
-              <SheetTitle>Search messages</SheetTitle>
-            </SheetHeader>
-            <div className="mt-4 px-1">
-              <Input
-                autoFocus
-                size="lg"
-                tone="elevated"
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search by name or last message"
-                aria-label="Search query"
-              />
-            </div>
-          </SheetContent>
-        </Sheet>
-      </PageHeader>
+    <PageShell desktopShell="sidebar" topBarTitle="Inbox" bottomPad="nav">
+      {/* ── Mobile layout (hidden at md+) ──────────────────────────────── */}
+      <div className="md:hidden flex flex-col flex-1">
+        <PageHeader pad="tight" className="flex items-center justify-between">
+          <PageHeaderTitle>Chat</PageHeaderTitle>
+          <Sheet open={searchOpen} onOpenChange={setSearchOpen}>
+            <SheetTrigger
+              render={
+                <Button
+                  size="circle-lg"
+                  variant="ghost"
+                  aria-label="Search messages"
+                  className="bg-(--card) text-(--ink) border border-(--hairline)"
+                >
+                  <Search className="size-5" />
+                </Button>
+              }
+            />
+            <SheetContent
+              side="top"
+              className="rounded-b-3xl border-(--hairline) bg-(--app)"
+            >
+              <SheetHeader>
+                <SheetTitle className="text-(--ink)">Search messages</SheetTitle>
+              </SheetHeader>
+              <div className="mt-4 px-1">
+                <Input
+                  autoFocus
+                  size="lg"
+                  tone="default"
+                  type="search"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search by name or last message"
+                  aria-label="Search query"
+                  className="bg-(--card) border-(--hairline) text-(--ink) placeholder:text-(--ink-3)"
+                />
+              </div>
+            </SheetContent>
+          </Sheet>
+        </PageHeader>
 
-      {/* Install + push opt-in banners. Both gate themselves on
-          capability + dismissal so they only render when actionable.
-          Mounted on /inbox AND /matches so users encounter them
-          regardless of which tab they land on after onboarding. */}
-      <div className="flex flex-col gap-2 pt-2">
-        <InstallPromptBanner />
-        <PushOptInBanner />
+        {/* Install + push opt-in banners */}
+        <div className="flex flex-col gap-2 pt-2">
+          <InstallPromptBanner />
+          <PushOptInBanner />
+        </div>
+
+        {body}
+
+        <BottomNav />
       </div>
 
-      {body}
+      {/* ── Desktop layout (hidden below md) ───────────────────────────── */}
+      {/* h-[calc(100dvh-3.5rem)] subtracts the DesktopTopBar (h-14 = 3.5rem).
+          Left rail: thread list. Right pane: empty state placeholder (inline
+          chat render is out-of-scope for Wave 5 — navigation-based drilldown
+          remains the pattern; threads link to /chat/<id>). */}
+      {/* Canonical InboxDesktop (desktop.jsx L669-L827 + screens/09-inbox.md):
+          380px list rail / 1fr thread pane with a 1px hairline separator
+          between. h-[calc(100dvh-3.5rem)] subtracts the DesktopTopBar
+          (h-14 = 3.5rem). -m-8 cancels the PageShell md:p-8 padding so
+          the inbox fills edge-to-edge per canonical.
+          NOTE: inline thread pane (rendering the selected chat inline)
+          is a follow-up — surfaced as the /chat/[id] decision (Option A
+          redirect to /inbox?thread=N vs Option B inline split-view).
+          Until that lands, the right pane is the kit SparkleTile +
+          "Pick a conversation" empty state, and clicking a thread
+          navigates to /chat/[id]. */}
+      <div className="hidden md:grid md:grid-cols-[380px_1fr] md:h-[calc(100dvh-3.5rem)] md:-m-8 md:gap-0">
+        {/* Left — thread list rail */}
+        <div className="flex flex-col min-h-0 border-r border-(--hairline)">
+          {/* Header — "Chat" h1 + search field per canonical. */}
+          <div className="shrink-0 px-6 pt-6 pb-3">
+            <h2 className="text-h1 text-(--ink) font-extrabold">Chat</h2>
+            <Input
+              size="md"
+              tone="default"
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search conversations"
+              aria-label="Search conversations"
+              className="mt-3 rounded-[14px] bg-(--card) border-(--hairline) text-(--ink) placeholder:text-(--ink-3)"
+            />
+          </div>
 
-      <BottomNav />
+          {/* Thread list */}
+          <div className="flex-1 overflow-y-auto px-2">
+            {body}
+          </div>
+        </div>
+
+        {/* Right — ChatThreadView when selected (Option B per user
+            decision 2026-05-17), else SparkleTile empty state.
+            ChatThreadView's outer is h-full so it fills the parent's
+            calc'd height; this column has h-[calc(100dvh-3.5rem)]
+            inherited from the grid. */}
+        {selectedThreadId ? (
+          <div
+            className="min-h-0 overflow-hidden"
+            style={{ background: "var(--app)" }}
+          >
+            <ChatThreadView id={selectedThreadId} />
+          </div>
+        ) : (
+          <div
+            className="flex flex-col items-center justify-center gap-4"
+            style={{ background: "var(--canvas)" }}
+          >
+            <SparkleTile size="xl" aria-label="Ahavah" />
+            <p className="text-meta font-medium text-(--ink-2)">
+              Pick a conversation
+            </p>
+          </div>
+        )}
+      </div>
     </PageShell>
   );
 }
@@ -325,7 +416,7 @@ function ChatList({ chats }: { chats: DisplayThread[] }) {
               />
             </ItemMedia>
             <ItemContent>
-              <ItemTitle className="text-body text-white">
+              <ItemTitle className="text-meta text-(--ink) font-semibold">
                 {c.nameLoaded ? (
                   <>
                     {c.name}
@@ -334,15 +425,21 @@ function ChatList({ chats }: { chats: DisplayThread[] }) {
                 ) : (
                   <span
                     aria-hidden
-                    className="inline-block h-4 w-24 animate-pulse rounded bg-white/10 align-middle"
+                    className="inline-block h-4 w-24 animate-pulse rounded bg-foreground/10 align-middle"
                   />
                 )}
               </ItemTitle>
               <ItemDescription
                 aria-live={c.unreadCount > 0 ? "polite" : undefined}
                 className={cn(
-                  "text-meta truncate",
-                  c.unreadCount > 0 ? "text-white" : "text-text-secondary",
+                  "text-sm truncate max-w-[240px]",
+                  // Canonical (screens/09-inbox.md): unread rows show
+                  // last message in --ink + weight 500; read rows in
+                  // --ink-2 + weight 400. Theme-aware so both themes
+                  // render correctly.
+                  c.unreadCount > 0
+                    ? "text-(--ink) font-medium"
+                    : "text-(--ink-2) font-normal",
                 )}
               >
                 {c.lastMessage?.body ?? "Say hi!"}

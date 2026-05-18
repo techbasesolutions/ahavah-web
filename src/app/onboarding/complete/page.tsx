@@ -108,10 +108,10 @@ export default function OnboardingCompletePage() {
           transition={{ duration: 0.3, delay: 0.15 }}
           className="flex max-w-sm flex-col gap-3"
         >
-          <h1 className="text-display text-white">
+          <h1 className="text-display text-(--ink)">
             You&apos;re all set<span className="text-lime">.</span>
           </h1>
-          <p className="text-body leading-relaxed text-text-secondary">
+          <p className="text-body leading-relaxed text-(--ink-2)">
             Your profile is live. Start swiping to find people who match what
             you&apos;re looking for.
           </p>
@@ -143,7 +143,7 @@ export default function OnboardingCompletePage() {
           nativeButton={false}
           variant="link"
           size="tap"
-          className="text-text-muted"
+          className="text-(--ink-3)"
           render={<Link href="/profile" prefetch={false} />}
         >
           Review my profile first

@@ -79,20 +79,20 @@ export function ChatHeader({
       ? isOnline(secondsSinceLastOnline)
       : Boolean(online);
   return (
-    <header className="flex items-center gap-3 border-b border-white/10 px-3 py-3">
+    <header className="flex items-center gap-3 border-b border-border px-3 py-3">
       <Link
         href={backHref}
         prefetch={false}
         aria-label="Back"
         className={cn(buttonVariants({ size: "icon-tap", variant: "ghost" }))}
       >
-        <ChevronLeft className="text-white" />
+        <ChevronLeft className="text-(--ink)" />
       </Link>
       <Link
         href={profileHref}
         prefetch={false}
         aria-label={`View ${name}'s profile`}
-        className="flex flex-1 items-center gap-3 rounded-xl px-1 py-1 -mx-1 -my-1 outline-none focus-visible:ring-2 focus-visible:ring-lavender hover:bg-white/5 active:bg-white/10 transition-colors"
+        className="flex flex-1 items-center gap-3 rounded-xl px-1 py-1 -mx-1 -my-1 outline-none focus-visible:ring-2 focus-visible:ring-lavender hover:bg-foreground/5 active:bg-foreground/10 transition-colors"
       >
         <Avatar size="tap-lg">
           {photoSource?.kind === "photo" ? (
@@ -107,13 +107,13 @@ export function ChatHeader({
           )}
         </Avatar>
         <div className="flex-1">
-          <p className="text-meta font-medium leading-tight text-white">
+          <p className="text-meta font-medium leading-tight text-(--ink)">
             {name}, {age}
           </p>
           <p
             className={cn(
               "mt-0.5 text-caption",
-              presenceIsOnline ? "text-success" : "text-text-muted",
+              presenceIsOnline ? "text-success" : "text-(--ink-3)",
             )}
           >
             {presenceLabel}
@@ -121,7 +121,7 @@ export function ChatHeader({
         </div>
       </Link>
       <Button size="icon-tap" variant="ghost" aria-label="More" onClick={onMoreClick}>
-        <MoreHorizontal className="text-white" />
+        <MoreHorizontal className="text-(--ink)" />
       </Button>
     </header>
   );

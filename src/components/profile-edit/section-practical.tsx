@@ -51,7 +51,7 @@ export default function PracticalSection() {
         />
       ) : (
         <Card tone="elevated" className="rounded-xl px-4 py-3">
-          <p className="text-meta text-text-muted">
+          <p className="text-meta text-(--ink-3)">
             Set your gender first to edit intent —{" "}
             <Link
               href="#field-sex"

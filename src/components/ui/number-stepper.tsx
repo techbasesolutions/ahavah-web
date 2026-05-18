@@ -13,7 +13,7 @@ const readoutVariants = cva(
   {
     variants: {
       tone: {
-        muted: "text-text-secondary",
+        muted: "text-(--ink-2)",
         active: "text-lime",
       },
     },
@@ -111,7 +111,7 @@ export function NumberStepper({
       className={cn("flex items-center justify-center gap-4", className)}
     >
       <Button
-        size="circle"
+        size="circle-lg"
         tone="elevated"
         aria-label="Decrease"
         disabled={!canDecrement}
@@ -142,7 +142,7 @@ export function NumberStepper({
       </div>
 
       <Button
-        size="circle"
+        size="circle-lg"
         tone="brand"
         aria-label="Increase"
         disabled={!canIncrement}

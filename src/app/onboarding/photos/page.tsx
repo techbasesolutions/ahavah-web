@@ -208,10 +208,10 @@ export default function PhotosStep() {
         transition={{ duration: 0.4 }}
         className="flex flex-col gap-2"
       >
-        <h1 className="text-display text-white">
+        <h1 className="text-display text-(--ink)">
           Add your photos<span className="text-lime">.</span>
         </h1>
-        <p className="text-body text-text-secondary">
+        <p className="text-body text-(--ink-2)">
           Pick at least one photo. Your first photo is your main, it shows up on Discover and Map.
         </p>
       </motion.div>
@@ -244,12 +244,12 @@ export default function PhotosStep() {
         })}
       </div>
 
-      <p className="mt-4 text-caption text-text-secondary" aria-live="polite">
+      <p className="mt-4 text-caption text-(--ink-2)" aria-live="polite">
         {hasUsablePhoto
           ? `${quota.currentPhotoCount} of ${SLOT_COUNT} added.`
           : "At least one photo required."}
       </p>
-      <p className="mt-1 text-caption text-text-muted">
+      <p className="mt-1 text-caption text-(--ink-3)">
         JPEG, PNG, or WebP. Photos are compressed before upload, then
         reviewed by automated moderation.
       </p>

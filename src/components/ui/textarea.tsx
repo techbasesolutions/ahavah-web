@@ -21,7 +21,7 @@ const textareaVariants = cva(
       tone: {
         default: "border-input",
         // See Input.tone='elevated' — same boundary-contrast rationale.
-        elevated: "border-white/10 bg-bg-elevated! text-white placeholder:text-text-muted",
+        elevated: "border-white/10 bg-bg-elevated! text-white placeholder:text-(--ink-3)",
       },
     },
     defaultVariants: {

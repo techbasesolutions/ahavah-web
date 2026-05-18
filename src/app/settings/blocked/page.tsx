@@ -6,7 +6,6 @@ import { motion } from "motion/react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { BackButton } from "@/components/app/back-button";
 import {
   Item,
   ItemActions,
@@ -18,13 +17,8 @@ import {
 } from "@/components/ui/item";
 import { Skeleton } from "@/components/ui/skeleton";
 
-import { BottomNav } from "@/components/app/bottom-nav";
 import { EmptyState, ErrorState } from "@/components/app/empty-state";
-import {
-  PageHeader,
-  PageHeaderTitle,
-  PageShell,
-} from "@/components/app/page-shell";
+import { SettingsShell } from "@/components/app/settings-shell";
 
 import { apiClient } from "@/lib/api-client";
 
@@ -150,14 +144,14 @@ function BlockedContent() {
                 </Avatar>
               </ItemMedia>
               <ItemContent>
-                <ItemTitle className="text-meta text-white">{u.name}</ItemTitle>
-                <ItemDescription className="text-caption text-text-muted">
+                <ItemTitle className="text-meta text-(--ink)">{u.name}</ItemTitle>
+                <ItemDescription className="text-caption text-(--ink-3)">
                   Blocked {relativeBlockedAt(u.blocked_at)}
                 </ItemDescription>
               </ItemContent>
               <ItemActions>
                 <Button
-                  variant="outlineSubtle"
+                  variant="outline"
                   size="tap"
                   aria-label={`Unblock ${u.name}`}
                   disabled={unblocking === u.uuid}
@@ -172,18 +166,7 @@ function BlockedContent() {
       </ItemGroup>
     );
 
-  return (
-    <PageShell bottomPad="nav">
-      <PageHeader pad="tight" className="flex items-center gap-3">
-        <BackButton fallback="/settings" label="Back to settings" />
-        <PageHeaderTitle>Blocked users</PageHeaderTitle>
-      </PageHeader>
-
-      {body}
-
-      <BottomNav />
-    </PageShell>
-  );
+  return <SettingsShell title="Blocked users">{body}</SettingsShell>;
 }
 
 export default function BlockedSettingsPage() {

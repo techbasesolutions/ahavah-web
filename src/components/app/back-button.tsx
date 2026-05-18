@@ -48,13 +48,13 @@ export function BackButton({
 
   return (
     <Button
-      size="circle"
+      size="circle-lg"
       tone="elevated"
       aria-label={label}
       onClick={onClick}
       className={className}
     >
-      <ArrowLeft className="text-white" />
+      <ArrowLeft className="text-(--ink)" />
     </Button>
   );
 }

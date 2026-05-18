@@ -45,6 +45,13 @@ const buttonVariants = cva(
         cta:      "border-0 bg-lime text-black hover:bg-lime/90",
         brand:    "border-0 bg-lavender text-black hover:bg-lavender/90",
         action:   "border-0 bg-pink text-black hover:bg-pink/90",
+        // Super-like button: lavender fill + black icon — distinct from the
+        // Play/Pause CTA (lime) so the four action-row circles each read as
+        // a unique brand tone. Used ONLY in the desktop action row; the
+        // mobile super button keeps its existing `tone="cta"` appearance.
+        // Lavender is "brand-flavored secondary" (design-system §Button);
+        // contrast audit: lavender + black = 8.4:1 ✓ (§1.3).
+        // Migrated to tone="brand" in Task 1 (2026-05-17).
         // Translucent black scrim — for icon buttons sitting on top of photos
         // (back / more / image overlays). White icon, ~45% black bg.
         overlay:  "border-0 bg-black/45 text-white hover:bg-black/60",
@@ -93,9 +100,9 @@ const buttonVariants = cva(
         // Primary CTA — full-width, 56px, bold body, lg radius.
         cta: "h-cta w-full gap-2 px-6 text-body font-bold rounded-2xl [&_svg:not([class*='size-'])]:size-5",
         // Circular floating action / swipe-deck buttons.
-        circle:      "size-tap-lg rounded-full [&_svg:not([class*='size-'])]:size-5",
-        "circle-lg": "size-tap-xl rounded-full [&_svg:not([class*='size-'])]:size-6",
-        "circle-xl": "size-tap-2xl rounded-full [&_svg:not([class*='size-'])]:size-7",
+        "circle-lg": "size-tap-lg rounded-full [&_svg:not([class*='size-'])]:size-5",
+        "circle-xl": "size-tap-xl rounded-full [&_svg:not([class*='size-'])]:size-6",
+        "circle-2xl": "size-tap-2xl rounded-full [&_svg:not([class*='size-'])]:size-7",
         // Tile / slot — consumer controls height (aspect-ratio, etc.).
         block: "h-auto w-full p-0 [&_svg:not([class*='size-'])]:size-5",
         // Settings-list row: full-width, left-aligned, generous vertical
@@ -136,12 +143,21 @@ function Button({
   size = "default",
   tone = "none",
   lift = "none",
+  nativeButton,
+  render,
   ...props
 }: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+  // Base UI defaults `nativeButton` to true; when callers pass a non-button
+  // `render` slot (commonly `<Link>` for nav buttons), Base UI warns. Default
+  // `nativeButton` to `false` when render is provided so callers don't have
+  // to thread it through every `<Button render={<Link/>}>` site.
+  const resolvedNativeButton = nativeButton ?? (render == null)
   return (
     <ButtonPrimitive
       data-slot="button"
       className={cn(buttonVariants({ variant, size, tone, lift, className }))}
+      nativeButton={resolvedNativeButton}
+      render={render}
       {...props}
     />
   )

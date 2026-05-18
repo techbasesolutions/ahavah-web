@@ -1,18 +1,35 @@
 "use client";
 
-import { EmptyState } from "@/components/app/empty-state";
-import { EdgeStateShell } from "@/components/app/edge-state-shell";
+import { WifiOff } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+
+import { EdgeStateCard } from "@/components/app/edge-state-card";
 
 export default function OfflinePage() {
   return (
-    <EdgeStateShell srTitle="You're offline">
-      <EmptyState
-        variant="no-internet"
-        action={{
-          label: "Try again",
-          onClick: () => window.location.reload(),
-        }}
-      />
-    </EdgeStateShell>
+    <EdgeStateCard
+      srTitle="You're offline"
+      Icon={WifiOff}
+      tone="lavender"
+      title="You're offline"
+      description={
+        <>
+          We can&apos;t reach our servers right now. Check your connection and
+          try again — your matches and chats will be here when you&apos;re
+          back.
+        </>
+      }
+      action={
+        <Button
+          variant="outline"
+          size="tap"
+          onClick={() => window.location.reload()}
+          className="h-14 px-8 rounded-[14px] border-(--border) text-(--ink) bg-transparent hover:bg-(--card)"
+        >
+          Try again
+        </Button>
+      }
+    />
   );
 }

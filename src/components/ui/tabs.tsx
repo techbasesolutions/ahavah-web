@@ -33,7 +33,7 @@ const tabsListVariants = cva(
         // Ahavah brand: full-bleed underline tabs, lime active text.
         // Replaces per-instance `data-[state=active]:bg-transparent
         // data-[state=active]:text-lime ...` overrides.
-        brand: "h-tap w-full justify-start gap-0 bg-transparent text-text-secondary border-b border-white/5",
+        brand: "h-tap w-full justify-start gap-0 bg-transparent text-(--ink-2) border-b border-white/5",
       },
     },
     defaultVariants: {
@@ -66,7 +66,7 @@ function TabsTrigger({ className, ...props }: TabsPrimitive.Tab.Props) {
         "group-data-[variant=line]/tabs-list:bg-transparent group-data-[variant=line]/tabs-list:data-active:bg-transparent dark:group-data-[variant=line]/tabs-list:data-active:border-transparent dark:group-data-[variant=line]/tabs-list:data-active:bg-transparent",
         "data-active:bg-background data-active:text-foreground dark:data-active:border-input dark:data-active:bg-input/30 dark:data-active:text-foreground",
         // Brand-variant overrides: lime active text, no bg on active.
-        "group-data-[variant=brand]/tabs-list:rounded-none group-data-[variant=brand]/tabs-list:bg-transparent group-data-[variant=brand]/tabs-list:px-5 group-data-[variant=brand]/tabs-list:text-text-secondary group-data-[variant=brand]/tabs-list:data-active:bg-transparent group-data-[variant=brand]/tabs-list:data-active:text-lime group-data-[variant=brand]/tabs-list:data-active:shadow-none dark:group-data-[variant=brand]/tabs-list:data-active:bg-transparent dark:group-data-[variant=brand]/tabs-list:data-active:border-transparent",
+        "group-data-[variant=brand]/tabs-list:rounded-none group-data-[variant=brand]/tabs-list:bg-transparent group-data-[variant=brand]/tabs-list:px-5 group-data-[variant=brand]/tabs-list:text-(--ink-2) group-data-[variant=brand]/tabs-list:data-active:bg-transparent group-data-[variant=brand]/tabs-list:data-active:text-lime group-data-[variant=brand]/tabs-list:data-active:shadow-none dark:group-data-[variant=brand]/tabs-list:data-active:bg-transparent dark:group-data-[variant=brand]/tabs-list:data-active:border-transparent",
         "after:absolute after:bg-foreground after:opacity-0 after:transition-opacity group-data-horizontal/tabs:after:inset-x-0 group-data-horizontal/tabs:after:bottom-[-5px] group-data-horizontal/tabs:after:h-0.5 group-data-vertical/tabs:after:inset-y-0 group-data-vertical/tabs:after:-right-1 group-data-vertical/tabs:after:w-0.5 group-data-[variant=line]/tabs-list:data-active:after:opacity-100 group-data-[variant=brand]/tabs-list:after:bg-lime group-data-[variant=brand]/tabs-list:data-active:after:opacity-100",
         className
       )}

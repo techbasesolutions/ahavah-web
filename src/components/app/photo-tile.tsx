@@ -43,8 +43,8 @@ const photoTileVariants = cva(
         none: "",
         // Elevated dark surface — matches the photo-skeleton placeholder
         // (Skeleton uses bg-muted; PhotoTile fallback should match
-        // bg-bg-elevated to feel like the same kit).
-        elevated: "bg-bg-elevated",
+        // bg-(--card) to feel like the same kit).
+        elevated: "bg-(--card)",
       },
     },
     defaultVariants: {

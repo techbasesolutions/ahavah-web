@@ -11,11 +11,13 @@ import {
 
 import { apiClient, ApiError } from "@/lib/api-client";
 import { isPremium } from "@/lib/profile-schema";
+import { computeCompleteness } from "@/lib/profile-completeness";
 import { useProfile } from "@/lib/use-profile";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import {
   Dialog,
   DialogClose,
@@ -189,62 +191,222 @@ export default function ProfilePage() {
     }
   };
 
-  return (
-    <PageShell bottomPad="nav">
-      {/* Soft-delete grace banner — only when deletion_requested_at
-          is set. Sits ABOVE the hero so it's the first thing the
-          user sees on returning to /profile during their 7-day
-          cancel window. */}
-      {deletionRequestedAt ? (
-        <div className="px-5 pt-4">
-          <div
-            role="alert"
-            className="flex flex-col gap-3 rounded-2xl border border-pink/40 bg-pink/10 p-4 text-body text-white"
-          >
-            <div className="flex items-start gap-3">
-              <TriangleAlert
-                aria-hidden
-                className="size-5 shrink-0 text-pink"
-              />
-              <div className="flex-1 min-w-0">
-                <p className="text-meta font-medium leading-tight">
-                  Your account is scheduled for deletion
-                </p>
-                <p className="text-caption leading-tight text-text-secondary">
-                  Cancel within 7 days of {formatDeletionDate(deletionRequestedAt)} to keep your profile.
-                </p>
-              </div>
-            </div>
-            <Button
-              variant="default"
-              size="tap"
-              disabled={restoreBusy}
-              onClick={() => void handleCancelDeletion()}
-              className="w-full rounded-full"
-            >
-              <RotateCcw aria-hidden />
-              {restoreBusy ? "Restoring…" : "Cancel deletion"}
-            </Button>
-            {restoreError ? (
-              <p className="text-caption text-pink">{restoreError}</p>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
+  // ── Shared JSX fragments ─────────────────────────────────────────────
+  // Defined once, reused in both mobile and desktop slots.
 
-      {/* Hero card — own profile + free badge + Upgrade CTA */}
-      <motion.div
-        {...fadeUp}
-        transition={{ duration: 0.4 }}
-        className="px-5 pt-6"
+  const deletionBanner = deletionRequestedAt ? (
+    <div
+      role="alert"
+      className="flex flex-col gap-3 rounded-2xl border border-(--color-pink)/40 bg-(--color-pink)/10 p-4 text-body text-(--ink)"
+    >
+      <div className="flex items-start gap-3">
+        <TriangleAlert aria-hidden className="size-5 shrink-0 text-pink" />
+        <div className="flex-1 min-w-0">
+          <p className="text-meta font-medium leading-tight">
+            Your account is scheduled for deletion
+          </p>
+          <p className="text-caption leading-tight text-(--ink-2)">
+            Cancel within 7 days of {formatDeletionDate(deletionRequestedAt)} to keep your profile.
+          </p>
+        </div>
+      </div>
+      <Button
+        variant="default"
+        size="tap"
+        disabled={restoreBusy}
+        onClick={() => void handleCancelDeletion()}
+        className="w-full rounded-full"
       >
-        <Card tone="gradient" className="overflow-hidden gap-0 py-0">
-          <CardHeader className="px-5 pt-5 pb-4">
+        <RotateCcw aria-hidden />
+        {restoreBusy ? "Restoring…" : "Cancel deletion"}
+      </Button>
+      {restoreError ? (
+        <p className="text-caption text-pink">{restoreError}</p>
+      ) : null}
+    </div>
+  ) : null;
+
+  const signOutDialog = (
+    <Dialog open={signOutOpen} onOpenChange={setSignOutOpen}>
+      <DialogTrigger
+        render={
+          <Button
+            variant="outline"
+            size="lg"
+            className="w-full justify-center"
+          >
+            <LogOut size={16} className="mr-2" />
+            Sign out
+          </Button>
+        }
+      />
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Sign out of Ahavah?</DialogTitle>
+          <DialogDescription>
+            You&apos;ll need to sign back in to see your matches and messages.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <DialogClose
+            render={<Button variant="outline" size="lg">Cancel</Button>}
+          />
+          <Button
+            size="lg"
+            tone="brand"
+            onClick={handleSignOut}
+            disabled={signingOut}
+          >
+            {signingOut ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                Signing out...
+              </>
+            ) : (
+              "Sign out"
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+
+  return (
+    <PageShell bottomPad="nav" desktopShell="sidebar" topBarTitle="Profile">
+      {/* ── Mobile layout (hidden at md+) ─────────────────────────────── */}
+      <div className="md:hidden">
+        {/* Soft-delete grace banner */}
+        {deletionRequestedAt ? (
+          <div className="px-5 pt-4">{deletionBanner}</div>
+        ) : null}
+
+        {/* Hero card — own profile + free badge + Upgrade CTA */}
+        <motion.div
+          {...fadeUp}
+          transition={{ duration: 0.4 }}
+          className="px-5 pt-6"
+        >
+          <Card tone="gradient" className="overflow-hidden gap-0 py-0">
+            <CardHeader className="px-5 pt-5 pb-4">
+              <div className="flex items-center gap-4">
+                <Avatar
+                  size="tap-2xl"
+                  aria-label="Your profile"
+                  className="ring-2 ring-white/40"
+                >
+                  {primaryPhotoUrl ? (
+                    <AvatarImage src={primaryPhotoUrl} alt={firstName || "Your photo"} />
+                  ) : null}
+                  <AvatarFallback variant="brand">{initial}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-h1 leading-tight text-(--ink)">
+                    {heroName || "Your profile"}
+                    {age ? `, ${age}` : ""}
+                  </h1>
+                  {displayName &&
+                  displayName.toLowerCase() !== firstName.toLowerCase() &&
+                  firstName ? (
+                    <p className="text-caption leading-tight text-(--ink-2)">
+                      {firstName}
+                    </p>
+                  ) : null}
+                  {verificationLevel ? (
+                    <Pill variant="glassDark" className="mt-2">
+                      <ShieldCheck size={12} />
+                      {verificationLevel}
+                    </Pill>
+                  ) : null}
+                </div>
+              </div>
+            </CardHeader>
+            {!premium && (
+              <CardContent className="px-5 pb-5">
+                <Button
+                  nativeButton={false}
+                  size="cta"
+                  tone="cta"
+                  render={<Link href="/paywall" prefetch={false} />}
+                >
+                  <Sparkles size={14} className="mr-2" />
+                  Upgrade to Premium
+                </Button>
+              </CardContent>
+            )}
+          </Card>
+        </motion.div>
+
+        <motion.div
+          {...fadeUp}
+          transition={{ duration: 0.35, delay: 0.04 }}
+          className="px-5 pt-4"
+        >
+          <BoostCard />
+        </motion.div>
+
+        <motion.div
+          {...fadeUp}
+          transition={{ duration: 0.3, delay: 0.08 }}
+          className="px-3 pt-8"
+        >
+          <ItemGroup className="gap-1">
+            {PROFILE_LINKS.map((item) => (
+              <Item
+                key={item.title}
+                variant="muted"
+                render={
+                  <Link href={item.href} prefetch={false} className="rounded-2xl" />
+                }
+              >
+                <ItemMedia>
+                  <IconBadge tone={item.tone}>
+                    <item.Icon />
+                  </IconBadge>
+                </ItemMedia>
+                <ItemContent>
+                  <ItemTitle className="text-meta text-(--ink)">{item.title}</ItemTitle>
+                  {item.subtitle ? (
+                    <ItemDescription className="text-caption text-(--ink-3)">
+                      {item.subtitle}
+                    </ItemDescription>
+                  ) : null}
+                </ItemContent>
+                <ItemActions>
+                  <ChevronRight className="size-4 text-(--ink-3)" />
+                </ItemActions>
+              </Item>
+            ))}
+          </ItemGroup>
+        </motion.div>
+
+        <motion.div
+          {...fadeUp}
+          transition={{ duration: 0.3, delay: 0.16 }}
+          className="px-5 pt-6 pb-2"
+        >
+          {signOutDialog}
+        </motion.div>
+
+        <BottomNav />
+      </div>
+
+      {/* ── Desktop layout (hidden below md) ─────────────────────────── */}
+      <div className="hidden md:grid md:grid-cols-[480px_1fr] md:gap-8 md:max-w-295 md:mx-auto md:w-full">
+        {/* Left column: hero card + completeness card */}
+        <div className="flex flex-col gap-6">
+          {deletionRequestedAt ? deletionBanner : null}
+
+          {/* Hero card — gradient matches Card tone="gradient" (indigo→lavender).
+              bg-[] arbitrary value used because linear-gradient cannot be expressed
+              as a static Tailwind class; this is the only inline-style equivalent. */}
+          <div
+            className="flex flex-col gap-5 rounded-3xl p-7 text-white bg-[linear-gradient(135deg,#5524F5_0%,#9F76EA_70%,#BC96FF_100%)]"
+          >
             <div className="flex items-center gap-4">
               <Avatar
                 size="tap-2xl"
                 aria-label="Your profile"
-                className="ring-2 ring-white/40"
+                className="ring-[3px] ring-white/40"
               >
                 {primaryPhotoUrl ? (
                   <AvatarImage src={primaryPhotoUrl} alt={firstName || "Your photo"} />
@@ -252,20 +414,10 @@ export default function ProfilePage() {
                 <AvatarFallback variant="brand">{initial}</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                {/* Hero — real firstName + age from useProfile (no more
-                    hardcoded 'Ehud, 30'). Pill only renders when the
-                    user actually has a verification level past 'None'. */}
-                <h1 className="text-h1 leading-tight text-white">
+                <h2 className="text-h1 leading-tight text-white">
                   {heroName || "Your profile"}
                   {age ? `, ${age}` : ""}
-                </h1>
-                {displayName &&
-                displayName.toLowerCase() !== firstName.toLowerCase() &&
-                firstName ? (
-                  <p className="text-caption leading-tight text-text-secondary">
-                    {firstName}
-                  </p>
-                ) : null}
+                </h2>
                 {verificationLevel ? (
                   <Pill variant="glassDark" className="mt-2">
                     <ShieldCheck size={12} />
@@ -274,13 +426,7 @@ export default function ProfilePage() {
                 ) : null}
               </div>
             </div>
-          </CardHeader>
-          {/* Hero CTA hides entirely for paid users — the row below
-              already gives them a Subscription entry to manage. Keeping
-              the Upgrade banner up after they've already paid is the
-              dating-app equivalent of nagging a paying customer. */}
-          {!premium && (
-            <CardContent className="px-5 pb-5">
+            {!premium && (
               <Button
                 nativeButton={false}
                 size="cta"
@@ -290,113 +436,91 @@ export default function ProfilePage() {
                 <Sparkles size={14} className="mr-2" />
                 Upgrade to Premium
               </Button>
-            </CardContent>
-          )}
-        </Card>
-      </motion.div>
+            )}
+          </div>
 
-      {/* Phase 7 — Boost spotlight (5 tokens / 30 minutes). Sits between
-          the hero and the settings drill-down rows so the spend CTA is
-          visible above the fold on most viewports. */}
-      <motion.div
-        {...fadeUp}
-        transition={{ duration: 0.35, delay: 0.04 }}
-        className="px-5 pt-4"
-      >
-        <BoostCard />
-      </motion.div>
+          {/* Boost card — post-canonical monetization (2026-05-16 sprint),
+              positioned between Hero and Completeness per the sprint
+              integration brief. */}
+          <BoostCard />
 
-      <motion.div
-        {...fadeUp}
-        transition={{ duration: 0.3, delay: 0.08 }}
-        className="px-3 pt-8"
-      >
-        <ItemGroup className="gap-1">
-          {PROFILE_LINKS.map((item) => (
-            <Item
-              key={item.title}
-              variant="muted"
-              render={
-                <Link
-                  href={item.href}
-                  prefetch={false}
-                  className="rounded-2xl"
-                />
-              }
-            >
-              <ItemMedia>
-                <IconBadge tone={item.tone}>
-                  <item.Icon />
-                </IconBadge>
-              </ItemMedia>
-              <ItemContent>
-                <ItemTitle className="text-meta text-white">
-                  {item.title}
-                </ItemTitle>
-                {item.subtitle ? (
-                  <ItemDescription className="text-caption text-text-muted">
-                    {item.subtitle}
-                  </ItemDescription>
-                ) : null}
-              </ItemContent>
-              <ItemActions>
-                <ChevronRight className="size-4 text-text-muted" />
-              </ItemActions>
-            </Item>
-          ))}
-        </ItemGroup>
-      </motion.div>
+          {/* Profile completeness card — canonical screens/10-profile.md
+              §Completeness. Theme-aware tokens throughout. */}
+          {profile ? (
+            (() => {
+              const completeness = computeCompleteness(profile);
+              const percent = completeness.percent;
+              const remainingFields =
+                completeness.requiredTotal - completeness.requiredFilled;
+              const hint =
+                percent >= 100
+                  ? "Your profile is complete."
+                  : remainingFields > 0
+                  ? `${remainingFields} field${remainingFields === 1 ? "" : "s"} to fill to reach the discover threshold.`
+                  : "Add more details (photos, bio) to reach 100%.";
+              return (
+                <div className="rounded-[18px] p-5 border border-(--hairline) bg-(--card)">
+                  <div className="flex items-center justify-between">
+                    <p className="text-meta font-semibold text-(--ink)">
+                      Profile completeness
+                    </p>
+                    <p className="text-meta font-bold text-(--color-lime) tabular-nums">
+                      {percent}%
+                    </p>
+                  </div>
+                  {/* Kit Progress primitive — handles ARIA semantics
+                      internally (role=progressbar + valuenow/min/max),
+                      avoiding the jsx-a11y lint rule that rejects
+                      expression-valued ARIA attrs on a raw <div>. */}
+                  <Progress
+                    value={percent}
+                    aria-label="Profile completeness"
+                    className="mt-2.5 h-2 bg-(--hairline) [&>[data-slot=progress-indicator]]:bg-(--color-lime)"
+                  />
+                  <p className="mt-2 text-caption text-(--ink-3)">{hint}</p>
+                </div>
+              );
+            })()
+          ) : null}
+        </div>
 
-      <motion.div
-        {...fadeUp}
-        transition={{ duration: 0.3, delay: 0.16 }}
-        className="px-5 pt-6 pb-2"
-      >
-        <Dialog open={signOutOpen} onOpenChange={setSignOutOpen}>
-          <DialogTrigger
-            render={
-              <Button
-                variant="outlineSubtle"
-                size="lg"
-                className="w-full justify-center"
+        {/* Right column: action rows + sign out */}
+        <div className="flex flex-col gap-4">
+          <ItemGroup className="gap-2">
+            {PROFILE_LINKS.map((item) => (
+              <Item
+                key={item.title}
+                variant="muted"
+                render={
+                  <Link href={item.href} prefetch={false} className="rounded-2xl" />
+                }
+                className="rounded-[18px] border border-(--hairline,rgba(15,11,31,0.06)) bg-(--card,#fff) px-6 py-5.5 gap-4.5"
               >
-                <LogOut size={16} className="mr-2" />
-                Sign out
-              </Button>
-            }
-          />
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Sign out of Ahavah?</DialogTitle>
-              <DialogDescription>
-                You&apos;ll need to sign back in to see your matches and messages.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <DialogClose
-                render={<Button variant="outlineSubtle" size="lg">Cancel</Button>}
-              />
-              <Button
-                size="lg"
-                tone="brand"
-                onClick={handleSignOut}
-                disabled={signingOut}
-              >
-                {signingOut ? (
-                  <>
-                    <Loader2 size={16} className="animate-spin" />
-                    Signing out...
-                  </>
-                ) : (
-                  "Sign out"
-                )}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </motion.div>
+                <ItemMedia>
+                  <IconBadge tone={item.tone}>
+                    <item.Icon />
+                  </IconBadge>
+                </ItemMedia>
+                <ItemContent>
+                  <ItemTitle className="text-meta font-semibold text-(--ink,#0F0B1F)">
+                    {item.title}
+                  </ItemTitle>
+                  {item.subtitle ? (
+                    <ItemDescription className="text-caption text-(--ink-3,oklch(0.60_0.04_280))">
+                      {item.subtitle}
+                    </ItemDescription>
+                  ) : null}
+                </ItemContent>
+                <ItemActions>
+                  <ChevronRight className="size-4 text-(--ink-3,oklch(0.60_0.04_280))" />
+                </ItemActions>
+              </Item>
+            ))}
+          </ItemGroup>
 
-      <BottomNav />
+          <div className="mt-2">{signOutDialog}</div>
+        </div>
+      </div>
     </PageShell>
   );
 }

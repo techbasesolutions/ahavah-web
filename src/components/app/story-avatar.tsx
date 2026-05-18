@@ -83,7 +83,7 @@ export function StoryAvatar({
         </div>
       )}
       {showCaption && (
-        <span className="text-caption text-text-secondary">{name}</span>
+        <span className="text-caption text-(--ink-2)">{name}</span>
       )}
     </div>
   );

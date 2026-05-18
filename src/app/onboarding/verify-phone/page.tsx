@@ -173,14 +173,14 @@ export default function VerifyPhoneStep() {
           <Phone />
         </IconBadge>
         <div className="flex max-w-sm flex-col gap-2">
-          <h1 className="text-display text-white">
+          <h1 className="text-display text-(--ink)">
             Verify your phone<span className="text-lime">.</span>
           </h1>
-          <p className="text-body text-text-secondary">
+          <p className="text-body text-(--ink-2)">
             {phoneSubmitted ? (
               <>
                 We sent an SMS to{" "}
-                <span className="font-semibold text-white">{phone}</span>.
+                <span className="font-semibold text-(--ink)">{phone}</span>.
                 Enter the 6-digit code to continue.
               </>
             ) : (
@@ -209,7 +209,7 @@ export default function VerifyPhoneStep() {
           transition={{ duration: 0.25, delay: 0.1 }}
           className="mt-10 flex flex-col gap-2"
         >
-          <Label htmlFor="verify-phone-input" className="text-meta text-white">
+          <Label htmlFor="verify-phone-input" className="text-meta text-(--ink)">
             Phone number
           </Label>
           <Input
@@ -245,7 +245,7 @@ export default function VerifyPhoneStep() {
           transition={{ duration: 0.25, delay: 0.2 }}
           className="mt-6 flex flex-col items-center gap-2"
         >
-          <p className="text-meta text-text-secondary">
+          <p className="text-meta text-(--ink-2)">
             Didn&apos;t get the code?
           </p>
           <div className="flex items-center gap-3">
@@ -260,7 +260,7 @@ export default function VerifyPhoneStep() {
                 ? `Resend SMS in ${resendSeconds}s`
                 : "Resend SMS"}
             </Button>
-            <span className="text-text-muted" aria-hidden>
+            <span className="text-(--ink-3)" aria-hidden>
               .
             </span>
             <Button

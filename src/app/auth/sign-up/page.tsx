@@ -11,8 +11,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-import { BrandMark } from "@/components/brand/sparkle-mark";
+import { Logo } from "@/components/brand/logo";
 import { PageShell } from "@/components/app/page-shell";
+import { AuthIllustration } from "@/components/app/auth-illustration";
 import { ApiError } from "@/lib/api-client";
 import { requestEmailOtp } from "@/lib/auth-otp";
 import { PENDING_EMAIL_KEY } from "@/lib/storage-keys";
@@ -25,9 +26,6 @@ const fadeUp = {
   animate: { opacity: 1, y: 0 },
 };
 
-// Lightweight strength heuristic — counts presence of length, mixed case,
-// digits, symbols. Returns a level 0–4 + label. NOT a security check; the
-// real backend should enforce policy. The UI just gives the user a hint.
 function passwordStrength(pw: string): { level: 0 | 1 | 2 | 3 | 4; label: string } {
   if (pw.length === 0) return { level: 0, label: "" };
   if (pw.length < MIN_PASSWORD) return { level: 1, label: "Too short" };
@@ -41,27 +39,180 @@ function passwordStrength(pw: string): { level: 0 | 1 | 2 | 3 | 4; label: string
   return { level: score as 1 | 2 | 3 | 4, label };
 }
 
+type FormProps = {
+  email: string;
+  setEmail: (v: string) => void;
+  password: string;
+  setPassword: (v: string) => void;
+  accepted: boolean;
+  setAccepted: (v: boolean) => void;
+  submitting: boolean;
+  error: string | null;
+  isComplete: boolean;
+  onSubmit: (e: React.FormEvent) => void;
+  strength: { level: 0 | 1 | 2 | 3 | 4; label: string };
+  variant: "mobile" | "desktop";
+};
+
+function SignUpForm({
+  email,
+  setEmail,
+  password,
+  setPassword,
+  accepted,
+  setAccepted,
+  submitting,
+  error,
+  isComplete,
+  onSubmit,
+  strength,
+  variant,
+}: FormProps) {
+  const isDesktop = variant === "desktop";
+  const idPrefix = isDesktop ? "d-signup" : "signup";
+  return (
+    <form onSubmit={onSubmit} className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2">
+        <Label htmlFor={`${idPrefix}-email`} className="text-caption text-(--ink-2)">
+          Email
+        </Label>
+        <Input
+          id={`${idPrefix}-email`}
+          type="email"
+          autoComplete="email"
+          size="lg"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@example.com"
+          className="bg-(--app)"
+        />
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor={`${idPrefix}-password`} className="text-caption text-(--ink-2)">
+          Password
+        </Label>
+        <Input
+          id={`${idPrefix}-password`}
+          type="password"
+          autoComplete="new-password"
+          size="lg"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder={`At least ${MIN_PASSWORD} characters`}
+          aria-describedby={`${idPrefix}-password-help`}
+          className="bg-(--app)"
+        />
+        {password.length > 0 && (
+          <div className="flex items-center gap-2">
+            <div aria-hidden className="flex flex-1 gap-1">
+              {[1, 2, 3, 4].map((seg) => (
+                <span
+                  key={seg}
+                  className={
+                    seg <= strength.level
+                      ? strength.level >= 3
+                        ? "h-1.5 flex-1 rounded-full bg-(--color-lime)"
+                        : strength.level === 2
+                        ? "h-1.5 flex-1 rounded-full bg-(--color-lavender)"
+                        : "h-1.5 flex-1 rounded-full bg-(--color-pink)"
+                      : "h-1.5 flex-1 rounded-full bg-(--hairline)"
+                  }
+                />
+              ))}
+            </div>
+            <span
+              aria-live="polite"
+              aria-label={`Password strength: ${strength.label}`}
+              className={
+                strength.level >= 3
+                  ? "text-caption font-semibold text-(--color-lime)"
+                  : strength.level === 2
+                  ? "text-caption font-semibold text-(--color-lavender)"
+                  : "text-caption font-semibold text-(--color-pink)"
+              }
+            >
+              {strength.label}
+            </span>
+          </div>
+        )}
+        <p id={`${idPrefix}-password-help`} className="text-caption text-(--ink-3)">
+          8+ characters. We&apos;ll prompt you for 2FA after sign-up.
+        </p>
+      </div>
+
+      <Label
+        htmlFor={`${idPrefix}-terms`}
+        className="mt-1 flex cursor-pointer items-start gap-3 text-left"
+      >
+        <Checkbox
+          id={`${idPrefix}-terms`}
+          checked={accepted}
+          onCheckedChange={(v) => setAccepted(v === true)}
+          className="mt-0.5 size-5"
+        />
+        <span className="text-caption leading-relaxed text-(--ink-2)">
+          I&apos;m 18+, I accept the{" "}
+          <Link href="/legal/terms" prefetch={false} className="font-semibold text-(--ink) underline">
+            Terms
+          </Link>
+          ,{" "}
+          <Link href="/legal/privacy" prefetch={false} className="font-semibold text-(--ink) underline">
+            Privacy Policy
+          </Link>{" "}
+          and{" "}
+          <Link
+            href="/legal/community-guidelines"
+            prefetch={false}
+            className="font-semibold text-(--ink) underline"
+          >
+            Community Guidelines
+          </Link>
+          .
+        </span>
+      </Label>
+
+      <Button
+        type="submit"
+        size="cta"
+        tone="cta"
+        lift={isComplete && !submitting ? "float" : "none"}
+        disabled={!isComplete || submitting}
+      >
+        {submitting ? (
+          <>
+            <Loader2 className="animate-spin" />
+            Sending code…
+          </>
+        ) : (
+          "Send me a code"
+        )}
+      </Button>
+
+      {error && (
+        <p
+          role="alert"
+          aria-live="polite"
+          className="text-center text-caption font-semibold text-(--color-pink)"
+        >
+          {error}
+        </p>
+      )}
+    </form>
+  );
+}
+
 export default function SignUpPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
-  // If they're already signed in, don't show them a "Create account"
-  // form — bounce to /discover.
   const { checking } = useRedirectIfSignedIn();
 
-  // Prefill from the email the user already typed on the welcome page.
-  // Without this, the user types their email on / then is prompted for it
-  // again here — flagged as bad UX.
   useEffect(() => {
     const prefill = sessionStorage.getItem(PENDING_EMAIL_KEY);
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (prefill) setEmail(prefill);
   }, []);
-  // Password is captured locally for the strength meter only. Duolicious
-  // auth is passwordless (email-OTP); /request-otp accepts only the email
-  // field. The strength meter remains as a UX gate so users still feel they
-  // are "creating an account", but no password is ever transmitted to the
-  // backend. If the product later moves to password+OTP, send `password`
-  // in the request body here.
+
   const [password, setPassword] = useState("");
   const [accepted, setAccepted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -78,20 +229,13 @@ export default function SignUpPage() {
     setSubmitting(true);
     try {
       await requestEmailOtp(email);
-      // Bridge to /onboarding/verify-email — that page reads this key to
-      // know which email to verify against. sessionStorage (not local)
-      // so a closed tab cleans up automatically.
       sessionStorage.setItem(PENDING_EMAIL_KEY, email);
       router.push("/onboarding/verify-email");
     } catch (err) {
       if (err instanceof ApiError && err.status === 461) {
-        // Backend marked this account/email as banned (or in the
-        // banned-club list). Route to the dedicated edge page instead
-        // of a generic error — banned users deserve a clear answer.
         router.push("/banned");
         return;
       } else if (err instanceof ApiError && err.status === 460) {
-        // IP blocked (firehol). Show /locked.
         router.push("/locked");
         return;
       } else if (err instanceof ApiError && err.status === 429) {
@@ -107,227 +251,108 @@ export default function SignUpPage() {
 
   if (checking) {
     return (
-      <PageShell bottomPad="default" className="items-center justify-center px-5">
-        <p className="text-body text-text-secondary">Signing you in…</p>
+      <PageShell
+        desktopShell="full-bleed"
+        bottomPad="default"
+        className="items-center justify-center px-5"
+      >
+        <p className="text-body text-(--ink-2)">Signing you in…</p>
       </PageShell>
     );
   }
 
+  const formProps = {
+    email,
+    setEmail,
+    password,
+    setPassword,
+    accepted,
+    setAccepted,
+    submitting,
+    error,
+    isComplete,
+    onSubmit: handleSubmit,
+    strength,
+  };
+
   return (
-    <PageShell bottomPad="default" className="px-5 pt-6">
-      <motion.div
-        {...fadeUp}
-        transition={{ duration: 0.25 }}
-        className="flex justify-center pt-2"
-      >
-        <BrandMark size="md" />
-      </motion.div>
-
-      <motion.div
-        {...fadeUp}
-        transition={{ duration: 0.25, delay: 0.07 }}
-        className="mt-6 flex flex-col gap-2 text-center"
-      >
-        <h1 className="text-display text-white">
-          Create your account<span className="text-lime">.</span>
-        </h1>
-        <p className="text-body text-text-secondary">
-          We&apos;ll verify your email and phone in the next two steps.
-        </p>
-      </motion.div>
-
-      <motion.form
-        {...fadeUp}
-        transition={{ duration: 0.25, delay: 0.14 }}
-        className="mt-8 flex flex-col gap-4"
-        onSubmit={handleSubmit}
-      >
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="signup-email" className="text-meta text-white">
-            Email
-          </Label>
-          <Input
-            id="signup-email"
-            type="email"
-            autoComplete="email"
-            size="lg"
-            tone="elevated"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
-          />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="signup-password" className="text-meta text-white">
-            Password
-          </Label>
-          <Input
-            id="signup-password"
-            type="password"
-            autoComplete="new-password"
-            size="lg"
-            tone="elevated"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder={`At least ${MIN_PASSWORD} characters`}
-            aria-describedby="signup-password-help"
-          />
-          {/* 4-segment strength meter — segments fill as level increases.
-              Lime for level 4 (Strong), success-green for 3 (Good), warning
-              for 2 (Fair), pink for 1 (Weak/Too short). Hidden when empty
-              so the field looks clean on first focus. Per accessibility skill,
-              the label is also surfaced in the helper text below for SR users
-              (pure-color signal would fail "color alone" rule). */}
-          {password.length > 0 && (
-            <div className="flex items-center gap-2">
-              <div
-                aria-hidden
-                className="flex flex-1 gap-1"
-              >
-                {[1, 2, 3, 4].map((seg) => (
-                  <span
-                    key={seg}
-                    className={
-                      seg <= strength.level
-                        ? strength.level === 4
-                          ? "h-1 flex-1 rounded-full bg-lime"
-                          : strength.level === 3
-                          ? "h-1 flex-1 rounded-full bg-success"
-                          : strength.level === 2
-                          ? "h-1 flex-1 rounded-full bg-lavender"
-                          : "h-1 flex-1 rounded-full bg-pink"
-                        : "h-1 flex-1 rounded-full bg-white/10"
-                    }
-                  />
-                ))}
-              </div>
-              <span
-                aria-live="polite"
-                aria-label={`Password strength: ${strength.label}`}
-                className={
-                  strength.level === 4
-                    ? "text-caption font-semibold text-lime"
-                    : strength.level === 3
-                    ? "text-caption font-semibold text-success"
-                    : strength.level === 2
-                    ? "text-caption font-semibold text-lavender"
-                    : "text-caption font-semibold text-pink"
-                }
-              >
-                {strength.label}
-              </span>
+    <PageShell desktopShell="full-bleed" bottomPad="default" className="min-h-dvh">
+      {/* ── DESKTOP (≥md) — canonical 5fr/7fr split per 02-sign-up.md ── */}
+      <div className="hidden md:grid md:grid-cols-[5fr_7fr] md:min-h-dvh">
+        <div className="bg-(--card) p-14 lg:p-16 flex flex-col gap-6">
+          <Logo variant="horizontal" size="md" priority />
+          <div className="flex-1 flex flex-col justify-center gap-4.5 max-w-105">
+            <div>
+              <h1 className="text-display-lg font-extrabold leading-tight tracking-tight text-(--ink) m-0">
+                Create your account
+                <span className="text-(--color-lime)">.</span>
+              </h1>
+              <p className="mt-2.5 text-meta text-(--ink-2)">
+                We&apos;ll email you a 6-digit code to sign in.
+              </p>
             </div>
-          )}
-          <p
-            id="signup-password-help"
-            className="text-caption text-text-secondary"
-          >
-            8+ characters. We&apos;ll prompt you for 2FA after sign-up.
-          </p>
+            <SignUpForm {...formProps} variant="desktop" />
+            <div className="flex items-center justify-start gap-2 text-meta text-(--ink-2)">
+              <span>Already have an account?</span>
+              <Link
+                href="/auth/sign-in"
+                prefetch={false}
+                className="font-semibold text-(--color-lavender) underline-offset-2 hover:underline"
+              >
+                Sign in
+              </Link>
+            </div>
+          </div>
         </div>
+        <AuthIllustration />
+      </div>
 
-        {/* Larger checkbox (size-5 = 20px) so the visual weight balances
-            the multi-line caption text. The kit Checkbox primitive is
-            size-4 (16px) by default — looked dwarfed next to 3 lines. */}
-        <Label
-          htmlFor="signup-terms"
-          className="mt-2 flex cursor-pointer items-start gap-3 text-left"
+      {/* ── MOBILE (<md) ────────────────────────────────────────────── */}
+      <div className="md:hidden px-5 pt-6 flex flex-col">
+        <motion.div
+          {...fadeUp}
+          transition={{ duration: 0.25 }}
+          className="flex justify-center pt-2"
         >
-          <Checkbox
-            id="signup-terms"
-            tone="elevated"
-            checked={accepted}
-            onCheckedChange={(v) => setAccepted(v === true)}
-            className="mt-1 size-5"
-          />
-          <span className="text-caption leading-relaxed text-text-secondary">
-            I&apos;m 18+, I accept the{" "}
-            <Link
-              href="/legal/terms"
-              prefetch={false}
-              className="font-semibold text-white underline"
-            >
-              Terms
-            </Link>
-            ,{" "}
-            <Link
-              href="/legal/privacy"
-              prefetch={false}
-              className="font-semibold text-white underline"
-            >
-              Privacy Policy
-            </Link>{" "}
-            and{" "}
-            <Link
-              href="/legal/community-guidelines"
-              prefetch={false}
-              className="font-semibold text-white underline"
-            >
-              Community Guidelines
-            </Link>
-            .
-          </span>
-        </Label>
+          <Logo variant="horizontal" size="md" priority />
+        </motion.div>
 
-        {/* CTA — when invalid, show as outlineSubtle (clearly NOT a
-            primary action; reads as "not ready" rather than "broken").
-            When valid, swap to lime CTA. Avoids the disabled-opacity
-            grey-on-lime that previously read as a UI bug. */}
-        {isComplete ? (
-          <Button
-            type="submit"
-            size="cta"
-            tone="cta"
-            lift="float"
-            disabled={submitting}
-          >
-            {submitting ? (
-              <>
-                <Loader2 className="animate-spin" />
-                Creating…
-              </>
-            ) : (
-              "Create account"
-            )}
-          </Button>
-        ) : (
-          <Button
-            type="submit"
-            variant="outlineSubtle"
-            size="cta"
-            disabled
-          >
-            Create account
-          </Button>
-        )}
-
-        {error ? (
-          <p
-            role="alert"
-            aria-live="polite"
-            className="text-center text-caption font-semibold text-pink"
-          >
-            {error}
+        <motion.div
+          {...fadeUp}
+          transition={{ duration: 0.25, delay: 0.07 }}
+          className="mt-6 flex flex-col gap-2 text-center"
+        >
+          <h1 className="text-display text-(--ink)">
+            Create your account<span className="text-(--color-lime)">.</span>
+          </h1>
+          <p className="text-body text-(--ink-2)">
+            We&apos;ll email you a 6-digit code to sign in.
           </p>
-        ) : null}
-      </motion.form>
+        </motion.div>
 
-      <motion.div
-        {...fadeUp}
-        transition={{ duration: 0.25, delay: 0.21 }}
-        className="mt-6 flex items-center justify-center gap-2 text-meta text-text-secondary"
-      >
-        <span>Already have an account?</span>
-        <Button
-          nativeButton={false}
-          variant="link"
-          size="tap"
-          className="text-lavender"
-          render={<Link href="/auth/sign-in" prefetch={false} />}
+        <motion.div
+          {...fadeUp}
+          transition={{ duration: 0.25, delay: 0.14 }}
+          className="mt-8"
         >
-          Sign in
-        </Button>
-      </motion.div>
+          <SignUpForm {...formProps} variant="mobile" />
+        </motion.div>
+
+        <motion.div
+          {...fadeUp}
+          transition={{ duration: 0.25, delay: 0.21 }}
+          className="mt-6 mb-8 flex items-center justify-center gap-2 text-meta text-(--ink-2)"
+        >
+          <span>Already have an account?</span>
+          <Link
+            href="/auth/sign-in"
+            prefetch={false}
+            className="font-semibold text-(--color-lavender)"
+          >
+            Sign in
+          </Link>
+        </motion.div>
+      </div>
     </PageShell>
   );
 }

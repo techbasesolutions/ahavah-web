@@ -12,13 +12,7 @@ import {
 } from "@/components/ui/item";
 import { Switch } from "@/components/ui/switch";
 
-import { BackButton } from "@/components/app/back-button";
-import { BottomNav } from "@/components/app/bottom-nav";
-import {
-  PageHeader,
-  PageHeaderTitle,
-  PageShell,
-} from "@/components/app/page-shell";
+import { SettingsShell } from "@/components/app/settings-shell";
 
 import {
   type NotificationPreferences,
@@ -87,27 +81,22 @@ export default function NotificationsSettingsPage() {
   const masterDenied = push.state === "denied";
 
   return (
-    <PageShell bottomPad="nav">
-      <PageHeader pad="tight" className="flex items-center gap-3">
-        <BackButton fallback="/settings" label="Back to settings" />
-        <PageHeaderTitle>Notifications</PageHeaderTitle>
-      </PageHeader>
-
-      <div className="flex flex-col gap-6 px-3 pt-4">
+    <SettingsShell title="Notifications">
+      <div className="flex flex-col gap-6 px-3 pt-4 md:px-0 md:pt-0">
         {/* Master push toggle */}
         <motion.section
           {...fadeUp}
           transition={{ duration: 0.4, delay: 0.05 }}
           className="flex flex-col gap-2"
         >
-          <h2 className="px-3 text-overline text-text-muted">Push</h2>
+          <h2 className="px-3 text-overline text-(--ink-3)">Push</h2>
           <ItemGroup className="gap-1">
             <Item variant="muted">
               <ItemContent>
-                <ItemTitle className="text-meta text-white">
+                <ItemTitle className="text-meta text-(--ink)">
                   Enable push notifications
                 </ItemTitle>
-                <ItemDescription className="text-caption text-text-muted">
+                <ItemDescription className="text-caption text-(--ink-3)">
                   {masterDenied
                     ? "Blocked at the browser / OS level. Re-enable in Site Settings, then come back."
                     : !masterSupported
@@ -134,7 +123,7 @@ export default function NotificationsSettingsPage() {
           transition={{ duration: 0.4, delay: 0.13 }}
           className="flex flex-col gap-2"
         >
-          <h2 className="px-3 text-overline text-text-muted">
+          <h2 className="px-3 text-overline text-(--ink-3)">
             What to notify me about
           </h2>
           <ItemGroup className="gap-1">
@@ -146,10 +135,10 @@ export default function NotificationsSettingsPage() {
                 return (
                   <Item key={t.key} variant="muted">
                     <ItemContent>
-                      <ItemTitle className="text-meta text-white">
+                      <ItemTitle className="text-meta text-(--ink)">
                         {t.title}
                       </ItemTitle>
-                      <ItemDescription className="text-caption text-text-muted">
+                      <ItemDescription className="text-caption text-(--ink-3)">
                         {t.description}
                       </ItemDescription>
                     </ItemContent>
@@ -171,11 +160,11 @@ export default function NotificationsSettingsPage() {
               toggles are disabled. */}
           {!masterOn ? (
             <p
-              className="mx-3 mt-1 flex items-start gap-2 text-caption leading-relaxed text-text-muted"
+              className="mx-3 mt-1 flex items-start gap-2 text-caption leading-relaxed text-(--ink-3)"
               role="status"
             >
               <BellOff
-                className="mt-0.5 size-3.5 shrink-0 text-text-muted"
+                className="mt-0.5 size-3.5 shrink-0 text-(--ink-3)"
                 aria-hidden
               />
               <span>
@@ -193,7 +182,6 @@ export default function NotificationsSettingsPage() {
         </motion.section>
       </div>
 
-      <BottomNav />
-    </PageShell>
+    </SettingsShell>
   );
 }

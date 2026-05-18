@@ -5,10 +5,13 @@ import { cn } from "@/lib/utils"
 
 /**
  * Card surface tones — chosen at the call site via `tone` prop.
- * `default` matches upstream shadcn (card token + ring).
- * `elevated` is the dark indigo "settings group" surface.
- * `hero`     is the brand-gradient surface used on profile/marketing.
- * `flat`     drops ring + bg, used when the card is purely structural.
+ * `default`     — bg-card + border-subtle + radius-lg (spec §Card default)
+ * `elevated`    — same + shadow-md (spec §Card elevated)
+ * `gradient`    — Persian-Indigo→Lavender, white text, no border (spec §Card gradient)
+ * `overlap`     — bg-app + radius-3xl top corners + inverse shadow (spec §Card overlap)
+ * `tier-active` — use `tier` prop (bronze|silver|gold) for inset ring (spec §Card tier-active)
+ * `hero`        — brand-gradient surface (legacy alias; prefer gradient)
+ * `flat`        — structural wrapper, no bg/border
  */
 const cardVariants = cva(
   "group/card flex flex-col gap-4 overflow-hidden rounded-xl py-4 text-sm has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:gap-3 data-[size=sm]:py-3 data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
@@ -17,25 +20,38 @@ const cardVariants = cva(
       tone: {
         default: "bg-card text-card-foreground ring-1 ring-foreground/10",
         elevated: "bg-bg-elevated text-white ring-0 rounded-2xl",
-        // Profile/marketing hero — Persian-Indigo → Lavender brand gradient.
-        // Replaces inline `style={{ background: "linear-gradient(...)" }}` overrides.
+        // Spec §Card gradient: Persian-Indigo → Lavender, white text, no border.
+        // Uses CSS var tokens so they resolve correctly in both themes.
         gradient:
-          "text-white ring-0 rounded-3xl bg-[linear-gradient(135deg,#5524F5_0%,#9F76EA_70%,#BC96FF_100%)]",
-        // Profile-detail bio card — sits over the photo header with a
-        // subtle "lifted off the photo" overlap shadow (token).
-        overlap: "bg-bg-indigo text-white ring-0 rounded-3xl shadow-card-overlap",
-        // Verify-tier card — the inset ring color comes from a CSS var
-        // (`--tier-color`) that the consumer sets per-row, so a single
-        // variant covers bronze/silver/gold without 3 cva entries.
-        // Use `state="inactive"` for the "next" tier rendering.
+          "border-0 text-white ring-0 rounded-3xl bg-[linear-gradient(135deg,var(--color-indigo)_0%,var(--color-lavender)_100%)]",
+        // Spec §Card overlap: bg-app + radius-3xl top corners + inverse-direction shadow.
+        // `-mt-6` offsets card over photo bottom edge (consumer may override).
+        overlap:
+          "bg-[var(--bg-app)] text-[var(--fg-default)] ring-0 rounded-t-3xl rounded-b-xl -mt-6 shadow-[0_-8px_24px_rgba(0,0,0,0.20)]",
+        // Spec §Card tier-active: inset ring via `tier` prop (bronze/silver/gold).
+        // `tier-active` is handled by the `tier` variant below; this tone is
+        // preserved as a no-op base — the actual ring is applied by the `tier` variant.
+        "tier-active": "bg-bg-elevated text-white rounded-3xl",
+        // Legacy aliases kept for backward compat; migrate callers to gradient/tier-active.
         tier: "bg-bg-elevated text-white rounded-3xl shadow-tier-active",
         tierInactive:
           "bg-bg-elevated text-white rounded-3xl shadow-tier-inactive",
         hero: "text-white ring-0 rounded-3xl",
         flat: "bg-transparent text-white ring-0",
       },
+      // Spec §Card tier-active: `inset 0 0 0 1.5px var(--color-{tier})`
+      // Applied on top of any `tone`. Works standalone or with tone="tier-active".
+      tier: {
+        none: "",
+        bronze:
+          "shadow-[inset_0_0_0_1.5px_var(--color-bronze)]",
+        silver:
+          "shadow-[inset_0_0_0_1.5px_var(--color-silver)]",
+        gold:
+          "shadow-[inset_0_0_0_1.5px_var(--color-gold)]",
+      },
     },
-    defaultVariants: { tone: "default" },
+    defaultVariants: { tone: "default", tier: "none" },
   }
 )
 
@@ -43,6 +59,7 @@ function Card({
   className,
   size = "default",
   tone,
+  tier,
   ...props
 }: React.ComponentProps<"div"> &
   VariantProps<typeof cardVariants> & { size?: "default" | "sm" }) {
@@ -50,7 +67,7 @@ function Card({
     <div
       data-slot="card"
       data-size={size}
-      className={cn(cardVariants({ tone }), className)}
+      className={cn(cardVariants({ tone, tier }), className)}
       {...props}
     />
   )

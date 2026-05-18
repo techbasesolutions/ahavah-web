@@ -44,12 +44,12 @@ export default function EditProfilePage() {
       <PageHeader pad="tight" className="flex items-center gap-3">
         <Button
           nativeButton={false}
-          size="circle"
+          size="circle-lg"
           tone="elevated"
           aria-label="Back to profile"
           render={<Link href="/profile" prefetch={false} />}
         >
-          <ArrowLeft className="text-white" />
+          <ArrowLeft className="text-(--ink)" />
         </Button>
         <PageHeaderTitle>Edit profile</PageHeaderTitle>
       </PageHeader>
@@ -62,16 +62,16 @@ export default function EditProfilePage() {
           {...fadeUp}
           transition={{ duration: 0.25 }}
         >
-          <Card tone="elevated" className="flex flex-col gap-2 rounded-2xl px-5 py-4">
+          <Card tone="default" className="flex flex-col gap-2 rounded-2xl px-5 py-4">
             <div className="flex items-baseline justify-between gap-3">
-              <span className="text-h3 text-white tabular-nums">
+              <span className="text-h3 text-(--ink) tabular-nums">
                 {completeness.percent}% complete
               </span>
               <span
                 className={
                   requiredMissing > 0
-                    ? "text-meta text-pink"
-                    : "text-meta text-lime"
+                    ? "text-meta text-(--color-pink)"
+                    : "text-meta text-(--color-lime)"
                 }
               >
                 {requiredMissing > 0
@@ -84,7 +84,7 @@ export default function EditProfilePage() {
               aria-label="Profile completeness"
               className="w-full"
             >
-              <ProgressPrimitive.Track className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+              <ProgressPrimitive.Track className="h-1.5 w-full overflow-hidden rounded-full bg-foreground/10">
                 <ProgressPrimitive.Indicator className="h-full rounded-full bg-lime transition-all" />
               </ProgressPrimitive.Track>
             </ProgressPrimitive.Root>
@@ -137,7 +137,7 @@ export default function EditProfilePage() {
           >
             Done
           </Button>
-          <p className="text-center text-caption text-text-muted">
+          <p className="text-center text-caption text-(--ink-3)">
             Changes save automatically as you edit.
           </p>
         </motion.div>

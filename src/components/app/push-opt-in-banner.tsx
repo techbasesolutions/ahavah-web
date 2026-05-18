@@ -43,7 +43,7 @@ export function PushOptInBanner() {
     <div
       role="region"
       aria-label="Notification opt-in"
-      className="mx-4 mb-4 flex items-center gap-3 rounded-2xl bg-bg-elevated px-4 py-3 text-body text-white"
+      className="mx-4 mb-4 flex items-center gap-3 rounded-2xl bg-(--card) px-4 py-3 text-body text-(--ink)"
     >
       <div
         aria-hidden
@@ -52,10 +52,10 @@ export function PushOptInBanner() {
         <Bell className="size-5" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-meta font-medium leading-tight text-white">
+        <p className="text-meta font-medium leading-tight text-(--ink)">
           Get notified about new matches
         </p>
-        <p className="text-caption leading-tight text-text-secondary">
+        <p className="text-caption leading-tight text-(--ink-2)">
           {isError
             ? "Couldn't enable notifications. Try again."
             : "We'll send a quick ping when someone likes you back."}
@@ -75,7 +75,7 @@ export function PushOptInBanner() {
         size="icon-tap"
         aria-label="Dismiss notification opt-in"
         onClick={dismiss}
-        className="shrink-0 rounded-full text-text-secondary"
+        className="shrink-0 rounded-full text-(--ink-2)"
       >
         <X aria-hidden />
       </Button>

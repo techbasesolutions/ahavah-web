@@ -74,25 +74,36 @@ export function VerifyTierShell({
   disclosure,
 }: Props) {
   return (
-    <PageShell bottomPad="default">
-      <PageHeader pad="tight" className="flex items-center gap-3">
+    // Option B (per Task 19, 2026-05-17 user decision): sub-routes
+    // render full-bleed centered content at md+ — NOT the /verify
+    // index split-view. desktopShell="sidebar" gives the sidebar +
+    // topbar; the content below uses md:max-w-2xl md:mx-auto to
+    // centre at desktop widths. Mobile renders exactly as before.
+    <PageShell
+      bottomPad="default"
+      desktopShell="sidebar"
+      topBarTitle={tierLabel}
+    >
+      {/* Mobile page header — desktop has the same title in the topbar
+          via topBarTitle above. md:hidden so it doesn't double up. */}
+      <PageHeader pad="tight" className="md:hidden flex items-center gap-3">
         <Button
           nativeButton={false}
-          size="circle"
-          tone="elevated"
+          size="circle-lg"
+          variant="ghost"
           aria-label="Back to verification"
           render={<Link href="/verify" prefetch={false} />}
+          className="bg-(--card) text-(--ink) border border-(--hairline)"
         >
-          <ArrowLeft className="text-white" />
+          <ArrowLeft className="size-5" />
         </Button>
         <PageHeaderTitle>{tierLabel}</PageHeaderTitle>
       </PageHeader>
 
       {/* Ambient atmosphere — soft radial glow in tier color behind the
-          hero. Gives the page depth/identity instead of flat black canvas.
-          aria-hidden + pointer-events-none so it's purely decorative.
-          Radial-gradient via Tailwind arbitrary value reads --tier-color
-          from the wrapper below (CSS variable cascades through). */}
+          hero. Gives the page depth/identity. aria-hidden + pointer-
+          events-none so it's purely decorative. Radial-gradient reads
+          --tier-color from the wrapper below. */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 z-0 h-112 bg-[radial-gradient(ellipse_at_50%_0%,var(--tier-color)_0%,transparent_65%)] opacity-25 blur-3xl"
@@ -100,7 +111,7 @@ export function VerifyTierShell({
       />
 
       <div
-        className="relative z-10 flex flex-1 flex-col gap-7 px-5 pt-2"
+        className="relative z-10 flex flex-1 flex-col gap-7 px-5 pt-2 md:max-w-2xl md:mx-auto md:w-full md:px-0"
         style={{ "--tier-color": tierColor } as React.CSSProperties}
       >
         {/* Hero — premium tier disc with rotating metallic shimmer. The
@@ -136,8 +147,8 @@ export function VerifyTierShell({
           </div>
 
           <div className="flex flex-col gap-2 max-w-sm">
-            <h2 className="text-h2 leading-tight text-white">{subline}</h2>
-            <p className="text-body leading-relaxed text-text-secondary">
+            <h2 className="text-h2 leading-tight text-(--ink)">{subline}</h2>
+            <p className="text-body leading-relaxed text-(--ink-2)">
               {description}
             </p>
           </div>
@@ -154,7 +165,7 @@ export function VerifyTierShell({
           className="flex flex-col gap-4"
           aria-label="How it works"
         >
-          <h2 className="text-overline text-text-muted">How it works</h2>
+          <h2 className="text-overline text-(--ink-2)">How it works</h2>
           {/* The vertical connector line is a div sibling to the ol so the
               ol's only direct children are <li>s (a11y-correct list
               structure). The connector is absolutely positioned relative
@@ -162,7 +173,7 @@ export function VerifyTierShell({
           <div className="relative">
             <span
               aria-hidden
-              className="absolute top-5 bottom-5 left-5 z-0 w-px bg-white/10"
+              className="absolute top-5 bottom-5 left-5 z-0 w-px bg-(--hairline)"
             />
             <ol className="flex flex-col gap-5">
               {steps.map((step, i) => (
@@ -186,10 +197,10 @@ export function VerifyTierShell({
                       {i + 1}
                     </IconBadge>
                     <div className="flex-1 pt-1.5">
-                      <p className="text-meta font-semibold text-white">
+                      <p className="text-meta font-semibold text-(--ink)">
                         {step.title}
                       </p>
-                      <p className="mt-1 text-caption leading-relaxed text-text-muted">
+                      <p className="mt-1 text-caption leading-relaxed text-(--ink-2)">
                         {step.description}
                       </p>
                     </div>
@@ -211,14 +222,14 @@ export function VerifyTierShell({
           transition={{ duration: 0.25, delay: 0.22 }}
           className="mt-auto flex flex-col gap-3 pt-2 pb-2"
         >
-          <p className="text-center text-caption text-text-muted">
+          <p className="text-center text-caption text-(--ink-2)">
             Takes about 60 seconds.
           </p>
           <Button
             size="cta"
             tone="brand"
             lift="float"
-            className="ring-2 ring-(--tier-color) ring-offset-2 ring-offset-bg-canvas"
+            className="ring-2 ring-(--tier-color) ring-offset-2 ring-offset-(--app)"
             onClick={onCtaClick}
             disabled={ctaBusy || !onCtaClick}
           >
@@ -235,12 +246,12 @@ export function VerifyTierShell({
             <p
               role="alert"
               aria-live="polite"
-              className="text-center text-caption font-semibold text-pink"
+              className="text-center text-caption font-semibold text-(--color-pink)"
             >
               {errorMessage}
             </p>
           ) : null}
-          <p className="text-center text-caption leading-relaxed text-text-muted">
+          <p className="text-center text-caption leading-relaxed text-(--ink-2)">
             {disclosure}
           </p>
         </motion.div>

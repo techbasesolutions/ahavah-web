@@ -31,10 +31,10 @@ export default function PolygynyStep() {
         transition={{ duration: 0.4 }}
         className="flex flex-col gap-2"
       >
-        <h1 className="text-display text-white">
+        <h1 className="text-display text-(--ink)">
           Your view on biblical polygyny<span className="text-lime">?</span>
         </h1>
-        <p className="text-body text-text-secondary">
+        <p className="text-body text-(--ink-2)">
           We ask up front so matches reflect your stance. You can change this anytime.
         </p>
       </motion.div>
@@ -68,13 +68,13 @@ export default function PolygynyStep() {
                       "flex flex-row items-center gap-3 rounded-2xl px-5 py-4 transition-all active:scale-[0.98]",
                       active
                         ? "bg-lime ring-2 ring-inset ring-lime"
-                        : "hover:bg-bg-elevated/80 hover:ring-1 hover:ring-inset hover:ring-white/10",
+                        : "hover:bg-(--card)/80 hover:ring-1 hover:ring-inset hover:ring-border",
                     )}
                   >
                     <span
                       className={cn(
                         "flex-1 text-body font-medium",
-                        active ? "text-black" : "text-white",
+                        active ? "text-black" : "text-(--ink)",
                       )}
                     >
                       {opt.label}

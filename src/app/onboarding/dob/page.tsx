@@ -88,10 +88,10 @@ export default function DOBStep() {
         transition={{ duration: 0.4 }}
         className="flex flex-col gap-2"
       >
-        <h1 className="text-display text-white">
+        <h1 className="text-display text-(--ink)">
           When&apos;s your birthday<span className="text-lime">?</span>
         </h1>
-        <p className="text-body text-text-secondary">
+        <p className="text-body text-(--ink-2)">
           You won&apos;t show your age unless you choose to.
         </p>
       </motion.div>
@@ -102,7 +102,7 @@ export default function DOBStep() {
         className="mt-8 grid grid-cols-3 gap-3"
       >
         <div className="flex flex-col gap-1">
-          <Label htmlFor="dob-day" className="px-1 text-overline text-text-muted">
+          <Label htmlFor="dob-day" className="px-1 text-overline text-(--ink-3)">
             Day
           </Label>
           <Input
@@ -121,7 +121,7 @@ export default function DOBStep() {
           />
         </div>
         <div className="flex flex-col gap-1">
-          <Label htmlFor="dob-month" className="px-1 text-overline text-text-muted">
+          <Label htmlFor="dob-month" className="px-1 text-overline text-(--ink-3)">
             Month
           </Label>
           <Input
@@ -141,7 +141,7 @@ export default function DOBStep() {
           />
         </div>
         <div className="flex flex-col gap-1">
-          <Label htmlFor="dob-year" className="px-1 text-overline text-text-muted">
+          <Label htmlFor="dob-year" className="px-1 text-overline text-(--ink-3)">
             Year
           </Label>
           <Input
@@ -170,7 +170,7 @@ export default function DOBStep() {
         className={
           isUnderage
             ? "mt-6 text-caption font-medium text-pink"
-            : "mt-6 text-caption text-text-muted"
+            : "mt-6 text-caption text-(--ink-3)"
         }
       >
         {isUnderage

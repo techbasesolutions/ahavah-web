@@ -45,10 +45,10 @@ export default function ChildrenStep() {
         transition={{ duration: 0.4 }}
         className="flex flex-col gap-2"
       >
-        <h1 className="text-display text-white">
+        <h1 className="text-display text-(--ink)">
           How many children do you have<span className="text-lime">?</span>
         </h1>
-        <p className="text-body text-text-secondary">
+        <p className="text-body text-(--ink-2)">
           Tap zero if you have no children.
         </p>
       </motion.div>
@@ -69,7 +69,7 @@ export default function ChildrenStep() {
           step={1}
           ariaLabel="Number of children"
         />
-        <p className="text-caption text-text-muted">
+        <p className="text-caption text-(--ink-3)">
           From 0 to {MAX_CHILDREN}.
         </p>
       </motion.div>

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { Sparkles } from "lucide-react";
+import { Coins } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,9 +19,12 @@ import { Pill } from "@/components/kibo-ui/pill";
 
 import { apiClient, ApiError } from "@/lib/api-client";
 import { useTokenBalance } from "@/lib/use-token-balance";
+import { BackButton } from "@/components/app/back-button";
+import { BottomNav } from "@/components/app/bottom-nav";
 import {
   PageHeader,
   PageHeaderTitle,
+  PageHeaderSubtitle,
   PageShell,
 } from "@/components/app/page-shell";
 
@@ -110,29 +113,46 @@ export default function TokensPage() {
   };
 
   return (
-    <PageShell bottomPad="nav">
-      <PageHeader>
-        <PageHeaderTitle>
-          Tokens<span className="text-lime">.</span>
-        </PageHeaderTitle>
+    // 2026-05-17 rebuild: nav chrome added (PageShell desktopShell=
+    // "sidebar" + topBarTitle + mobile PageHeader with BackButton +
+    // BottomNav). Theme-aware text colors throughout (--ink, --ink-2).
+    // Removed the hand-rolled lime period accent on the page title —
+    // it wasn't a kit pattern and the user flagged it as design drift.
+    // Sparkles icon replaced with Coins (per token-icon decision).
+    <PageShell
+      bottomPad="nav"
+      desktopShell="sidebar"
+      topBarTitle="Tokens & wallet"
+    >
+      {/* Mobile header — BackButton + plain "Tokens" title (no decorative
+          lime period; PageHeaderTitle is now theme-aware). */}
+      <PageHeader pad="tight" className="md:hidden flex items-center gap-3">
+        <BackButton fallback="/settings" label="Back to settings" />
+        <PageHeaderTitle>Tokens</PageHeaderTitle>
       </PageHeader>
 
-      {/* Balance card — tone="elevated" because there's no
-          "profile-section" tone in this codebase; elevated is the
-          closest match (dark surface, no ring). */}
+      {/* Desktop wallet container — constrains the single-column content
+          to a comfortable reading width so it doesn't stretch across the
+          full sidebar content area. Mobile layout is unaffected. */}
+      <div className="md:max-w-[960px] md:mx-auto md:w-full md:px-10 md:pt-2">
+
+      {/* Balance card — kit Card tone="default" (bg-card + theme-aware
+          text-card-foreground). tone="elevated" was wrong because it hard-
+          codes text-white over bg-bg-elevated, which resolves to #FFFFFF
+          in light mode = invisible body text. Balance number stays in
+          --color-lime; the light-mode override automatically swaps to the
+          AA-safe darker citron. */}
       <motion.div
         {...fadeUp}
         transition={{ duration: 0.3 }}
-        className="mt-2 px-5"
+        className="mt-2 px-5 md:px-0 md:mt-0"
       >
-        <Card tone="elevated">
+        <Card tone="default">
           <CardContent className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-meta uppercase tracking-wide text-text-secondary">
-                Your balance
-              </p>
-              <p className="mt-1 flex items-center gap-2 text-display text-lime tabular-nums">
-                <Sparkles className="size-6" aria-hidden />
+              <p className="text-overline text-(--ink-2)">Your balance</p>
+              <p className="mt-1 flex items-center gap-2 text-display text-(--color-lime) tabular-nums">
+                <Coins className="size-6" aria-hidden />
                 {balance}
               </p>
             </div>
@@ -143,26 +163,26 @@ export default function TokensPage() {
       <motion.div
         {...fadeUp}
         transition={{ duration: 0.3, delay: 0.08 }}
-        className="mt-6 px-5"
+        className="mt-6 px-5 md:px-0"
       >
-        <h2 className="text-h3 text-white">Get more tokens</h2>
-        <p className="mt-1 text-meta text-text-secondary">
+        <h2 className="text-h3 text-(--ink)">Get more tokens</h2>
+        <PageHeaderSubtitle>
           Use tokens for reveals, super-likes, day passes, and boosts.
-        </p>
+        </PageHeaderSubtitle>
         <Choicebox
           value={selected}
           onValueChange={(v) => setSelected(v ?? "starter")}
-          className="mt-4 grid gap-3"
+          className="mt-4 grid gap-3 md:grid-cols-2"
         >
           {SKUS.map((s) => (
             <ChoiceboxItem key={s.key} value={s.key} id={`sku-${s.key}`}>
               <ChoiceboxIndicator variant="brand" />
               <ChoiceboxItemHeader>
-                <ChoiceboxItemTitle className="flex items-center gap-2 text-body text-white">
+                <ChoiceboxItemTitle className="flex items-center gap-2 text-body text-(--ink)">
                   {s.label} — {s.price}
                   {s.badge && <Pill variant="lime" size="sm">{s.badge}</Pill>}
                 </ChoiceboxItemTitle>
-                <ChoiceboxItemDescription className="text-meta text-text-secondary">
+                <ChoiceboxItemDescription className="text-meta text-(--ink-2)">
                   {s.tokens} {s.tokens === 1 ? "token" : "tokens"} · {s.per}
                 </ChoiceboxItemDescription>
               </ChoiceboxItemHeader>
@@ -172,6 +192,7 @@ export default function TokensPage() {
 
         <Button
           size="cta"
+          tone="cta"
           lift="float"
           className="mt-6 w-full"
           onClick={handleBuy}
@@ -181,7 +202,7 @@ export default function TokensPage() {
             "Opening checkout…"
           ) : (
             <>
-              <Sparkles aria-hidden />
+              <Coins aria-hidden />
               Get {activeSku.tokens} {activeSku.tokens === 1 ? "token" : "tokens"} · {activeSku.price}
             </>
           )}
@@ -190,40 +211,43 @@ export default function TokensPage() {
           <p
             role="alert"
             aria-live="polite"
-            className="mt-3 text-meta text-pink"
+            className="mt-3 text-meta text-(--color-pink)"
           >
             {errorMessage}
           </p>
         ) : null}
       </motion.div>
 
-      {/* Cross-sell — subscribers get monthly stipend tokens
-          (spec §3.4). Links to /paywall, not /profile/subscription,
-          so users land on the marketing surface and not the manage
-          surface. */}
+      {/* Cross-sell — subscribers get monthly stipend tokens (spec §3.4).
+          Links to /paywall, not /profile/subscription, so users land on
+          the marketing surface and not the manage surface. */}
       <motion.div
         {...fadeUp}
         transition={{ duration: 0.3, delay: 0.16 }}
-        className="mt-8 px-5 pb-12"
+        className="mt-8 px-5 md:px-0 pb-12"
       >
-        <Card tone="elevated">
-          <CardContent className="flex flex-col gap-2">
-            <p className="text-meta font-semibold text-white">
+        <Card tone="default">
+          <CardContent className="flex flex-col items-start gap-2">
+            <p className="text-meta font-semibold text-(--ink)">
               Want unlimited likes + see all who liked you?
             </p>
-            <p className="text-caption text-text-secondary">
+            <p className="text-caption text-(--ink-2)">
               Premium subscribers also get monthly tokens.
             </p>
-            <Link
-              href="/paywall"
-              prefetch={false}
-              className="mt-1 text-meta text-lavender underline"
+            <Button
+              variant="link"
+              size="tap"
+              className="text-(--color-lavender) p-0 h-auto"
+              render={<Link href="/paywall" prefetch={false} />}
             >
               See subscription plans
-            </Link>
+            </Button>
           </CardContent>
         </Card>
       </motion.div>
+      </div>
+
+      <BottomNav />
     </PageShell>
   );
 }

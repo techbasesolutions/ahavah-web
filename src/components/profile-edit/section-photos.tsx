@@ -227,7 +227,7 @@ export function PhotoEditSection() {
           );
         })}
       </div>
-      <p className="mt-3 text-caption text-text-muted">
+      <p className="mt-3 text-caption text-(--ink-3)">
         JPEG, PNG, or WebP. Photos are compressed before upload, then
         reviewed by automated moderation.
       </p>

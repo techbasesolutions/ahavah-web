@@ -23,7 +23,7 @@ const iconBadgeVariants = cva(
         brand:       "bg-lavender/10 text-lavender",
         destructive: "bg-pink/10     text-pink",
         success:     "bg-success/10  text-success",
-        muted:       "bg-white/5     text-text-muted",
+        muted:       "bg-white/5     text-(--ink-3)",
         // Solid lime check pill (paywall feature list, etc.) — NOT the
         // 10%-tint pattern of the other tones; this one IS the badge colour.
         cta:         "bg-lime text-black",

@@ -23,6 +23,8 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
+import { useIsDesktop } from "@/lib/use-is-desktop";
 
 /**
  * BlockReportSheet — moderation form opened from a chat thread's kebab menu.
@@ -106,6 +108,7 @@ export function BlockReportSheet({
   const [details, setDetails] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const isDesktop = useIsDesktop();
 
   const handleSubmit = async () => {
     if (!category || submitting) return;
@@ -127,22 +130,24 @@ export function BlockReportSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
-        side="bottom"
-        className="h-auto max-h-dvh gap-0 rounded-t-3xl border-white/10 bg-bg-indigo p-0"
+        side={isDesktop ? "right" : "bottom"}
+        className={cn(
+          "h-auto max-h-dvh gap-0 border-(--hairline) bg-(--app) p-0",
+          isDesktop ? "w-full sm:max-w-md" : "rounded-t-3xl",
+        )}
       >
         <SheetHeader className="px-5 pt-6 pb-2">
-          <SheetTitle className="text-h2 text-white">
+          <SheetTitle className="text-h2 text-(--ink)">
             Report {subjectName}
           </SheetTitle>
-          <SheetDescription className="text-meta text-text-secondary">
+          <SheetDescription className="text-meta text-(--ink-2)">
             Help us keep Ahavah safe. We review every report.
           </SheetDescription>
         </SheetHeader>
 
         <div className="flex flex-col gap-6 overflow-y-auto px-5 py-4">
-          {/* Category picker — Kibo Choicebox with brand radio variant */}
           <section className="flex flex-col gap-2">
-            <h3 className="text-meta font-medium text-white">
+            <h3 className="text-meta font-medium text-(--ink)">
               What&apos;s the issue?
             </h3>
             <Choicebox
@@ -158,10 +163,10 @@ export function BlockReportSheet({
                 >
                   <ChoiceboxIndicator variant="brand" />
                   <ChoiceboxItemHeader>
-                    <ChoiceboxItemTitle className="text-body text-white">
+                    <ChoiceboxItemTitle className="text-body text-(--ink)">
                       {c.title}
                     </ChoiceboxItemTitle>
-                    <ChoiceboxItemSubtitle className="text-text-muted">
+                    <ChoiceboxItemSubtitle className="text-(--ink-3)">
                       {c.description}
                     </ChoiceboxItemSubtitle>
                   </ChoiceboxItemHeader>
@@ -170,31 +175,24 @@ export function BlockReportSheet({
             </Choicebox>
           </section>
 
-          {/* Optional details */}
           <section className="flex flex-col gap-2">
-            <h3 className="text-meta font-medium text-white">
+            <h3 className="text-meta font-medium text-(--ink)">
               Additional details (optional)
             </h3>
             <Textarea
               size="lg"
-              tone="elevated"
               placeholder="Anything else our moderators should know?"
               value={details}
               onChange={(e) => setDetails(e.target.value.slice(0, 500))}
               className="min-h-24"
             />
-            <p className="text-right text-caption tabular-nums text-text-muted">
+            <p className="text-right text-caption tabular-nums text-(--ink-3)">
               {details.length}/500
             </p>
           </section>
 
-          {/* Reporting always blocks for safety — no separate "report
-              without blocking" path on the backend (the skipped table
-              is queried as a hard exclusion regardless of the reported
-              flag), so we surface that explicitly instead of a misleading
-              opt-out toggle. */}
-          <section className="rounded-xl border border-white/10 bg-bg-elevated/50 px-4 py-3">
-            <p className="text-caption text-text-secondary">
+          <section className="rounded-xl border border-(--hairline) bg-(--card) px-4 py-3">
+            <p className="text-caption text-(--ink-2)">
               Reporting always blocks {subjectName}. You won&apos;t see each
               other&apos;s profiles or messages again.
             </p>
@@ -206,7 +204,7 @@ export function BlockReportSheet({
             <p
               role="alert"
               aria-live="polite"
-              className="text-center text-caption font-semibold text-pink"
+              className="text-center text-caption font-semibold text-(--color-pink)"
             >
               {errorMessage}
             </p>
@@ -229,7 +227,7 @@ export function BlockReportSheet({
           <Button
             variant="link"
             size="sm"
-            className="self-center text-text-secondary underline"
+            className="self-center text-(--ink-2) underline"
             disabled={submitting}
             onClick={() => onOpenChange(false)}
           >

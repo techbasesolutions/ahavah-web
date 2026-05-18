@@ -2,6 +2,8 @@ import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
+import { DesktopSidebar } from "@/components/app/desktop-sidebar";
+import { DesktopTopBar } from "@/components/app/desktop-topbar";
 
 /**
  * PageShell — the outer column layout used by every top-level route.
@@ -51,20 +53,88 @@ const pageShellVariants = cva("flex flex-col", {
       none:    "min-h-dvh",
       default: "min-h-dvh pb-6",
       nav:     "min-h-dvh pb-20",
+      // `nav-fixed` is a mobile-only constraint (pin to viewport + hide
+      // overflow so the absolute action row never clips behind BottomNav).
+      // On desktop (md+) there is no BottomNav and the page must scroll
+      // freely, so we release the height pin at md and let content grow.
       "nav-fixed":
-        "h-dvh max-h-dvh overflow-hidden pb-[calc(--spacing(20)+env(safe-area-inset-bottom))]",
+        "h-dvh max-h-dvh overflow-hidden pb-[calc(--spacing(20)+env(safe-area-inset-bottom))] md:h-auto md:max-h-none md:overflow-visible md:min-h-dvh md:pb-0",
     },
   },
   defaultVariants: { bottomPad: "default" },
 });
 
+/**
+ * desktopShell controls how the route renders at ≥md:
+ *
+ * - "sidebar"     (default) — wraps children in DesktopShell (sidebar +
+ *                 content area) at md+; mobile shell renders at <md only.
+ * - "full-bleed"  — no DesktopShell wrapper; children fill the viewport
+ *                 directly at all sizes. Use for: welcome / auth /
+ *                 onboarding / match / paywall / locked.
+ * - "mobile-only" — legacy: only the mobile column ever renders; the
+ *                 desktop slot is omitted. Use for routes not yet
+ *                 desktop-ified.
+ *
+ * Visibility is handled with Tailwind responsive prefixes — NO JS
+ * branching (no useMediaQuery). The mobile <div> carries `md:hidden`
+ * and the DesktopShell carries `hidden md:grid`.
+ */
 export function PageShell({
   children,
   bottomPad,
   className,
+  desktopShell = "sidebar",
+  topBarTitle,
+  topBarActions,
   ...props
 }: VariantProps<typeof pageShellVariants> &
-  React.ComponentProps<"div">) {
+  React.ComponentProps<"div"> & {
+    desktopShell?: "sidebar" | "full-bleed" | "mobile-only";
+    /** Title string for the desktop top bar (only used when desktopShell="sidebar"). */
+    topBarTitle?: string;
+    /** Actions slot for the desktop top bar (only used when desktopShell="sidebar"). */
+    topBarActions?: React.ReactNode;
+  }) {
+  if (desktopShell === "sidebar") {
+    const topBar = topBarTitle ? (
+      <DesktopTopBar title={topBarTitle} actions={topBarActions} />
+    ) : undefined;
+
+    return (
+      <div className="md:flex md:min-h-dvh md:bg-(--canvas,#ECE9E0)">
+        {/* MobileThemeFloat removed 2026-05-17 per user direction — the
+            floating top-corner toggle was visually disruptive on mobile.
+            Theme switching on mobile is now accessed via /settings →
+            Theme row. Desktop keeps the icon in DesktopTopBar. */}
+
+        {/* Sidebar: chrome only — hidden md:flex inside the component itself */}
+        <DesktopSidebar />
+
+        {/* Main column */}
+        <div className="md:flex md:flex-1 md:flex-col md:min-w-0">
+          {topBar /* DesktopTopBar is hidden md:flex internally */}
+          <div
+            data-slot="page-shell"
+            className={cn(
+              pageShellVariants({ bottomPad }),
+              // Desktop loses the mobile bottom-nav clearance and gets 32px page padding instead
+              "md:p-8 md:pb-8 md:min-h-0",
+              className,
+            )}
+            {...props}
+          >
+            {children}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // full-bleed + mobile-only: render only the single mobile-style column.
+  // Note: pre-auth routes (welcome/sign-in/sign-up/onboarding) use this
+  // branch and DO NOT get the floating mobile theme toggle — theme is
+  // selectable post-onboarding via the global controls.
   return (
     <div
       data-slot="page-shell"
@@ -111,18 +181,25 @@ export function PageHeader({
 }
 
 export function PageHeaderTitle({ children }: { children: React.ReactNode }) {
+  // Theme-aware: --ink resolves to white in dark theme, near-black in
+  // light theme. `text-white` hardcoded was a dark-mode-only choice that
+  // rendered invisible white-on-cream in light theme (2026-05-17 fix).
   return (
-    <h1 data-slot="page-header-title" className="text-display text-white">
+    <h1
+      data-slot="page-header-title"
+      className="text-display text-(--ink)"
+    >
       {children}
     </h1>
   );
 }
 
 export function PageHeaderSubtitle({ children }: { children: React.ReactNode }) {
+  // Theme-aware: --ink-2 = B5B0CC dark / oklch(0.45...) light.
   return (
     <p
       data-slot="page-header-subtitle"
-      className="mt-2 text-meta text-text-secondary"
+      className="mt-2 text-meta text-(--ink-2)"
     >
       {children}
     </p>

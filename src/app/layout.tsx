@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 
 import { ServiceWorkerRegister } from "@/components/sw-register";
+import { ThemeProvider } from "@/components/system/theme-provider";
 
 import "./globals.css";
 
@@ -52,28 +53,30 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
-        {/* Skip link — hidden by default, surfaces on keyboard focus.
-            WCAG 2.4.1 (Bypass Blocks). Lets keyboard users jump past
-            decorative + repeated chrome straight to the route content. */}
-        <a
-          href="#ahavah-main"
-          className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-100 focus:rounded-lg focus:bg-lime focus:px-4 focus:py-2 focus:text-meta focus:font-bold focus:text-black"
-        >
-          Skip to main content
-        </a>
-        {/*
-         * App sits in a 414px-max-width column centered on pure-black canvas.
-         * Matches Dateasy editorial-mockup style AND iPhone widths (390-430).
-         * Installed PWA on phone renders edge-to-edge since width ≤ 414.
-         */}
-        {/* tabIndex={-1} makes <main> programmatically focusable so the
-            skip-link's `#ahavah-main` fragment activation moves keyboard
-            focus here (browsers don't focus non-interactive elements
-            on fragment navigation by default). */}
-        <main id="ahavah-main" tabIndex={-1} className="ahavah-app focus-visible:outline-none">
-          {children}
-        </main>
-        <ServiceWorkerRegister />
+        <ThemeProvider>
+          {/* Skip link — hidden by default, surfaces on keyboard focus.
+              WCAG 2.4.1 (Bypass Blocks). Lets keyboard users jump past
+              decorative + repeated chrome straight to the route content. */}
+          <a
+            href="#ahavah-main"
+            className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-100 focus:rounded-lg focus:bg-lime focus:px-4 focus:py-2 focus:text-meta focus:font-bold focus:text-black"
+          >
+            Skip to main content
+          </a>
+          {/*
+           * App sits in a 414px-max-width column centered on pure-black canvas.
+           * Matches Dateasy editorial-mockup style AND iPhone widths (390-430).
+           * Installed PWA on phone renders edge-to-edge since width ≤ 414.
+           */}
+          {/* tabIndex={-1} makes <main> programmatically focusable so the
+              skip-link's `#ahavah-main` fragment activation moves keyboard
+              focus here (browsers don't focus non-interactive elements
+              on fragment navigation by default). */}
+          <main id="ahavah-main" tabIndex={-1} className="ahavah-app focus-visible:outline-none">
+            {children}
+          </main>
+          <ServiceWorkerRegister />
+        </ThemeProvider>
       </body>
     </html>
   );

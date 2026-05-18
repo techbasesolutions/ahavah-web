@@ -23,13 +23,7 @@ import {
   ItemTitle,
 } from "@/components/ui/item";
 
-import { BackButton } from "@/components/app/back-button";
-import { BottomNav } from "@/components/app/bottom-nav";
-import {
-  PageHeader,
-  PageHeaderTitle,
-  PageShell,
-} from "@/components/app/page-shell";
+import { SettingsShell } from "@/components/app/settings-shell";
 
 const fadeUp = {
   initial: { opacity: 0, y: 12 },
@@ -87,13 +81,8 @@ const RESOURCES: ReadonlyArray<{
 
 export default function SafetyTipsPage() {
   return (
-    <PageShell bottomPad="nav">
-      <PageHeader pad="tight" className="flex items-center gap-3">
-        <BackButton fallback="/settings" label="Back to settings" />
-        <PageHeaderTitle>Safety tips</PageHeaderTitle>
-      </PageHeader>
-
-      <div className="flex flex-col gap-6 px-3 pt-4">
+    <SettingsShell title="Safety tips">
+      <div className="flex flex-col gap-6 px-3 pt-4 md:px-0 md:pt-0">
         {/* Hero card — friendly assurance */}
         <motion.div
           {...fadeUp}
@@ -105,14 +94,14 @@ export default function SafetyTipsPage() {
                 <ShieldCheck />
               </IconBadge>
               <div className="flex-1">
-                <h2 className="text-h3 text-white">We&apos;ve got your back</h2>
-                <p className="text-meta text-white/85">
+                <h2 className="text-h3 text-(--ink)">We&apos;ve got your back</h2>
+                <p className="text-meta text-(--ink)/85">
                   Photos verified, reports reviewed, blocks instant.
                 </p>
               </div>
             </CardHeader>
             <CardContent className="px-0">
-              <p className="text-body leading-relaxed text-white/90">
+              <p className="text-body leading-relaxed text-(--ink)/90">
                 Ahavah uses on-device photo verification, 24-hour report review,
                 and instant block-and-mute. If something feels off, act on it —
                 we&apos;ll handle the rest.
@@ -128,7 +117,7 @@ export default function SafetyTipsPage() {
           transition={{ duration: 0.25, delay: 0.11 }}
           className="flex flex-col gap-3"
         >
-          <h2 className="px-3 text-overline text-text-muted">Tips</h2>
+          <h2 className="px-3 text-overline text-(--ink-3)">Tips</h2>
           <ItemGroup className="gap-3 px-3">
             {SAFETY_TIPS.map((tip) => (
               <Item key={tip.title} className="items-start px-0 py-0">
@@ -138,10 +127,10 @@ export default function SafetyTipsPage() {
                   </IconBadge>
                 </ItemMedia>
                 <ItemContent>
-                  <ItemTitle className="text-meta font-medium text-white">
+                  <ItemTitle className="text-meta font-medium text-(--ink)">
                     {tip.title}
                   </ItemTitle>
-                  <ItemDescription className="text-caption leading-relaxed text-text-muted">
+                  <ItemDescription className="text-caption leading-relaxed text-(--ink-3)">
                     {tip.body}
                   </ItemDescription>
                 </ItemContent>
@@ -158,7 +147,7 @@ export default function SafetyTipsPage() {
           transition={{ duration: 0.25, delay: 0.17 }}
           className="flex flex-col gap-2"
         >
-          <h2 className="px-3 text-overline text-text-muted">Resources</h2>
+          <h2 className="px-3 text-overline text-(--ink-3)">Resources</h2>
           <ItemGroup className="gap-1">
             {RESOURCES.map((item) => (
               <Item
@@ -178,12 +167,12 @@ export default function SafetyTipsPage() {
                   </IconBadge>
                 </ItemMedia>
                 <ItemContent>
-                  <ItemTitle className="text-meta text-white">
+                  <ItemTitle className="text-meta text-(--ink)">
                     {item.title}
                   </ItemTitle>
                 </ItemContent>
                 <ItemActions>
-                  <ChevronRight className="size-4 text-text-muted" />
+                  <ChevronRight className="size-4 text-(--ink-3)" />
                 </ItemActions>
               </Item>
             ))}
@@ -191,7 +180,6 @@ export default function SafetyTipsPage() {
         </motion.section>
       </div>
 
-      <BottomNav />
-    </PageShell>
+    </SettingsShell>
   );
 }

@@ -36,7 +36,7 @@ const dotVariants = cva("rounded-full transition-all duration-200", {
     },
     tone: {
       // Lime = brand-primary (onboarding intro carousel).
-      lime:  "data-[state=active]:bg-lime data-[state=inactive]:bg-white/15",
+      lime:  "data-[state=active]:bg-lime data-[state=inactive]:bg-foreground/15",
       // White = on-photo paginator (profile/[uuid]).
       white: "data-[state=active]:bg-white data-[state=inactive]:bg-white/40",
     },
@@ -49,7 +49,7 @@ const barVariants = cva(
   {
     variants: {
       tone: {
-        lime:  "data-[state=reached]:bg-lime data-[state=upcoming]:bg-white/15",
+        lime:  "data-[state=reached]:bg-lime data-[state=upcoming]:bg-foreground/15",
         white: "data-[state=reached]:bg-white data-[state=upcoming]:bg-white/40",
       },
     },

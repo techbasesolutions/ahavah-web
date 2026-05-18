@@ -6,31 +6,64 @@ import { cn } from "@/lib/utils"
 
 /**
  * Input variants — `size` controls height/padding/radius scale,
- * `tone` controls surface (transparent vs elevated dark fill).
- * Body text size is locked to 16px on mobile (text-body) regardless of
- * size variant, to prevent iOS auto-zoom on focus (mobile-responsive skill).
+ * `tone` controls surface (bg-card default vs bg-app elevated).
+ *
+ * Sizes match spec Layer 2 · Input:
+ *   sm  — 40px / radius-md / 14px font
+ *   md  — 48px / radius-md / 16px font
+ *   lg  — 56px / radius-lg / 16px font  ← default for forms
+ *
+ * Tones:
+ *   default  — bg-card surface (white in light mode)
+ *   elevated — bg-app surface (use inside a card to avoid surface clash)
+ *
+ * Error state:
+ *   Pass `error={true}` to apply a 1.5px pink border (--color-pink).
+ *   Helper / error text is the caller's responsibility — render a
+ *   <p className="text-caption text-[var(--color-pink)]"> below the Input.
+ *   Associate it via aria-describedby on the Input for accessibility.
+ *
+ * Body text size is locked to 16px on mobile regardless of size variant,
+ * to prevent iOS auto-zoom on focus (mobile-responsive skill).
  */
 const inputVariants = cva(
-  "w-full min-w-0 border bg-transparent transition-colors outline-none file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:bg-input/30 dark:disabled:bg-input/80 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",
+  // 2026-05-17: border-width fixed at 1.5px at rest AND on focus.
+  // Previously the cva changed border-width from 1px (default `border`)
+  // to 1.5px on focus-visible, which caused a 0.5px sub-pixel jitter at
+  // the input's edges (visible as a "clipped stroke" on focus). Now only
+  // the border-COLOR changes on focus — width is constant so no layout
+  // shift, no anti-aliasing artifacts, no apparent clipping. Spec
+  // (design-system-v2.md §Input) says "border IS the focus" — width-
+  // change was implementation choice, not a spec requirement.
+  "w-full min-w-0 [border-width:1.5px] border-[var(--border-subtle)] bg-[var(--bg-card)] text-[var(--fg-default)] transition-colors outline-none file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-[var(--fg-subtle)] hover:border-[var(--border-default)] focus-visible:border-[var(--color-lavender)] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50",
   {
     variants: {
       size: {
-        default: "h-8 rounded-lg px-2.5 py-1 text-base md:text-sm",
-        sm: "h-7 rounded-md px-2 py-1 text-sm",
-        lg: "h-input rounded-2xl px-5 py-3 text-body",
+        // sm: 40px height — compact form rows, search bars
+        sm: "h-10 rounded-[var(--radius-md)] px-3 py-2 text-[14px]",
+        // md: 48px height — standard density
+        md: "h-12 rounded-[var(--radius-md)] px-4 py-2.5 text-base",
+        // lg: 56px height — primary form default (matches --size-tap-xl)
+        lg: "h-14 rounded-[var(--radius-lg)] px-5 py-3 text-base",
       },
       tone: {
-        default: "border-input",
-        // Subtle 1px white/10 border carries the input boundary when the
-        // bg-bg-elevated fill alone is too close to the page bg-indigo to
-        // satisfy WCAG 3:1 UI contrast. Focus-visible (handled in the base
-        // string) replaces border-color with --ring.
-        elevated: "border-white/10 bg-bg-elevated! text-white placeholder:text-text-muted",
+        // default: bg-card (white in light / dark card in dark)
+        default: "border-[var(--border-subtle)]",
+        // elevated: bg-app surface — use inside a card to avoid surface clash.
+        // Subtle border carries boundary where bg-app is close to bg-card.
+        elevated: "border-[var(--border-subtle)] bg-[var(--bg-app)]!",
+      },
+      // error: applies 1.5px pink border per spec.
+      // Helper text is caller's responsibility (see JSDoc above).
+      error: {
+        true: "[border-width:1.5px] border-[var(--color-pink)] hover:border-[var(--color-pink)] focus-visible:border-[var(--color-pink)]",
+        false: "",
       },
     },
     defaultVariants: {
-      size: "default",
+      size: "lg",
       tone: "default",
+      error: false,
     },
   }
 )
@@ -40,13 +73,16 @@ function Input({
   type,
   size,
   tone,
+  error,
   ...props
-}: Omit<React.ComponentProps<"input">, "size"> & VariantProps<typeof inputVariants>) {
+}: Omit<React.ComponentProps<"input">, "size"> &
+  VariantProps<typeof inputVariants>) {
   return (
     <InputPrimitive
       type={type}
       data-slot="input"
-      className={cn(inputVariants({ size, tone }), className)}
+      data-error={error ? "true" : undefined}
+      className={cn(inputVariants({ size, tone, error }), className)}
       {...props}
     />
   )

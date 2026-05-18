@@ -83,9 +83,9 @@ export default function IdentitySection() {
           readOnly
           aria-readonly="true"
           tabIndex={-1}
-          className="cursor-not-allowed bg-white/3 text-text-secondary"
+          className="cursor-not-allowed bg-white/3 text-(--ink-2)"
         />
-        <p className="text-caption text-text-muted">
+        <p className="text-caption text-(--ink-3)">
           Calculated from your date of birth — contact support to correct.
         </p>
       </div>
@@ -119,7 +119,7 @@ export default function IdentitySection() {
           doesn't clobber the saved value — user must type a number for it
           to commit. 0 is a valid distinct value (kid-free). */}
       <div className="flex flex-col gap-2">
-        <Label htmlFor="edit-children" className="text-meta text-white">
+        <Label htmlFor="edit-children" className="text-meta text-(--ink)">
           Children
         </Label>
         <Input
@@ -146,7 +146,7 @@ export default function IdentitySection() {
           }}
           aria-describedby="edit-children-help"
         />
-        <p id="edit-children-help" className="text-caption text-text-muted">
+        <p id="edit-children-help" className="text-caption text-(--ink-3)">
           Whole number from 0 to 20.
         </p>
       </div>

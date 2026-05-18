@@ -99,12 +99,12 @@ export default function VerifySilverPage() {
       <PageHeader pad="tight" className="flex items-center gap-3">
         <Button
           nativeButton={false}
-          size="circle"
+          size="circle-lg"
           tone="elevated"
           aria-label="Back to verification"
           render={<Link href="/verify" prefetch={false} />}
         >
-          <ArrowLeft className="text-white" />
+          <ArrowLeft className="text-(--ink)" />
         </Button>
         <PageHeaderTitle>Silver verification</PageHeaderTitle>
       </PageHeader>
@@ -135,10 +135,10 @@ export default function VerifySilverPage() {
             </IconBadge>
           </div>
           <div className="flex max-w-sm flex-col gap-2">
-            <h2 className="text-h2 leading-tight text-white">
+            <h2 className="text-h2 leading-tight text-(--ink)">
               Liveness verified
             </h2>
-            <p className="text-body leading-relaxed text-text-secondary">
+            <p className="text-body leading-relaxed text-(--ink-2)">
               Three quick selfies with different head angles prove
               you&apos;re a live person — not a single photo held to
               the camera. Stronger trust signal than Bronze, no ID
@@ -154,11 +154,11 @@ export default function VerifySilverPage() {
           className="flex flex-col gap-4"
           aria-label="How it works"
         >
-          <h2 className="text-overline text-text-muted">How it works</h2>
+          <h2 className="text-overline text-(--ink-3)">How it works</h2>
           <div className="relative">
             <span
               aria-hidden
-              className="absolute top-5 bottom-5 left-5 z-0 w-px bg-white/10"
+              className="absolute top-5 bottom-5 left-5 z-0 w-px bg-foreground/10"
             />
             <ol className="flex flex-col gap-5">
               {HOWTO.map((step, i) => (
@@ -174,10 +174,10 @@ export default function VerifySilverPage() {
                       {i + 1}
                     </IconBadge>
                     <div className="flex-1 pt-1.5">
-                      <p className="text-meta font-semibold text-white">
+                      <p className="text-meta font-semibold text-(--ink)">
                         {step.title}
                       </p>
-                      <p className="mt-1 text-caption leading-relaxed text-text-muted">
+                      <p className="mt-1 text-caption leading-relaxed text-(--ink-3)">
                         {step.description}
                       </p>
                     </div>
@@ -199,7 +199,7 @@ export default function VerifySilverPage() {
             <div
               role="status"
               aria-live="polite"
-              className="flex flex-col items-center gap-3 rounded-2xl border border-white/10 bg-bg-elevated/60 p-5 text-center"
+              className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-(--card)/60 p-5 text-center"
             >
               <ProgressDots
                 count={3}
@@ -207,10 +207,10 @@ export default function VerifySilverPage() {
                 size="md"
                 tone="white"
               />
-              <p className="text-h3 text-white">
+              <p className="text-h3 text-(--ink)">
                 {SILVER_FRAME_PROMPTS[activeFrame].title}
               </p>
-              <p className="text-meta text-text-secondary">
+              <p className="text-meta text-(--ink-2)">
                 {SILVER_FRAME_PROMPTS[activeFrame].hint}
               </p>
               <Button
@@ -225,7 +225,7 @@ export default function VerifySilverPage() {
               <button
                 type="button"
                 onClick={reset}
-                className="mt-1 text-caption text-text-muted underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                className="mt-1 text-caption text-(--ink-3) underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
               >
                 Cancel and start over
               </button>
@@ -239,8 +239,8 @@ export default function VerifySilverPage() {
               className="flex flex-col items-center gap-2 rounded-2xl border border-lime/40 bg-lime/10 p-5 text-center"
             >
               <CheckCircle2 className="size-10 text-lime" aria-hidden />
-              <p className="text-h3 text-white">You&apos;re Silver-verified</p>
-              <p className="text-meta text-text-secondary">
+              <p className="text-h3 text-(--ink)">You&apos;re Silver-verified</p>
+              <p className="text-meta text-(--ink-2)">
                 Your badge is live on your profile. Try Gold for
                 government-ID verification.
               </p>
@@ -264,8 +264,8 @@ export default function VerifySilverPage() {
               className="flex flex-col items-center gap-2 rounded-2xl border border-pink/40 bg-pink/10 p-5 text-center"
             >
               <XCircle className="size-10 text-pink" aria-hidden />
-              <p className="text-h3 text-white">Burst declined</p>
-              <p className="text-meta text-text-secondary">{state.reason}</p>
+              <p className="text-h3 text-(--ink)">Burst declined</p>
+              <p className="text-meta text-(--ink-2)">{state.reason}</p>
               <Button
                 size="lg"
                 tone="brand"
@@ -303,12 +303,12 @@ export default function VerifySilverPage() {
             <div
               role="status"
               aria-live="polite"
-              className="flex flex-col items-center gap-3 rounded-2xl border border-white/10 bg-bg-elevated/60 p-5 text-center"
+              className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-(--card)/60 p-5 text-center"
             >
               <Loader2 className="size-8 animate-spin text-lavender" />
-              <p className="text-meta text-text-secondary">{statusLabel}</p>
+              <p className="text-meta text-(--ink-2)">{statusLabel}</p>
               {state.kind === "reviewing" ? (
-                <p className="text-caption text-text-muted">
+                <p className="text-caption text-(--ink-3)">
                   You can leave this page — we&apos;ll update your badge
                   automatically.
                 </p>
@@ -319,7 +319,7 @@ export default function VerifySilverPage() {
           {/* Idle — primary CTA starts the burst */}
           {state.kind === "idle" && (
             <>
-              <p className="text-center text-caption text-text-muted">
+              <p className="text-center text-caption text-(--ink-3)">
                 Three quick captures. Takes about 90 seconds total.
               </p>
               <Button
@@ -331,7 +331,7 @@ export default function VerifySilverPage() {
               >
                 Start liveness check
               </Button>
-              <p className="text-center text-caption leading-relaxed text-text-muted">
+              <p className="text-center text-caption leading-relaxed text-(--ink-3)">
                 Each selfie is processed by the same verification cron
                 Bronze uses. Only the yes/no result is stored.
               </p>

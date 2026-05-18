@@ -37,7 +37,7 @@ export function ChatInput({
   onSend,
 }: ChatInputProps) {
   return (
-    <div className="flex items-center gap-3 border-t border-white/10 px-3 py-3">
+    <div className="flex items-center gap-3 border-t border-border px-3 py-3">
       <Button
         size="icon-tap"
         variant="ghost"
@@ -66,7 +66,7 @@ export function ChatInput({
           }
         }}
       />
-      <Button size="circle" tone="cta" aria-label="Send" onClick={onSend}>
+      <Button size="circle-lg" tone="cta" aria-label="Send" onClick={onSend}>
         <Send className="text-black" />
       </Button>
     </div>

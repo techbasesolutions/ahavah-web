@@ -10,20 +10,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-import { BrandMark } from "@/components/brand/sparkle-mark";
+import { Logo } from "@/components/brand/logo";
 import { PageShell } from "@/components/app/page-shell";
+import { AuthIllustration } from "@/components/app/auth-illustration";
 import { ApiError } from "@/lib/api-client";
 import { requestEmailOtp } from "@/lib/auth-otp";
 import { PENDING_EMAIL_KEY } from "@/lib/storage-keys";
 import { useRedirectIfSignedIn } from "@/lib/use-redirect-if-signed-in";
 
 /**
- * Returning user flow. Single email field; no password. Submit triggers
- * /request-otp, then routes to /onboarding/verify-email (the same OTP-box
- * page used by sign-up). The /check-otp response includes `is_new_account`
- * which is used by verify-email to branch new vs. returning users.
- *
- * Mirrors sign-up's handler exactly so the auth surface area stays small.
+ * Sign-in has no dedicated canonical screen — mirrors sign-up's 5fr/7fr
+ * split shell for auth-surface consistency. Form is single email field
+ * (OTP-only), no password.
  */
 
 const fadeUp = {
@@ -31,18 +29,81 @@ const fadeUp = {
   animate: { opacity: 1, y: 0 },
 };
 
+type FormProps = {
+  email: string;
+  setEmail: (v: string) => void;
+  submitting: boolean;
+  error: string | null;
+  isComplete: boolean;
+  onSubmit: (e: React.FormEvent) => void;
+  variant: "mobile" | "desktop";
+};
+
+function SignInForm({
+  email,
+  setEmail,
+  submitting,
+  error,
+  isComplete,
+  onSubmit,
+  variant,
+}: FormProps) {
+  const idPrefix = variant === "desktop" ? "d-signin" : "signin";
+  return (
+    <form onSubmit={onSubmit} className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2">
+        <Label htmlFor={`${idPrefix}-email`} className="text-caption text-(--ink-2)">
+          Email
+        </Label>
+        <Input
+          id={`${idPrefix}-email`}
+          type="email"
+          autoComplete="email"
+          size="lg"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@example.com"
+          className="bg-(--app)"
+        />
+      </div>
+
+      <Button
+        type="submit"
+        size="cta"
+        tone="cta"
+        lift={isComplete && !submitting ? "float" : "none"}
+        disabled={!isComplete || submitting}
+      >
+        {submitting ? (
+          <>
+            <Loader2 className="animate-spin" />
+            Sending code…
+          </>
+        ) : (
+          "Send code"
+        )}
+      </Button>
+
+      {error && (
+        <p
+          role="alert"
+          aria-live="polite"
+          className="text-center text-caption font-semibold text-(--color-pink)"
+        >
+          {error}
+        </p>
+      )}
+    </form>
+  );
+}
+
 export default function SignInPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Returning user who's already authenticated should skip this page
-  // entirely and land on /discover.
   const { checking } = useRedirectIfSignedIn();
 
-  // Prefill from the welcome page's email input (see /page.tsx). Same
-  // PENDING_EMAIL_KEY is used as the bridge through this page to
-  // /onboarding/verify-email below.
   useEffect(() => {
     const prefill = sessionStorage.getItem(PENDING_EMAIL_KEY);
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -62,13 +123,9 @@ export default function SignInPage() {
       router.push("/onboarding/verify-email");
     } catch (err) {
       if (err instanceof ApiError && err.status === 461) {
-        // Backend marked this account/email as banned. Edge surface
-        // explains what happened — generic 'something went wrong'
-        // would be a worse UX for a real ban.
         router.push("/banned");
         return;
       } else if (err instanceof ApiError && err.status === 460) {
-        // IP blocked (firehol). Same idea — surface the right page.
         router.push("/locked");
         return;
       } else if (err instanceof ApiError && err.status === 429) {
@@ -84,107 +141,102 @@ export default function SignInPage() {
 
   if (checking) {
     return (
-      <PageShell bottomPad="default" className="items-center justify-center px-5">
-        <p className="text-body text-text-secondary">Signing you in…</p>
+      <PageShell
+        desktopShell="full-bleed"
+        bottomPad="default"
+        className="items-center justify-center px-5"
+      >
+        <p className="text-body text-(--ink-2)">Signing you in…</p>
       </PageShell>
     );
   }
 
+  const formProps = {
+    email,
+    setEmail,
+    submitting,
+    error,
+    isComplete,
+    onSubmit: handleSubmit,
+  };
+
   return (
-    <PageShell bottomPad="default" className="px-5 pt-6">
-      <motion.div
-        {...fadeUp}
-        transition={{ duration: 0.25 }}
-        className="flex justify-center pt-2"
-      >
-        <BrandMark size="md" />
-      </motion.div>
-
-      <motion.div
-        {...fadeUp}
-        transition={{ duration: 0.25, delay: 0.07 }}
-        className="mt-6 flex flex-col gap-2 text-center"
-      >
-        <h1 className="text-display text-white">
-          Welcome back<span className="text-lime">.</span>
-        </h1>
-        <p className="text-body text-text-secondary">
-          Enter your email and we&apos;ll send a sign-in code.
-        </p>
-      </motion.div>
-
-      <motion.form
-        {...fadeUp}
-        transition={{ duration: 0.25, delay: 0.14 }}
-        className="mt-8 flex flex-col gap-4"
-        onSubmit={handleSubmit}
-      >
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="signin-email" className="text-meta text-white">
-            Email
-          </Label>
-          <Input
-            id="signin-email"
-            type="email"
-            autoComplete="email"
-            size="lg"
-            tone="elevated"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
-          />
+    <PageShell desktopShell="full-bleed" bottomPad="default" className="min-h-dvh">
+      {/* ── DESKTOP (≥md) — mirrors sign-up split shell ─────────────── */}
+      <div className="hidden md:grid md:grid-cols-[5fr_7fr] md:min-h-dvh">
+        <div className="bg-(--card) p-14 lg:p-16 flex flex-col gap-6">
+          <Logo variant="horizontal" size="md" priority />
+          <div className="flex-1 flex flex-col justify-center gap-4.5 max-w-105">
+            <div>
+              <h1 className="text-display-lg font-extrabold leading-tight tracking-tight text-(--ink) m-0">
+                Welcome back<span className="text-(--color-lime)">.</span>
+              </h1>
+              <p className="mt-2.5 text-meta text-(--ink-2)">
+                Enter your email and we&apos;ll send a sign-in code.
+              </p>
+            </div>
+            <SignInForm {...formProps} variant="desktop" />
+            <div className="flex items-center justify-start gap-2 text-meta text-(--ink-2)">
+              <span>New here?</span>
+              <Link
+                href="/auth/sign-up"
+                prefetch={false}
+                className="font-semibold text-(--color-lavender) underline-offset-2 hover:underline"
+              >
+                Create account
+              </Link>
+            </div>
+          </div>
         </div>
+        <AuthIllustration />
+      </div>
 
-        {isComplete ? (
-          <Button
-            type="submit"
-            size="cta"
-            tone="cta"
-            lift="float"
-            disabled={submitting}
-          >
-            {submitting ? (
-              <>
-                <Loader2 className="animate-spin" />
-                Sending code...
-              </>
-            ) : (
-              "Send code"
-            )}
-          </Button>
-        ) : (
-          <Button type="submit" variant="outlineSubtle" size="cta" disabled>
-            Send code
-          </Button>
-        )}
-
-        {error ? (
-          <p
-            role="alert"
-            aria-live="polite"
-            className="text-center text-caption font-semibold text-pink"
-          >
-            {error}
-          </p>
-        ) : null}
-      </motion.form>
-
-      <motion.div
-        {...fadeUp}
-        transition={{ duration: 0.25, delay: 0.21 }}
-        className="mt-6 flex items-center justify-center gap-2 text-meta text-text-secondary"
-      >
-        <span>New here?</span>
-        <Button
-          nativeButton={false}
-          variant="link"
-          size="tap"
-          className="text-lavender"
-          render={<Link href="/auth/sign-up" prefetch={false} />}
+      {/* ── MOBILE (<md) ────────────────────────────────────────────── */}
+      <div className="md:hidden px-5 pt-6 flex flex-col">
+        <motion.div
+          {...fadeUp}
+          transition={{ duration: 0.25 }}
+          className="flex justify-center pt-2"
         >
-          Create account
-        </Button>
-      </motion.div>
+          <Logo variant="horizontal" size="md" priority />
+        </motion.div>
+
+        <motion.div
+          {...fadeUp}
+          transition={{ duration: 0.25, delay: 0.07 }}
+          className="mt-6 flex flex-col gap-2 text-center"
+        >
+          <h1 className="text-display text-(--ink)">
+            Welcome back<span className="text-(--color-lime)">.</span>
+          </h1>
+          <p className="text-body text-(--ink-2)">
+            Enter your email and we&apos;ll send a sign-in code.
+          </p>
+        </motion.div>
+
+        <motion.div
+          {...fadeUp}
+          transition={{ duration: 0.25, delay: 0.14 }}
+          className="mt-8"
+        >
+          <SignInForm {...formProps} variant="mobile" />
+        </motion.div>
+
+        <motion.div
+          {...fadeUp}
+          transition={{ duration: 0.25, delay: 0.21 }}
+          className="mt-6 mb-8 flex items-center justify-center gap-2 text-meta text-(--ink-2)"
+        >
+          <span>New here?</span>
+          <Link
+            href="/auth/sign-up"
+            prefetch={false}
+            className="font-semibold text-(--color-lavender)"
+          >
+            Create account
+          </Link>
+        </motion.div>
+      </div>
     </PageShell>
   );
 }

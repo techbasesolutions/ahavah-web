@@ -10,6 +10,7 @@ export function ServiceWorkerRegister() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (!("serviceWorker" in navigator)) return;
+    if (typeof navigator.serviceWorker?.getRegistrations !== "function") return;
     // Skip in dev — the response cache hides Tailwind/HMR rebuilds and
     // produces stale-CSS hydration mismatches. PWA is a prod-only
     // enhancement; in dev we want every navigation to hit the dev server.

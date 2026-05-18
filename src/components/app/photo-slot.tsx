@@ -14,8 +14,8 @@ const slotVariants = cva(
     variants: {
       state: {
         empty:
-          "border-2 border-dashed border-white/15 bg-bg-elevated/50 hover:bg-bg-elevated/80 cursor-pointer",
-        loading: "border-2 border-solid border-white/15 bg-bg-elevated/50",
+          "border-2 border-dashed border-border bg-(--card)/50 hover:bg-(--card)/80 cursor-pointer",
+        loading: "border-2 border-solid border-border bg-(--card)/50",
         filled: "border-[3px] border-white shadow-2xl",
         // Awaiting moderation verdict: filled image renders at reduced
         // opacity with an amber "Reviewing" pill overlaid. The image
@@ -24,8 +24,8 @@ const slotVariants = cva(
         // Photocleaner has flagged / will flag. Slot renders as an empty
         // pink-bordered tile with caption; tap to re-upload.
         rejected:
-          "border-2 border-solid border-pink/60 bg-bg-elevated/50 cursor-pointer",
-        error: "border-2 border-solid border-pink/40 bg-bg-elevated/50",
+          "border-2 border-solid border-pink/60 bg-(--card)/50 cursor-pointer",
+        error: "border-2 border-solid border-pink/40 bg-(--card)/50",
       },
     },
     defaultVariants: { state: "empty" },
@@ -111,7 +111,7 @@ export function PhotoSlot({
           className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-lavender"
         >
           <Loader2 className="size-6 animate-spin" aria-hidden />
-          <span className="text-caption text-text-muted">Uploading…</span>
+          <span className="text-caption text-(--ink-3)">Uploading…</span>
         </div>
       )}
 
@@ -140,7 +140,7 @@ export function PhotoSlot({
               onClick={onRemove}
               aria-label={`Remove photo ${index + 1}`}
               className={cn(
-                "absolute z-20 flex size-tap items-center justify-center rounded-full bg-black/45 text-white outline-none focus-visible:ring-2 focus-visible:ring-pink",
+                "absolute z-20 flex size-tap items-center justify-center rounded-full bg-black/45 text-(--ink) outline-none focus-visible:ring-2 focus-visible:ring-pink",
                 isMain ? "bottom-2 right-2" : "top-2 right-2",
               )}
             >
@@ -171,7 +171,7 @@ export function PhotoSlot({
               onClick={onRemove}
               aria-label={`Remove photo ${index + 1}`}
               className={cn(
-                "absolute z-20 flex size-tap items-center justify-center rounded-full bg-black/45 text-white outline-none focus-visible:ring-2 focus-visible:ring-pink",
+                "absolute z-20 flex size-tap items-center justify-center rounded-full bg-black/45 text-(--ink) outline-none focus-visible:ring-2 focus-visible:ring-pink",
                 isMain ? "bottom-2 right-2" : "top-2 right-2",
               )}
             >
@@ -192,7 +192,7 @@ export function PhotoSlot({
           <span className="text-caption text-pink text-center">
             Photo declined
           </span>
-          <span className="text-overline text-text-muted text-center">
+          <span className="text-overline text-(--ink-3) text-center">
             Tap to try another
           </span>
         </button>

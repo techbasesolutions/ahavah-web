@@ -62,10 +62,10 @@ export default function VerificationStep() {
         transition={{ duration: 0.4 }}
         className="flex flex-col gap-2"
       >
-        <h1 className="text-display text-white">
+        <h1 className="text-display text-(--ink)">
           Trust takes you further<span className="text-lime">.</span>
         </h1>
-        <p className="text-body text-text-secondary">
+        <p className="text-body text-(--ink-2)">
           Pick where you want to start verifying. You can always upgrade later
           from your profile.
         </p>
@@ -93,12 +93,12 @@ export default function VerificationStep() {
                   <tier.Icon />
                 </IconBadge>
                 <div className="flex-1">
-                  <h2 className="text-h3 text-white">{tier.label}</h2>
-                  <p className="text-meta text-text-secondary">{tier.sub}</p>
+                  <h2 className="text-h3 text-(--ink)">{tier.label}</h2>
+                  <p className="text-meta text-(--ink-2)">{tier.sub}</p>
                 </div>
               </CardHeader>
               <CardContent className="px-0">
-                <p className="text-body leading-relaxed text-white/85">
+                <p className="text-body leading-relaxed text-(--ink)/85">
                   {tier.body}
                 </p>
                 <Link

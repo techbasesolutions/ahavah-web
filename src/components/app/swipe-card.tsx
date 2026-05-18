@@ -53,8 +53,8 @@ export const swipeCardVariants = cva(
   {
     variants: {
       surface: {
-        elevated: "bg-bg-elevated",
-        flat: "bg-bg-canvas",
+        elevated: "bg-(--card)",
+        flat: "bg-(--canvas)",
       },
     },
     defaultVariants: { surface: "elevated" },

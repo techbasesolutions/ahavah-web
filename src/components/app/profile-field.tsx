@@ -45,9 +45,9 @@ export function ProfileSection({
   return (
     <section className="flex flex-col gap-3">
       <header className="flex flex-col gap-1">
-        <h2 className="text-h3 text-white">{title}</h2>
+        <h2 className="text-h3 text-(--ink)">{title}</h2>
         {description ? (
-          <p className="text-meta text-text-secondary">{description}</p>
+          <p className="text-meta text-(--ink-2)">{description}</p>
         ) : null}
       </header>
       <div className="flex flex-col gap-3">{children}</div>
@@ -81,7 +81,7 @@ export function TextField({
   const Component = multiline ? Textarea : Input;
   return (
     <div className="flex flex-col gap-1.5">
-      <Label htmlFor={id} className="text-meta text-white">
+      <Label htmlFor={id} className="text-meta text-(--ink)">
         {label}
       </Label>
       <Component
@@ -103,7 +103,7 @@ export function TextField({
         className={multiline ? "min-h-24 resize-none" : undefined}
       />
       {helper ? (
-        <span id={`${id}-helper`} className="text-caption text-text-muted">
+        <span id={`${id}-helper`} className="text-caption text-(--ink-3)">
           {helper}
         </span>
       ) : null}
@@ -131,9 +131,9 @@ export function SingleSelectField<T extends string>({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-col gap-1">
-        <Label className="text-meta text-white">{label}</Label>
+        <Label className="text-meta text-(--ink)">{label}</Label>
         {description ? (
-          <p className="text-caption text-text-muted">{description}</p>
+          <p className="text-caption text-(--ink-3)">{description}</p>
         ) : null}
       </div>
       <RadioGroup
@@ -155,13 +155,13 @@ export function SingleSelectField<T extends string>({
                   "flex flex-row items-center gap-3 rounded-xl px-4 py-3 transition-all active:scale-[0.98]",
                   active
                     ? "bg-lime ring-2 ring-inset ring-lime"
-                    : "hover:bg-bg-elevated/80 hover:ring-1 hover:ring-inset hover:ring-white/10",
+                    : "hover:bg-(--card)/80 hover:ring-1 hover:ring-inset hover:ring-border",
                 )}
               >
                 <span
                   className={cn(
                     "flex-1 text-body font-medium",
-                    active ? "text-black" : "text-white",
+                    active ? "text-black" : "text-(--ink)",
                   )}
                 >
                   {opt.label}
@@ -213,7 +213,7 @@ export function SelectField<T extends string>({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <Label htmlFor={id} className="text-meta text-white">
+      <Label htmlFor={id} className="text-meta text-(--ink)">
         {label}
       </Label>
       <Select
@@ -246,7 +246,7 @@ export function SelectField<T extends string>({
         </SelectContent>
       </Select>
       {description ? (
-        <span className="text-caption text-text-muted">{description}</span>
+        <span className="text-caption text-(--ink-3)">{description}</span>
       ) : null}
     </div>
   );
@@ -308,7 +308,7 @@ export function ComboboxField<T extends string>({
 
   return (
     <div className="flex flex-col gap-1.5" ref={containerRef}>
-      <Label htmlFor={id} className="text-meta text-white">
+      <Label htmlFor={id} className="text-meta text-(--ink)">
         {label}
       </Label>
 
@@ -347,10 +347,10 @@ export function ComboboxField<T extends string>({
             id={listboxId}
             role="listbox"
             aria-label={label}
-            className="absolute top-full right-0 left-0 z-20 mt-1 max-h-64 overflow-y-auto rounded-2xl border border-white/10 bg-bg-elevated py-1 shadow-lg"
+            className="absolute top-full right-0 left-0 z-20 mt-1 max-h-64 overflow-y-auto rounded-2xl border border-border bg-(--card) py-1 shadow-lg"
           >
             {filtered.length === 0 ? (
-              <p className="px-4 py-3 text-meta text-text-muted">
+              <p className="px-4 py-3 text-meta text-(--ink-3)">
                 No matches
               </p>
             ) : (
@@ -368,8 +368,8 @@ export function ComboboxField<T extends string>({
                     onClick={() => pick(opt.value)}
                     className={
                       active
-                        ? "block w-full px-4 py-3 text-left text-body font-medium text-lime hover:bg-white/5"
-                        : "block w-full px-4 py-3 text-left text-body text-white hover:bg-white/5"
+                        ? "block w-full px-4 py-3 text-left text-body font-medium text-lime hover:bg-foreground/5"
+                        : "block w-full px-4 py-3 text-left text-body text-(--ink) hover:bg-foreground/5"
                     }
                   >
                     {opt.label}
@@ -382,7 +382,7 @@ export function ComboboxField<T extends string>({
       </div>
 
       {description ? (
-        <span className="text-caption text-text-muted">{description}</span>
+        <span className="text-caption text-(--ink-3)">{description}</span>
       ) : null}
     </div>
   );
@@ -453,11 +453,11 @@ export function MultiComboboxField<T extends string>({
   return (
     <div className="flex flex-col gap-2" ref={containerRef}>
       <div className="flex flex-col gap-1">
-        <Label htmlFor={id} className="text-meta text-white">
+        <Label htmlFor={id} className="text-meta text-(--ink)">
           {label}
         </Label>
         {description ? (
-          <p className="text-caption text-text-muted">{description}</p>
+          <p className="text-caption text-(--ink-3)">{description}</p>
         ) : null}
       </div>
 
@@ -516,10 +516,10 @@ export function MultiComboboxField<T extends string>({
             role="listbox"
             aria-label={label}
             aria-multiselectable="true"
-            className="absolute top-full right-0 left-0 z-20 mt-1 max-h-64 overflow-y-auto rounded-2xl border border-white/10 bg-bg-elevated py-1 shadow-lg"
+            className="absolute top-full right-0 left-0 z-20 mt-1 max-h-64 overflow-y-auto rounded-2xl border border-border bg-(--card) py-1 shadow-lg"
           >
             {filtered.length === 0 ? (
-              <p className="px-4 py-3 text-meta text-text-muted">
+              <p className="px-4 py-3 text-meta text-(--ink-3)">
                 No matches
               </p>
             ) : (
@@ -535,8 +535,8 @@ export function MultiComboboxField<T extends string>({
                     onClick={() => toggle(opt.value)}
                     className={
                       active
-                        ? "flex w-full items-center justify-between px-4 py-3 text-left text-body font-medium text-lime hover:bg-white/5"
-                        : "flex w-full items-center justify-between px-4 py-3 text-left text-body text-white hover:bg-white/5"
+                        ? "flex w-full items-center justify-between px-4 py-3 text-left text-body font-medium text-lime hover:bg-foreground/5"
+                        : "flex w-full items-center justify-between px-4 py-3 text-left text-body text-(--ink) hover:bg-foreground/5"
                     }
                   >
                     <span>{opt.label}</span>
@@ -570,9 +570,9 @@ export function MultiSelectField<T extends string>({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-col gap-1">
-        <Label className="text-meta text-white">{label}</Label>
+        <Label className="text-meta text-(--ink)">{label}</Label>
         {description ? (
-          <p className="text-caption text-text-muted">{description}</p>
+          <p className="text-caption text-(--ink-3)">{description}</p>
         ) : null}
       </div>
       <ToggleGroup

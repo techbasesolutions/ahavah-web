@@ -46,7 +46,7 @@ export default function VerificationSection() {
       {/* Server-granted level pill — same source as /profile + /verify. */}
       <div className="flex items-center gap-2">
         <ShieldCheck className="size-4 text-lavender" />
-        <span className="text-meta text-white">
+        <span className="text-meta text-(--ink)">
           {verificationLevel === "Photos + ID"
             ? "Gold — ID verified"
             : verificationLevel === "Photos"
@@ -71,7 +71,7 @@ export default function VerificationSection() {
           })}
         </div>
       ) : (
-        <p className="text-caption text-text-muted">
+        <p className="text-caption text-(--ink-3)">
           You haven&apos;t earned any verification badges yet. Complete a
           tier on the Verification page to add real trust signals to your
           profile.
@@ -80,7 +80,7 @@ export default function VerificationSection() {
 
       <Button
         nativeButton={false}
-        variant="outlineSubtle"
+        variant="outline"
         size="lg"
         render={<Link href="/verify" prefetch={false} />}
       >

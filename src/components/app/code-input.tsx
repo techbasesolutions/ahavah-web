@@ -121,8 +121,8 @@ export function CodeInput({
             // here would still look pill-ish. `rounded-md` = 0.8rem = 12.8px
             // — proper square OTP shape.
             // border-white/30 (3.5:1 vs bg-indigo) gives the empty-state
-            // edge that border-0 + bg-bg-elevated otherwise hides.
-            "h-tap-xl w-12 rounded-md border border-white/30 px-0 text-center text-h2 font-semibold tabular-nums transition-colors sm:w-14",
+            // edge that border-0 + bg-(--card) otherwise hides.
+            "h-tap-xl w-12 rounded-md border border-border px-0 text-center text-h2 font-semibold tabular-nums transition-colors sm:w-14",
             value[i] && "border-lime",
           )}
           aria-label={`Digit ${i + 1} of ${length}`}

@@ -28,7 +28,7 @@ const selectTriggerVariants = cva(
         // Mirrors Input.tone='elevated' — same WCAG 3:1 boundary rationale
         // (subtle white/10 border on bg-bg-elevated against page bg).
         elevated:
-          "border border-white/10 bg-bg-elevated text-white placeholder:text-text-muted",
+          "border border-white/10 bg-bg-elevated text-white placeholder:text-(--ink-3)",
       },
     },
     defaultVariants: {
@@ -78,7 +78,7 @@ function SelectTrigger({
       {children}
       <SelectPrimitive.Icon
         render={
-          <ChevronDownIcon className="pointer-events-none size-4 text-text-muted" />
+          <ChevronDownIcon className="pointer-events-none size-4 text-(--ink-3)" />
         }
       />
     </SelectPrimitive.Trigger>

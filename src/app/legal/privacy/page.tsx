@@ -18,14 +18,14 @@ export default function PrivacyPage() {
         <PageHeaderTitle>Privacy Policy</PageHeaderTitle>
       </PageHeader>
 
-      <article className="flex flex-col gap-4 px-5 pt-4 text-body leading-relaxed text-text-secondary">
+      <article className="flex flex-col gap-4 px-5 pt-4 text-body leading-relaxed text-(--ink-2)">
         <p>
           We&apos;re finalising our privacy policy with counsel. The
           full document will be published here within 14 days of soft
           launch. In plain language, here&apos;s what we do today:
         </p>
 
-        <h2 className="mt-2 text-h3 text-white">What we collect</h2>
+        <h2 className="mt-2 text-h3 text-(--ink)">What we collect</h2>
         <ul className="ml-5 flex list-disc flex-col gap-2">
           <li>
             Sign-up email + the OTP code you submit to confirm it.
@@ -44,7 +44,7 @@ export default function PrivacyPage() {
           </li>
         </ul>
 
-        <h2 className="mt-2 text-h3 text-white">What we don&apos;t do</h2>
+        <h2 className="mt-2 text-h3 text-(--ink)">What we don&apos;t do</h2>
         <ul className="ml-5 flex list-disc flex-col gap-2">
           <li>We don&apos;t sell your data to anyone.</li>
           <li>
@@ -56,13 +56,13 @@ export default function PrivacyPage() {
           </li>
         </ul>
 
-        <h2 className="mt-2 text-h3 text-white">Your rights</h2>
+        <h2 className="mt-2 text-h3 text-(--ink)">Your rights</h2>
         <ul className="ml-5 flex list-disc flex-col gap-2">
           <li>
             Delete your account at any time from{" "}
             <Link
               href="/settings/account"
-              className="text-lavender underline"
+              className="text-(--color-lavender) underline"
             >
               Settings &rarr; Account
             </Link>
@@ -75,13 +75,13 @@ export default function PrivacyPage() {
           </li>
         </ul>
 
-        <div className="mt-6 flex flex-col gap-2 rounded-2xl border border-white/10 bg-bg-elevated/60 p-4">
-          <p className="text-meta font-semibold text-white">
+        <div className="mt-6 flex flex-col gap-2 rounded-2xl border border-(--hairline) bg-(--card) p-4">
+          <p className="text-meta font-semibold text-(--ink)">
             Privacy questions?
           </p>
           <a
             href="mailto:admin@ahavah.app"
-            className="inline-flex items-center gap-2 text-meta text-lavender underline"
+            className="inline-flex items-center gap-2 text-meta text-(--color-lavender) underline"
           >
             <Mail className="size-4" /> admin@ahavah.app
           </a>

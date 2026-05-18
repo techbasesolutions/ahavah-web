@@ -77,7 +77,7 @@ const PRESETS: Record<Variant, Preset> = {
     title: "Nothing matches",
     description: "We couldn't find anything for that search. Try different words.",
     Icon: Search,
-    iconColor: "text-text-secondary",
+    iconColor: "text-(--ink-2)",
   },
   "filter-too-narrow": {
     title: "No one fits these filters",
@@ -97,7 +97,7 @@ const PRESETS: Record<Variant, Preset> = {
     title: "You're offline",
     description: "Check your connection. We'll try again automatically.",
     Icon: WifiOff,
-    iconColor: "text-text-secondary",
+    iconColor: "text-(--ink-2)",
   },
 };
 
@@ -131,13 +131,13 @@ export function EmptyState({
           {useSparkle ? (
             <SparkleMark size={56} color={sparkleColor ?? "#D7FF81"} />
           ) : (
-            <Icon className={cn("size-14", iconColor ?? "text-text-secondary")} />
+            <Icon className={cn("size-14", iconColor ?? "text-(--ink-2)")} />
           )}
         </EmptyMedia>
-        <EmptyTitle className="text-h3 text-white">
+        <EmptyTitle className="text-h3 text-(--ink)">
           {title ?? preset.title}
         </EmptyTitle>
-        <EmptyDescription className="text-meta text-text-secondary">
+        <EmptyDescription className="text-meta text-(--ink-2)">
           {description ?? preset.description}
         </EmptyDescription>
       </EmptyHeader>
@@ -146,14 +146,14 @@ export function EmptyState({
           {action.href ? (
             <Button
               nativeButton={false}
-              variant="outlineSubtle"
+              variant="outline"
               size="lg"
               render={<Link href={action.href} prefetch={false} />}
             >
               {action.label}
             </Button>
           ) : (
-            <Button variant="outlineSubtle" size="lg" onClick={action.onClick}>
+            <Button variant="outline" size="lg" onClick={action.onClick}>
               {action.label}
             </Button>
           )}
@@ -191,14 +191,14 @@ export function ErrorState({
         <EmptyMedia>
           <AlertTriangle className="size-14 text-pink" />
         </EmptyMedia>
-        <EmptyTitle className="text-h3 text-white">{title}</EmptyTitle>
-        <EmptyDescription className="text-meta text-text-secondary">
+        <EmptyTitle className="text-h3 text-(--ink)">{title}</EmptyTitle>
+        <EmptyDescription className="text-meta text-(--ink-2)">
           {description}
         </EmptyDescription>
       </EmptyHeader>
       {retry ? (
         <EmptyContent>
-          <Button variant="outlineSubtle" size="lg" onClick={retry.onClick}>
+          <Button variant="outline" size="lg" onClick={retry.onClick}>
             {retry.label ?? "Try again"}
           </Button>
         </EmptyContent>

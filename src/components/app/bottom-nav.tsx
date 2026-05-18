@@ -2,14 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
 
 import { Globe, Heart, Home, Mail, User } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { apiClient } from "@/lib/api-client";
 import { useInboxUnreadCount } from "@/lib/use-inbox-unread-count";
-import { TokenBalancePill } from "@/components/app/token-balance-pill";
+import { useBoostActive } from "@/lib/use-boost-active";
 
 const TABS = [
   { key: "discover", href: "/discover", label: "Discover", Icon: Home },
@@ -33,40 +31,20 @@ const TABS = [
 export function BottomNav() {
   const pathname = usePathname();
   const unreadCount = useInboxUnreadCount();
-  // Phase 8: boost-active signal. The plan called for a lime ring on the
-  // sidebar user avatar, but the current build has no sidebar — the
-  // BottomNav's Profile tab is the only user-personal target available.
-  // Ring the Profile tab's circle while a boost is in flight. Same
-  // /tokens/active-boost endpoint used by BoostCard; treat failures as
-  // "no active boost" so the nav never breaks because of a transient
-  // 401/404. Mounted on every authenticated route layout, so this runs
-  // once per route change at most (no auto-refresh — the BoostCard
-  // refresh path covers the user-side "just boosted" feedback loop).
-  const [boostActive, setBoostActive] = useState(false);
-  useEffect(() => {
-    let cancelled = false;
-    void apiClient
-      .get<{ active: boolean }>("/tokens/active-boost")
-      .then((res) => {
-        if (!cancelled) setBoostActive(Boolean(res?.active));
-      })
-      .catch(() => {
-        if (!cancelled) setBoostActive(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [pathname]);
+  // Phase 8 boost indicator. Shared with DesktopSidebar via the
+  // useBoostActive hook so both surfaces show the lime ring when a
+  // boost is in flight.
+  const boostActive = useBoostActive();
   return (
     <nav
       aria-label="Primary"
-      className="fixed inset-x-4 bottom-3 z-50 mx-auto flex max-w-95 flex-col items-end gap-2"
+      className="fixed inset-x-4 bottom-3 z-50 mx-auto flex max-w-95 md:hidden"
     >
-      {/* Token balance Pill — Phase 3 / monetization-tokens v1
-          (spec §4.5). Sits above the BottomNav row in lieu of a
-          sidebar user-block. Tap → /profile/tokens store. */}
-      <TokenBalancePill />
-      <div className="flex h-tap-xl w-full items-center justify-around rounded-3xl border border-white/10 bg-bg-elevated px-2 shadow-[0_8px_24px_rgba(0,0,0,0.45)]">
+      {/* TokenBalancePill removed 2026-05-17 per user direction — token
+          balance is no longer always-on chrome. Access via Settings →
+          Wallet (links to /profile/tokens). The floating BottomNav row
+          is now a single child; flex-col + gap collapsed. */}
+      <div className="flex h-tap-xl w-full items-center justify-around rounded-3xl border border-border bg-(--card) px-2 shadow-[0_8px_24px_rgba(0,0,0,0.45)]">
         {TABS.map(({ key, href, label, Icon }) => {
           const active = pathname === href || pathname.startsWith(`${href}/`);
           const showInboxBadge = key === "inbox" && unreadCount > 0;

@@ -17,6 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 import { cn } from "@/lib/utils";
+import { useIsDesktop } from "@/lib/use-is-desktop";
 
 import {
   ASSEMBLIES,
@@ -43,7 +44,7 @@ import {
  * - 8px spacing grid (gap-2 / gap-3 / gap-4).
  * - 44×44 touch targets via ToggleGroupItem size="tap".
  * - Typography: text-h2 (header) / text-meta uppercase (group label) /
- *   text-caption text-text-muted (helper).
+ *   text-caption text-(--ink-3) (helper).
  * - Pill grids WRAP — `flex-wrap` so labels never overflow. The
  *   underlying ToggleGroup primitive is flex-row by default, so we
  *   override via className. No `width="full"` (which would force
@@ -163,15 +164,14 @@ function FilterSection({
 }) {
   return (
     <details
-      className="group border-b border-white/5 last:border-b-0"
+      className="group border-b border-(--hairline) last:border-b-0"
       open={defaultOpen}
     >
       <summary
         className={cn(
           "flex min-h-tap cursor-pointer list-none items-center justify-between gap-3 py-3",
-          "text-meta font-semibold uppercase tracking-wide text-text-secondary",
-          "transition-colors hover:text-white",
-          // Strip default disclosure triangle in webkit/firefox
+          "text-overline text-(--ink-2)",
+          "transition-colors hover:text-(--ink)",
           "[&::-webkit-details-marker]:hidden",
         )}
       >
@@ -180,7 +180,7 @@ function FilterSection({
       </summary>
       <div className="flex flex-col gap-3 pb-4">
         {description ? (
-          <p className="text-caption text-text-muted">{description}</p>
+          <p className="text-caption text-(--ink-3)">{description}</p>
         ) : null}
         {children}
       </div>
@@ -208,6 +208,7 @@ export function FiltersSheet({
   onOpenChange,
 }: FiltersSheetProps) {
   const [internalOpen, setInternalOpen] = useState(false);
+  const isDesktop = useIsDesktop();
   // Controlled when both `open` and `onOpenChange` are provided; otherwise
   // uncontrolled. Lets /discover share the sheet between the Globe button
   // (uncontrolled via SheetTrigger) and the empty-deck "Adjust filters"
@@ -245,27 +246,21 @@ export function FiltersSheet({
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger render={trigger} />
       <SheetContent
-        side="bottom"
-        className="flex max-h-dvh flex-col gap-0 rounded-t-3xl border-white/10 bg-bg-indigo p-0"
+        side={isDesktop ? "right" : "bottom"}
+        className={cn(
+          "flex max-h-dvh flex-col gap-0 border-(--hairline) bg-(--app) p-0",
+          isDesktop ? "w-full sm:max-w-md" : "rounded-t-3xl",
+        )}
       >
-        {/* Header — title only. The SheetContent kit primitive auto-renders
-            a close X at absolute top-3 right-3; placing 'Reset all' here
-            collided visually with that X. Reset moved to the footer
-            (secondary action next to Apply filters) to keep the top
-            chrome clean. */}
         <SheetHeader className="items-center px-5 pt-6 pb-3">
-          <SheetTitle className="text-h2 text-white">Filters</SheetTitle>
+          <SheetTitle className="text-h2 text-(--ink)">Filters</SheetTitle>
         </SheetHeader>
 
-        {/* Scrollable body — every group on its own 8px-grid section. */}
         <div className="flex flex-1 flex-col gap-1 overflow-y-auto px-5 pb-4">
-          {/* 1. Age range — always visible, no collapse. */}
-          <section className="flex flex-col gap-3 border-b border-white/5 py-4">
+          <section className="flex flex-col gap-3 border-b border-(--hairline) py-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-meta font-semibold uppercase tracking-wide text-text-secondary">
-                Age range
-              </h3>
-              <span className="text-meta tabular-nums text-white">
+              <h3 className="text-overline text-(--ink-2)">Age range</h3>
+              <span className="text-meta tabular-nums text-(--ink)">
                 {filters.ageMin}–{filters.ageMax}
               </span>
             </div>
@@ -294,7 +289,7 @@ export function FiltersSheet({
               250-country backdrop was bad UX. The language scoring axis
               (sub-plan 13 T3) still influences deck order; it's just no
               longer a hard filter via UI. */}
-          <p className="px-3 pt-2 text-caption text-text-muted">
+          <p className="px-3 pt-2 text-caption text-(--ink-3)">
             Filter by location on the Map tab.
           </p>
 
@@ -403,13 +398,10 @@ export function FiltersSheet({
             />
           </FilterSection>
 
-          {/* Verified only — single switch row, not a pill group. */}
-          <section className="flex items-center justify-between gap-3 border-b border-white/5 py-4 last:border-b-0">
+          <section className="flex items-center justify-between gap-3 border-b border-(--hairline) py-4 last:border-b-0">
             <div className="flex flex-col gap-1">
-              <h3 className="text-meta font-semibold uppercase tracking-wide text-text-secondary">
-                Verified only
-              </h3>
-              <p className="text-caption text-text-muted">
+              <h3 className="text-overline text-(--ink-2)">Verified only</h3>
+              <p className="text-caption text-(--ink-3)">
                 Only show profiles with at least one verification.
               </p>
             </div>
@@ -421,20 +413,17 @@ export function FiltersSheet({
           </section>
         </div>
 
-        {/* Sticky footer — Apply (primary CTA) + Reset all (secondary
-            text-link), thumb-reach pair. Aligns with the standard mobile
-            form pattern: primary action right, secondary action left.
-            Reset is full text-meta height so the 44×44 tap target rule
-            is met. */}
-        <div className="flex items-center gap-4 border-t border-white/5 bg-bg-indigo px-5 pb-6 pt-3">
-          <button
+        <div className="flex items-center gap-4 border-t border-(--hairline) bg-(--app) px-5 pb-6 pt-3">
+          <Button
             type="button"
+            variant="ghost"
+            size="tap"
             onClick={handleReset}
-            className="min-h-tap shrink-0 px-2 text-meta font-medium text-text-secondary transition-colors hover:text-white"
             aria-label="Reset all filters"
+            className="text-(--ink-2) hover:text-(--ink)"
           >
             Reset all
-          </button>
+          </Button>
           <Button
             size="cta"
             tone="cta"

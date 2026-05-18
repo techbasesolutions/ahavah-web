@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { use, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
+  AlertTriangle,
   ChevronLeft,
   Heart,
   MapPin,
@@ -432,7 +433,7 @@ export default function ProfileDetailPage({ params }: Props) {
     return (
       <PageShell bottomPad="none">
         <div className="flex flex-1 items-center justify-center px-5">
-          <p className="text-body text-text-secondary" aria-live="polite">
+          <p className="text-body text-(--ink-2)" aria-live="polite">
             Loading profile…
           </p>
         </div>
@@ -453,8 +454,8 @@ export default function ProfileDetailPage({ params }: Props) {
             className="relative z-20 rounded-2xl px-5 py-8 text-center"
           >
             <CardContent className="flex flex-col gap-4 px-0">
-              <h2 className="text-h2 text-white">Profile not found</h2>
-              <p className="text-body text-text-secondary">
+              <h2 className="text-h2 text-(--ink)">Profile not found</h2>
+              <p className="text-body text-(--ink-2)">
                 The profile you&apos;re looking for doesn&apos;t exist or has been removed.
               </p>
               <Link
@@ -470,163 +471,684 @@ export default function ProfileDetailPage({ params }: Props) {
     );
   }
 
-  return (
-    <PageShell bottomPad="none">
-      {/* Photo carousel — `aspect-4/5` (matches /matches grid). The photo
-          region is a seeded 3-gradient stamp (gradientsFor(uuid)) until
-          Sub-plan 9 ships real photo upload. AnimatePresence crossfades
-          between gradients on tap. Left half / right half of the photo
-          are invisible prev/next tap zones, paginator dots stay top-center
-          (Stories-style), Back + More + (NEW) Compat chip sit overlaid. */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.4 }}
-        className="relative"
-      >
-        <PhotoTile
-          aspect="4/5"
-          radius="none"
-          surface="none"
-          bg="transparent"
-          className="w-full"
+  // ── Shared JSX fragments (same state, used by mobile + desktop) ──
+
+  // The photo carousel (reused in both layouts).
+  // Photo carousel as a parameterised function so mobile and desktop can
+  // position the compat pill at different anchors without duplicating the
+  // entire PhotoTile + ProgressDots + top-chrome composition. Caller passes
+  // `compatPos` to control whether/where the CompatPill renders:
+  //   - "mobile"  → bottom-12 right-4 (clears the floating BottomNav)
+  //   - "desktop" → bottom-6 right-6  (canonical desktop position per
+  //                 docs/handoff-desktop/desktop.jsx ProfileDetailDesktop)
+  //   - "none"    → caller renders its own overlay outside this tile
+  const renderPhotoCarousel = (
+    compatPos: "mobile" | "desktop" | "none" = "mobile",
+  ) => (
+    <PhotoTile
+      aspect="4/5"
+      radius="none"
+      surface="none"
+      bg="transparent"
+      className="w-full"
+    >
+      <AnimatePresence initial={false}>
+        <motion.div
+          key={photoIndex}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.25 }}
+          className="absolute inset-0"
+          style={
+            currentPhotoSource.kind === "gradient"
+              ? { background: currentPhotoSource.css }
+              : undefined
+          }
         >
-          {/* Animated photo layer — crossfade on photoIndex change.
-              SP21 T8: real photo via <img> when present, gradient
-              fallback otherwise. */}
-          <AnimatePresence initial={false}>
-            <motion.div
-              key={photoIndex}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.25 }}
-              className="absolute inset-0"
-              style={
-                currentPhotoSource.kind === "gradient"
-                  ? { background: currentPhotoSource.css }
-                  : undefined
-              }
-            >
-              {currentPhotoSource.kind === "photo" && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={currentPhotoSource.src}
-                  alt={`${profile?.firstName ?? "Profile"} photo ${photoIndex + 1}`}
-                  className="size-full object-cover"
-                />
-              )}
-            </motion.div>
-          </AnimatePresence>
+          {currentPhotoSource.kind === "photo" && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={currentPhotoSource.src}
+              alt={`${profile?.firstName ?? "Profile"} photo ${photoIndex + 1}`}
+              className="size-full object-cover"
+            />
+          )}
+        </motion.div>
+      </AnimatePresence>
 
-          {/* Tap zones — left half = prev, right half = next. Sit behind
-              the controls (z-0) so back / more / dots still receive taps. */}
-          <button
-            type="button"
-            aria-label="Previous photo"
-            onClick={prevPhoto}
-            className="absolute inset-y-0 left-0 z-0 w-1/2 cursor-default outline-none focus-visible:bg-black/10"
-          />
-          <button
-            type="button"
-            aria-label="Next photo"
-            onClick={nextPhoto}
-            className="absolute inset-y-0 right-0 z-0 w-1/2 cursor-default outline-none focus-visible:bg-black/10"
-          />
+      {/* Tap zones */}
+      <button
+        type="button"
+        aria-label="Previous photo"
+        onClick={prevPhoto}
+        className="absolute inset-y-0 left-0 z-0 w-1/2 cursor-default outline-none focus-visible:bg-black/10"
+      />
+      <button
+        type="button"
+        aria-label="Next photo"
+        onClick={nextPhoto}
+        className="absolute inset-y-0 right-0 z-0 w-1/2 cursor-default outline-none focus-visible:bg-black/10"
+      />
 
-          {/* Top chrome — back / more. Back href + label read from
-              ?from=map to send map visitors back to /map. */}
-          <div className="absolute top-3 right-3 left-3 z-10 flex items-center justify-between">
-            <Link
-              href={backHref}
-              prefetch={false}
-              aria-label={backLabel}
-              className={cn(buttonVariants({ size: "circle", tone: "overlay" }))}
-            >
-              <ChevronLeft className="text-white" />
-            </Link>
-            <Button
-              size="circle"
-              tone="overlay"
-              aria-label="More"
-              onClick={() => setReportOpen(true)}
-            >
-              <MoreHorizontal className="text-white" />
-            </Button>
-          </div>
+      {/* Top chrome */}
+      <div className="absolute top-3 right-3 left-3 z-10 flex items-center justify-between">
+        <Link
+          href={backHref}
+          prefetch={false}
+          aria-label={backLabel}
+          className={cn(buttonVariants({ size: "circle-lg", tone: "overlay" }))}
+        >
+          <ChevronLeft className="text-(--ink)" />
+        </Link>
+        <Button
+          size="circle-lg"
+          tone="overlay"
+          aria-label="More options"
+          onClick={() => setReportOpen(true)}
+        >
+          <MoreHorizontal className="text-(--ink)" />
+        </Button>
+      </div>
 
-          <ProgressDots
-            count={photoSources.length}
-            active={photoIndex}
+      <ProgressDots
+        count={photoSources.length}
+        active={photoIndex}
+        size="sm"
+        tone="white"
+        className="absolute top-3 left-1/2 z-10 -translate-x-1/2"
+      />
+
+      {showCompatPill && compatResult && compatPos !== "none" && (
+        <div
+          className={cn(
+            "absolute z-10",
+            compatPos === "mobile" ? "bottom-12 right-4" : "bottom-6 right-6",
+          )}
+        >
+          <CompatPill
+            score={compatResult.score}
+            breakdown={compatResult.breakdown}
             size="sm"
-            tone="white"
-            className="absolute top-3 left-1/2 z-10 -translate-x-1/2"
           />
+        </div>
+      )}
+    </PhotoTile>
+  );
 
-          {/* Compat chip — anchors the carousel bottom-right instead of
-              competing with the name inside the bio card. Only shown
-              when the underlying breakdown has real signal; otherwise
-              the % is essentially the no-data baseline and would
-              mislead the viewer. */}
-          {showCompatPill && compatResult && (
-            <div className="absolute bottom-12 right-4 z-10">
-              <CompatPill
-                score={compatResult.score}
-                breakdown={compatResult.breakdown}
-                size="sm"
-              />
+  // The full bio content (all sections) -- shared between mobile card and desktop right col.
+  const bioContent = (
+    <div className="flex flex-col gap-5">
+      {/* Header: name, age, location */}
+      <div>
+        <h1 className="text-h1 text-(--ink)">
+          {profile.firstName}, {profile.age}
+        </h1>
+        {profile.displayName && profile.displayName !== profile.firstName ? (
+          <p className="mt-0.5 text-meta italic text-(--ink-2)">
+            also known as &ldquo;{profile.displayName}&rdquo;
+          </p>
+        ) : null}
+        {profile.country && (
+          <p className="mt-1 flex items-center gap-1.5 text-meta text-(--ink-2)">
+            <MapPin className="size-3" /> {profile.country}
+          </p>
+        )}
+        {(profile.nationality ||
+          profile.maritalStatus !== undefined ||
+          profile.children !== undefined ||
+          (profile.ethnicities && profile.ethnicities.length > 0)) && (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {profile.nationality && (
+              <Pill variant="lavender" size="sm">
+                {labelOf(profile.nationality, NATIONALITIES) ?? profile.nationality}
+              </Pill>
+            )}
+            {profile.ethnicities?.map((eth) => (
+              <Pill key={eth} variant="lavender" size="sm">
+                {labelOf(eth, ETHNICITIES) ?? eth}
+              </Pill>
+            ))}
+            {profile.maritalStatus !== undefined && (
+              <Pill variant="lavender" size="sm">
+                {labelOf(profile.maritalStatus, MARITAL_STATUSES) ?? profile.maritalStatus}
+              </Pill>
+            )}
+            {profile.children !== undefined && (
+              <Pill variant="lavender" size="sm">
+                {profile.children === 1 ? "1 child" : `${profile.children} children`}
+              </Pill>
+            )}
+          </div>
+        )}
+      </div>
+
+      {profile.bio && (
+        <p className="text-body leading-relaxed text-(--ink)/85">{profile.bio}</p>
+      )}
+
+      {(profile.occupation || profile.education || profile.sex) && (
+        <div className="flex flex-col gap-2 border-t border-border pt-4">
+          <h2 className="text-meta font-semibold uppercase text-(--ink-2)">
+            About
+          </h2>
+          <dl className="space-y-2">
+            {profile.sex && (
+              <div className="flex gap-2">
+                <dt className="text-meta text-(--ink-2)">Gender:</dt>
+                <dd className="text-meta text-(--ink)">
+                  {profile.sex === "female" ? "Woman" : "Man"}
+                </dd>
+              </div>
+            )}
+            {profile.occupation && (
+              <div className="flex gap-2">
+                <dt className="text-meta text-(--ink-2)">Work:</dt>
+                <dd className="text-meta text-(--ink)">{profile.occupation}</dd>
+              </div>
+            )}
+            {profile.education && (
+              <div className="flex gap-2">
+                <dt className="text-meta text-(--ink-2)">Education:</dt>
+                <dd className="text-meta text-(--ink)">
+                  {labelOf(profile.education, EDUCATIONS) ?? profile.education}
+                </dd>
+              </div>
+            )}
+          </dl>
+        </div>
+      )}
+
+      {profile.languages?.length ? (
+        <div className="flex flex-col gap-2 border-t border-border pt-4">
+          <h2 className="text-meta font-semibold uppercase text-(--ink-2)">
+            Languages
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {[...profile.languages]
+              .sort((a, b) =>
+                a === profile.primaryLanguage
+                  ? -1
+                  : b === profile.primaryLanguage
+                    ? 1
+                    : 0,
+              )
+              .map((code) => (
+                <Pill key={code} variant="lavender" size="sm">
+                  {code === profile.primaryLanguage ? "★ " : ""}
+                  {labelForLanguage(code)}
+                </Pill>
+              ))}
+          </div>
+        </div>
+      ) : null}
+
+      {(profile.intent ||
+        profile.relocation ||
+        profile.communicationPrefs?.length ||
+        profile.boundaryTags?.length) && (
+        <div className="flex flex-col gap-2 border-t border-border pt-4">
+          <h2 className="text-meta font-semibold uppercase text-(--ink-2)">
+            Looking for
+          </h2>
+          <dl className="space-y-2">
+            {profile.intent && (
+              <div className="flex gap-2">
+                <dt className="text-meta text-(--ink-2)">Intent:</dt>
+                <dd className="text-meta text-(--ink)">
+                  {(profile.sex
+                    ? labelOf(profile.intent, intentOptionsForSex(profile.sex))
+                    : null) ?? profile.intent}
+                </dd>
+              </div>
+            )}
+            {profile.relocation && (
+              <div className="flex gap-2">
+                <dt className="text-meta text-(--ink-2)">Relocation:</dt>
+                <dd className="text-meta text-(--ink)">
+                  {labelOf(profile.relocation, RELOCATIONS)}
+                </dd>
+              </div>
+            )}
+          </dl>
+          {profile.communicationPrefs?.length ? (
+            <div className="mt-1 flex flex-col gap-1">
+              <span className="text-caption text-(--ink-2)">
+                Communication style
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {profile.communicationPrefs.map((pref) => (
+                  <Pill key={pref} variant="lavender" size="sm">
+                    {labelOf(pref, COMMUNICATION_PREFS) ?? pref}
+                  </Pill>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          {profile.boundaryTags?.length ? (
+            <div className="mt-1 flex flex-col gap-1">
+              <span className="text-caption text-(--ink-2)">Boundaries</span>
+              <div className="flex flex-wrap gap-2">
+                {profile.boundaryTags.map((tag) => (
+                  <Pill key={tag} variant="lavender" size="sm">
+                    {labelOf(tag, BOUNDARY_TAGS) ?? tag}
+                  </Pill>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      )}
+
+      {(profile.assembly ||
+        profile.torahLevel ||
+        profile.shabbat ||
+        profile.calendar ||
+        profile.feastDays?.length) && (
+        <div className="flex flex-col gap-2 border-t border-border pt-4">
+          <h2 className="text-meta font-semibold uppercase text-(--ink-2)">
+            Faith
+          </h2>
+          <dl className="space-y-2">
+            {profile.assembly && (
+              <div className="flex gap-2">
+                <dt className="text-meta text-(--ink-2)">Identifies as:</dt>
+                <dd className="text-meta text-(--ink)">
+                  {labelOf(profile.assembly, ASSEMBLIES)}
+                </dd>
+              </div>
+            )}
+            {profile.torahLevel && (
+              <div className="flex gap-2">
+                <dt className="text-meta text-(--ink-2)">Torah stage:</dt>
+                <dd className="text-meta text-(--ink)">
+                  {labelOf(profile.torahLevel, TORAH_LEVELS)}
+                </dd>
+              </div>
+            )}
+            {profile.shabbat && (
+              <div className="flex gap-2">
+                <dt className="text-meta text-(--ink-2)">Shabbat:</dt>
+                <dd className="text-meta text-(--ink)">
+                  {labelOf(profile.shabbat, SHABBATS)}
+                </dd>
+              </div>
+            )}
+            {profile.calendar && (
+              <div className="flex gap-2">
+                <dt className="text-meta text-(--ink-2)">Calendar:</dt>
+                <dd className="text-meta text-(--ink)">
+                  {labelOf(profile.calendar, CALENDARS)}
+                </dd>
+              </div>
+            )}
+          </dl>
+          {profile.feastDays?.length ? (
+            <div className="mt-1 flex flex-col gap-1">
+              <span className="text-caption text-(--ink-2)">Feast days kept</span>
+              <div className="flex flex-wrap gap-2">
+                {profile.feastDays.map((day) => (
+                  <Pill key={day} variant="lavender" size="sm">
+                    {labelOf(day, FEAST_DAYS) ?? day}
+                  </Pill>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      )}
+
+      {(profile.polygyny || profile.headCovering || profile.tzitzit) && (
+        <div className="flex flex-col gap-2 border-t border-border pt-4">
+          <h2 className="text-meta font-semibold uppercase text-(--ink-2)">
+            Doctrine
+          </h2>
+          <dl className="space-y-2">
+            {profile.polygyny && (
+              <div className="flex gap-2">
+                <dt className="text-meta text-(--ink-2)">Polygyny:</dt>
+                <dd className="text-meta text-(--ink)">
+                  {labelOf(profile.polygyny, POLYGYNY_VIEWS)}
+                </dd>
+              </div>
+            )}
+            {profile.headCovering && (
+              <div className="flex gap-2">
+                <dt className="text-meta text-(--ink-2)">Head covering:</dt>
+                <dd className="text-meta text-(--ink)">
+                  {labelOf(profile.headCovering, HEAD_COVERINGS)}
+                </dd>
+              </div>
+            )}
+            {profile.tzitzit && (
+              <div className="flex gap-2">
+                <dt className="text-meta text-(--ink-2)">Tzitzit:</dt>
+                <dd className="text-meta text-(--ink)">
+                  {labelOf(profile.tzitzit, TZITZIT_OPTIONS)}
+                </dd>
+              </div>
+            )}
+          </dl>
+        </div>
+      )}
+
+      {(profile.familyViews?.length ||
+        profile.livingPreferences?.length ||
+        profile.healthTags?.length) && (
+        <div className="flex flex-col gap-2 border-t border-border pt-4">
+          <h2 className="text-meta font-semibold uppercase text-(--ink-2)">
+            Lifestyle
+          </h2>
+          {profile.familyViews?.length && (
+            <div className="flex flex-wrap gap-2">
+              {profile.familyViews.map((view) => (
+                <Pill key={view} variant="lavender" size="sm">
+                  {labelOf(view, FAMILY_VIEWS)}
+                </Pill>
+              ))}
             </div>
           )}
-        </PhotoTile>
-      </motion.div>
+          {profile.livingPreferences?.length && (
+            <div className="flex flex-wrap gap-2">
+              {profile.livingPreferences.map((pref) => (
+                <Pill key={pref} variant="lavender" size="sm">
+                  {labelOf(pref, LIVING_PREFERENCES)}
+                </Pill>
+              ))}
+            </div>
+          )}
+          {profile.healthTags?.length && (
+            <div className="flex flex-wrap gap-2">
+              {profile.healthTags.map((tag) => (
+                <Pill key={tag} variant="lavender" size="sm">
+                  {labelOf(tag, HEALTH_TAGS)}
+                </Pill>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
-      {/* Bio card — overlaps photo bottom by 32px (-mt-8) so the
-          rounded-t-3xl curves (~24px radius) sit ENTIRELY inside the photo
-          region. Slides up from y:24 with fadeIn (delay 0.1s) so the
-          entrance reads photo-establish → card-reveal → actions-land. */}
-      <motion.div
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
-      >
-        <Card
-          tone="overlap"
-          className="relative z-20 -mt-8 gap-5 rounded-t-3xl px-5 pt-6 pb-6"
+      {profile.interests?.length && (
+        <div className="flex flex-col gap-2 border-t border-border pt-4">
+          <h2 className="text-meta font-semibold uppercase text-(--ink-2)">
+            Interests
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {profile.interests.map((interest) => (
+              <Pill key={interest} variant="lime" size="sm">
+                {labelOf(interest, INTERESTS)}
+              </Pill>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {profile.personalityTraits?.length && (
+        <div className="flex flex-col gap-2 border-t border-border pt-4">
+          <h2 className="text-meta font-semibold uppercase text-(--ink-2)">
+            Personality
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {profile.personalityTraits.map((trait) => (
+              <Pill key={trait} variant="lavender" size="sm">
+                {labelOf(trait, PERSONALITY_TRAITS)}
+              </Pill>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {profile.verificationTags?.length && (
+        <div className="flex flex-col gap-2 border-t border-border pt-4">
+          <h2 className="flex items-center gap-1.5 text-meta font-semibold uppercase text-(--ink-2)">
+            <ShieldCheck className="size-4" /> Verified
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {profile.verificationTags.map((tag) => (
+              <Pill key={tag} variant="lime" size="sm">
+                {labelOf(tag, VERIFICATION_TAGS)}
+              </Pill>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  // The action row (Like / Pass / Message) -- shared by both layouts.
+  const profileActionRow = (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25, delay: 0.2, ease: "easeOut" }}
+      className="mt-2 flex items-center justify-center gap-5"
+    >
+      {isMatched ? (
+        <Button
+          nativeButton={false}
+          size="circle-xl"
+          tone="cta"
+          lift="float"
+          aria-label="Message"
+          render={<Link href={`/chat/${uuid}`} prefetch={false} />}
         >
-          <CardContent className="flex flex-col gap-5 px-0">
-            {/* Header: name, age, location. Compat chip now anchors the
-                carousel bottom-right; it no longer competes for space here. */}
-            <div>
-              <h1 className="text-h1 text-white">
+          <MessageCircle className="text-black" />
+        </Button>
+      ) : (
+        <>
+          <Button
+            size="circle-lg"
+            tone="brand"
+            lift="float"
+            aria-label="Skip"
+            disabled={!profileLoaded}
+            onClick={async () => {
+              try {
+                await decide(uuid, "nope");
+              } catch {
+                // surfaced via useDecisions().error
+              }
+              router.push(backHref);
+            }}
+          >
+            <X className="text-black" />
+          </Button>
+          <Button
+            size="circle-xl"
+            tone="cta"
+            lift="float"
+            aria-label={cyclePhotos ? "Pause photo slideshow" : "Play photo slideshow"}
+            aria-pressed={cyclePhotos}
+            onClick={() => setCyclePhotos((on) => !on)}
+          >
+            {cyclePhotos ? (
+              <Pause className="text-black" fill="currentColor" />
+            ) : (
+              <Play className="text-black" fill="currentColor" />
+            )}
+          </Button>
+          <Button
+            size="circle-lg"
+            tone="action"
+            lift="float"
+            aria-label="Like"
+            disabled={!profileLoaded}
+            onClick={async () => {
+              try {
+                const result = await decide(uuid, "like");
+                if (result.kind === "ok" && result.matchId) {
+                  router.push(
+                    `/match?matchId=${encodeURIComponent(result.matchId)}`,
+                  );
+                  return;
+                }
+              } catch {
+                // surfaced via useDecisions().error
+              }
+              router.push(backHref);
+            }}
+          >
+            <Heart className="text-(--ink)" fill="currentColor" />
+          </Button>
+        </>
+      )}
+    </motion.div>
+  );
+
+  return (
+    <PageShell bottomPad="none" desktopShell="sidebar">
+      {/* ── Mobile layout (<md): original card-over-photo design ───── */}
+      <div className="md:hidden">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4 }}
+          className="relative"
+        >
+          {renderPhotoCarousel("mobile")}
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
+        >
+          <Card
+            tone="overlap"
+            className="relative z-20 -mt-8 gap-5 rounded-t-3xl px-5 pt-6 pb-6"
+          >
+            <CardContent className="flex flex-col gap-5 px-0">
+              {bioContent}
+              {profileActionRow}
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+
+      {/* ── Desktop layout (>=md): canonical 2-col 540px / 1fr ─────── */}
+      {/*
+        Port of `ProfileDetailDesktop` from docs/handoff-desktop/desktop.jsx
+        lines 907–1110. Kit primitives only — no hand-rolled bg/border divs
+        in place of <Card>, no bare <button> divs in place of <Button>.
+        Reads the same hooks/state declared at the top of this component.
+      */}
+      {/* eslint-disable-next-line no-restricted-syntax -- calc(100dvh - topbar) has no token equivalent */}
+      <div className="hidden md:grid grid-cols-[540px_1fr] gap-8 px-8 pt-6 pb-8 overflow-hidden min-h-[calc(100dvh-56px)]">
+        {/* Left col — back link + photo card + 4-col thumbnail strip */}
+        <div className="flex flex-col gap-3.5 overflow-hidden min-w-0">
+          <Link
+            href={backHref}
+            prefetch={false}
+            className="inline-flex items-center gap-2.5 text-sm text-(--ink-2) hover:text-(--ink)"
+          >
+            <ChevronLeft className="size-4" />
+            {backLabel}
+          </Link>
+
+          {/* Main photo card — Card tone="elevated", 4/5 aspect, holds the
+              timeline strip + huge centered initial + lavender compat pill */}
+          <Card
+            tone="elevated"
+            className="relative aspect-[4/5] overflow-hidden p-0 rounded-3xl"
+          >
+            {/* Photo carousel rendered with the canonical desktop compat-pill
+                position (bottom-6 right-6, per ProfileDetailDesktop in
+                docs/handoff-desktop/desktop.jsx lines 942–949). The pill
+                is rendered ONCE by renderPhotoCarousel — no duplicate
+                wrapper pill on the card. The variant/colour comes from
+                CompatPill.getVariant() based on the score band (lime ≥85,
+                lavender 65–84, pink <65). */}
+            <div className="absolute inset-0">
+              {renderPhotoCarousel("desktop")}
+            </div>
+          </Card>
+
+          {/* 4-col thumbnail strip — actual photo slots, active one ringed */}
+          <div className="grid grid-cols-4 gap-2.5">
+            {photoSources.slice(0, 4).map((src, i) => {
+              const isActive = i === photoIndex;
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  aria-label={`Photo ${i + 1}`}
+                  onClick={() => setPhotoIndex(i)}
+                  className={cn(
+                    // border (not ring) — canonical desktop.jsx:951–957 uses
+                    // `border: "2px solid var(--lime)"` for the active
+                    // thumbnail. Tailwind's `ring-*` renders as box-shadow
+                    // OUTSIDE the element and gets clipped by the parent
+                    // overflow:hidden wrappers (lines 1022, 1024 above);
+                    // a border renders INSIDE the box-sizing:border-box and
+                    // is never clipped.
+                    "aspect-square overflow-hidden rounded-xl border-2 transition",
+                    isActive
+                      ? "border-lime opacity-100"
+                      : "border-transparent opacity-65 hover:opacity-90",
+                  )}
+                  style={
+                    src.kind === "gradient"
+                      ? { background: src.css }
+                      : undefined
+                  }
+                >
+                  {src.kind === "photo" && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={src.src}
+                      alt=""
+                      className="size-full object-cover"
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Right col — header row (name + action stack) + scrollable body */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: "easeOut" }}
+          className="flex flex-col gap-6 overflow-hidden min-w-0"
+        >
+          {/* Header: name + map-pin + 5 lavender pill cluster LEFT,
+              160px-wide vertical action stack RIGHT */}
+          <div className="flex items-start gap-6">
+            <div className="flex-1 min-w-0">
+              <h1 className="m-0 text-display-lg text-(--ink)">
                 {profile.firstName}, {profile.age}
               </h1>
-              {/* Optional preferred name. Renders only when distinct from
-                  firstName so we don't show '"Ehud"' under "Ehud". */}
               {profile.displayName &&
               profile.displayName !== profile.firstName ? (
-                <p className="mt-0.5 text-meta italic text-text-secondary">
+                <p className="mt-1 text-sm italic text-(--ink-2)">
                   also known as &ldquo;{profile.displayName}&rdquo;
                 </p>
               ) : null}
-              {profile.country && (
-                <p className="mt-1 flex items-center gap-1.5 text-meta text-text-secondary">
-                  <MapPin className="size-3" /> {profile.country}
+              {(profile.city || profile.country) && (
+                <p className="mt-2.5 flex items-center gap-1.5 text-meta text-(--ink-2)">
+                  <MapPin className="size-3.5" />
+                  {[profile.city, profile.country]
+                    .filter(Boolean)
+                    .join(", ")}
                 </p>
               )}
+              {/* 5 inline lavender pills — nationality / ethnicity /
+                  marital / children / intent */}
               {(profile.nationality ||
                 profile.maritalStatus !== undefined ||
                 profile.children !== undefined ||
+                profile.intent ||
                 (profile.ethnicities && profile.ethnicities.length > 0)) && (
-                <div className="mt-2 flex flex-wrap gap-2">
+                <div className="mt-3.5 flex flex-wrap gap-2">
                   {profile.nationality && (
                     <Pill variant="lavender" size="sm">
-                      {labelOf(profile.nationality, NATIONALITIES) ?? profile.nationality}
+                      {labelOf(profile.nationality, NATIONALITIES) ??
+                        profile.nationality}
                     </Pill>
                   )}
-                  {/* Ethnicities — multi-select; one Pill per entry. Stored
-                      in ahavah_extra (commit f6b997a) so the full list
-                      round-trips with precise Torah-observant diaspora
-                      labels (Afro-Caribbean, West African, etc.). */}
                   {profile.ethnicities?.map((eth) => (
                     <Pill key={eth} variant="lavender" size="sm">
                       {labelOf(eth, ETHNICITIES) ?? eth}
@@ -634,452 +1156,293 @@ export default function ProfileDetailPage({ params }: Props) {
                   ))}
                   {profile.maritalStatus !== undefined && (
                     <Pill variant="lavender" size="sm">
-                      {labelOf(profile.maritalStatus, MARITAL_STATUSES) ?? profile.maritalStatus}
+                      {labelOf(profile.maritalStatus, MARITAL_STATUSES) ??
+                        profile.maritalStatus}
                     </Pill>
                   )}
                   {profile.children !== undefined && (
                     <Pill variant="lavender" size="sm">
-                      {profile.children === 1 ? "1 child" : `${profile.children} children`}
+                      {profile.children === 1
+                        ? "1 child"
+                        : `${profile.children} children`}
+                    </Pill>
+                  )}
+                  {profile.intent && (
+                    <Pill variant="lavender" size="sm">
+                      {(profile.sex
+                        ? labelOf(
+                            profile.intent,
+                            intentOptionsForSex(profile.sex),
+                          )
+                        : null) ?? profile.intent}
                     </Pill>
                   )}
                 </div>
               )}
             </div>
 
-            {/* Bio paragraph (conditional) */}
+            {/* Vertical action stack — 160px wide, Like (lime 48h) +
+                Message (lavender 48h; visually disabled when unmatched) +
+                Pass (outline 40h) */}
+            <div className="flex w-40 shrink-0 flex-col gap-3">
+              <Button
+                size="tap"
+                tone="cta"
+                className="h-12 w-full font-bold"
+                disabled={!profileLoaded}
+                onClick={async () => {
+                  try {
+                    const result = await decide(uuid, "like");
+                    if (result.kind === "ok" && result.matchId) {
+                      router.push(
+                        `/match?matchId=${encodeURIComponent(result.matchId)}`,
+                      );
+                      return;
+                    }
+                  } catch {
+                    // surfaced via useDecisions().error
+                  }
+                  router.push(backHref);
+                }}
+              >
+                <Heart className="size-4" fill="currentColor" />
+                Like
+              </Button>
+              {isMatched ? (
+                <Button
+                  nativeButton={false}
+                  size="tap"
+                  tone="brand"
+                  className="h-12 w-full font-bold"
+                  render={<Link href={`/chat/${uuid}`} prefetch={false} />}
+                >
+                  <MessageCircle className="size-4" />
+                  Message
+                </Button>
+              ) : (
+                <Button
+                  size="tap"
+                  tone="brand"
+                  className="h-12 w-full font-bold"
+                  disabled
+                  aria-disabled="true"
+                  title="Match required to send a message"
+                >
+                  <MessageCircle className="size-4" />
+                  Message
+                </Button>
+              )}
+              <Button
+                size="tap"
+                variant="outline"
+                className="h-10 w-full"
+                disabled={!profileLoaded}
+                onClick={async () => {
+                  try {
+                    await decide(uuid, "nope");
+                  } catch {
+                    // surfaced via useDecisions().error
+                  }
+                  router.push(backHref);
+                }}
+              >
+                <X className="size-3.5" />
+                Pass
+              </Button>
+            </div>
+          </div>
+
+          {/* Scrollable body — bio paragraph, About/Compat 2-col, interests, footer */}
+          <div className="flex flex-1 flex-col gap-6 overflow-y-auto pr-2">
+            {/* Bio paragraph */}
             {profile.bio && (
-              <p className="text-body leading-relaxed text-white/85">{profile.bio}</p>
+              <p className="m-0 text-base leading-relaxed text-(--ink) [text-wrap:pretty]">
+                {profile.bio}
+              </p>
             )}
 
-            {/* About me — backend fields the page didn't have a section for
-                before (occupation, education, sex). Renders only when at
-                least one is present so an entirely-empty user doesn't get
-                an empty heading. */}
-            {(profile.occupation || profile.education || profile.sex) && (
-              <div className="flex flex-col gap-2 border-t border-white/10 pt-4">
-                <h2 className="text-meta font-semibold uppercase text-text-secondary">
+            {/* About + Compatibility — 2-col grid, hairline divider above */}
+            <div className="grid grid-cols-2 gap-6 border-t border-(--hairline) pt-6">
+              <Card tone="elevated" className="bg-card p-5 rounded-2xl gap-3">
+                <div className="text-overline text-(--ink-2)">
                   About
-                </h2>
-                <dl className="space-y-2">
+                </div>
+                <dl className="m-0 flex flex-col gap-2.5">
                   {profile.sex && (
-                    <div className="flex gap-2">
-                      <dt className="text-meta text-text-secondary">Gender:</dt>
-                      <dd className="text-meta text-white">
+                    <div className="grid grid-cols-[110px_1fr] gap-2">
+                      <dt className="text-meta text-(--ink-2)">
+                        Gender
+                      </dt>
+                      <dd className="m-0 text-meta font-medium text-(--ink)">
                         {profile.sex === "female" ? "Woman" : "Man"}
                       </dd>
                     </div>
                   )}
                   {profile.occupation && (
-                    <div className="flex gap-2">
-                      <dt className="text-meta text-text-secondary">Work:</dt>
-                      <dd className="text-meta text-white">{profile.occupation}</dd>
+                    <div className="grid grid-cols-[110px_1fr] gap-2">
+                      <dt className="text-meta text-(--ink-2)">
+                        Work
+                      </dt>
+                      <dd className="m-0 text-meta font-medium text-(--ink)">
+                        {profile.occupation}
+                      </dd>
                     </div>
                   )}
                   {profile.education && (
-                    <div className="flex gap-2">
-                      <dt className="text-meta text-text-secondary">Education:</dt>
-                      <dd className="text-meta text-white">
-                        {labelOf(profile.education, EDUCATIONS) ?? profile.education}
+                    <div className="grid grid-cols-[110px_1fr] gap-2">
+                      <dt className="text-meta text-(--ink-2)">
+                        Education
+                      </dt>
+                      <dd className="m-0 text-meta font-medium text-(--ink)">
+                        {labelOf(profile.education, EDUCATIONS) ??
+                          profile.education}
                       </dd>
                     </div>
                   )}
-                </dl>
-              </div>
-            )}
-
-            {/* Languages cluster — Pill rows (lavender). Identity/about-me
-                bucket, mirrors Lifestyle/Personality. labelForLanguage
-                resolves canonical codes (en, he) and custom: entries.
-                primaryLanguage gets a star prefix when it appears in the
-                list (and the list is sorted to put it first). */}
-            {profile.languages?.length ? (
-              <div className="flex flex-col gap-2 border-t border-white/10 pt-4">
-                <h2 className="text-meta font-semibold uppercase text-text-secondary">
-                  Languages
-                </h2>
-                <div className="flex flex-wrap gap-2">
-                  {[...profile.languages]
-                    .sort((a, b) =>
-                      a === profile.primaryLanguage
-                        ? -1
-                        : b === profile.primaryLanguage
-                          ? 1
-                          : 0,
-                    )
-                    .map((code) => (
-                      <Pill key={code} variant="lavender" size="sm">
-                        {code === profile.primaryLanguage ? "★ " : ""}
-                        {labelForLanguage(code)}
-                      </Pill>
-                    ))}
-                </div>
-              </div>
-            ) : null}
-
-            {/* Practical compatibility — intent + relocation + comms +
-                boundaries. Sits right under the bio so it lands before
-                the faith / doctrine clusters. Mirrors the editor's
-                'Practical compatibility' section so what the user fills
-                during onboarding shows up here for peers. */}
-            {(profile.intent ||
-              profile.relocation ||
-              profile.communicationPrefs?.length ||
-              profile.boundaryTags?.length) && (
-              <div className="flex flex-col gap-2 border-t border-white/10 pt-4">
-                <h2 className="text-meta font-semibold uppercase text-text-secondary">
-                  Looking for
-                </h2>
-                <dl className="space-y-2">
-                  {profile.intent && (
-                    <div className="flex gap-2">
-                      <dt className="text-meta text-text-secondary">Intent:</dt>
-                      <dd className="text-meta text-white">
-                        {(profile.sex
-                          ? labelOf(
-                              profile.intent,
-                              intentOptionsForSex(profile.sex),
-                            )
-                          : null) ?? profile.intent}
-                      </dd>
-                    </div>
-                  )}
-                  {profile.relocation && (
-                    <div className="flex gap-2">
-                      <dt className="text-meta text-text-secondary">Relocation:</dt>
-                      <dd className="text-meta text-white">
-                        {labelOf(profile.relocation, RELOCATIONS)}
-                      </dd>
-                    </div>
-                  )}
-                </dl>
-                {profile.communicationPrefs?.length ? (
-                  <div className="mt-1 flex flex-col gap-1">
-                    <span className="text-caption text-text-secondary">
-                      Communication style
-                    </span>
-                    <div className="flex flex-wrap gap-2">
-                      {profile.communicationPrefs.map((pref) => (
-                        <Pill key={pref} variant="lavender" size="sm">
-                          {labelOf(pref, COMMUNICATION_PREFS) ?? pref}
-                        </Pill>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-                {profile.boundaryTags?.length ? (
-                  <div className="mt-1 flex flex-col gap-1">
-                    <span className="text-caption text-text-secondary">
-                      Boundaries
-                    </span>
-                    <div className="flex flex-wrap gap-2">
-                      {profile.boundaryTags.map((tag) => (
-                        <Pill key={tag} variant="lavender" size="sm">
-                          {labelOf(tag, BOUNDARY_TAGS) ?? tag}
-                        </Pill>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            )}
-
-            {/* Faith cluster — dl/dt/dd fact rows + feast-days pills */}
-            {(profile.assembly ||
-              profile.torahLevel ||
-              profile.shabbat ||
-              profile.calendar ||
-              profile.feastDays?.length) && (
-              <div className="flex flex-col gap-2 border-t border-white/10 pt-4">
-                <h2 className="text-meta font-semibold uppercase text-text-secondary">
-                  Faith
-                </h2>
-                <dl className="space-y-2">
                   {profile.assembly && (
-                    <div className="flex gap-2">
-                      <dt className="text-meta text-text-secondary">Identifies as:</dt>
-                      <dd className="text-meta text-white">
+                    <div className="grid grid-cols-[110px_1fr] gap-2">
+                      <dt className="text-meta text-(--ink-2)">
+                        Religion
+                      </dt>
+                      <dd className="m-0 text-meta font-medium text-(--ink)">
                         {labelOf(profile.assembly, ASSEMBLIES)}
                       </dd>
                     </div>
                   )}
-                  {profile.torahLevel && (
-                    <div className="flex gap-2">
-                      <dt className="text-meta text-text-secondary">Torah stage:</dt>
-                      <dd className="text-meta text-white">
-                        {labelOf(profile.torahLevel, TORAH_LEVELS)}
+                  {profile.children !== undefined && (
+                    <div className="grid grid-cols-[110px_1fr] gap-2">
+                      <dt className="text-meta text-(--ink-2)">
+                        Children
+                      </dt>
+                      <dd className="m-0 text-meta font-medium text-(--ink)">
+                        {profile.children === 1
+                          ? "1 child"
+                          : `${profile.children} children`}
                       </dd>
                     </div>
                   )}
-                  {profile.shabbat && (
-                    <div className="flex gap-2">
-                      <dt className="text-meta text-text-secondary">Shabbat:</dt>
-                      <dd className="text-meta text-white">
-                        {labelOf(profile.shabbat, SHABBATS)}
+                  {profile.languages?.length ? (
+                    <div className="grid grid-cols-[110px_1fr] gap-2">
+                      <dt className="text-meta text-(--ink-2)">
+                        Languages
+                      </dt>
+                      <dd className="m-0 text-meta font-medium text-(--ink)">
+                        {profile.languages
+                          .map((c) => labelForLanguage(c))
+                          .join(", ")}
                       </dd>
                     </div>
-                  )}
-                  {profile.calendar && (
-                    <div className="flex gap-2">
-                      <dt className="text-meta text-text-secondary">Calendar:</dt>
-                      <dd className="text-meta text-white">
-                        {labelOf(profile.calendar, CALENDARS)}
-                      </dd>
-                    </div>
-                  )}
+                  ) : null}
                 </dl>
-                {profile.feastDays?.length ? (
-                  <div className="mt-1 flex flex-col gap-1">
-                    <span className="text-caption text-text-secondary">
-                      Feast days kept
-                    </span>
-                    <div className="flex flex-wrap gap-2">
-                      {profile.feastDays.map((day) => (
-                        <Pill key={day} variant="lavender" size="sm">
-                          {labelOf(day, FEAST_DAYS) ?? day}
-                        </Pill>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            )}
+              </Card>
 
-            {/* Doctrine cluster — Torah-keeping practice items. Intent moved
-                out to a 'Looking for' cluster above the bio since it's a
-                marriage-intent signal, not a doctrinal stance. */}
-            {(profile.polygyny || profile.headCovering || profile.tzitzit) && (
-              <div className="flex flex-col gap-2 border-t border-white/10 pt-4">
-                <h2 className="text-meta font-semibold uppercase text-text-secondary">
-                  Doctrine
-                </h2>
-                <dl className="space-y-2">
-                  {profile.polygyny && (
-                    <div className="flex gap-2">
-                      <dt className="text-meta text-text-secondary">Polygyny:</dt>
-                      <dd className="text-meta text-white">
-                        {labelOf(profile.polygyny, POLYGYNY_VIEWS)}
-                      </dd>
-                    </div>
-                  )}
-                  {profile.headCovering && (
-                    <div className="flex gap-2">
-                      <dt className="text-meta text-text-secondary">Head covering:</dt>
-                      <dd className="text-meta text-white">
-                        {labelOf(profile.headCovering, HEAD_COVERINGS)}
-                      </dd>
-                    </div>
-                  )}
-                  {profile.tzitzit && (
-                    <div className="flex gap-2">
-                      <dt className="text-meta text-text-secondary">Tzitzit:</dt>
-                      <dd className="text-meta text-white">
-                        {labelOf(profile.tzitzit, TZITZIT_OPTIONS)}
-                      </dd>
-                    </div>
-                  )}
-                </dl>
-              </div>
-            )}
+              {/* Compatibility 6-bar breakdown — only when compat result present */}
+              {compatResult ? (
+                <Card
+                  tone="elevated"
+                  className="bg-card p-5 rounded-2xl gap-3"
+                >
+                  <div className="text-overline text-(--ink-2)">
+                    Compatibility · {Math.round(compatResult.score * 100)}%
+                  </div>
+                  <div className="flex flex-col gap-3">
+                    {Object.entries(compatResult.breakdown)
+                      .slice(0, 6)
+                      .map(([key, raw]) => {
+                        const v = Math.round((raw as number) * 100);
+                        const fillColor =
+                          v >= 85
+                            ? "var(--color-lime)"
+                            : v >= 65
+                              ? "var(--color-lavender)"
+                              : "var(--color-pink)";
+                        return (
+                          <div key={key}>
+                            <div className="flex justify-between">
+                              <div className="text-meta capitalize text-(--ink)">
+                                {key}
+                              </div>
+                              <div className="text-meta tabular-nums text-(--ink-2)">
+                                {v}%
+                              </div>
+                            </div>
+                            <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[color:var(--hairline)]">
+                              <div
+                                className="h-full rounded-full"
+                                style={{
+                                  // eslint-disable-next-line no-restricted-syntax -- dynamic percentage width from data; no token equivalent
+                                  width: `${v}%`,
+                                  background: fillColor,
+                                }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </Card>
+              ) : (
+                <Card
+                  tone="elevated"
+                  className="bg-card p-5 rounded-2xl gap-2"
+                >
+                  <div className="text-overline text-(--ink-2)">
+                    Compatibility
+                  </div>
+                  <p className="text-meta text-(--ink-2)">
+                    Not enough signal yet.
+                  </p>
+                </Card>
+              )}
+            </div>
 
-            {/* Lifestyle cluster — Pill rows (lavender). Relocation moved
-                to the Practical cluster above. */}
-            {(profile.familyViews?.length ||
-              profile.livingPreferences?.length ||
-              profile.healthTags?.length) && (
-              <div className="flex flex-col gap-2 border-t border-white/10 pt-4">
-                <h2 className="text-meta font-semibold uppercase text-text-secondary">
-                  Lifestyle
-                </h2>
-                {profile.familyViews?.length && (
-                  <div className="flex flex-wrap gap-2">
-                    {profile.familyViews.map((view) => (
-                      <Pill key={view} variant="lavender" size="sm">
-                        {labelOf(view, FAMILY_VIEWS)}
-                      </Pill>
-                    ))}
-                  </div>
-                )}
-                {profile.livingPreferences?.length && (
-                  <div className="flex flex-wrap gap-2">
-                    {profile.livingPreferences.map((pref) => (
-                      <Pill key={pref} variant="lavender" size="sm">
-                        {labelOf(pref, LIVING_PREFERENCES)}
-                      </Pill>
-                    ))}
-                  </div>
-                )}
-                {profile.healthTags?.length && (
-                  <div className="flex flex-wrap gap-2">
-                    {profile.healthTags.map((tag) => (
-                      <Pill key={tag} variant="lavender" size="sm">
-                        {labelOf(tag, HEALTH_TAGS)}
-                      </Pill>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Interests cluster — Pill rows (lime) */}
-            {profile.interests?.length && (
-              <div className="flex flex-col gap-2 border-t border-white/10 pt-4">
-                <h2 className="text-meta font-semibold uppercase text-text-secondary">
+            {/* Interests pills */}
+            {profile.interests?.length ? (
+              <div className="border-t border-(--hairline) pt-6">
+                <div className="mb-2.5 text-overline text-(--ink-2)">
                   Interests
-                </h2>
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {profile.interests.map((interest) => (
-                    <Pill key={interest} variant="lime" size="sm">
-                      {labelOf(interest, INTERESTS)}
+                    <Pill
+                      key={interest}
+                      variant="outline"
+                      className="bg-card border-(--hairline) text-(--ink) font-medium px-3.5 py-1.5"
+                    >
+                      {labelOf(interest, INTERESTS) ?? interest}
                     </Pill>
                   ))}
                 </div>
               </div>
-            )}
+            ) : null}
 
-            {/* Personality cluster — Pill rows (lavender) */}
-            {profile.personalityTraits?.length && (
-              <div className="flex flex-col gap-2 border-t border-white/10 pt-4">
-                <h2 className="text-meta font-semibold uppercase text-text-secondary">
-                  Personality
-                </h2>
-                <div className="flex flex-wrap gap-2">
-                  {profile.personalityTraits.map((trait) => (
-                    <Pill key={trait} variant="lavender" size="sm">
-                      {labelOf(trait, PERSONALITY_TRAITS)}
-                    </Pill>
-                  ))}
-                </div>
+            {/* Footer — Report or block + meta */}
+            <div className="mt-auto flex items-center justify-between border-t border-(--hairline) pt-4">
+              <button
+                type="button"
+                onClick={() => setReportOpen(true)}
+                className="inline-flex items-center gap-2 text-sm text-(--ink-3) hover:text-(--ink)"
+              >
+                <AlertTriangle className="size-3.5" />
+                Report or block
+              </button>
+              <div className="text-sm text-(--ink-3)">
+                Profile · UUID {uuid.slice(0, 8)}
               </div>
-            )}
-
-            {/* Verification cluster — Pill rows (lime) with ShieldCheck icon */}
-            {profile.verificationTags?.length && (
-              <div className="flex flex-col gap-2 border-t border-white/10 pt-4">
-                <h2 className="flex items-center gap-1.5 text-meta font-semibold uppercase text-text-secondary">
-                  <ShieldCheck className="size-4" /> Verified
-                </h2>
-                <div className="flex flex-wrap gap-2">
-                  {profile.verificationTags.map((tag) => (
-                    <Pill key={tag} variant="lime" size="sm">
-                      {labelOf(tag, VERIFICATION_TAGS)}
-                    </Pill>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Action row — match-gated.
-                  Matched (mutual): Message only. Skip/Like would let the
-                    user undo a match from a profile view, which isn't a
-                    place we want unmatching to happen (settings only).
-                  Unmatched: same X + Pause/Play + Like trio as the
-                    /discover card so the action row reads identically
-                    whether the viewer is looking at the card or its
-                    expanded profile. */}
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.25, delay: 0.2, ease: "easeOut" }}
-              className="mt-2 flex items-center justify-center gap-5"
-            >
-              {isMatched ? (
-                <Button
-                  nativeButton={false}
-                  size="circle-lg"
-                  tone="cta"
-                  lift="float"
-                  aria-label="Message"
-                  render={<Link href={`/chat/${uuid}`} prefetch={false} />}
-                >
-                  <MessageCircle className="text-black" />
-                </Button>
-              ) : (
-                <>
-                  <Button
-                    size="circle"
-                    tone="brand"
-                    lift="float"
-                    aria-label="Skip"
-                    disabled={!profileLoaded}
-                    onClick={async () => {
-                      try {
-                        await decide(uuid, "nope");
-                      } catch {
-                        // surfaced via useDecisions().error
-                      }
-                      router.push(backHref);
-                    }}
-                  >
-                    <X className="text-black" />
-                  </Button>
-                  <Button
-                    size="circle-lg"
-                    tone="cta"
-                    lift="float"
-                    aria-label={
-                      cyclePhotos
-                        ? "Pause photo slideshow"
-                        : "Play photo slideshow"
-                    }
-                    aria-pressed={cyclePhotos}
-                    onClick={() => setCyclePhotos((on) => !on)}
-                  >
-                    {cyclePhotos ? (
-                      <Pause className="text-black" fill="currentColor" />
-                    ) : (
-                      <Play className="text-black" fill="currentColor" />
-                    )}
-                  </Button>
-                  <Button
-                    size="circle"
-                    tone="action"
-                    lift="float"
-                    aria-label="Like"
-                    disabled={!profileLoaded}
-                    onClick={async () => {
-                      try {
-                        const result = await decide(uuid, "like");
-                        // Phase 5: `decide()` now returns a discriminated
-                        // result. quota_exceeded shouldn't generally fire
-                        // here (the /profile detail-view like is from a
-                        // dedicated profile open, not the swipe deck) but
-                        // if it does we just fall through to the backHref
-                        // navigation — the swipe surface on /discover is
-                        // where QuotaExceededCard lives.
-                        if (result.kind === "ok" && result.matchId) {
-                          router.push(
-                            `/match?matchId=${encodeURIComponent(result.matchId)}`,
-                          );
-                          return;
-                        }
-                      } catch {
-                        // surfaced via useDecisions().error
-                      }
-                      router.push(backHref);
-                    }}
-                  >
-                    <Heart className="text-white" fill="currentColor" />
-                  </Button>
-                </>
-              )}
-            </motion.div>
-          </CardContent>
-        </Card>
-      </motion.div>
+            </div>
+          </div>
+        </motion.div>
+      </div>
 
       <BlockReportSheet
         open={reportOpen}
         onOpenChange={setReportOpen}
         subjectName={profile.firstName ?? "this person"}
         onSubmit={async (payload) => {
-          // Concatenate category + free-text details into the report
-          // reason so moderators see both. Backend sets reported=true
-          // automatically when reason is non-empty.
           const reason = payload.details
             ? `${payload.category}: ${payload.details}`
             : payload.category;
           await apiClient.post(`/skip/by-uuid/${uuid}`, { report_reason: reason });
-          // Block is immediate — leave the profile we just blocked.
           router.push("/discover");
         }}
       />

@@ -110,6 +110,21 @@
   --text-display--letter-spacing: -0.02em;
   --text-display--font-weight: 800;
 
+  /* Desktop-only hero typography. Used by /auth/sign-up form heading,
+     onboarding step prompts, etc. — extends the display scale upward. */
+  --text-display-lg: 40px;
+  --text-display-lg--line-height: 1.05;
+  --text-display-lg--letter-spacing: -0.025em;
+  --text-display-lg--font-weight: 800;
+
+  /* Marketing-scale headline. Only used by /welcome (1440 hero) and
+     /auth split layouts where the wordmark stat fills the gradient
+     panel. Keep this off of in-app screens. */
+  --text-marketing: 80px;
+  --text-marketing--line-height: 0.95;
+  --text-marketing--letter-spacing: -0.03em;
+  --text-marketing--font-weight: 800;
+
   --text-h1: 24px;
   --text-h1--line-height: 1.2;
   --text-h1--letter-spacing: -0.015em;
@@ -211,12 +226,152 @@
   --sidebar-accent-foreground: oklch(1 0 0);
   --sidebar-border:       oklch(1 0 0 / 0.08);
   --sidebar-ring:         oklch(0.95 0.18 119);
+
+  /* Chrome aliases — dark theme defaults. Mirror the canonical tokens.css
+     (docs/handoff-desktop/tokens.css) verbatim. Components read these so the
+     entire UI flips by overriding them inside [data-theme="light"] below.
+     The desktop sidebar reads --nav-bg / --nav-border / --nav-inactive;
+     PageShell wrapper reads --canvas; cards/sheets read --ink / --hairline. */
+
+  /* Raw surface tokens (from canonical tokens.css lines 18–24) */
+  --bg-canvas:            #000000;
+  --bg-indigo:            oklch(0.18 0.11 280);
+  --bg-elevated:          oklch(0.13 0.06 280);
+  --text-primary:         #FFFFFF;
+  --text-secondary:       oklch(0.75 0.04 280);
+  --text-muted:           oklch(0.66 0.05 280);
+
+  /* Brand aliases without --color- prefix (so kit-side and handoff-side
+     CSS-var references both resolve). The Tailwind --color-* names are
+     defined elsewhere; these are the canonical short names per tokens.css. */
+  --indigo:               oklch(0.46 0.30 270);
+  --lime:                 oklch(0.95 0.18 119);
+  --lavender:             oklch(0.71 0.16 295);
+  --pink:                 oklch(0.65 0.24 17);
+  --success:              oklch(0.85 0.21 138);
+
+  /* Semantic chrome (canonical tokens.css lines 26–47) */
+  --app:                  var(--bg-indigo);
+  --canvas:               var(--bg-canvas);
+  --ink:                  #ffffff;
+  --ink-2:                var(--text-secondary);
+  --ink-3:                var(--text-muted);
+  --hairline:             rgba(255,255,255,0.08);
+  --border:               rgba(255,255,255,0.15);
+  --status:               #ffffff;
+  --nav-bg:               var(--bg-elevated);
+  --nav-border:           rgba(255,255,255,0.10);
+  --nav-inactive:         var(--lavender);
+  --pill-glass:           rgba(0,0,0,0.30);
+  --pill-glass-ink:       #ffffff;
+  --pill-glass-border:    rgba(255,255,255,0.20);
+  --shadow-soft:          0 8px 24px rgba(0,0,0,0.45);
+  --shadow-cta:
+    0 8px 24px -4px rgba(255,255,255,0.12),
+    0 2px 8px -2px rgba(255,255,255,0.08);
+  --scrim-strong:         linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.70) 100%);
+
+  /* design-system-v2.md §1.2 semantic aliases. The spec doc uses --bg-*,
+     --fg-*, --border-*-strong naming while tokens.css uses --app, --ink,
+     --hairline, --border. Both exist in shipped component code, so we
+     expose both — these are aliases of the tokens.css names. */
+  --bg-app:               var(--app);
+  --bg-card:              var(--card);
+  --bg-inverse:           #FFFFFF;       /* dark→light inversion target */
+  --fg-default:           var(--ink);
+  --fg-muted:             var(--ink-2);
+  --fg-subtle:            var(--ink-3);
+  --fg-inverse:           #0F0B1F;
+  --border-subtle:        var(--hairline);
+  --border-default:       var(--border);
+  --border-strong:        rgba(255,255,255,0.30);
 }
 
 .dark {
   /* same — dark-only ship */
   --background:           oklch(0.18 0.11 280);
   --foreground:           oklch(1 0 0);
+}
+
+/* ------------------------------------------------------------------ */
+/* Light mode overrides — activate via data-theme="light" on <html>.  */
+/* Desktop ≥768px gets this; mobile stays dark unconditionally.        */
+/* All semantic chrome vars flip; brand colors (indigo/lavender/pink)  */
+/* are unchanged. Lime darkens for WCAG AA on white (§1.2).           */
+/* ------------------------------------------------------------------ */
+[data-theme="light"] {
+  /* Brand — lime darkened for AA on white/cream per design-system-v2 §1.2.
+     Override both the Tailwind name (--color-lime) AND the short alias
+     (--lime, per canonical tokens.css line 59) so components reading
+     either form resolve to the cream-safe value. */
+  --color-lime:          oklch(0.78 0.22 119);
+  --lime:                oklch(0.78 0.22 119);
+
+  /* Surface overrides — Tailwind token aliases */
+  --color-bg-canvas:     #FBF9F4;
+  --color-bg-indigo:     #FBF9F4;
+  --color-bg-elevated:   #FFFFFF;
+  --color-text-secondary: oklch(0.45 0.05 280);
+  --color-text-muted:    oklch(0.60 0.04 280);
+
+  /* shadcn/Base UI semantic vars */
+  --background:          #FBF9F4;
+  --foreground:          #0F0B1F;
+  --card:                #FFFFFF;
+  --card-foreground:     #0F0B1F;
+  --popover:             #FFFFFF;
+  --popover-foreground:  #0F0B1F;
+  --muted:               #F0EDE6;
+  --muted-foreground:    oklch(0.45 0.05 280);
+  --border:              rgba(15,11,31,0.12);
+  --input:               #FFFFFF;
+  --ring:                #0F0B1F;
+
+  /* Sidebar */
+  --sidebar:             #FFFFFF;
+  --sidebar-foreground:  #0F0B1F;
+  --sidebar-border:      rgba(15,11,31,0.08);
+  --sidebar-primary:     oklch(0.46 0.30 270);
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent:      #FBF9F4;
+  --sidebar-accent-foreground: #0F0B1F;
+  --sidebar-ring:        oklch(0.78 0.22 119);
+
+  /* Semantic chrome aliases (from tokens.css lines 53–81) */
+  --app:                 #FBF9F4;
+  --canvas:              #ECE9E0;
+  --ink:                 #0F0B1F;
+  --ink-2:               oklch(0.45 0.05 280);
+  --ink-3:               oklch(0.60 0.04 280);
+  --hairline:            rgba(15,11,31,0.06);
+  --status:              #0F0B1F;
+  --pill-glass:          rgba(15,11,31,0.06);
+  --pill-glass-ink:      #0F0B1F;
+  --pill-glass-border:   rgba(15,11,31,0.12);
+  --scrim-strong:        linear-gradient(180deg, rgba(15,11,31,0) 0%, rgba(15,11,31,0.55) 100%);
+
+  /* Navigation — new vars (not in dark globals; desktop sidebar reads these) */
+  --nav-bg:              #FFFFFF;
+  --nav-border:          rgba(15,11,31,0.08);
+  --nav-inactive:        oklch(0.46 0.30 270);
+
+  /* Shadows — new vars (not in dark globals) */
+  --shadow-soft:         0 8px 24px rgba(15,11,31,0.10);
+  --shadow-cta:
+    0 8px 24px -4px rgba(85,36,245,0.15),
+    0 2px 8px -2px rgba(15,11,31,0.08);
+
+  /* design-system-v2.md §1.2 semantic aliases — light values */
+  --bg-app:              #FBF9F4;
+  --bg-card:             #FFFFFF;
+  --bg-inverse:          #0F0B1F;
+  --fg-default:          #0F0B1F;
+  --fg-muted:            oklch(0.45 0.05 280);
+  --fg-subtle:           oklch(0.60 0.04 280);
+  --fg-inverse:          #FFFFFF;
+  --border-subtle:       rgba(15,11,31,0.06);
+  --border-default:      rgba(15,11,31,0.12);
+  --border-strong:       rgba(15,11,31,0.24);
 }
 
 @layer base {
@@ -243,8 +398,12 @@
     overscroll-behavior-x: contain;
   }
   body {
-    background-color: #000000;
-    color: #FFFFFF;
+    /* Body bg tracks the active theme via --background (dark=indigo,
+       light=cream). Previously hardcoded #000 because mobile-dark always
+       hid body behind the 414px .ahavah-app column; on desktop where the
+       column is released, body becomes visible and black was wrong. */
+    background-color: var(--background);
+    color: var(--foreground);
     -webkit-font-smoothing: antialiased;
   }
   .ahavah-app {
@@ -260,6 +419,29 @@
        chat lists) can scroll the whole page. Was previously `overflow:
        hidden` which clipped vertical overflow too. */
     overflow-x: hidden;
+  }
+
+  /* Desktop release — at md+ the .ahavah-app wrapper must NOT clamp to the
+     414px mobile column under EITHER theme. The desktop chrome (sidebar +
+     topbar) takes over at md+, so content needs the full viewport. The dark
+     414px column is a mobile-only look. */
+  @media (min-width: 768px) {
+    .ahavah-app {
+      max-width: none;
+      background-color: transparent;
+      overflow-x: visible;
+      min-height: 100dvh;
+    }
+  }
+
+  /* Mobile light-theme release — when the user toggles light theme at any
+     viewport (including below md), drop the indigo column so the cream canvas
+     from <body> shows through. Dark theme on mobile keeps the indigo column. */
+  html[data-theme="light"] .ahavah-app {
+    max-width: none;
+    background-color: transparent;
+    overflow-x: visible;
+    min-height: 100dvh;
   }
 
   /* WCAG 2.3.3 — honor user's reduced-motion preference.
@@ -591,4 +773,29 @@
     opacity: 0.3;
   }
 }
+}
+
+/* ── Desktop welcome layout helpers ───────────────────────────────────────
+   These use CSS functions (color-mix, custom grid fractions) that cannot be
+   expressed as plain Tailwind utilities without inline style props.         */
+
+/* Logo theme swap — Logo component renders both light + dark variants
+   and lets [data-theme] toggle which one is visible. No JS theme read,
+   no hydration mismatch, no flash. Default (dark theme): show .logo-dark,
+   hide .logo-light. Light theme inverts. */
+[data-theme="light"] .logo-dark { display: none; }
+[data-theme="light"] .logo-light { display: block; }
+
+/* 7fr / 5fr split used by the welcome screen desktop layout */
+.welcome-desktop-grid {
+  grid-template-columns: 7fr 5fr;
+}
+
+/* Left panel gradient: app-cream → lavender-tinted app-cream */
+.welcome-left-gradient {
+  background: linear-gradient(
+    135deg,
+    var(--app) 0%,
+    color-mix(in oklch, var(--color-lavender) 20%, var(--app)) 100%
+  );
 }

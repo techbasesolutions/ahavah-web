@@ -32,25 +32,24 @@ export function useRedirectIfSignedIn(target: string = "/discover"): {
   checking: boolean;
 } {
   const router = useRouter();
-  const [checking, setChecking] = useState<boolean>(() => {
-    // SSR: nothing to check — render normally.
-    if (typeof window === "undefined") return false;
-    // No token → no probe needed.
-    return Boolean(getSessionToken());
-  });
+  // Initial state must match between SSR and client's first paint to avoid
+  // hydration mismatches. We start `false` on both, then flip to `true`
+  // synchronously in the effect below if a session token is present. The
+  // brief flash of the welcome surface before the effect runs is
+  // intentional — preferable to a hydration error that regenerates the
+  // entire tree and re-runs every child effect.
+  const [checking, setChecking] = useState<boolean>(false);
 
   useEffect(() => {
     const token = getSessionToken();
     if (!token) {
-      // No session — make sure we're not stuck in "checking" if state
-      // initialised to true on a hydration timing edge case. The
-      // setState-in-effect rule warns generically here; this branch
-      // is the canonical "external state changed; sync to React"
-      // shape (see use-profile.ts for the same pattern).
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setChecking(false);
+      // No session — render the page normally; nothing to flip.
       return;
     }
+    // Token present — enter the checking branch so the welcome surface
+    // doesn't flash to a signed-in user during the /me probe.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setChecking(true);
     let cancelled = false;
     void apiClient
       .get<Record<string, unknown>>("/me")

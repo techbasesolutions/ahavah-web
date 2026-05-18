@@ -96,7 +96,7 @@ export function CompatPill({
                   <span className="text-text-primary font-medium">
                     {AXIS_LABELS[axis]}
                   </span>
-                  <span className="text-text-secondary text-xs tabular-nums">
+                  <span className="text-(--ink-2) text-xs tabular-nums">
                     {Math.round(value * 100)}%
                   </span>
                 </div>

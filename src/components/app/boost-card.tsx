@@ -32,7 +32,12 @@ import { TokenSpendSheet } from "@/components/app/token-spend-sheet";
 type ActiveBoost = { active: boolean; expires_at?: string };
 
 export function BoostCard() {
-  const { balance, refresh: refreshBalance } = useTokenBalance();
+  const {
+    state: balanceState,
+    balance,
+    refresh: refreshBalance,
+  } = useTokenBalance();
+  const balanceForSheet = balanceState === "happy" ? balance : null;
   const [active, setActive] = useState<ActiveBoost | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -112,11 +117,11 @@ export function BoostCard() {
             aria-hidden
           />
           <div className="flex-1">
-            <p className="text-meta font-semibold text-white">
+            <p className="text-meta font-semibold text-(--ink)">
               {active?.active ? (
                 <>
                   Boost active<span className="text-lime">.</span>{" "}
-                  <span className="text-text-secondary tabular-nums">
+                  <span className="text-(--ink-2) tabular-nums">
                     {remaining}
                   </span>
                 </>
@@ -124,7 +129,7 @@ export function BoostCard() {
                 "Boost your profile"
               )}
             </p>
-            <p className="text-caption text-text-secondary">
+            <p className="text-caption text-(--ink-2)">
               {active?.active
                 ? "You're appearing first in nearby decks."
                 : "Get seen first in nearby decks for 30 minutes."}
@@ -149,7 +154,7 @@ export function BoostCard() {
         title="Boost for 30 minutes?"
         description="Your profile will be shown first in nearby decks for 30 minutes."
         cost={5}
-        currentBalance={balance}
+        currentBalance={balanceForSheet}
         onConfirm={handleBoost}
         busy={busy}
       />

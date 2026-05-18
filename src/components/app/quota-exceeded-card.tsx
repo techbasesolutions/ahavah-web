@@ -29,7 +29,8 @@ export function QuotaExceededCard({
   resetsAt: string | null;
   onDayPassActivated: () => void;
 }) {
-  const { balance, refresh } = useTokenBalance();
+  const { state: balanceState, balance, refresh } = useTokenBalance();
+  const balanceForSheet = balanceState === "happy" ? balance : null;
   const [sheetOpen, setSheetOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -80,11 +81,11 @@ export function QuotaExceededCard({
     <>
       <Card tone="elevated">
         <CardContent className="flex flex-col gap-3 text-center">
-          <h2 className="text-h2 text-white">
+          <h2 className="text-h2 text-(--ink)">
             Out of likes for today<span className="text-lime">.</span>
           </h2>
           {resetsLabel ? (
-            <p className="text-meta text-text-secondary">
+            <p className="text-meta text-(--ink-2)">
               Resets in {resetsLabel}.
             </p>
           ) : null}
@@ -98,7 +99,7 @@ export function QuotaExceededCard({
             </Button>
             <Button
               size="cta"
-              variant="outlineSubtle"
+              variant="outline"
               onClick={() => setSheetOpen(true)}
             >
               <Sparkles aria-hidden />
@@ -114,7 +115,7 @@ export function QuotaExceededCard({
         title="Day pass — unlimited likes for 24 hours"
         description="Bypass today's like quota. The pass expires 24 hours after purchase."
         cost={3}
-        currentBalance={balance}
+        currentBalance={balanceForSheet}
         onConfirm={handleDayPass}
         busy={busy}
       />

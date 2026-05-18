@@ -58,15 +58,20 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { SlidersHorizontal } from "lucide-react";
+import Link from "next/link";
+import { MapPin, MessageCircle, SlidersHorizontal } from "lucide-react";
 
 import type { BBox } from "@/lib/continent-bbox";
 
 import { BottomNav } from "@/components/app/bottom-nav";
 import { FiltersSheet } from "@/components/app/filters-sheet";
 import { PageShell } from "@/components/app/page-shell";
-import { BrandMark } from "@/components/brand/sparkle-mark";
+import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
 
 import { apiClient } from "@/lib/api-client";
 import { centroidOf, countriesInBounds } from "@/lib/country-centroids";
@@ -91,8 +96,8 @@ const WorldMap = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="absolute inset-0 grid place-items-center bg-bg-elevated">
-        <span className="text-text-secondary">Loading map…</span>
+      <div className="absolute inset-0 grid place-items-center bg-(--card)">
+        <span className="text-(--ink-2)">Loading map…</span>
       </div>
     ),
   },
@@ -338,12 +343,12 @@ export default function MapPage() {
   // keep the map from flashing for an ineligible viewer.
   if (!loaded || (loaded && !readOnboarded() && !isDiscoverEligible(viewer))) {
     return (
-      <PageShell bottomPad="nav">
+      <PageShell desktopShell="sidebar" topBarTitle="Map" bottomPad="nav">
         <div
           className="flex flex-1 items-center justify-center px-5"
           aria-live="polite"
         >
-          <p className="text-body text-text-secondary">
+          <p className="text-body text-(--ink-2)">
             Redirecting to complete your profile…
           </p>
         </div>
@@ -352,87 +357,178 @@ export default function MapPage() {
     );
   }
 
+  // Shared marker renderer — used by both mobile and desktop map columns.
+  const mapMarkers = visibleCandidates.map((p) => {
+    const id = p.id;
+    const matched = matchedUuids.has(id);
+    const state = resolveMarkerState({
+      candidate: { id },
+      decisions,
+      matched,
+      activeChatIds: matchedUuids,
+    });
+    return <MapAvatar key={id} candidate={p} state={state} />;
+  });
+
+  // Shared filter button used in both mobile top bar and desktop top bar actions.
+  const filterButton = (
+    <FiltersSheet
+      open={filtersOpen}
+      onOpenChange={setFiltersOpen}
+      initialFilters={filters}
+      trigger={
+        <Button
+          size="circle-lg"
+          tone="elevated"
+          aria-label={
+            activeFilterCount > 0
+              ? `Filter map (${activeFilterCount} active)`
+              : "Filter map"
+          }
+          className="relative"
+        >
+          <SlidersHorizontal className="text-(--ink)" />
+          {activeFilterCount > 0 ? (
+            <span
+              aria-hidden
+              className="absolute -top-1 -right-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-lime px-1.5 text-caption font-bold tabular-nums text-black ring-2 ring-bg-canvas"
+            >
+              {activeFilterCount}
+            </span>
+          ) : null}
+        </Button>
+      }
+      onApply={(f) => setFilters(f)}
+    />
+  );
+
   return (
-    <PageShell bottomPad="none" className="relative overflow-hidden">
-      {/* Full-bleed map — absolute-fills the shell. ContinentPicker was
-          removed in the 2026-05-12 fix-up; users pan + zoom directly,
-          and country/region filtering happens through FiltersSheet's
-          Country pill grid (shared with /discover). */}
-      <div className="absolute inset-0">
+    <PageShell
+      desktopShell="sidebar"
+      topBarTitle="Map"
+      topBarActions={filterButton}
+      bottomPad="none"
+      className="relative overflow-hidden"
+    >
+      {/* ── Mobile layout (hidden at md+) ──────────────────────────────── */}
+      <div className="md:hidden absolute inset-0">
         <WorldMap
           className="size-full"
           onBoundsChange={handleBoundsChange}
           bbox={initialBbox}
         >
-          {visibleCandidates.map((p) => {
-            // Real marker state:
-            //   - `matched` = candidate uuid in matchedUuids (from GET
-            //     /matches; established mutual-like)
-            //   - `activeChatIds` = same set (every match has a chat
-            //     thread by design; separate inbox query would just
-            //     duplicate /matches)
-            //   - `decisions` = local-only swipe store, drives 'liked'
-            //     halo for just-swiped feedback within this session
-            const id = p.id;
-            const matched = matchedUuids.has(id);
-            const state = resolveMarkerState({
-              candidate: { id },
-              decisions,
-              matched,
-              activeChatIds: matchedUuids,
-            });
-            return <MapAvatar key={id} candidate={p} state={state} />;
-          })}
+          {mapMarkers}
         </WorldMap>
       </div>
 
-      {/* Thin top bar overlay — BrandMark left, filter icon right. The
-          translucent backdrop + blur lets the map texture show through
-          while keeping the brand mark legible. Icon matches /discover
-          (SlidersHorizontal) so the user reads "open filters" not
-          "switch to map view".
-
-          Phase W cutover (2026-05-15): badge on the filter button
-          shows the count of active filters. Was the missing piece in
-          the "Jada disappeared from the map" investigation — users
-          couldn't tell whether any filters were applied. Now they
-          see a lime dot with the count. */}
-      <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between gap-3 bg-bg-canvas/80 px-4 py-3 supports-backdrop-filter:bg-bg-canvas/60 supports-backdrop-filter:backdrop-blur-md">
-        <BrandMark size="sm" />
-        <FiltersSheet
-          open={filtersOpen}
-          onOpenChange={setFiltersOpen}
-          initialFilters={filters}
-          trigger={
-            // Base UI SheetTrigger requires a native <button>; nest the
-            // count badge inside the Button as an absolute-positioned
-            // child so the trigger itself stays a real button.
-            <Button
-              size="circle"
-              tone="elevated"
-              aria-label={
-                activeFilterCount > 0
-                  ? `Filter map (${activeFilterCount} active)`
-                  : "Filter map"
-              }
-              className="relative"
-            >
-              <SlidersHorizontal className="text-white" />
-              {activeFilterCount > 0 ? (
-                <span
-                  aria-hidden
-                  className="absolute -top-1 -right-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-lime px-1.5 text-caption font-bold tabular-nums text-black ring-2 ring-bg-canvas"
-                >
-                  {activeFilterCount}
-                </span>
-              ) : null}
-            </Button>
-          }
-          onApply={(f) => setFilters(f)}
-        />
+      {/* Mobile top-bar overlay */}
+      <div className="md:hidden absolute inset-x-0 top-0 z-20 flex items-center justify-between gap-3 bg-(--canvas)/80 px-4 py-3 supports-backdrop-filter:bg-(--canvas)/60 supports-backdrop-filter:backdrop-blur-md">
+        <Logo variant="horizontal" size="sm" />
+        {filterButton}
       </div>
 
-      <BottomNav />
+      <div className="md:hidden">
+        <BottomNav />
+      </div>
+
+      {/* ── Desktop layout (hidden below md) ───────────────────────────── */}
+      {/* DELIBERATE DIVERGENCE from canonical screens/07-map.md (2026-05-17):
+          canonical specifies a FULL-BLEED map with overlay top bar + a
+          340px selected-pin info card floating bottom-left. This impl
+          retains a 360px candidate-list RAIL on the right instead — the
+          rail surfaces who's currently in view and is scrollable, which
+          is functionally valuable (panning the map updates the list).
+          Tearing it out for canonical full-bleed loses that affordance.
+          Visual treatment + theme-aware tokens applied throughout.
+          h-[calc(100dvh-3.5rem)] subtracts the DesktopTopBar height. */}
+      <div className="hidden md:grid md:grid-cols-[1fr_360px] md:gap-6 md:h-[calc(100dvh-3.5rem)] md:-m-8 md:p-8">
+        {/* Left — Leaflet map, full height, rounded frame with hairline */}
+        <div className="relative overflow-hidden rounded-2xl border border-(--hairline) min-h-0">
+          <WorldMap
+            className="size-full"
+            onBoundsChange={handleBoundsChange}
+            bbox={initialBbox}
+          >
+            {mapMarkers}
+          </WorldMap>
+        </div>
+
+        {/* Right — candidate rail */}
+        <div className="flex flex-col min-h-0 gap-4">
+          {/* Sticky filter row (re-use filter button) */}
+          <div className="flex items-center justify-between shrink-0">
+            <span className="text-caption font-semibold text-(--ink-2)">
+              {visibleCandidates.length} visible
+            </span>
+            {filterButton}
+          </div>
+
+          {/* Scrollable candidate list */}
+          <ScrollArea className="flex-1 min-h-0">
+            <div className="flex flex-col gap-3 pr-2">
+              {visibleCandidates.length === 0 ? (
+                <p className="text-center text-meta py-8 text-(--ink-3)">
+                  No candidates in view. Pan the map to explore.
+                </p>
+              ) : (
+                visibleCandidates.map((p) => {
+                  const nameInitial = (p.firstName ?? "?")[0].toUpperCase();
+                  const location =
+                    p.city && p.country
+                      ? `${p.city}, ${p.country}`
+                      : (p.country ?? "");
+                  return (
+                    <Card
+                      key={p.id}
+                      tone="flat"
+                      size="sm"
+                      className="flex flex-row items-center gap-3 p-3 rounded-2xl bg-(--card) border border-(--hairline)"
+                    >
+                      {/* Kit Avatar — size="tap" (44px) with brand fallback
+                          (indigo tile + lime initial, per §Avatar variants).
+                          Uses size prop not className override so typography
+                          scales via group-data selectors in avatarVariants. */}
+                      <Avatar size="tap">
+                        <AvatarFallback variant="brand">
+                          {nameInitial}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-meta font-semibold truncate text-(--ink)">
+                          {p.firstName ?? "Match"}
+                          {p.age ? `, ${p.age}` : ""}
+                        </p>
+                        {location ? (
+                          <p className="flex items-center gap-1 text-caption truncate text-(--ink-2)">
+                            <MapPin className="size-3 shrink-0" aria-hidden />
+                            {location}
+                          </p>
+                        ) : null}
+                      </div>
+                      {/* Kit Button + render={<Link/>} pattern (replaces
+                          previous buttonVariants() classname application
+                          which bypassed the primitive's slot semantics). */}
+                      <Button
+                        size="circle-lg"
+                        tone="cta"
+                        render={
+                          <Link
+                            href={`/chat/${p.id}`}
+                            prefetch={false}
+                          />
+                        }
+                        aria-label={`Message ${p.firstName ?? "Match"}`}
+                      >
+                        <MessageCircle className="size-4" aria-hidden />
+                      </Button>
+                    </Card>
+                  );
+                })
+              )}
+            </div>
+          </ScrollArea>
+        </div>
+      </div>
     </PageShell>
   );
 }

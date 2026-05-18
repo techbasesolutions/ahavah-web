@@ -120,10 +120,10 @@ export default function CountryStep() {
         transition={{ duration: 0.4 }}
         className="flex flex-col gap-2"
       >
-        <h1 className="text-display text-white">
+        <h1 className="text-display text-(--ink)">
           Where are you<span className="text-lime">?</span>
         </h1>
-        <p className="text-body text-text-secondary">
+        <p className="text-body text-(--ink-2)">
           We&apos;ll show people closer to you first.
         </p>
       </motion.div>
@@ -146,12 +146,12 @@ export default function CountryStep() {
           </span>
           <div className="flex flex-1 flex-col">
             <span className="text-overline text-lime">Selected</span>
-            <span className="text-body font-semibold text-white">
+            <span className="text-body font-semibold text-(--ink)">
               {selectedCountry.name}
             </span>
           </div>
           <Button
-            size="circle"
+            size="circle-lg"
             tone="overlay"
             aria-label={`Clear ${selectedCountry.name}`}
             onClick={() => update({ country: undefined })}
@@ -171,7 +171,7 @@ export default function CountryStep() {
       >
         <Search
           size={16}
-          className="pointer-events-none absolute top-1/2 left-4 z-10 -translate-y-1/2 text-text-muted"
+          className="pointer-events-none absolute top-1/2 left-4 z-10 -translate-y-1/2 text-(--ink-3)"
         />
         <Input
           size="lg"
@@ -184,7 +184,7 @@ export default function CountryStep() {
         />
         {query.length > 0 && (
           <Button
-            size="circle"
+            size="circle-lg"
             tone="overlay"
             aria-label="Clear search"
             className="absolute top-1/2 right-2 -translate-y-1/2 size-8"
@@ -248,7 +248,7 @@ function SectionHeader({
   return (
     <div
       className={cn(
-        "px-1 pt-1 pb-2 text-overline text-text-muted",
+        "px-1 pt-1 pb-2 text-overline text-(--ink-3)",
         className,
       )}
     >
@@ -280,7 +280,7 @@ function CountryRows({
                 "flex flex-row items-center gap-3 rounded-xl px-4 py-3 transition-all active:scale-[0.98]",
                 active
                   ? "bg-lime ring-2 ring-inset ring-lime"
-                  : "hover:bg-bg-elevated/80 hover:ring-1 hover:ring-inset hover:ring-white/10",
+                  : "hover:bg-(--card)/80 hover:ring-1 hover:ring-inset hover:ring-border",
               )}
             >
               <span className="text-h2" aria-hidden>
@@ -289,7 +289,7 @@ function CountryRows({
               <span
                 className={cn(
                   "flex-1 text-body font-medium",
-                  active ? "text-black" : "text-white",
+                  active ? "text-black" : "text-(--ink)",
                 )}
               >
                 {c.name}

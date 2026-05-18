@@ -172,7 +172,7 @@ export default function LanguagesStep() {
         ? `Primary: ${primaryLabel}. Chats default to this. Tap a selected language again to change.`
         : "Pick a language to set as your primary.";
   const helperTone =
-    selected.length === 0 ? "text-pink" : "text-text-secondary";
+    selected.length === 0 ? "text-pink" : "text-(--ink-2)";
 
   return (
     <OnboardingShell href="/onboarding/languages" ctaDisabled={!isComplete}>
@@ -181,10 +181,10 @@ export default function LanguagesStep() {
         transition={{ duration: 0.3 }}
         className="flex flex-col gap-2"
       >
-        <h1 className="text-display text-white">
+        <h1 className="text-display text-(--ink)">
           Which languages do you speak<span className="text-lime">?</span>
         </h1>
-        <p className="text-body text-text-secondary">
+        <p className="text-body text-(--ink-2)">
           Pick all that apply, then tap one to set as your primary.
         </p>
       </motion.div>
@@ -263,7 +263,7 @@ export default function LanguagesStep() {
           transition={{ duration: 0.3 }}
           className="mt-5"
         >
-          <p className="mb-2 text-overline text-text-muted">Your additions</p>
+          <p className="mb-2 text-overline text-(--ink-3)">Your additions</p>
           <div className="flex flex-wrap gap-2">
             {customLanguages.map((label) => {
               const value = `${CUSTOM_LANGUAGE_PREFIX}${label}`;
@@ -272,8 +272,8 @@ export default function LanguagesStep() {
                 <div
                   key={label}
                   className={cn(
-                    "inline-flex items-center overflow-hidden rounded-full border bg-bg-elevated transition-colors",
-                    isPrimary ? "border-lime" : "border-white/10",
+                    "inline-flex items-center overflow-hidden rounded-full border bg-(--card) transition-colors",
+                    isPrimary ? "border-lime" : "border-border",
                   )}
                 >
                   <button
@@ -288,7 +288,7 @@ export default function LanguagesStep() {
                         : `Set ${label} as your primary language`
                     }
                     aria-current={isPrimary ? "true" : undefined}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 text-meta font-medium text-white"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 text-meta font-medium text-(--ink)"
                   >
                     <Globe className="size-3.5" aria-hidden />
                     {label}
@@ -303,7 +303,7 @@ export default function LanguagesStep() {
                     type="button"
                     onClick={() => removeCustom(label)}
                     aria-label={`Remove ${label}`}
-                    className="inline-flex size-tap items-center justify-center border-l border-white/10 text-text-muted transition-colors hover:bg-white/5 hover:text-white"
+                    className="inline-flex size-tap items-center justify-center border-l border-border text-(--ink-3) transition-colors hover:bg-foreground/5 hover:text-(--ink)"
                   >
                     <X className="size-4" aria-hidden />
                   </button>
@@ -327,10 +327,10 @@ export default function LanguagesStep() {
       >
         <Label
           htmlFor="add-language"
-          className="mb-2 block text-meta text-white"
+          className="mb-2 block text-meta text-(--ink)"
         >
           Don&apos;t see yours?{" "}
-          <span className="text-text-muted">Add it.</span>
+          <span className="text-(--ink-3)">Add it.</span>
         </Label>
         <Input
           id="add-language"

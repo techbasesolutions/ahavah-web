@@ -1,11 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import {
-  ArrowLeft,
   AtSign,
   ChevronRight,
   Loader2,
@@ -39,12 +37,7 @@ import {
   ItemTitle,
 } from "@/components/ui/item";
 
-import { BottomNav } from "@/components/app/bottom-nav";
-import {
-  PageHeader,
-  PageHeaderTitle,
-  PageShell,
-} from "@/components/app/page-shell";
+import { SettingsShell } from "@/components/app/settings-shell";
 
 const fadeUp = {
   initial: { opacity: 0, y: 12 },
@@ -140,21 +133,8 @@ export default function AccountSettingsPage() {
   };
 
   return (
-    <PageShell bottomPad="nav">
-      <PageHeader pad="tight" className="flex items-center gap-3">
-        <Button
-          nativeButton={false}
-          size="circle"
-          tone="elevated"
-          aria-label="Back to settings"
-          render={<Link href="/settings" prefetch={false} />}
-        >
-          <ArrowLeft className="text-white" />
-        </Button>
-        <PageHeaderTitle>Account</PageHeaderTitle>
-      </PageHeader>
-
-      <div className="flex flex-col gap-6 px-3 pt-4">
+    <SettingsShell title="Account">
+      <div className="flex flex-col gap-6 px-3 pt-4 md:px-0 md:pt-0">
         {/* Sign-in details — email + preferred language. Phone + password
             rows deliberately removed: app uses OTP-only auth (no
             password), and phone-number swapping requires backend
@@ -164,7 +144,7 @@ export default function AccountSettingsPage() {
           transition={{ duration: 0.3, delay: 0.05 }}
           className="flex flex-col gap-2"
         >
-          <h2 className="px-3 text-overline text-text-muted">Sign-in</h2>
+          <h2 className="px-3 text-overline text-(--ink-3)">Sign-in</h2>
           <ItemGroup className="gap-1">
             {/* Email row — opens a modal explaining how to change it.
                 Real change-email flow needs a backend endpoint that
@@ -187,13 +167,13 @@ export default function AccountSettingsPage() {
                       </IconBadge>
                     </ItemMedia>
                     <ItemContent>
-                      <ItemTitle className="text-meta text-white">Email</ItemTitle>
-                      <ItemDescription className="text-caption text-text-muted">
+                      <ItemTitle className="text-meta text-(--ink)">Email</ItemTitle>
+                      <ItemDescription className="text-caption text-(--ink-3)">
                         {email || "Loading…"}
                       </ItemDescription>
                     </ItemContent>
                     <ItemActions>
-                      <ChevronRight className="size-4 text-text-muted" />
+                      <ChevronRight className="size-4 text-(--ink-3)" />
                     </ItemActions>
                   </Item>
                 }
@@ -230,7 +210,7 @@ export default function AccountSettingsPage() {
                     )}
                     <DialogFooter>
                       <DialogClose
-                        render={<Button variant="outlineSubtle" size="lg">Cancel</Button>}
+                        render={<Button variant="outline" size="lg">Cancel</Button>}
                       />
                       <Button
                         size="lg"
@@ -257,7 +237,7 @@ export default function AccountSettingsPage() {
                       <DialogTitle>Enter the code</DialogTitle>
                       <DialogDescription>
                         We sent a 6-character code to{" "}
-                        <span className="text-white">{newEmail}</span>. Enter it
+                        <span className="text-(--ink)">{newEmail}</span>. Enter it
                         below to swap your email. The code expires in 15 minutes.
                       </DialogDescription>
                     </DialogHeader>
@@ -285,7 +265,7 @@ export default function AccountSettingsPage() {
                     )}
                     <DialogFooter>
                       <Button
-                        variant="outlineSubtle"
+                        variant="outline"
                         size="lg"
                         onClick={() => setEmailStep("input")}
                         disabled={emailBusy}
@@ -317,7 +297,7 @@ export default function AccountSettingsPage() {
                       <DialogTitle>Email updated</DialogTitle>
                       <DialogDescription>
                         Your sign-in email is now{" "}
-                        <span className="text-white">{newEmail}</span>. Use it the
+                        <span className="text-(--ink)">{newEmail}</span>. Use it the
                         next time you log in.
                       </DialogDescription>
                     </DialogHeader>
@@ -339,7 +319,7 @@ export default function AccountSettingsPage() {
           transition={{ duration: 0.3, delay: 0.13 }}
           className="flex flex-col gap-2"
         >
-          <h2 className="px-3 text-overline text-text-muted">Account actions</h2>
+          <h2 className="px-3 text-overline text-(--ink-3)">Account actions</h2>
           <ItemGroup className="gap-1">
             <Dialog open={signOutOpen} onOpenChange={setSignOutOpen}>
               <DialogTrigger
@@ -352,10 +332,10 @@ export default function AccountSettingsPage() {
                       </IconBadge>
                     </ItemMedia>
                     <ItemContent>
-                      <ItemTitle className="text-meta text-white">Log out</ItemTitle>
+                      <ItemTitle className="text-meta text-(--ink)">Log out</ItemTitle>
                     </ItemContent>
                     <ItemActions>
-                      <ChevronRight className="size-4 text-text-muted" />
+                      <ChevronRight className="size-4 text-(--ink-3)" />
                     </ItemActions>
                   </Item>
                 }
@@ -369,7 +349,7 @@ export default function AccountSettingsPage() {
                 </DialogHeader>
                 <DialogFooter>
                   <DialogClose
-                    render={<Button variant="outlineSubtle" size="lg">Cancel</Button>}
+                    render={<Button variant="outline" size="lg">Cancel</Button>}
                   />
                   <Button
                     size="lg"
@@ -404,12 +384,12 @@ export default function AccountSettingsPage() {
                       <ItemTitle className="text-meta text-pink">
                         Delete account
                       </ItemTitle>
-                      <ItemDescription className="text-caption text-text-muted">
+                      <ItemDescription className="text-caption text-(--ink-3)">
                         Permanently remove your data
                       </ItemDescription>
                     </ItemContent>
                     <ItemActions>
-                      <ChevronRight className="size-4 text-text-muted" />
+                      <ChevronRight className="size-4 text-(--ink-3)" />
                     </ItemActions>
                   </Item>
                 }
@@ -421,7 +401,7 @@ export default function AccountSettingsPage() {
                     Your profile will go invisible immediately and be
                     permanently deleted in 7 days. You&apos;ll see a
                     &ldquo;Cancel deletion&rdquo; banner on your{" "}
-                    <span className="text-white">Profile</span> page
+                    <span className="text-(--ink)">Profile</span> page
                     during the 7-day window — tap it any time to undo.
                     After 7 days deletion is irreversible.
                   </DialogDescription>
@@ -437,7 +417,7 @@ export default function AccountSettingsPage() {
                 ) : null}
                 <DialogFooter>
                   <DialogClose
-                    render={<Button variant="outlineSubtle" size="lg">Cancel</Button>}
+                    render={<Button variant="outline" size="lg">Cancel</Button>}
                   />
                   <Button
                     size="lg"
@@ -461,7 +441,6 @@ export default function AccountSettingsPage() {
         </motion.section>
       </div>
 
-      <BottomNav />
-    </PageShell>
+    </SettingsShell>
   );
 }

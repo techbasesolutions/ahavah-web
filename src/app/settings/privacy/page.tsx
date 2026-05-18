@@ -11,13 +11,7 @@ import {
 } from "@/components/ui/item";
 import { Switch } from "@/components/ui/switch";
 
-import { BackButton } from "@/components/app/back-button";
-import { BottomNav } from "@/components/app/bottom-nav";
-import {
-  PageHeader,
-  PageHeaderTitle,
-  PageShell,
-} from "@/components/app/page-shell";
+import { SettingsShell } from "@/components/app/settings-shell";
 import { apiClient } from "@/lib/api-client";
 import { useShowOnMap } from "@/lib/use-show-on-map";
 import { useProfile } from "@/lib/use-profile";
@@ -117,24 +111,19 @@ export default function PrivacySettingsPage() {
   };
 
   return (
-    <PageShell bottomPad="nav">
-      <PageHeader pad="tight" className="flex items-center gap-3">
-        <BackButton fallback="/settings" label="Back to settings" />
-        <PageHeaderTitle>Privacy</PageHeaderTitle>
-      </PageHeader>
-
-      <div className="flex flex-col gap-6 px-3 pt-4">
+    <SettingsShell title="Privacy">
+      <div className="flex flex-col gap-6 px-3 pt-4 md:px-0 md:pt-0">
         <section className="flex flex-col gap-2">
-          <h2 className="px-3 text-overline text-text-muted">
+          <h2 className="px-3 text-overline text-(--ink-3)">
             Profile visibility
           </h2>
           <ItemGroup className="gap-1">
             <Item variant="muted">
               <ItemContent>
-                <ItemTitle className="text-meta text-white">
+                <ItemTitle className="text-meta text-(--ink)">
                   Show my age
                 </ItemTitle>
-                <ItemDescription className="text-caption text-text-muted">
+                <ItemDescription className="text-caption text-(--ink-3)">
                   Display age next to your name on your profile and the
                   swipe deck.
                 </ItemDescription>
@@ -149,10 +138,10 @@ export default function PrivacySettingsPage() {
 
             <Item variant="muted">
               <ItemContent>
-                <ItemTitle className="text-meta text-white">
+                <ItemTitle className="text-meta text-(--ink)">
                   Show me on the map
                 </ItemTitle>
-                <ItemDescription className="text-caption text-text-muted">
+                <ItemDescription className="text-caption text-(--ink-3)">
                   Others see your avatar pinned to your country on the
                   discovery map. Turn off to stay hidden.
                 </ItemDescription>
@@ -166,10 +155,10 @@ export default function PrivacySettingsPage() {
 
             <Item variant="muted">
               <ItemContent>
-                <ItemTitle className="text-meta text-white">
+                <ItemTitle className="text-meta text-(--ink)">
                   Show my location
                 </ItemTitle>
-                <ItemDescription className="text-caption text-text-muted">
+                <ItemDescription className="text-caption text-(--ink-3)">
                   Display your city and country on your profile. Turn off
                   to hide both — peers see only your name and age.
                 </ItemDescription>
@@ -186,10 +175,10 @@ export default function PrivacySettingsPage() {
 
             <Item variant="muted">
               <ItemContent>
-                <ItemTitle className="text-meta text-white">
+                <ItemTitle className="text-meta text-(--ink)">
                   Hide me from strangers
                 </ItemTitle>
-                <ItemDescription className="text-caption text-text-muted">
+                <ItemDescription className="text-caption text-(--ink-3)">
                   Only people you&apos;ve liked or messaged can see your
                   full profile. Others see a limited view.
                 </ItemDescription>
@@ -206,10 +195,10 @@ export default function PrivacySettingsPage() {
 
             <Item variant="muted">
               <ItemContent>
-                <ItemTitle className="text-meta text-white">
+                <ItemTitle className="text-meta text-(--ink)">
                   Require verified matches
                 </ItemTitle>
-                <ItemDescription className="text-caption text-text-muted">
+                <ItemDescription className="text-caption text-(--ink-3)">
                   Only show profiles that have completed Bronze, Silver,
                   or Gold verification in your discover feed.
                 </ItemDescription>
@@ -227,7 +216,6 @@ export default function PrivacySettingsPage() {
         </section>
       </div>
 
-      <BottomNav />
-    </PageShell>
+    </SettingsShell>
   );
 }

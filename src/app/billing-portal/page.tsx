@@ -66,7 +66,7 @@ export default function BillingPortalRedirect() {
       <div className="flex flex-col items-center gap-4 px-5 pt-12 text-center">
         {error ? (
           <>
-            <p className="text-body text-text-secondary">{error}</p>
+            <p className="text-body text-(--ink-2)">{error}</p>
             <Button
               variant="default"
               size="tap"
@@ -78,7 +78,7 @@ export default function BillingPortalRedirect() {
           </>
         ) : (
           <>
-            <p className="text-body text-text-secondary">
+            <p className="text-body text-(--ink-2)">
               Opening Stripe…
             </p>
           </>

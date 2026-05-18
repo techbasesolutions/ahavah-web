@@ -47,7 +47,7 @@ export function InstallPromptBanner() {
       <div
         role="region"
         aria-label="Install Ahavah"
-        className="mx-4 mb-4 flex items-center gap-3 rounded-2xl bg-bg-elevated px-4 py-3 text-body text-white"
+        className="mx-4 mb-4 flex items-center gap-3 rounded-2xl bg-(--card) px-4 py-3 text-body text-(--ink)"
       >
         <div
           aria-hidden
@@ -56,10 +56,10 @@ export function InstallPromptBanner() {
           <Download className="size-5" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-meta font-medium leading-tight text-white">
+          <p className="text-meta font-medium leading-tight text-(--ink)">
             Install Ahavah on your home screen
           </p>
-          <p className="text-caption leading-tight text-text-secondary">
+          <p className="text-caption leading-tight text-(--ink-2)">
             {isIos
               ? "Required on iPhone for notifications to work."
               : "One tap. Works offline. Faster than the browser."}
@@ -84,7 +84,7 @@ export function InstallPromptBanner() {
           size="icon-tap"
           aria-label="Dismiss install prompt"
           onClick={dismiss}
-          className="shrink-0 rounded-full text-text-secondary"
+          className="shrink-0 rounded-full text-(--ink-2)"
         >
           <X aria-hidden />
         </Button>
@@ -93,13 +93,13 @@ export function InstallPromptBanner() {
       <Sheet open={iosSheetOpen} onOpenChange={setIosSheetOpen}>
         <SheetContent
           side="bottom"
-          className="rounded-t-3xl bg-bg-canvas text-white"
+          className="rounded-t-3xl bg-(--canvas) text-(--ink)"
         >
           <SheetHeader>
-            <SheetTitle className="text-h2 text-white">
+            <SheetTitle className="text-h2 text-(--ink)">
               Add Ahavah to your home screen
             </SheetTitle>
-            <SheetDescription className="text-meta text-text-secondary">
+            <SheetDescription className="text-meta text-(--ink-2)">
               iPhone Safari doesn&apos;t install apps automatically. Three
               taps and you&apos;re done.
             </SheetDescription>
@@ -114,10 +114,10 @@ export function InstallPromptBanner() {
                 <Share className="size-4" />
               </span>
               <span className="flex-1 text-body leading-relaxed">
-                <span className="font-medium text-white">
+                <span className="font-medium text-(--ink)">
                   1. Tap the Share icon
                 </span>
-                <span className="block text-caption text-text-secondary">
+                <span className="block text-caption text-(--ink-2)">
                   At the bottom of Safari (square with an upward arrow).
                 </span>
               </span>
@@ -130,10 +130,10 @@ export function InstallPromptBanner() {
                 <Plus className="size-4" />
               </span>
               <span className="flex-1 text-body leading-relaxed">
-                <span className="font-medium text-white">
+                <span className="font-medium text-(--ink)">
                   2. Choose &ldquo;Add to Home Screen&rdquo;
                 </span>
-                <span className="block text-caption text-text-secondary">
+                <span className="block text-caption text-(--ink-2)">
                   Scroll down in the share sheet if you don&apos;t see it.
                 </span>
               </span>
@@ -146,10 +146,10 @@ export function InstallPromptBanner() {
                 <Download className="size-4" />
               </span>
               <span className="flex-1 text-body leading-relaxed">
-                <span className="font-medium text-white">
+                <span className="font-medium text-(--ink)">
                   3. Tap &ldquo;Add&rdquo;
                 </span>
-                <span className="block text-caption text-text-secondary">
+                <span className="block text-caption text-(--ink-2)">
                   Ahavah lands on your home screen. Open it from there
                   and notifications will work.
                 </span>

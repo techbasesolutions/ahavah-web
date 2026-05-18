@@ -158,7 +158,7 @@ export function WorldMap({
       maxZoom={10}
       worldCopyJump
       attributionControl
-      className={cn("size-full bg-bg-elevated", className)}
+      className={cn("size-full bg-(--card)", className)}
       // z-index 0 so the absolute-positioned top bar overlay (z-20 in
       // /map page) stays above Leaflet's tile + control layers.
       style={{ zIndex: 0 }}
