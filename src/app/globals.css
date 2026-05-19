@@ -425,7 +425,17 @@
     max-width: 414px;
     margin-left: auto;
     margin-right: auto;
-    min-height: 100vh;
+    /* Mobile-first: dvh (dynamic viewport) so the wrapper doesn't claim
+       MORE space than the visible viewport when the browser URL bar is
+       shown. The previous `min-height: 100vh` (LARGE viewport) made the
+       wrapper ~90px taller than what the user could see on first paint,
+       which forced the body to scroll and let scroll-into-view (e.g.
+       autoFocus inputs on onboarding) push sticky-bottom CTAs off
+       viewport. dvh recomputes as browser chrome shows/hides, so the
+       wrapper always matches the actually-visible area. Aligns with the
+       desktop override below (also dvh) + PageShell's min-h-dvh internals.
+       Baseline browser support since 2022. */
+    min-height: 100dvh;
     background-color: oklch(0.18 0.11 280);
     /* `overflow-x: hidden` only — horizontal scroll blocked (mobile column
        fixed at 414px), vertical scroll allowed so pages with content taller

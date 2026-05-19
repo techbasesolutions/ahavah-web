@@ -179,9 +179,9 @@ export function OnboardingShell({
   );
 
   return (
-    <PageShell bottomPad="default" desktopShell="full-bleed" className="h-screen overflow-hidden">
+    <PageShell bottomPad="none" desktopShell="full-bleed" className="h-dvh overflow-hidden">
       {/* ── Mobile (<md) — single-column wizard chrome ─────────────────── */}
-      <div className="md:hidden flex flex-col h-screen px-5 pt-5">
+      <div className="md:hidden flex flex-col h-dvh px-5 pt-5">
         <div className="mb-6">{stepperRow}</div>
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-1">
           {children}
@@ -192,7 +192,12 @@ export function OnboardingShell({
       </div>
 
       {/* ── Desktop (md+) — canonical 3-col layout (Task 23, 2026-05-17) — */}
-      <div className="hidden md:grid grid-cols-[1fr_720px_1fr] h-screen">
+      {/* grid-rows-[1fr] makes the row track fill h-dvh; without it, the
+          single auto row sizes to the tallest column's intrinsic height,
+          leaving the asides ending mid-viewport with the body's --canvas
+          showing through below (bug filed 2026-05-19). h-dvh + flex
+          children handle browser-chrome show/hide on mobile + desktop. */}
+      <div className="hidden md:grid grid-cols-[1fr_720px_1fr] grid-rows-[1fr] h-dvh">
         {/* LEFT: brand mark + linear gradient (app → lavender@16%) */}
         <aside
           className="p-12 flex items-start"
