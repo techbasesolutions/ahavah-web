@@ -284,7 +284,13 @@
 .landing-hero__title {
   margin: 0;
   font-family: var(--font-display);
-  font-size: clamp(34px, 8vw, 120px);
+  /* Sized to keep hierarchy with section h2 (max 68px) — hero stays
+     ~20px larger at every viewport while shrinking enough to keep
+     "across borders." on one line on most desktop column widths.
+     The accent period sits inline-block at the end of the title with
+     no whitespace before it in JSX so the browser cannot wrap it
+     onto its own line (would orphan the dot from "borders"). */
+  font-size: clamp(34px, 7vw, 88px);
   line-height: 0.92;
   letter-spacing: -0.025em;
   font-weight: 400;

@@ -149,8 +149,7 @@ export default function LandingPage() {
             <h1 className="landing-hero__title">
               Find love
               <br />
-              across borders
-              <span className="landing-hero__accent">.</span>
+              across borders<span className="landing-hero__accent">.</span>
             </h1>
             <p className="landing-hero__sub">
               Verified profiles, 100+ languages, real connections. The dating
