@@ -894,13 +894,13 @@
 }
 .landing-cta-band__mark {
   position: absolute;
-  bottom: -28%;
-  right: -10%;
-  width: 60%;
-  max-width: 560px;
-  opacity: 0.16;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%) rotate(-12deg);
+  width: 55%;
+  max-width: 450px;
+  opacity: 0.18;
   pointer-events: none;
-  transform: rotate(-12deg);
 }
 /* Lift content above the watermark mark — but explicitly exclude the
    mark itself, otherwise this rule's `position: relative` overrides
@@ -1008,5 +1008,91 @@
   .landing *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Mobile-responsive fixes ──────────────────────────────
+   Mobile-first overrides that weren't needed when the
+   canonical was designed for large screens. Applied in
+   ascending breakpoint order so they layer correctly. */
+
+/* Nav — prevent overflow on 320-374px screens */
+@media (max-width: 479px) {
+  .landing-nav__right {
+    gap: 6px;
+  }
+  .landing a.landing-nav__cta {
+    padding-inline: 12px;
+    font-size: 13px;
+    height: 36px;
+  }
+}
+
+/* Hero title — clamp was designed for large screens (min 56px);
+   "across borders" at 56px overflows ~320-380px containers.
+   Scale down proportionally so each line fits without wrapping. */
+@media (max-width: 639px) {
+  .landing-hero__title {
+    font-size: clamp(36px, 10.5vw, 54px);
+  }
+  .landing-hero {
+    padding-block: 48px 60px;
+  }
+}
+
+/* Phone mockup — float cards extend outside the phone-stack
+   bounds on narrow screens and look cluttered; hide them below
+   480px where the stack already fills most of the viewport width. */
+@media (max-width: 479px) {
+  .landing-float-card {
+    display: none;
+  }
+  .landing-phone-stack {
+    max-width: 300px;
+  }
+}
+
+/* Section headings — 40px minimum is correct for 768px+; on
+   320-480px the heading can feel overwhelming and cause wrapping. */
+@media (max-width: 639px) {
+  .landing-section__head h2 {
+    font-size: clamp(30px, 8vw, 40px);
+  }
+  .landing-section__head p {
+    font-size: 16px;
+  }
+  .landing-section {
+    padding-block: 60px;
+  }
+}
+
+/* Tiers — ensure single-column cards have breathing room */
+@media (max-width: 639px) {
+  .landing-tier {
+    padding: 22px 20px;
+  }
+}
+
+/* CTA band — tighten padding and heading on small screens */
+@media (max-width: 639px) {
+  .landing-cta-band {
+    padding: 48px 24px;
+    border-radius: var(--radius-2xl);
+  }
+  .landing-cta-band h2 {
+    font-size: clamp(28px, 8vw, 36px);
+  }
+  .landing-cta-band p {
+    font-size: 15px;
+  }
+}
+
+/* Quote — tighten on small screens */
+@media (max-width: 639px) {
+  .landing-quote__text {
+    font-size: clamp(18px, 5vw, 22px);
+  }
+  .landing-quote {
+    padding: 32px 0;
   }
 }
