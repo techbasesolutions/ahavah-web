@@ -260,6 +260,7 @@ function MatchesPageContent() {
     <PageShell
       desktopShell="sidebar"
       topBarTitle="Matches"
+      topBarBack={false}
       topBarActions={tabStrip}
       bottomPad="nav"
     >

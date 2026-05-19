@@ -444,6 +444,18 @@
     min-height: 100dvh;
   }
 
+  /* Marketing landing release — the 414px app-shell column is for the PWA
+     (signed-in surfaces: discover, profile, chat). The public marketing
+     landing at `/` is a full-bleed page and must escape the clamp on every
+     theme + viewport. Keyed off `[data-landing]` on the landing root div so
+     it doesn't affect any other route. */
+  .ahavah-app:has(> [data-landing]) {
+    max-width: none;
+    background-color: transparent;
+    overflow-x: visible;
+    min-height: 100dvh;
+  }
+
   /* WCAG 2.3.3 — honor user's reduced-motion preference.
      Animations + transitions collapse to ~0ms, scroll behaviour resets to
      `auto`. Applied site-wide; individual components don't need to opt in. */

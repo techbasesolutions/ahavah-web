@@ -272,7 +272,7 @@ export default function ProfilePage() {
   );
 
   return (
-    <PageShell bottomPad="nav" desktopShell="sidebar" topBarTitle="Profile">
+    <PageShell bottomPad="nav" desktopShell="sidebar" topBarTitle="Profile" topBarBack={false}>
       {/* ── Mobile layout (hidden at md+) ─────────────────────────────── */}
       <div className="md:hidden">
         {/* Soft-delete grace banner */}

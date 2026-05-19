@@ -10,7 +10,6 @@ import { ChevronRight, Heart, MapPin, Pause, Play, SlidersHorizontal, Sparkles, 
 import { Avatar, AvatarBadge, AvatarFallback, AvatarGroup, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Pill } from "@/components/kibo-ui/pill";
 import { Progress } from "@/components/ui/progress";
 import { useIncomingLikes } from "@/lib/use-incoming-likes";
 
@@ -294,7 +293,7 @@ export default function DiscoverPage() {
   // Loading / redirect guard.
   if (!loaded || (loaded && !readOnboarded() && !isDiscoverEligible(userProfile))) {
     return (
-      <PageShell bottomPad="nav-fixed" desktopShell="sidebar" topBarTitle="Discover">
+      <PageShell bottomPad="nav-fixed" desktopShell="sidebar" topBarTitle="Discover" topBarBack={false}>
         <h1 className="sr-only">Discover</h1>
         <PageHeader pad="default" className="flex items-center justify-between">
           <Logo variant="horizontal" size="sm" priority />
@@ -570,23 +569,33 @@ export default function DiscoverPage() {
       bottomPad="nav-fixed"
       desktopShell="sidebar"
       topBarTitle="Discover"
+      topBarBack={false}
       topBarActions={
-        activeFilterCount > 0 ? (
-          // Canonical desktop.jsx:L437-L438 — glassDark pill showing the
-          // active filter count next to the bell. Bell button omitted from
-          // this canonical port: handoff specifies its visual (40×40,
-          // --card bg, bell icon, lavender) but not its destination /
-          // handler. Surfaced as a question in the Task 13 Step 3 status
-          // report — to be added in a follow-up after user decides.
-          <Pill
-            variant="glassDark"
-            className="cursor-pointer"
-            onClick={() => setFiltersOpen(true)}
-          >
-            <SlidersHorizontal className="size-3" />
-            {activeFilterCount} {activeFilterCount === 1 ? "filter" : "filters"}
-          </Pill>
-        ) : undefined
+        // Same filter trigger as /map desktop topbar — Button size="circle-lg"
+        // tone="elevated" with SlidersHorizontal + a lime count badge when
+        // filters are active. Keeps /discover and /map visually consistent
+        // (both surfaces share the same FiltersSheet + useFilters store).
+        <Button
+          size="circle-lg"
+          tone="elevated"
+          aria-label={
+            activeFilterCount > 0
+              ? `Discovery filters (${activeFilterCount} active)`
+              : "Discovery filters"
+          }
+          className="relative"
+          onClick={() => setFiltersOpen(true)}
+        >
+          <SlidersHorizontal className="text-(--ink)" />
+          {activeFilterCount > 0 ? (
+            <span
+              aria-hidden
+              className="absolute -top-1 -right-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-lime px-1.5 text-caption font-bold tabular-nums text-black ring-2 ring-bg-canvas"
+            >
+              {activeFilterCount}
+            </span>
+          ) : null}
+        </Button>
       }
     >
       <h1 className="sr-only">Discover</h1>

@@ -259,7 +259,7 @@ export function InboxContent({
   );
 
   return (
-    <PageShell desktopShell="sidebar" topBarTitle="Inbox" bottomPad="nav">
+    <PageShell desktopShell="sidebar" topBarTitle="Inbox" topBarBack={false} bottomPad="nav">
       {/* ── Mobile layout (hidden at md+) ──────────────────────────────── */}
       <div className="md:hidden flex flex-col flex-1">
         <PageHeader pad="tight" className="flex items-center justify-between">

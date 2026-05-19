@@ -343,7 +343,7 @@ export default function MapPage() {
   // keep the map from flashing for an ineligible viewer.
   if (!loaded || (loaded && !readOnboarded() && !isDiscoverEligible(viewer))) {
     return (
-      <PageShell desktopShell="sidebar" topBarTitle="Map" bottomPad="nav">
+      <PageShell desktopShell="sidebar" topBarTitle="Map" topBarBack={false} bottomPad="nav">
         <div
           className="flex flex-1 items-center justify-center px-5"
           aria-live="polite"
@@ -406,6 +406,7 @@ export default function MapPage() {
     <PageShell
       desktopShell="sidebar"
       topBarTitle="Map"
+      topBarBack={false}
       topBarActions={filterButton}
       bottomPad="none"
       className="relative overflow-hidden"
@@ -455,12 +456,13 @@ export default function MapPage() {
 
         {/* Right — candidate rail */}
         <div className="flex flex-col min-h-0 gap-4">
-          {/* Sticky filter row (re-use filter button) */}
+          {/* Visible-count row. Filter access lives in the desktop topbar
+              (PageShell topBarActions) — duplicating it here was redundant
+              (two filter icons on the same surface). */}
           <div className="flex items-center justify-between shrink-0">
             <span className="text-caption font-semibold text-(--ink-2)">
               {visibleCandidates.length} visible
             </span>
-            {filterButton}
           </div>
 
           {/* Scrollable candidate list */}

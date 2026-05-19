@@ -140,7 +140,7 @@ const DESKTOP_NAV_ITEMS: ReadonlyArray<{
 
 export default function SettingsPage() {
   return (
-    <PageShell bottomPad="nav" desktopShell="sidebar" topBarTitle="Settings">
+    <PageShell bottomPad="nav" desktopShell="sidebar" topBarTitle="Settings" topBarBack={false}>
       {/* ── Mobile layout (<md) ── */}
       <div className="md:hidden">
         <PageHeader pad="tight" className="flex items-center gap-3">

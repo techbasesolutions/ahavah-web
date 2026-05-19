@@ -87,6 +87,7 @@ export function PageShell({
   desktopShell = "sidebar",
   topBarTitle,
   topBarActions,
+  topBarBack,
   ...props
 }: VariantProps<typeof pageShellVariants> &
   React.ComponentProps<"div"> & {
@@ -95,10 +96,21 @@ export function PageShell({
     topBarTitle?: string;
     /** Actions slot for the desktop top bar (only used when desktopShell="sidebar"). */
     topBarActions?: React.ReactNode;
+    /**
+     * Desktop top-bar back button (user direction 2026-05-19). Forwarded to
+     * DesktopTopBar.back — pass `false` on tab-root pages to opt out, pass
+     * a string for a specific fallback URL, or omit for the default
+     * `/discover` fallback.
+     */
+    topBarBack?: string | false;
   }) {
   if (desktopShell === "sidebar") {
     const topBar = topBarTitle ? (
-      <DesktopTopBar title={topBarTitle} actions={topBarActions} />
+      <DesktopTopBar
+        title={topBarTitle}
+        actions={topBarActions}
+        back={topBarBack}
+      />
     ) : undefined;
 
     return (

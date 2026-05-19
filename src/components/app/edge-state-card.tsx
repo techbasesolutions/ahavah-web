@@ -18,7 +18,7 @@ const TONE_VAR: Record<IconTone, string> = {
 type Props = {
   /** sr-only h1 for the page. */
   srTitle: string;
-  /** lucide icon — rendered at 44px inside a 96×96 tinted tile. */
+  /** lucide icon — rendered at 64px inside a 128×128 tinted tile. */
   Icon: LucideIcon;
   /** Tile + icon brand color. Tile is a 14% color-mix; icon is the solid color. */
   tone?: IconTone;
@@ -69,12 +69,12 @@ export function EdgeStateCard({
       >
         <span
           aria-hidden
-          className="w-24 h-24 rounded-[24px] flex items-center justify-center"
+          className="w-32 h-32 rounded-[28px] flex items-center justify-center"
           style={{
             background: `color-mix(in oklch, ${toneVar} 14%, transparent)`,
           }}
         >
-          <Icon className="size-11" style={{ color: toneVar }} />
+          <Icon className="size-16" style={{ color: toneVar }} />
         </span>
 
         <h2 className="text-h1 font-extrabold text-(--ink) m-0">{title}</h2>

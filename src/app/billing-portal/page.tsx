@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
-  Check,
   ChevronRight,
   CreditCard,
   FileText,
@@ -64,39 +63,41 @@ const STRIPE_ACTIONS = [
 export default function BillingPortalRedirect() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [opening, setOpening] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      try {
-        const res = await apiClient.get<{ url?: string }>("/billing-portal");
-        if (cancelled) return;
-        if (res.url) {
-          window.location.assign(res.url);
-          return;
-        }
-        setError("Stripe didn't return a billing URL. Try again.");
-      } catch (err) {
-        if (cancelled) return;
-        if (err instanceof ApiError) {
-          if (err.status === 400) {
-            setError("You don't have an active subscription yet.");
-          } else if (err.status === 401) {
-            setError("Sign in again to manage billing.");
-          } else if (err.status === 503) {
-            setError("Billing isn't available yet. Try again shortly.");
-          } else {
-            setError(err.message || "Couldn't open billing.");
-          }
-        } else {
-          setError("Couldn't reach the billing service.");
-        }
+  // User-initiated redirect. The previous implementation fired this in a
+  // mount-time useEffect, which pushed users straight to Stripe before they
+  // could see the subscription summary or pick a different action. Now the
+  // redirect only happens when they explicitly click "Open billing portal".
+  const handleOpen = async () => {
+    if (opening) return;
+    setOpening(true);
+    setError(null);
+    try {
+      const res = await apiClient.get<{ url?: string }>("/billing-portal");
+      if (res.url) {
+        window.location.assign(res.url);
+        return;
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+      setError("Stripe didn't return a billing URL. Try again.");
+    } catch (err) {
+      if (err instanceof ApiError) {
+        if (err.status === 400) {
+          setError("You don't have an active subscription yet.");
+        } else if (err.status === 401) {
+          setError("Sign in again to manage billing.");
+        } else if (err.status === 503) {
+          setError("Billing isn't available yet. Try again shortly.");
+        } else {
+          setError(err.message || "Couldn't open billing.");
+        }
+      } else {
+        setError("Couldn't reach the billing service.");
+      }
+    } finally {
+      setOpening(false);
+    }
+  };
 
   return (
     <PageShell
@@ -124,7 +125,22 @@ export default function BillingPortalRedirect() {
             </Button>
           </>
         ) : (
-          <p className="text-body text-(--ink-2)">Opening Stripe…</p>
+          <>
+            <p className="text-body text-(--ink-2)">
+              Manage your payment method, switch plans, or download invoices
+              on Stripe&apos;s secure billing portal.
+            </p>
+            <Button
+              type="button"
+              tone="cta"
+              size="tap"
+              onClick={handleOpen}
+              disabled={opening}
+            >
+              {opening ? "Opening…" : "Open billing portal"}
+              {!opening && <ChevronRight className="size-4" />}
+            </Button>
+          </>
         )}
       </div>
 
@@ -163,32 +179,18 @@ export default function BillingPortalRedirect() {
               </span>
               <div>
                 <p className="text-overline text-(--ink-2)">
-                  Redirecting securely
+                  Subscription billing
                 </p>
                 <h2 className="text-h2 text-(--ink) m-0">
-                  {error ? "Couldn't open Stripe" : "Opening Stripe…"}
+                  {error ? "Couldn't open Stripe" : "Manage your billing"}
                 </h2>
               </div>
             </div>
 
             <p className="text-body text-(--ink-2) m-0 max-w-130 leading-relaxed">
-              We&apos;re sending you to Stripe&apos;s secure billing portal to
-              manage your payment method, update your subscription, or
-              download invoices.
+              Update your payment method, switch plans, cancel or pause, and
+              download invoices on Stripe&apos;s secure billing portal.
             </p>
-
-            {/* Step progress */}
-            <div className="flex items-center gap-3 mt-2">
-              <ProgressStep n={1} state="done" label="Generating link" />
-              <ProgressLine />
-              <ProgressStep n={2} state="done" label="Verifying session" />
-              <ProgressLine />
-              <ProgressStep
-                n={3}
-                state={error ? "muted" : "active"}
-                label="Handing off to Stripe"
-              />
-            </div>
 
             {/* Inline error */}
             {error ? (
@@ -203,6 +205,16 @@ export default function BillingPortalRedirect() {
 
             <div className="flex items-center gap-3.5 mt-2">
               <Button
+                type="button"
+                tone="cta"
+                size="tap"
+                onClick={handleOpen}
+                disabled={opening}
+              >
+                {opening ? "Opening…" : "Open billing portal"}
+                {!opening && <ChevronRight className="size-4" />}
+              </Button>
+              <Button
                 variant="outline"
                 size="tap"
                 render={<Link href="/profile" prefetch={false} />}
@@ -210,16 +222,6 @@ export default function BillingPortalRedirect() {
                 <ArrowLeft className="size-3.5" />
                 Back to profile
               </Button>
-              <span className="text-caption text-(--ink-3)">
-                Not redirecting?{" "}
-                <button
-                  type="button"
-                  onClick={() => window.location.reload()}
-                  className="font-semibold text-lavender underline-offset-2 hover:underline"
-                >
-                  Open Stripe manually
-                </button>
-              </span>
             </div>
 
             <div className="flex items-center gap-3 mt-4 pt-5 border-t border-(--hairline)">
@@ -306,50 +308,6 @@ export default function BillingPortalRedirect() {
         </div>
       </div>
     </PageShell>
-  );
-}
-
-function ProgressStep({
-  n,
-  state,
-  label,
-}: {
-  n: number;
-  state: "done" | "active" | "muted";
-  label: string;
-}) {
-  const tile =
-    state === "done"
-      ? "bg-lime text-black"
-      : state === "active"
-        ? "bg-lavender/20 text-lavender"
-        : "bg-card border border-(--hairline) text-(--ink-3)";
-  return (
-    <div className="flex items-center gap-2">
-      <span
-        aria-hidden
-        className={`flex size-6 shrink-0 items-center justify-center rounded-full text-overline font-extrabold ${tile}`}
-      >
-        {state === "done" ? <Check className="size-3" strokeWidth={3} /> : n}
-      </span>
-      <span
-        className={
-          state === "muted"
-            ? "text-caption text-(--ink-3)"
-            : state === "active"
-              ? "text-caption font-bold text-(--ink)"
-              : "text-caption font-medium text-(--ink)"
-        }
-      >
-        {label}
-      </span>
-    </div>
-  );
-}
-
-function ProgressLine() {
-  return (
-    <span aria-hidden className="flex-1 h-px bg-(--hairline)" />
   );
 }
 
