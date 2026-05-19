@@ -1,5 +1,12 @@
 "use client";
 
+// /help is reachable from the landing footer pre-auth. The slim header
+// uses pixel-precise marketing layout (max-w-[1200px]) and a session-aware
+// CTA that requires reading localStorage after mount — both lint exceptions
+// match src/app/page.tsx's rationale.
+/* eslint-disable no-restricted-syntax, react-hooks/set-state-in-effect */
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
 import {
@@ -23,14 +30,11 @@ import {
 } from "@/components/ui/accordion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Pill } from "@/components/kibo-ui/pill";
+import { Button } from "@/components/ui/button";
 
-import { BackButton } from "@/components/app/back-button";
-import { BottomNav } from "@/components/app/bottom-nav";
-import {
-  PageHeader,
-  PageHeaderTitle,
-  PageShell,
-} from "@/components/app/page-shell";
+import { Logo } from "@/components/brand/logo";
+import { ThemeToggle } from "@/components/app/theme-toggle";
+import { getSessionToken } from "@/lib/api-client";
 
 const fadeUp = {
   initial: { opacity: 0, y: 12 },
@@ -73,18 +77,56 @@ const TOC: ReadonlyArray<{
   { label: "Get in touch",        Icon: Mail },
 ];
 
+/**
+ * /help is publicly accessible — reachable from the landing footer's
+ * "Help" link without sign-in. Renders a slim marketing-style header
+ * (Logo + theme toggle + contextual right action) instead of the
+ * authenticated PageShell chrome (sidebar + bottom-nav) so signed-out
+ * visitors aren't pushed toward authenticated tabs they haven't
+ * unlocked. Signed-in users get a "Back to app" link in the header.
+ */
+function HelpHeaderAction() {
+  // Session read is client-only (localStorage). To avoid hydration
+  // mismatch render the public "Sign in" CTA on first paint, then
+  // swap to "Back to app" after mount if a session token is present.
+  const [signedIn, setSignedIn] = useState(false);
+  useEffect(() => {
+    setSignedIn(Boolean(getSessionToken()));
+  }, []);
+
+  if (signedIn) {
+    return (
+      <Button render={<Link href="/discover" prefetch={false} />} tone="elevated" size="tap" className="rounded-xl">
+        Back to app
+      </Button>
+    );
+  }
+  return (
+    <Button render={<Link href="/auth/sign-in" prefetch={false} />} tone="elevated" size="tap" className="rounded-xl">
+      Sign in
+    </Button>
+  );
+}
+
 export default function HelpPage() {
   return (
-    <PageShell
-      bottomPad="nav"
-      desktopShell="sidebar"
-      topBarTitle="Help center"
-    >
-      {/* ── Mobile header ───────────────────────────────────────────── */}
-      <PageHeader pad="tight" className="md:hidden flex items-center gap-3">
-        <BackButton fallback="/settings" label="Back to settings" />
-        <PageHeaderTitle>Help</PageHeaderTitle>
-      </PageHeader>
+    <div className="min-h-dvh flex flex-col text-(--ink)" style={{ background: "var(--app)" }}>
+      <header className="sticky top-0 z-50 border-b border-(--hairline) bg-(--app)/80 backdrop-blur-xl backdrop-saturate-150">
+        <div className="mx-auto max-w-[1200px] px-4 sm:px-6 md:px-8 h-16 flex items-center justify-between gap-4">
+          <Link href="/" aria-label="Ahavah home" className="shrink-0">
+            <Logo variant="horizontal" height={32} priority />
+          </Link>
+          <div className="flex items-center gap-2 shrink-0">
+            <ThemeToggle variant="icon" />
+            <HelpHeaderAction />
+          </div>
+        </div>
+      </header>
+
+      {/* ── Mobile section heading (kept for orientation; no back button) */}
+      <div className="md:hidden px-5 pt-5 pb-2">
+        <h1 className="text-h1 font-extrabold tracking-tight text-(--ink) m-0">Help</h1>
+      </div>
 
       {/* ── Mobile copy intro ───────────────────────────────────────── */}
       <motion.p
@@ -270,8 +312,7 @@ export default function HelpPage() {
         </aside>
       </div>
 
-      <BottomNav />
-    </PageShell>
+    </div>
   );
 }
 
