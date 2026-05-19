@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
 import {
@@ -88,17 +89,63 @@ const SECTIONS: ReadonlyArray<{
  * All form state stays inside the existing section components (they all
  * read + write through `useProfile`). Autosave is unchanged.
  */
-const SUGGESTIONS: ReadonlyArray<{ text: string; lift: string }> = [
-  { text: "Write a bio — profiles with a bio get 3× more matches.", lift: "+12%" },
-  { text: "Add a 6th photo to your gallery.",                       lift: "+4%" },
-  { text: "Set your relocation openness.",                          lift: "+5%" },
-];
+type Suggestion = { text: string; lift: string };
+
+/**
+ * Suggestions derived from real completeness state. No `/profile/
+ * suggestions` endpoint yet, so the lifts (`+5%` etc.) are
+ * coarse estimates rather than per-field measurements. When the
+ * backend ships analytics-backed lifts, swap this function for a fetch.
+ */
+function buildSuggestions(
+  requiredMissing: number,
+  percent: number,
+): ReadonlyArray<Suggestion> {
+  if (requiredMissing > 0) {
+    return [
+      {
+        text: `Fill the ${requiredMissing} required field${
+          requiredMissing === 1 ? "" : "s"
+        } below to start matching.`,
+        lift: "Required",
+      },
+    ];
+  }
+  if (percent >= 100) {
+    return [
+      {
+        text: "Profile looking great. Browse Discover to find matches that fit.",
+        lift: "Done",
+      },
+    ];
+  }
+  // Required filled, but optional fields remaining. Surface 2–3 high-
+  // signal additions that genuinely lift match quality.
+  return [
+    {
+      text: "Write a bio — profiles with a bio get 3× more matches.",
+      lift: "+12%",
+    },
+    {
+      text: "Add a 6th photo to your gallery.",
+      lift: "+4%",
+    },
+    {
+      text: "Set your relocation openness.",
+      lift: "+5%",
+    },
+  ];
+}
 
 export default function EditProfilePage() {
   const { profile } = useProfile();
   const completeness = computeCompleteness(profile);
   const requiredMissing =
     completeness.requiredTotal - completeness.requiredFilled;
+  const suggestions = useMemo(
+    () => buildSuggestions(requiredMissing, completeness.percent),
+    [requiredMissing, completeness.percent],
+  );
 
   return (
     <PageShell
@@ -107,9 +154,13 @@ export default function EditProfilePage() {
       topBarTitle="Edit profile"
       topBarActions={
         <div className="hidden md:flex items-center gap-2.5">
-          <Pill variant="lime" size="sm">
+          {/* `useProfile` doesn't surface a `saving` state — the API
+              call inside `update()` is fire-and-forget. Until that
+              hook exposes pending/saved, this pill is informational
+              only (does NOT claim "saved", which would be a lie). */}
+          <Pill variant="lavender" size="sm">
             <Check className="size-3" strokeWidth={3} />
-            All changes saved
+            Autosaves as you type
           </Pill>
           <Button
             size="tap"
@@ -320,7 +371,7 @@ export default function EditProfilePage() {
                 Suggestions
               </p>
               <ItemGroup className="gap-3">
-                {SUGGESTIONS.map((s, i) => (
+                {suggestions.map((s, i) => (
                   <Item key={i} variant="muted" size="sm">
                     <ItemMedia variant="icon">
                       <span className="text-overline font-extrabold text-(--ink-2)">

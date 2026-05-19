@@ -30,6 +30,16 @@ const designSystemRules = {
         message:
           "Inline sizing/spacing styles bypass the design system. Use a Tailwind token utility or a cva variant.",
       },
+      // Ban Tailwind utilities that reference @theme inline tokens with
+      // [data-theme=light] overrides. These compile to inlined dark
+      // values at build time and NEVER honor the light theme switch.
+      // Use the var() form instead: bg-(--card), bg-(--app),
+      // text-(--ink-2), text-(--ink-3), text-(--ink).
+      {
+        selector: `JSXAttribute[name.name='className'][value.type='Literal'][value.value=/(?:^|\\s)(?:bg-bg-elevated|bg-bg-indigo|bg-bg-canvas|text-text-secondary|text-text-muted)(?:\\s|$|\\/)/]`,
+        message:
+          "This Tailwind utility maps to an @theme inline token that doesn't honor the light-mode override. Use the var() form instead — bg-(--card), bg-(--app), text-(--ink-2), text-(--ink-3) — or migrate the call site to a kit primitive (Card tone=\"default\", PageShell, BackButton).",
+      },
     ],
   },
 };

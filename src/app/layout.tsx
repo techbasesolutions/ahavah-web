@@ -23,9 +23,13 @@ const ultra = Ultra({
 });
 
 export const metadata: Metadata = {
-  title: "Ahavah",
+  metadataBase: new URL("https://ahavah.app"),
+  title: {
+    default: "Ahavah · Find love across borders",
+    template: "%s · Ahavah",
+  },
   description:
-    "Find love across borders. Verified profiles, real connections, 100+ languages.",
+    "Verified profiles, 100+ languages, real connections. The dating app built for Torah-observant singles. Join the waitlist.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -38,6 +42,22 @@ export const metadata: Metadata = {
       { url: "/icon-512.svg", sizes: "512x512", type: "image/svg+xml" },
     ],
     apple: "/icon-192.svg",
+  },
+  openGraph: {
+    type: "website",
+    siteName: "Ahavah",
+    title: "Ahavah · Find love across borders",
+    description:
+      "Verified profiles, 100+ languages, real connections. Built for Torah-observant singles. Join the waitlist.",
+    url: "https://ahavah.app",
+    images: [{ url: "/icon-512.svg", width: 512, height: 512, alt: "Ahavah" }],
+  },
+  twitter: {
+    card: "summary",
+    title: "Ahavah · Find love across borders",
+    description:
+      "Verified profiles, 100+ languages, real connections. Built for Torah-observant singles.",
+    images: ["/icon-512.svg"],
   },
 };
 
