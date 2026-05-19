@@ -37,7 +37,7 @@ import type { ChatThread } from "@/lib/chat-types";
 import type { Profile } from "@/lib/profile-schema";
 
 import { BottomNav } from "@/components/app/bottom-nav";
-import { SparkleTile } from "@/components/app/sparkle-tile";
+import { LogoMark } from "@/components/brand/logo-mark";
 import { ChatThreadView } from "@/components/app/chat-thread-view";
 import { EmptyState, ErrorState } from "@/components/app/empty-state";
 import { InstallPromptBanner } from "@/components/app/install-prompt-banner";
@@ -325,7 +325,7 @@ export function InboxContent({
           NOTE: inline thread pane (rendering the selected chat inline)
           is a follow-up — surfaced as the /chat/[id] decision (Option A
           redirect to /inbox?thread=N vs Option B inline split-view).
-          Until that lands, the right pane is the kit SparkleTile +
+          Until that lands, the right pane is the canonical Ahavah lockup +
           "Pick a conversation" empty state, and clicking a thread
           navigates to /chat/[id]. */}
       <div className="hidden md:grid md:grid-cols-[380px_1fr] md:h-[calc(100dvh-3.5rem)] md:-m-8 md:gap-0">
@@ -353,7 +353,7 @@ export function InboxContent({
         </div>
 
         {/* Right — ChatThreadView when selected (Option B per user
-            decision 2026-05-17), else SparkleTile empty state.
+            decision 2026-05-17), else LogoMark empty state.
             ChatThreadView's outer is h-full so it fills the parent's
             calc'd height; this column has h-[calc(100dvh-3.5rem)]
             inherited from the grid. */}
@@ -369,7 +369,7 @@ export function InboxContent({
             className="flex flex-col items-center justify-center gap-4"
             style={{ background: "var(--canvas)" }}
           >
-            <SparkleTile size="xl" aria-label="Ahavah" />
+            <LogoMark size={56} />
             <p className="text-meta font-medium text-(--ink-2)">
               Pick a conversation
             </p>

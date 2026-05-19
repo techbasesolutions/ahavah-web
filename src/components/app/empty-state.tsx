@@ -22,15 +22,15 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 
-import { SparkleMark } from "@/components/brand/sparkle-mark";
+import { LogoMark } from "@/components/brand/logo-mark";
 import { cn } from "@/lib/utils";
 
 /**
  * EmptyState — Phase 6 Task 6.1 atom. 6 variants as specified by the master
  * plan + 1 generic ErrorState companion (next file).
  *
- * Composed entirely from shadcn `Empty` primitive + brand sparkle mark
- * (Phase D documented exception). No raw className for the empty container,
+ * Composed entirely from shadcn `Empty` primitive + canonical Ahavah LogoMark
+ * for brand-friendly empties. No raw className for the empty container,
  * scrim, or medium tile — all flows through `Empty*` slots.
  *
  * Variants → preset copy + media + accent color. Override any slot via the
@@ -49,10 +49,9 @@ type Preset = {
   title: string;
   description: string;
   Icon: React.ComponentType<{ className?: string }>;
-  // Sparkle accents (no-matches / no-messages) signal the brand-friendly
+  // LogoMark accents (no-matches / no-messages) signal the brand-friendly
   // empties; lucide icons cover utility/info empties.
-  useSparkle?: boolean;
-  sparkleColor?: string;
+  useLogo?: boolean;
   iconColor?: string;
 };
 
@@ -62,16 +61,14 @@ const PRESETS: Record<Variant, Preset> = {
     description:
       "When someone likes you back, they'll appear here. Keep swiping to find your matches.",
     Icon: Heart,
-    useSparkle: true,
-    sparkleColor: "#FF4566",
+    useLogo: true,
   },
   "no-messages": {
     title: "No conversations yet",
     description:
       "Start swiping to find matches. When you both like each other, you can chat here.",
     Icon: MessageCircle,
-    useSparkle: true,
-    sparkleColor: "#D7FF81",
+    useLogo: true,
   },
   "no-search-results": {
     title: "Nothing matches",
@@ -122,14 +119,14 @@ export function EmptyState({
   className,
 }: EmptyStateProps) {
   const preset = PRESETS[variant];
-  const { Icon, useSparkle, sparkleColor, iconColor } = preset;
+  const { Icon, useLogo, iconColor } = preset;
 
   return (
     <Empty className={cn("mt-6", className)}>
       <EmptyHeader>
         <EmptyMedia>
-          {useSparkle ? (
-            <SparkleMark size={56} color={sparkleColor ?? "#D7FF81"} />
+          {useLogo ? (
+            <LogoMark size={56} decorative />
           ) : (
             <Icon className={cn("size-14", iconColor ?? "text-(--ink-2)")} />
           )}

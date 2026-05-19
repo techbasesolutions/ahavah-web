@@ -30,7 +30,7 @@ import { apiClient, ApiError } from "@/lib/api-client";
 import { useTokenBalance } from "@/lib/use-token-balance";
 import { BackButton } from "@/components/app/back-button";
 import { BottomNav } from "@/components/app/bottom-nav";
-import { SparkleMark } from "@/components/brand/sparkle-mark";
+import { LogoMark } from "@/components/brand/logo-mark";
 import {
   PageHeader,
   PageHeaderTitle,
@@ -232,13 +232,13 @@ export default function TokensPage() {
               aria-hidden
               className="absolute top-6 right-8 opacity-60"
             >
-              <SparkleMark size={64} color="#D7FF81" />
+              <LogoMark size={64} decorative />
             </span>
             <span
               aria-hidden
               className="absolute top-35 right-26 opacity-40"
             >
-              <SparkleMark size={28} color="#ffffff" />
+              <LogoMark size={28} decorative />
             </span>
             <div className="relative">
               <p className="text-overline opacity-85 m-0">Your balance</p>

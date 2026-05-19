@@ -25,7 +25,6 @@ import {
 } from "lucide-react";
 
 import { Logo } from "@/components/brand/logo";
-import { PageShell } from "@/components/app/page-shell";
 import { ThemeToggle } from "@/components/app/theme-toggle";
 import { useRedirectIfSignedIn } from "@/lib/use-redirect-if-signed-in";
 import { PENDING_EMAIL_KEY } from "@/lib/storage-keys";
@@ -90,17 +89,14 @@ export default function LandingPage() {
     setSubmitting(false);
   };
 
-  if (checking) {
-    return (
-      <PageShell
-        desktopShell="full-bleed"
-        bottomPad="default"
-        className="items-center justify-center px-5"
-      >
-        <p className="text-body text-(--ink-2)">Signing you in…</p>
-      </PageShell>
-    );
-  }
+  // Note: do NOT block rendering on `checking`. Showing a narrow
+  // "Signing you in…" column while the auth probe runs collapses the
+  // entire landing on desktop into a mobile-sized empty placeholder
+  // (LCP-blank for ~200ms even for signed-out visitors). The redirect
+  // still happens via useRedirectIfSignedIn's effect; signed-in users
+  // see one frame of marketing before navigating to /discover, which
+  // is preferable to the blank flash.
+  void checking;
 
   return (
     // Landing follows the app's theme (no data-theme lock). Surface

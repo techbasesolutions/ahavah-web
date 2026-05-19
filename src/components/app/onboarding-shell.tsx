@@ -21,7 +21,7 @@ import { positionOf } from "@/lib/wizard-flow";
  *
  * Desktop (md+, 2026-05-17): canonical 3-col grid per
  * screens/03-onboarding.md:
- *   - LEFT (1fr): BrandMark + linear-gradient(app → lavender@16%) bg
+ *   - LEFT (1fr): Ahavah lockup + linear-gradient(app → lavender@16%) bg
  *   - CENTER (720px): stepper row + content + sticky Continue CTA
  *   - RIGHT (1fr): --card bg, "What's next" overline + 7-phase checklist
  *

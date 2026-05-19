@@ -70,7 +70,7 @@ export default function OnboardingCompletePage() {
         {/* Hero — lime check "tada" entrance (scale 0.7 -> 1 with spring
             bounce) then a slow infinite breathe (1 -> 1.06 -> 1). The lime
             glow ring underneath gives the celebration weight. Lucide Check
-            inside an IconBadge - kit-only, no SparkleMark per the
+            inside an IconBadge - kit-only, no brand mark per the
             no-stickers rule (this page is not on the permitted list).
             Reduce-motion via globals.css collapses both animations. */}
         <motion.div

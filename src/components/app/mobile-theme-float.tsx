@@ -7,13 +7,13 @@ import { ThemeToggle } from "@/components/app/theme-toggle";
  *
  * Renders ONLY at <md via `md:hidden`. User direction (2026-05-17) was
  * "top left header" — but every mobile route's PageHeader puts the
- * `<BrandMark>` (Ahavah wordmark + sparkle) at top-left, so the
- * floating toggle there directly obscured the brand text. Moved to
- * top-RIGHT as the pragmatic resolution — still in the top header
- * region, still globally accessible, no brand-mark collision. If you
- * want the toggle on the left instead, the per-route fix is to remove
- * `<BrandMark>` from each mobile PageHeader (the BottomNav already
- * provides Home navigation, BrandMark is decorative there).
+ * Ahavah lockup at top-left, so the floating toggle there directly
+ * obscured the brand text. Moved to top-RIGHT as the pragmatic
+ * resolution — still in the top header region, still globally
+ * accessible, no brand-mark collision. If you want the toggle on the
+ * left instead, the per-route fix is to remove the brand lockup from
+ * each mobile PageHeader (the BottomNav already provides Home
+ * navigation, the brand lockup is decorative there).
  *
  * Mounted globally by PageShell for sidebar-shell routes so every
  * authenticated mobile route picks it up without per-route edits.

@@ -28,7 +28,7 @@ const iconBadgeVariants = cva(
         // 10%-tint pattern of the other tones; this one IS the badge colour.
         cta:         "bg-lime text-black",
         // 2026-05-18: bg-bg-elevated + text-white → theme-aware tokens.
-        // The icon brings its own colour (SparkleMark `color` prop) so
+        // The icon brings its own colour (e.g. LogoMark glyphColor) so
         // text-(--ink) is mostly a fallback for any text content.
         elevated:    "bg-(--card) text-(--ink)",
         // Reads its bg from the nearest `--tier-color` CSS variable (set
@@ -47,7 +47,7 @@ const iconBadgeVariants = cva(
       },
       // Square (rounded-xl) is the kit default for icon tiles; circle
       // (rounded-full) is for round affordances (paywall checks, hero
-      // sparkle pedestal, future status dots).
+      // brand-mark pedestal, future status dots).
       shape: {
         square: "rounded-xl",
         circle: "rounded-full",
@@ -59,7 +59,7 @@ const iconBadgeVariants = cva(
         lg:   "size-11 [&_svg]:size-5",       // 44px
         xl:   "size-12 [&_svg]:size-6",       // 48px — verify tier tile
         "2xl":"size-16 [&_svg]:size-8",       // 64px — verify tier hero
-        hero: "size-40 [&_svg]:size-22",      // 160px — onboarding sparkle hero
+        hero: "size-40 [&_svg]:size-22",      // 160px — onboarding brand-mark hero
       },
     },
     // Larger square tiles (xl, hero) use rounded-2xl rather than rounded-xl

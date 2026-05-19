@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { IconBadge } from "@/components/ui/icon-badge";
 
-import { SparkleMark } from "@/components/brand/sparkle-mark";
+import { LogoMark } from "@/components/brand/logo-mark";
 import { Logo } from "@/components/brand/logo";
 import { PageShell } from "@/components/app/page-shell";
 import { ProgressDots } from "@/components/app/progress-dots";
@@ -79,7 +79,7 @@ export default function OnboardingIntroPage() {
                 className="flex flex-col items-center gap-6"
               >
                 <IconBadge tone="elevated" shape="circle" size="hero">
-                  <SparkleMark size={88} color={slide.color} />
+                  <LogoMark size={88} decorative />
                 </IconBadge>
                 <h1 className="text-3xl font-extrabold leading-tight tracking-tight text-foreground">
                   {slide.title}<span className="text-(--color-lime)">.</span>
@@ -158,7 +158,7 @@ export default function OnboardingIntroPage() {
               className="flex flex-col items-center gap-6"
             >
               <IconBadge tone="elevated" shape="circle" size="hero">
-                <SparkleMark size={88} color={slide.color} />
+                <LogoMark size={88} decorative />
               </IconBadge>
               <h1 className="max-w-xs text-display text-(--ink)">
                 {slide.title}<span className="text-lime">.</span>

@@ -373,14 +373,23 @@
   gap: 24px;
   margin-top: 56px;
   max-width: 520px;
+  /* Symmetrical centering — numbers and labels vary in width
+     ("12,400+" vs "63" vs "100+") so left-aligning each 1fr column
+     produces visual asymmetry. Centering content within each column
+     normalizes the rhythm. */
+  text-align: center;
+}
+.landing-hero__stats > * {
+  min-width: 0;
 }
 .landing-hero__stat-num {
   font-family: var(--font-display);
-  font-size: clamp(30px, 2.6vw, 40px);
+  font-size: clamp(28px, 2.6vw, 40px);
   font-weight: 400;
   letter-spacing: -0.015em;
   line-height: 1;
   color: var(--landing-ink);
+  white-space: nowrap;
 }
 .landing-hero__stat-lbl {
   font-size: 13px;
@@ -540,16 +549,24 @@
   background: var(--color-pink);
 }
 
-/* Floating profile cards behind the phone */
+/* Floating profile cards behind the phone — widths scale with the
+   phone-stack container via clamp() so they never crowd the phone or
+   overlap the hero copy at the 640-1023px mid-band where the stack
+   itself is reduced. Tucked back behind the phone (negative z-index
+   relative to stack) to keep the phone primary. */
 .landing-float-card {
   position: absolute;
-  width: 100px;
+  width: clamp(60px, 22%, 100px);
   aspect-ratio: 3/4;
   border-radius: 16px;
   border: 3px solid #fff;
   box-shadow: 0 16px 40px rgba(15, 11, 31, 0.25);
   overflow: hidden;
   background: var(--landing-canvas);
+  z-index: 0;
+}
+.landing-phone {
+  z-index: 1;
 }
 .landing-float-card img {
   width: 100%;
@@ -558,26 +575,26 @@
   display: block;
 }
 .landing-float-card--1 {
-  top: 6%;
-  left: 4%;
+  top: 4%;
+  left: 2%;
   transform: rotate(-10deg);
 }
 .landing-float-card--2 {
-  bottom: 8%;
-  right: 2%;
+  bottom: 6%;
+  right: 0%;
   transform: rotate(12deg);
 }
 .landing-float-card--3 {
-  bottom: 16%;
-  left: 0%;
+  bottom: 14%;
+  left: -2%;
   transform: rotate(8deg);
-  width: 80px;
+  width: clamp(50px, 18%, 80px);
 }
 .landing-float-card--4 {
-  top: 14%;
-  right: 6%;
+  top: 12%;
+  right: 4%;
   transform: rotate(-6deg);
-  width: 86px;
+  width: clamp(52px, 19%, 86px);
 }
 
 /* ── Sections ─────────────────────────────────────────────── */

@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/item";
 import { Pill } from "@/components/kibo-ui/pill";
 
-import { SparkleMark } from "@/components/brand/sparkle-mark";
+import { LogoMark } from "@/components/brand/logo-mark";
 import { PageShell } from "@/components/app/page-shell";
 import { cn } from "@/lib/utils";
 
@@ -100,7 +100,7 @@ export default function PaywallPage() {
     <>
       {/* Hero — theme-aware text colors (2026-05-17 cleanup). Token-stipend
           line already in FEATURES array per 2026-05-16 sprint. */}
-      <SparkleMark size={48} color="#D7FF81" />
+      <LogoMark size={48} decorative />
       <h1 className="text-center text-display text-(--ink)">Ahavah Premium</h1>
       <p className="max-w-xs text-center text-meta text-(--ink-2)">
         Match more. Worry less.

@@ -1034,7 +1034,7 @@ export default function ProfileDetailPage({ params }: Props) {
         Reads the same hooks/state declared at the top of this component.
       */}
       {/* eslint-disable-next-line no-restricted-syntax -- calc(100dvh - topbar) has no token equivalent */}
-      <div className="hidden md:grid grid-cols-[540px_1fr] gap-8 px-8 pt-6 pb-8 overflow-hidden min-h-[calc(100dvh-56px)]">
+      <div className="hidden md:grid grid-cols-[minmax(380px,520px)_1fr] gap-8 px-8 pt-6 pb-8 overflow-hidden min-h-[calc(100dvh-56px)]">
         {/* Left col — back link + photo card + 4-col thumbnail strip */}
         <div className="flex flex-col gap-3.5 overflow-hidden min-w-0">
           <Link
@@ -1261,15 +1261,17 @@ export default function ProfileDetailPage({ params }: Props) {
               </p>
             )}
 
-            {/* About + Compatibility — 2-col grid, hairline divider above */}
-            <div className="grid grid-cols-2 gap-6 border-t border-(--hairline) pt-6">
+            {/* About + Compatibility — stack vertically on narrow desktops
+                (the right column gets squeezed once image col + actions
+                eat the laptop-width viewport); side-by-side at 2xl+. */}
+            <div className="grid grid-cols-1 2xl:grid-cols-2 gap-6 border-t border-(--hairline) pt-6">
               <Card tone="elevated" className="bg-card p-5 rounded-2xl gap-3">
                 <div className="text-overline text-(--ink-2)">
                   About
                 </div>
                 <dl className="m-0 flex flex-col gap-2.5">
                   {profile.sex && (
-                    <div className="grid grid-cols-[110px_1fr] gap-2">
+                    <div className="grid grid-cols-[90px_minmax(0,1fr)] gap-2">
                       <dt className="text-meta text-(--ink-2)">
                         Gender
                       </dt>
@@ -1279,7 +1281,7 @@ export default function ProfileDetailPage({ params }: Props) {
                     </div>
                   )}
                   {profile.occupation && (
-                    <div className="grid grid-cols-[110px_1fr] gap-2">
+                    <div className="grid grid-cols-[90px_minmax(0,1fr)] gap-2">
                       <dt className="text-meta text-(--ink-2)">
                         Work
                       </dt>
@@ -1289,7 +1291,7 @@ export default function ProfileDetailPage({ params }: Props) {
                     </div>
                   )}
                   {profile.education && (
-                    <div className="grid grid-cols-[110px_1fr] gap-2">
+                    <div className="grid grid-cols-[90px_minmax(0,1fr)] gap-2">
                       <dt className="text-meta text-(--ink-2)">
                         Education
                       </dt>
@@ -1300,7 +1302,7 @@ export default function ProfileDetailPage({ params }: Props) {
                     </div>
                   )}
                   {profile.assembly && (
-                    <div className="grid grid-cols-[110px_1fr] gap-2">
+                    <div className="grid grid-cols-[90px_minmax(0,1fr)] gap-2">
                       <dt className="text-meta text-(--ink-2)">
                         Religion
                       </dt>
@@ -1310,7 +1312,7 @@ export default function ProfileDetailPage({ params }: Props) {
                     </div>
                   )}
                   {profile.children !== undefined && (
-                    <div className="grid grid-cols-[110px_1fr] gap-2">
+                    <div className="grid grid-cols-[90px_minmax(0,1fr)] gap-2">
                       <dt className="text-meta text-(--ink-2)">
                         Children
                       </dt>
@@ -1322,7 +1324,7 @@ export default function ProfileDetailPage({ params }: Props) {
                     </div>
                   )}
                   {profile.languages?.length ? (
-                    <div className="grid grid-cols-[110px_1fr] gap-2">
+                    <div className="grid grid-cols-[90px_minmax(0,1fr)] gap-2">
                       <dt className="text-meta text-(--ink-2)">
                         Languages
                       </dt>

@@ -19,7 +19,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Pill } from "@/components/kibo-ui/pill";
 
 import { BackButton } from "@/components/app/back-button";
-import { SparkleMark } from "@/components/brand/sparkle-mark";
+import { LogoMark } from "@/components/brand/logo-mark";
 import {
   PageHeader,
   PageHeaderTitle,
@@ -143,7 +143,7 @@ export default function BillingPortalRedirect() {
             aria-hidden
             className="absolute top-6 right-6 opacity-50"
           >
-            <SparkleMark size={48} color="var(--color-lavender)" />
+            <LogoMark size={48} decorative />
           </span>
 
           <CardContent className="flex flex-col gap-6 p-0">

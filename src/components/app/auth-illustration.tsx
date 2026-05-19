@@ -1,4 +1,4 @@
-import { SparkleMark } from "@/components/brand/sparkle-mark";
+import { LogoMark } from "@/components/brand/logo-mark";
 
 // Stable Unsplash portrait IDs. ?w=400&h=480 keeps payload small for the
 // 180×220 card slots. crop=faces centers on the subject.
@@ -24,7 +24,7 @@ const CARDS: ReadonlyArray<{
  * Right-column illustration for auth surfaces (sign-up, sign-in).
  * Canonical per handoff/screens/02-sign-up.md — indigo→elevated gradient,
  * 5 floating profile cards (180×220, 3px white border, varied rotations),
- * and a sparkle + tagline anchored bottom-left.
+ * and the Ahavah brand mark + tagline anchored bottom-left.
  */
 export function AuthIllustration() {
   return (
@@ -67,7 +67,7 @@ export function AuthIllustration() {
         </div>
       ))}
       <div className="relative max-w-105 text-white">
-        <SparkleMark size={36} color="#D7FF81" />
+        <LogoMark size={36} decorative />
         <div className="mt-4.5 text-3xl font-extrabold leading-tight tracking-tight">
           Real people.<br />Verified profiles.
         </div>
