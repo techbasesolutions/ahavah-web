@@ -429,23 +429,28 @@ export default function DiscoverPage() {
               aria-label={`View ${candidate.firstName ?? "profile"}'s full profile`}
               className="relative z-20 -mx-2 -my-1 inline-block rounded-xl px-2 py-1 outline-none focus-visible:ring-2 focus-visible:ring-lavender"
             >
-              <h2 className="flex items-center gap-1 text-h2 leading-tight text-(--ink)">
+              {/* Caption text MUST be white — this sits over the photo
+                  inside a PhotoCaption (black-gradient scrim). Using
+                  --ink flips to indigo in light mode and disappears
+                  against the photo. Same rule applies to every other
+                  overlay-on-photo caption in the app. */}
+              <h2 className="flex items-center gap-1 text-h2 leading-tight text-white">
                 <span className="underline decoration-white/30 decoration-1 underline-offset-4">
                   {candidate.firstName ?? "Someone"}
                   {candidate.age ? `, ${candidate.age}` : ""}
                 </span>
-                <ChevronRight className="size-5 text-(--ink)/70" />
+                <ChevronRight className="size-5 text-white/70" />
               </h2>
               {candidate.city && candidate.country ? (
-                <p className="mt-1 flex items-center gap-1 text-caption text-(--ink)/85">
+                <p className="mt-1 flex items-center gap-1 text-caption text-white/85">
                   <MapPin className="size-3" /> {candidate.city}, {candidate.country}
                 </p>
               ) : candidate.country ? (
-                <p className="mt-1 flex items-center gap-1 text-caption text-(--ink)/85">
+                <p className="mt-1 flex items-center gap-1 text-caption text-white/85">
                   <MapPin className="size-3" /> {candidate.country}
                 </p>
               ) : null}
-              <p className="mt-1 flex items-center gap-1.5 text-caption text-(--ink)/75">
+              <p className="mt-1 flex items-center gap-1.5 text-caption text-white/75">
                 {isOnline(candidate.seconds_since_last_online) ? (
                   <>
                     <span
