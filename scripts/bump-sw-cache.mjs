@@ -41,15 +41,20 @@ function main() {
   const stamp = pickStamp();
   const newName = `ahavah-${stamp}`;
   const content = readFileSync(SW_PATH, "utf-8");
-  // Match the existing CACHE = "..." line. Permissive on the value
-  // so previously-stamped builds re-stamp cleanly.
-  const next = content.replace(
-    /const CACHE = "[^"]+";/,
-    `const CACHE = "${newName}";`,
-  );
-  if (next === content) {
+
+  // Fail only if the regex doesn't match at all (sw.js missing a CACHE
+  // line). An idempotent re-stamp (same hash already in file) is fine —
+  // re-running on the same commit must not break the build.
+  const CACHE_RE = /const CACHE = "[^"]+";/;
+  if (!CACHE_RE.test(content)) {
     console.error("[bump-sw-cache] no CACHE line found in", SW_PATH);
     process.exit(1);
+  }
+
+  const next = content.replace(CACHE_RE, `const CACHE = "${newName}";`);
+  if (next === content) {
+    console.log(`[bump-sw-cache] ${SW_PATH} already at ${newName} (no-op)`);
+    return;
   }
   writeFileSync(SW_PATH, next);
   console.log(`[bump-sw-cache] stamped ${SW_PATH} → ${newName}`);
