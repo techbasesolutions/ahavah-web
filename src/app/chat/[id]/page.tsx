@@ -33,9 +33,13 @@ export default function ChatThreadPage({ params }: Props) {
 
   return (
     <>
-      {/* Mobile: full-screen chat. h-screen wrapper around the
-          h-full ChatThreadView fills the viewport. */}
-      <div className="md:hidden h-screen">
+      {/* Mobile: full-screen chat. h-dvh (NOT h-screen / 100vh) so the
+          wrapper matches the visible viewport when the URL bar is shown
+          — otherwise the wrapper is ~90px taller than visible, the body
+          scrolls, and the ChatInput at the bottom of ChatThreadView
+          renders below the visible viewport. dvh recomputes as browser
+          chrome shows/hides; baseline since 2022. */}
+      <div className="md:hidden h-dvh">
         <ChatThreadView id={id} />
       </div>
 

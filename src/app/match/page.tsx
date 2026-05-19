@@ -170,7 +170,7 @@ function MatchPageContent() {
   const profileHref = subject.id ? `/profile/${subject.id}` : "/matches";
 
   return (
-    <PageShell bottomPad="default" desktopShell="full-bleed" className="px-5 pt-6">
+    <PageShell bottomPad="none" desktopShell="full-bleed" className="px-5 pt-6">
       {/* Canonical backdrop per screens/06-match.md §Halo: var(--app)
           base + lime/18% top halo + pink/12% bottom halo. The previous
           impl hardcoded an indigo→lavender brand gradient OVERLAY,

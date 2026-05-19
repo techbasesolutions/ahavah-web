@@ -208,7 +208,7 @@ export default function PaywallPage() {
   );
 
   return (
-    <PageShell bottomPad="default" desktopShell="full-bleed" className="overflow-y-auto">
+    <PageShell bottomPad="none" desktopShell="full-bleed" className="overflow-y-auto">
       {/* ── Mobile layout (hidden at md+) ─────────────────────────────── */}
       <div className="md:hidden flex flex-col px-5 pt-6">
         {/* Close */}
