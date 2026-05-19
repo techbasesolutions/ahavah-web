@@ -8,13 +8,15 @@ import { useTheme, resolveTheme } from "@/lib/theme";
 type Variant = "horizontal" | "stacked";
 
 /**
- * Native viewBox aspect ratios from /public/brand/*.svg (Logos v2).
- *   horizontal: 468×145 → ~3.23:1   (full lockup, mark + AHAVAH wordmark)
- *   stacked:    293×238 → ~1.23:1   (mark above, AHAVAH wordmark below)
+ * Native viewBox aspect ratios from /public/brand/*.svg (Logos Final,
+ * 2026-05-19 — earlier "Logos v2" rendered "Ahava" without the trailing
+ * h; replaced with corrected 6-letter wordmark).
+ *   horizontal: 518×145 → ~3.57:1   (full lockup, mark + AHAVAH wordmark)
+ *   stacked:    343×238 → ~1.44:1   (mark above, AHAVAH wordmark below)
  */
 const RATIO = {
-  horizontal: 468 / 145,
-  stacked: 293 / 238,
+  horizontal: 518 / 145,
+  stacked: 343 / 238,
 } as const;
 
 const SIZE_HEIGHT = {
