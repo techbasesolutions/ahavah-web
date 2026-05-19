@@ -31,7 +31,7 @@ import {
 
 import { Logo } from "@/components/brand/logo";
 import { LogoMark } from "@/components/brand/logo-mark";
-import { ThemeToggle } from "@/components/app/theme-toggle";
+import { MarketingHeader } from "@/components/app/marketing-header";
 import { LandingStickyCta } from "@/components/app/landing-sticky-cta";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -122,27 +122,21 @@ export default function LandingPage() {
   return (
     <div data-landing className="min-h-dvh font-sans text-(--ink)">
       {/* ════════════════════════════════ NAV ═════════════════════════════════ */}
-      <header className="sticky top-0 z-50 border-b border-(--hairline) bg-(--app)/80 backdrop-blur-xl backdrop-saturate-150">
-        <div className="mx-auto max-w-[1200px] px-4 sm:px-6 md:px-8 h-16 flex items-center justify-between gap-4">
-          <Link href="/" aria-label="Ahavah home" className="shrink-0">
-            <Logo variant="horizontal" height={32} priority />
-          </Link>
-
-          <nav className="hidden md:flex items-center gap-7 text-sm text-(--ink-2)" aria-label="Primary">
+      <MarketingHeader
+        primaryNav={
+          <>
             <a href="#how"      className="hover:text-(--ink) transition-colors">How it works</a>
             <a href="#features" className="hover:text-(--ink) transition-colors">Features</a>
             <a href="#verified" className="hover:text-(--ink) transition-colors">Verified</a>
             <Link href="/help"  className="hover:text-(--ink) transition-colors">FAQ</Link>
-          </nav>
-
-          <div className="flex items-center gap-2 shrink-0">
-            <ThemeToggle variant="icon" />
-            <Button tone="elevated" size="tap" onClick={scrollToForm} className="rounded-xl">
-              Join waitlist
-            </Button>
-          </div>
-        </div>
-      </header>
+          </>
+        }
+        cta={
+          <Button tone="elevated" size="tap" onClick={scrollToForm} className="rounded-xl">
+            Join waitlist
+          </Button>
+        }
+      />
 
       {/* ═════════════ Brand-canvas wrapper: hero → CTA band ═════════════ */}
       <div style={{ background: BRAND_CANVAS }}>
