@@ -276,9 +276,13 @@ export default function SignUpPage() {
   };
 
   return (
-    <PageShell desktopShell="full-bleed" bottomPad="default" className="min-h-dvh">
+    <PageShell desktopShell="full-bleed" bottomPad="none" className="min-h-dvh">
       {/* ── DESKTOP (≥md) — canonical 5fr/7fr split per 02-sign-up.md ── */}
-      <div className="hidden md:grid md:grid-cols-[5fr_7fr] md:min-h-dvh">
+      {/* grid-rows-[1fr] explicitly fills the row track; without it the
+          single auto row sizes to tallest column intrinsic, leaving a
+          gap below. bottomPad="none" drops PageShell's pb-6 which was
+          revealing 24px of canvas color under the right column. */}
+      <div className="hidden md:grid md:grid-cols-[5fr_7fr] grid-rows-[1fr] md:min-h-dvh">
         <div className="bg-(--card) p-14 lg:p-16 flex flex-col gap-6">
           <Logo variant="horizontal" size="md" priority />
           <div className="flex-1 flex flex-col justify-center gap-4.5 max-w-105">
