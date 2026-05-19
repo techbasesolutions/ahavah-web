@@ -385,6 +385,13 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    /* Smooth-scroll for in-page anchor navigation (#section). Used by
+       /help, /legal/*, and the public /faq /terms /privacy /community
+       TOC rails. The prefers-reduced-motion media query below resets
+       this to `auto !important`. */
+    scroll-behavior: smooth;
+  }
   html, body {
     margin: 0;
     padding: 0;

@@ -1,11 +1,17 @@
 "use client";
 
+// Behind-auth legal shell. The session-aware brand-bar CTA reads
+// getSessionToken() (localStorage-backed) after mount to swap between
+// "Sign in" and "Back to app" — same post-mount setState pattern as
+// /help, with the same lint rationale.
+/* eslint-disable react-hooks/set-state-in-effect */
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import {
   AlertTriangle,
   BookOpen,
-  ChevronRight,
   FileText,
   Heart,
   Lock,
@@ -22,6 +28,7 @@ import { Pill } from "@/components/kibo-ui/pill";
 import { BackButton } from "@/components/app/back-button";
 import { ThemeToggle } from "@/components/app/theme-toggle";
 import { Logo } from "@/components/brand/logo";
+import { getSessionToken } from "@/lib/api-client";
 import {
   PageHeader,
   PageHeaderTitle,
@@ -48,12 +55,17 @@ const TOC_ICONS = {
 export type TocItem = {
   label: string;
   icon: keyof typeof TOC_ICONS;
+  /** Anchor slug for in-page scroll navigation. Must match a sibling
+   *  BodySection.slug so clicking the TOC row scrolls to the section. */
+  slug: string;
   active?: boolean;
 };
 
 export type BodySection = {
   heading: string;
   body: ReactNode;
+  /** Anchor slug — `id` attribute on the rendered <section>. */
+  slug: string;
 };
 
 export type LegalKind = "terms" | "privacy" | "community";
@@ -102,6 +114,11 @@ export function LegalArticleShell({
   toc,
   updated,
 }: Props) {
+  const [signedIn, setSignedIn] = useState(false);
+  useEffect(() => {
+    setSignedIn(Boolean(getSessionToken()));
+  }, []);
+
   return (
     <PageShell bottomPad="none" desktopShell="full-bleed">
       {/* ── Desktop brand bar ───────────────────────────────────────── */}
@@ -128,11 +145,11 @@ export function LegalArticleShell({
           )}
           <Button
             size="tap"
-            tone="cta"
+            tone={signedIn ? "elevated" : "cta"}
             className="ml-2"
-            render={<Link href="/auth/sign-in" prefetch={false} />}
+            render={<Link href={signedIn ? "/discover" : "/auth/sign-in"} prefetch={false} />}
           >
-            Sign in
+            {signedIn ? "Back to app" : "Sign in"}
           </Button>
           <ThemeToggle variant="icon" />
         </nav>
@@ -155,7 +172,7 @@ export function LegalArticleShell({
           <p className="mt-4 text-body leading-relaxed text-(--ink-2)">{lead}</p>
         </div>
         {sections.map((s, i) => (
-          <section key={i} className="flex flex-col gap-2">
+          <section key={i} id={s.slug} className="scroll-mt-20 flex flex-col gap-2">
             <h2 className="text-h3 text-(--ink) m-0">{s.heading}</h2>
             <p className="text-meta leading-relaxed text-(--ink-2) m-0">
               {s.body}
@@ -163,8 +180,9 @@ export function LegalArticleShell({
           </section>
         ))}
         <Card
+          id="contact"
           tone="default"
-          className="border border-lavender/30 bg-lavender/10 p-5"
+          className="scroll-mt-20 border border-lavender/30 bg-lavender/10 p-5"
         >
           <div className="flex items-center gap-3">
             <span
@@ -237,7 +255,7 @@ export function LegalArticleShell({
             </p>
           </div>
           {sections.map((s, i) => (
-            <section key={i}>
+            <section key={i} id={s.slug} className="scroll-mt-20">
               <h2 className="mt-2 mb-2.5 text-h3 text-(--ink) m-0">
                 {s.heading}
               </h2>
@@ -247,8 +265,9 @@ export function LegalArticleShell({
             </section>
           ))}
           <Card
+            id="contact"
             tone="default"
-            className="border border-lavender/30 bg-lavender/10 p-5"
+            className="scroll-mt-20 border border-lavender/30 bg-lavender/10 p-5"
           >
             <div className="flex items-center gap-3">
               <span
@@ -281,12 +300,13 @@ export function LegalArticleShell({
                 const I = TOC_ICONS[item.icon];
                 const active = !!item.active;
                 return (
-                  <div
+                  <Link
                     key={i}
+                    href={`#${item.slug}`}
                     className={
                       active
-                        ? "flex items-center gap-3 px-3 py-2.5 rounded-xl border border-lavender/40 bg-lavender/12"
-                        : "flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent"
+                        ? "flex items-center gap-3 px-3 py-2.5 rounded-xl border border-lavender/40 bg-lavender/12 hover:bg-lavender/20 transition-colors"
+                        : "flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent hover:bg-(--app)/60 transition-colors"
                     }
                   >
                     <span
@@ -308,32 +328,12 @@ export function LegalArticleShell({
                     >
                       {item.label}
                     </span>
-                  </div>
+                  </Link>
                 );
               })}
             </nav>
           </div>
 
-          <Card tone="default" className="p-4">
-            <div className="flex items-center gap-2.5">
-              <span
-                aria-hidden
-                className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-card border border-(--hairline) text-(--ink-2)"
-              >
-                <FileText className="size-4" />
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="text-meta font-semibold text-(--ink) m-0 truncate">
-                  Download as PDF
-                </p>
-                <p className="text-caption text-(--ink-3) m-0">38 KB</p>
-              </div>
-              <ChevronRight
-                aria-hidden
-                className="size-3.5 text-(--ink-3) shrink-0"
-              />
-            </div>
-          </Card>
         </aside>
       </div>
     </PageShell>

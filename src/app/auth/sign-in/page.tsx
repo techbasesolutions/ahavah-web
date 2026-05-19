@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
 import { Loader2 } from "lucide-react";
 
@@ -15,7 +15,7 @@ import { PageShell } from "@/components/app/page-shell";
 import { AuthIllustration } from "@/components/app/auth-illustration";
 import { ApiError } from "@/lib/api-client";
 import { requestEmailOtp } from "@/lib/auth-otp";
-import { PENDING_EMAIL_KEY } from "@/lib/storage-keys";
+import { AUTH_NEXT_URL_KEY, PENDING_EMAIL_KEY } from "@/lib/storage-keys";
 import { useRedirectIfSignedIn } from "@/lib/use-redirect-if-signed-in";
 
 /**
@@ -97,8 +97,9 @@ function SignInForm({
   );
 }
 
-export default function SignInPage() {
+function SignInPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -108,7 +109,15 @@ export default function SignInPage() {
     const prefill = sessionStorage.getItem(PENDING_EMAIL_KEY);
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (prefill) setEmail(prefill);
-  }, []);
+
+    // Capture ?next= so the post-OTP redirect in /onboarding/verify-email
+    // can land the user back at the route they were trying to reach.
+    // Constrain to same-origin paths to prevent open-redirect abuse.
+    const next = searchParams.get("next");
+    if (next && next.startsWith("/") && !next.startsWith("//")) {
+      sessionStorage.setItem(AUTH_NEXT_URL_KEY, next);
+    }
+  }, [searchParams]);
 
   const isComplete = email.includes("@");
 
@@ -238,5 +247,16 @@ export default function SignInPage() {
         </motion.div>
       </div>
     </PageShell>
+  );
+}
+
+// useSearchParams() must be inside a Suspense boundary in Next 16
+// when used in a client-rendered page; otherwise build fails with
+// "useSearchParams() should be wrapped in a suspense boundary".
+export default function SignInPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignInPageContent />
+    </Suspense>
   );
 }

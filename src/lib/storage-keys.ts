@@ -24,6 +24,14 @@ export const FILTERS_CACHE_KEY = "ahavah.filters.v1";
 export const PENDING_EMAIL_KEY = "ahavah.pending-email";
 
 /**
+ * Stashes the `?next=` URL captured at /auth/sign-in mount so that the
+ * eventual post-OTP redirect (in /onboarding/verify-email) can land the
+ * user back at the route they were trying to reach (e.g. /help, /legal/*).
+ * sessionStorage.
+ */
+export const AUTH_NEXT_URL_KEY = "ahavah.auth.next";
+
+/**
  * Tracks whether the current authenticated user has completed onboarding.
  * Written from /check-otp's response. Used by useProfile to route PATCHes
  * to /onboardee-info (not yet onboarded) vs /profile-info (onboarded).

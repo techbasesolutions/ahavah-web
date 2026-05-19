@@ -1,13 +1,5 @@
 "use client";
 
-// /help is reachable from the landing footer pre-auth. The session-aware
-// CTA reads getSessionToken() (localStorage-backed) after mount to swap
-// between Sign-in and Back-to-app, which requires the post-mount setState
-// pattern the lint rule discourages but useSyncExternalStore can't cover
-// for first-paint hydration safety.
-/* eslint-disable react-hooks/set-state-in-effect */
-
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
 import {
@@ -17,7 +9,6 @@ import {
   ChevronRight,
   HelpCircle,
   Mail,
-  Search,
   Settings,
   Shield,
   SlidersHorizontal,
@@ -30,11 +21,15 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Card, CardContent } from "@/components/ui/card";
-import { Pill } from "@/components/kibo-ui/pill";
-import { Button } from "@/components/ui/button";
 
-import { MarketingHeader } from "@/components/app/marketing-header";
-import { getSessionToken } from "@/lib/api-client";
+import { BackButton } from "@/components/app/back-button";
+import { BottomNav } from "@/components/app/bottom-nav";
+import {
+  PageHeader,
+  PageHeaderTitle,
+  PageShell,
+} from "@/components/app/page-shell";
+import { useRequireSession } from "@/lib/use-require-session";
 
 const fadeUp = {
   initial: { opacity: 0, y: 12 },
@@ -67,56 +62,30 @@ const FAQS: ReadonlyArray<{ q: string; a: string }> = [
 const TOC: ReadonlyArray<{
   label: string;
   Icon: typeof HelpCircle;
+  slug: string;
   active?: boolean;
 }> = [
-  { label: "Frequently asked",    Icon: HelpCircle,        active: true },
-  { label: "Verification",        Icon: Shield },
-  { label: "Filters & discovery", Icon: SlidersHorizontal },
-  { label: "Account & data",      Icon: Settings },
-  { label: "Safety",              Icon: AlertTriangle },
-  { label: "Get in touch",        Icon: Mail },
+  { label: "Frequently asked",    Icon: HelpCircle,        slug: "faq",           active: true },
+  { label: "Verification",        Icon: Shield,            slug: "verification" },
+  { label: "Filters & discovery", Icon: SlidersHorizontal, slug: "discovery" },
+  { label: "Account & data",      Icon: Settings,          slug: "account" },
+  { label: "Safety",              Icon: AlertTriangle,     slug: "safety" },
+  { label: "Get in touch",        Icon: Mail,              slug: "contact" },
 ];
 
-/**
- * /help is publicly accessible — reachable from the landing footer's
- * "Help" link without sign-in. Renders a slim marketing-style header
- * (Logo + theme toggle + contextual right action) instead of the
- * authenticated PageShell chrome (sidebar + bottom-nav) so signed-out
- * visitors aren't pushed toward authenticated tabs they haven't
- * unlocked. Signed-in users get a "Back to app" link in the header.
- */
-function HelpHeaderAction() {
-  // Session read is client-only (localStorage). To avoid hydration
-  // mismatch render the public "Sign in" CTA on first paint, then
-  // swap to "Back to app" after mount if a session token is present.
-  const [signedIn, setSignedIn] = useState(false);
-  useEffect(() => {
-    setSignedIn(Boolean(getSessionToken()));
-  }, []);
-
-  if (signedIn) {
-    return (
-      <Button render={<Link href="/discover" prefetch={false} />} tone="elevated" size="tap" className="rounded-xl">
-        Back to app
-      </Button>
-    );
-  }
-  return (
-    <Button render={<Link href="/auth/sign-in" prefetch={false} />} tone="elevated" size="tap" className="rounded-xl">
-      Sign in
-    </Button>
-  );
-}
-
 export default function HelpPage() {
+  useRequireSession();
   return (
-    <div className="min-h-dvh flex flex-col text-(--ink)" style={{ background: "var(--app)" }}>
-      <MarketingHeader cta={<HelpHeaderAction />} />
-
-      {/* ── Mobile section heading (kept for orientation; no back button) */}
-      <div className="md:hidden px-5 pt-5 pb-2">
-        <h1 className="text-h1 font-extrabold tracking-tight text-(--ink) m-0">Help</h1>
-      </div>
+    <PageShell
+      bottomPad="nav"
+      desktopShell="sidebar"
+      topBarTitle="Help center"
+    >
+      {/* ── Mobile header ───────────────────────────────────────────── */}
+      <PageHeader pad="tight" className="md:hidden flex items-center gap-3">
+        <BackButton fallback="/settings" label="Back to settings" />
+        <PageHeaderTitle>Help</PageHeaderTitle>
+      </PageHeader>
 
       {/* ── Mobile copy intro ───────────────────────────────────────── */}
       <motion.p
@@ -189,26 +158,27 @@ export default function HelpPage() {
         >
           <p className="px-3 pb-2 text-overline text-(--ink-2)">On this page</p>
           {TOC.map((t) => (
-            <TocRow key={t.label} icon={t.Icon} label={t.label} active={t.active} />
+            <TocRow key={t.label} icon={t.Icon} label={t.label} slug={t.slug} active={t.active} />
           ))}
 
-          <Card tone="default" className="mt-3.5">
-            <CardContent className="flex flex-col gap-2.5 p-4">
-              <span
-                aria-hidden
-                className="flex size-9 items-center justify-center rounded-xl bg-lime/20 text-lime"
-              >
-                <BookOpen className="size-4" />
-              </span>
-              <p className="text-meta font-semibold text-(--ink) m-0 mt-1">
-                Read the guides
-              </p>
-              <p className="text-caption leading-relaxed text-(--ink-2) m-0">
-                Long-form articles on safety, dating, and the verification
-                ladder.
-              </p>
-            </CardContent>
-          </Card>
+          <Link href="/verify" prefetch={false} className="block mt-3.5 hover:opacity-90 transition-opacity">
+            <Card tone="default">
+              <CardContent className="flex flex-col gap-2.5 p-4">
+                <span
+                  aria-hidden
+                  className="flex size-9 items-center justify-center rounded-xl bg-lime/20 text-lime"
+                >
+                  <BookOpen className="size-4" />
+                </span>
+                <p className="text-meta font-semibold text-(--ink) m-0 mt-1">
+                  Verification tiers
+                </p>
+                <p className="text-caption leading-relaxed text-(--ink-2) m-0">
+                  Bronze, Silver, Gold — what each unlocks and what&apos;s required.
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
         </nav>
 
         {/* CENTER — Search + FAQ accordion */}
@@ -216,42 +186,65 @@ export default function HelpPage() {
           aria-label="Help articles"
           className="flex flex-col gap-3.5 max-w-190 min-w-0"
         >
-          <div className="flex h-14 items-center gap-3 rounded-2xl border border-(--hairline) bg-card px-5">
-            <Search className="size-4.5 shrink-0 text-(--ink-3)" />
-            <span className="flex-1 text-base text-(--ink-3)">
-              Search articles…
-            </span>
-            <Pill
-              size="sm"
-              variant="outline"
-              className="border-lavender/40 text-lavender bg-transparent"
+          <section id="faq" className="scroll-mt-20 flex flex-col gap-3.5">
+            <h2 className="mt-3.5 text-overline text-(--ink-2)">
+              Frequently asked
+            </h2>
+            <Accordion
+              defaultValue={["faq-0"]}
+              className="flex flex-col gap-3"
             >
-              ⌘ K
-            </Pill>
-          </div>
+              {FAQS.map((faq, i) => (
+                <AccordionItem
+                  key={i}
+                  value={`faq-${i}`}
+                  className="not-last:border-b-0 rounded-2xl border border-(--hairline) bg-card px-5.5 data-[panel-open]:border-lavender/40"
+                >
+                  <AccordionTrigger className="py-4.5 text-base font-semibold text-(--ink) hover:no-underline">
+                    {faq.q}
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-4.5 pt-1 text-meta leading-relaxed text-(--ink-2)">
+                    {faq.a}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </section>
 
-          <h2 className="mt-3.5 text-overline text-(--ink-2)">
-            Frequently asked
-          </h2>
-          <Accordion
-            defaultValue={["faq-0"]}
-            className="flex flex-col gap-3"
-          >
-            {FAQS.map((faq, i) => (
-              <AccordionItem
-                key={i}
-                value={`faq-${i}`}
-                className="not-last:border-b-0 rounded-2xl border border-(--hairline) bg-card px-5.5 data-[panel-open]:border-lavender/40"
-              >
-                <AccordionTrigger className="py-4.5 text-base font-semibold text-(--ink) hover:no-underline">
-                  {faq.q}
-                </AccordionTrigger>
-                <AccordionContent className="pb-4.5 pt-1 text-meta leading-relaxed text-(--ink-2)">
-                  {faq.a}
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
+          <section id="verification" className="scroll-mt-20 flex flex-col gap-2 mt-4">
+            <h2 className="text-h3 text-(--ink) m-0">Verification</h2>
+            <p className="text-meta leading-relaxed text-(--ink-2) m-0">
+              Three tiers (Bronze / Silver / Gold). Bronze selfie is required to start matching. Higher tiers add liveness and government-ID checks. Full details and how to start at <Link href="/verify" className="text-lavender hover:underline">/verify</Link>.
+            </p>
+          </section>
+
+          <section id="discovery" className="scroll-mt-20 flex flex-col gap-2 mt-4">
+            <h2 className="text-h3 text-(--ink) m-0">Filters &amp; discovery</h2>
+            <p className="text-meta leading-relaxed text-(--ink-2) m-0">
+              Adjust who you see and who sees you via the filter sheet on <Link href="/discover" className="text-lavender hover:underline">/discover</Link> and the privacy controls in <Link href="/settings/privacy" className="text-lavender hover:underline">Settings → Privacy</Link>.
+            </p>
+          </section>
+
+          <section id="account" className="scroll-mt-20 flex flex-col gap-2 mt-4">
+            <h2 className="text-h3 text-(--ink) m-0">Account &amp; data</h2>
+            <p className="text-meta leading-relaxed text-(--ink-2) m-0">
+              Email change, password, account deletion, and data export live in <Link href="/settings/account" className="text-lavender hover:underline">Settings → Account</Link>. Notification preferences in <Link href="/settings/notifications" className="text-lavender hover:underline">Settings → Notifications</Link>.
+            </p>
+          </section>
+
+          <section id="safety" className="scroll-mt-20 flex flex-col gap-2 mt-4">
+            <h2 className="text-h3 text-(--ink) m-0">Safety</h2>
+            <p className="text-meta leading-relaxed text-(--ink-2) m-0">
+              Block or report anyone in one tap from their profile. Manage blocked members in <Link href="/settings/blocked" className="text-lavender hover:underline">Settings → Blocked</Link>. Safety controls in <Link href="/settings/safety" className="text-lavender hover:underline">Settings → Safety</Link>.
+            </p>
+          </section>
+
+          <section id="contact" className="scroll-mt-20 flex flex-col gap-2 mt-4">
+            <h2 className="text-h3 text-(--ink) m-0">Get in touch</h2>
+            <p className="text-meta leading-relaxed text-(--ink-2) m-0">
+              For anything else, email <a href="mailto:admin@ahavah.app" className="text-lavender hover:underline">admin@ahavah.app</a>. We usually reply the same business day.
+            </p>
+          </section>
         </article>
 
         {/* RIGHT — Get in touch + Emergency */}
@@ -302,7 +295,8 @@ export default function HelpPage() {
         </aside>
       </div>
 
-    </div>
+      <BottomNav />
+    </PageShell>
   );
 }
 
@@ -310,18 +304,21 @@ export default function HelpPage() {
 function TocRow({
   icon: Icon,
   label,
+  slug,
   active,
 }: {
   icon: typeof HelpCircle;
   label: string;
+  slug: string;
   active?: boolean;
 }) {
   return (
-    <div
+    <Link
+      href={`#${slug}`}
       className={
         active
-          ? "flex items-center gap-3 px-3 py-2.5 rounded-xl border border-lavender/40 bg-lavender/12"
-          : "flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent"
+          ? "flex items-center gap-3 px-3 py-2.5 rounded-xl border border-lavender/40 bg-lavender/12 hover:bg-lavender/20 transition-colors"
+          : "flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent hover:bg-(--app)/60 transition-colors"
       }
     >
       <span
@@ -343,7 +340,7 @@ function TocRow({
       >
         {label}
       </span>
-    </div>
+    </Link>
   );
 }
 

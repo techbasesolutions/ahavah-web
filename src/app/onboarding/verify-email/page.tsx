@@ -15,7 +15,7 @@ import { ApiError } from "@/lib/api-client";
 import { checkOtp, requestEmailOtp } from "@/lib/auth-otp";
 import { writeChatSession } from "@/lib/chat-session";
 import { useProfile, writeOnboarded } from "@/lib/use-profile";
-import { PENDING_EMAIL_KEY } from "@/lib/storage-keys";
+import { AUTH_NEXT_URL_KEY, PENDING_EMAIL_KEY } from "@/lib/storage-keys";
 
 /**
  * Verify-email step. Receives the email via `sessionStorage[PENDING_EMAIL_KEY]`
@@ -110,7 +110,17 @@ export default function VerifyEmailStep() {
       if (!result.onboarded) {
         router.push("/onboarding/name");
       } else {
-        router.push("/discover");
+        // If sign-in was initiated from a behind-auth route (/help, /legal/*)
+        // via useRequireSession's `?next=`, return the user there instead of
+        // the default /discover. The next URL was stashed by /auth/sign-in.
+        // Same-origin guard applied at the storage write; double-check here.
+        const stashedNext = sessionStorage.getItem(AUTH_NEXT_URL_KEY);
+        sessionStorage.removeItem(AUTH_NEXT_URL_KEY);
+        if (stashedNext && stashedNext.startsWith("/") && !stashedNext.startsWith("//")) {
+          router.push(stashedNext);
+        } else {
+          router.push("/discover");
+        }
       }
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
