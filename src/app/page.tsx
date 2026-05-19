@@ -32,18 +32,13 @@ import {
 import { Logo } from "@/components/brand/logo";
 import { LogoMark } from "@/components/brand/logo-mark";
 import { MarketingHeader } from "@/components/app/marketing-header";
+import { MarketingFooter } from "@/components/app/marketing-footer";
 import { LandingStickyCta } from "@/components/app/landing-sticky-cta";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { IconBadge } from "@/components/ui/icon-badge";
 import { Pill } from "@/components/kibo-ui/pill";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { useRedirectIfSignedIn } from "@/lib/use-redirect-if-signed-in";
 import { PENDING_EMAIL_KEY } from "@/lib/storage-keys";
 
@@ -128,7 +123,7 @@ export default function LandingPage() {
             <a href="#how"      className="hover:text-(--ink) transition-colors">How it works</a>
             <a href="#features" className="hover:text-(--ink) transition-colors">Features</a>
             <a href="#verified" className="hover:text-(--ink) transition-colors">Verified</a>
-            <Link href="/help"  className="hover:text-(--ink) transition-colors">FAQ</Link>
+            <Link href="/faq"   className="hover:text-(--ink) transition-colors">FAQ</Link>
           </>
         }
         cta={
@@ -503,72 +498,7 @@ export default function LandingPage() {
       </div>
 
       {/* ════════════════════════════ FOOTER ══════════════════════════════ */}
-      <footer className="bg-[#0F0B1F] text-white/80 px-4 sm:px-6 md:px-8 py-14">
-        <div className="mx-auto max-w-[480px] lg:max-w-[1200px]">
-          {/* Desktop / md+ — 4-col grid as designed */}
-          <div className="hidden md:grid md:grid-cols-[2fr_1fr_1fr_1fr] gap-8 mb-12">
-            <div className="max-w-[360px]">
-              <div className="mb-4">
-                <Logo variant="horizontal" forceTheme="dark" height={32} />
-              </div>
-              <p className="text-sm leading-[1.55] text-white/60">
-                Find love across borders. Verified profiles, 100+ languages, real
-                connections. Made for the diaspora.
-              </p>
-            </div>
-            <FooterCol title="Product" links={[
-              { href: "#features", label: "Features" },
-              { href: "#how",      label: "How it works" },
-              { href: "#verified", label: "Verification" },
-              { href: "#waitlist", label: "Join waitlist" },
-            ]} />
-            <FooterCol title="Company" links={[
-              { href: "/help",                       label: "Help" },
-              { href: "mailto:admin@ahavah.app",     label: "Contact" },
-              { href: "/legal/community-guidelines", label: "Community" },
-            ]} />
-            <FooterCol title="Legal" links={[
-              { href: "/legal/terms",                label: "Terms of service" },
-              { href: "/legal/privacy",              label: "Privacy policy" },
-              { href: "/legal/community-guidelines", label: "Community guidelines" },
-            ]} />
-          </div>
-
-          {/* Mobile — brand + accordion */}
-          <div className="md:hidden mb-8">
-            <div className="mb-6">
-              <Logo variant="horizontal" forceTheme="dark" height={32} />
-              <p className="mt-4 text-[13px] leading-[1.55] text-white/60">
-                Find love across borders. Verified profiles, 100+ languages, real
-                connections. Made for the diaspora.
-              </p>
-            </div>
-            <Accordion multiple className="border-t border-white/10">
-              <FooterAccordion title="Product" links={[
-                { href: "#features", label: "Features" },
-                { href: "#how",      label: "How it works" },
-                { href: "#verified", label: "Verification" },
-                { href: "#waitlist", label: "Join waitlist" },
-              ]} />
-              <FooterAccordion title="Company" links={[
-                { href: "/help",                       label: "Help" },
-                { href: "mailto:admin@ahavah.app",     label: "Contact" },
-                { href: "/legal/community-guidelines", label: "Community" },
-              ]} />
-              <FooterAccordion title="Legal" links={[
-                { href: "/legal/terms",                label: "Terms of service" },
-                { href: "/legal/privacy",              label: "Privacy policy" },
-                { href: "/legal/community-guidelines", label: "Community guidelines" },
-              ]} />
-            </Accordion>
-          </div>
-
-          <div className="pt-6 border-t border-white/10 flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center text-[13px] text-white/50">
-            <span>© 2026 Ahavah. All rights reserved.</span>
-            <span>Made for the diaspora.</span>
-          </div>
-        </div>
-      </footer>
+      <MarketingFooter />
 
       {/* ══════════════════════ Mobile sticky bottom CTA ═══════════════════ */}
       <LandingStickyCta targetId="waitlist" />
@@ -844,59 +774,3 @@ function FloatCard({ src, className }: { src: string; className: string }) {
   );
 }
 
-/* ── Footer columns: 4-col grid (md+) and accordion (mobile). */
-function FooterCol({ title, links }: { title: string; links: { href: string; label: string }[] }) {
-  return (
-    <nav aria-label={`${title} links`} className="flex flex-col">
-      <h4 className="mb-4 text-[13px] font-bold uppercase tracking-[0.08em] text-white/55">
-        {title}
-      </h4>
-      <ul className="flex flex-col gap-2.5">
-        {links.map(({ href, label }) =>
-          href.startsWith("/") ? (
-            <li key={href + label}>
-              <Link href={href} className="text-sm text-white/80 hover:text-white transition-colors">
-                {label}
-              </Link>
-            </li>
-          ) : (
-            <li key={href + label}>
-              <a href={href} className="text-sm text-white/80 hover:text-white transition-colors">
-                {label}
-              </a>
-            </li>
-          ),
-        )}
-      </ul>
-    </nav>
-  );
-}
-
-function FooterAccordion({ title, links }: { title: string; links: { href: string; label: string }[] }) {
-  return (
-    <AccordionItem value={title.toLowerCase()} className="border-b border-white/10 border-t-0">
-      <AccordionTrigger className="py-4 px-1 text-[13px] font-bold uppercase tracking-[0.08em] text-white/85 hover:no-underline">
-        {title}
-      </AccordionTrigger>
-      <AccordionContent className="pb-4 px-1">
-        <ul className="flex flex-col gap-3">
-          {links.map(({ href, label }) =>
-            href.startsWith("/") ? (
-              <li key={href + label}>
-                <Link href={href} className="text-sm text-white/80">
-                  {label}
-                </Link>
-              </li>
-            ) : (
-              <li key={href + label}>
-                <a href={href} className="text-sm text-white/80">
-                  {label}
-                </a>
-              </li>
-            ),
-          )}
-        </ul>
-      </AccordionContent>
-    </AccordionItem>
-  );
-}
