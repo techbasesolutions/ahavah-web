@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
 import { Lock, MapPin, MessageCircle, Sparkles } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -203,10 +204,24 @@ function MatchesPageContent() {
       await apiClient.post("/tokens/reveal", { liker_id: revealing.id });
       await refreshBalance();
       await fetchLikes();
+      toast.success(`Revealed — ${revealing.name} added to your matches.`);
     } catch (e) {
       // 402 surfaces via the sheet's own insufficient-balance branch
-      // once refreshBalance fires; nothing extra to do here.
-      if (!(e instanceof ApiError && e.status === 402)) {
+      // once refreshBalance fires.
+      if (e instanceof ApiError && e.status === 402) {
+        await refreshBalance();
+        toast.error("Not enough tokens. Top up to reveal this like.");
+      } else {
+        const status = e instanceof ApiError ? e.status : null;
+        const msg =
+          status === 404
+            ? "Reveal isn't available yet."
+            : status === 401
+              ? "Sign in to reveal this like."
+              : status === 503
+                ? "Reveal is temporarily unavailable. Try again shortly."
+                : "Couldn't reveal. Try again.";
+        toast.error(msg);
         console.error("reveal failed:", e);
       }
     } finally {

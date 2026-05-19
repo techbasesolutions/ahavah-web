@@ -19,6 +19,7 @@
 
 import { useEffect, useState } from "react";
 import { Sparkles, Zap } from "lucide-react";
+import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
 
@@ -90,11 +91,28 @@ export function BoostCard() {
       await refreshBalance();
       setSheetOpen(false);
       setTick((n) => n + 1);
+      toast.success("Boost active for the next 30 minutes.");
     } catch (e) {
       if (e instanceof ApiError && e.status === 402) {
         // Insufficient tokens — sheet stays open so the user can see the
         // balance vs cost and choose to top up. TokenSpendSheet renders
         // the insufficient-state UI from its own props.
+        await refreshBalance();
+      } else {
+        // Non-402 (404 endpoint missing, 5xx, network, etc.) — close the
+        // sheet and surface what happened. Previously caught and ignored,
+        // leaving the user with no feedback when the request died.
+        setSheetOpen(false);
+        const status = e instanceof ApiError ? e.status : null;
+        const msg =
+          status === 404
+            ? "Boost isn't available yet."
+            : status === 401
+              ? "Sign in to use Boost."
+              : status === 503
+                ? "Boost is temporarily unavailable. Try again shortly."
+                : "Couldn't activate Boost. Try again.";
+        toast.error(msg);
       }
     } finally {
       setBusy(false);

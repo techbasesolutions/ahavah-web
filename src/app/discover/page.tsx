@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, type PanInfo } from "motion/react";
 import { ChevronRight, Heart, MapPin, Pause, Play, SlidersHorizontal, Sparkles, X } from "lucide-react";
+import { toast } from "sonner";
 
 import { Avatar, AvatarBadge, AvatarFallback, AvatarGroup, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -251,7 +252,21 @@ export default function DiscoverPage() {
       }
       if (hasMore && visibleItems.length <= 3) void loadMore();
     } catch (e) {
-      if (!(e instanceof ApiError && e.status === 402)) {
+      if (e instanceof ApiError && e.status === 402) {
+        await refreshTokens();
+        toast.error("Not enough tokens for Super Like.");
+      } else {
+        setSuperSheetOpen(false);
+        const status = e instanceof ApiError ? e.status : null;
+        const msg =
+          status === 404
+            ? "Super Like isn't available yet."
+            : status === 401
+              ? "Sign in to send a Super Like."
+              : status === 503
+                ? "Super Like is temporarily unavailable."
+                : "Couldn't send Super Like. Try again.";
+        toast.error(msg);
         console.error("super-like failed:", e);
       }
     } finally {

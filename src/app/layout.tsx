@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans, Ultra } from "next/font/google";
 
 import { ServiceWorkerRegister } from "@/components/sw-register";
 import { ThemeProvider } from "@/components/system/theme-provider";
+import { Toaster } from "@/components/ui/sonner";
 
 import "./globals.css";
 
@@ -106,6 +107,13 @@ export default function RootLayout({
             {children}
           </main>
           <ServiceWorkerRegister />
+          {/* Toast portal — every page can `import { toast } from "sonner"`
+              and surface user-visible error/success messages. Previously
+              installed but never mounted, so silent-error patterns in token
+              spend handlers (BoostCard, /matches reveal, /discover super-
+              like) couldn't actually surface a user-visible message even
+              when handlers called toast.error(). */}
+          <Toaster position="top-center" richColors closeButton />
         </ThemeProvider>
       </body>
     </html>
