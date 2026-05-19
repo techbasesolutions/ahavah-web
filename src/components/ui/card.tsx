@@ -19,7 +19,11 @@ const cardVariants = cva(
     variants: {
       tone: {
         default: "bg-card text-card-foreground ring-1 ring-foreground/10",
-        elevated: "bg-bg-elevated text-white ring-0 rounded-2xl",
+        // 2026-05-18: rest tones migrated from `bg-bg-elevated text-white`
+        // (dark-only — the Tailwind utility `bg-bg-elevated` inlines the
+        // dark @theme value at build time and never responds to
+        // `[data-theme=light]`) to theme-aware `bg-(--card) text-(--ink)`.
+        elevated: "bg-(--card) text-(--ink) ring-0 rounded-2xl",
         // Spec §Card gradient: Persian-Indigo → Lavender, white text, no border.
         // Uses CSS var tokens so they resolve correctly in both themes.
         gradient:
@@ -31,13 +35,13 @@ const cardVariants = cva(
         // Spec §Card tier-active: inset ring via `tier` prop (bronze/silver/gold).
         // `tier-active` is handled by the `tier` variant below; this tone is
         // preserved as a no-op base — the actual ring is applied by the `tier` variant.
-        "tier-active": "bg-bg-elevated text-white rounded-3xl",
+        "tier-active": "bg-(--card) text-(--ink) rounded-3xl",
         // Legacy aliases kept for backward compat; migrate callers to gradient/tier-active.
-        tier: "bg-bg-elevated text-white rounded-3xl shadow-tier-active",
+        tier: "bg-(--card) text-(--ink) rounded-3xl shadow-tier-active",
         tierInactive:
-          "bg-bg-elevated text-white rounded-3xl shadow-tier-inactive",
-        hero: "text-white ring-0 rounded-3xl",
-        flat: "bg-transparent text-white ring-0",
+          "bg-(--card) text-(--ink) rounded-3xl shadow-tier-inactive",
+        hero: "text-(--ink) ring-0 rounded-3xl",
+        flat: "bg-transparent text-(--ink) ring-0",
       },
       // Spec §Card tier-active: `inset 0 0 0 1.5px var(--color-{tier})`
       // Applied on top of any `tone`. Works standalone or with tone="tier-active".

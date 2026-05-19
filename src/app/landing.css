@@ -1,0 +1,1012 @@
+/* ============================================================
+   Ahavah Landing — co-located CSS. Lifted from the canonical
+   `9-Landing/Ahavah Landing.html` (single-file design export).
+   Classes are intentionally not Tailwind utilities; the marketing
+   layout is bespoke and lives outside the kit. Theme tokens flow
+   from globals.css (--app / --card / --ink* / etc.) so the page
+   responds to light/dark just like the rest of the app.
+   ============================================================ */
+
+/* Landing surfaces split into two classes:
+   1. Theme-aware (hero, features, tiers, quote, brand-canvas) —
+      reference the app's --app / --card / --ink / --hairline tokens so
+      light + dark both render correctly.
+   2. Always-dark (footer, phone mockup, CTA band gradient) — hardcoded
+      `--landing-bg-inverse` regardless of theme.
+
+   Brand colors (--color-lime, --color-lavender, --color-pink) already
+   have light/dark variants declared in globals.css and are referenced
+   directly — they automatically flip with the app theme. */
+.landing {
+  --landing-bg: var(--app);
+  --landing-card: var(--card);
+  --landing-canvas: var(--canvas);
+  --landing-ink: var(--ink);
+  --landing-ink-2: var(--ink-2);
+  --landing-ink-3: var(--ink-3);
+  --landing-hairline: var(--hairline);
+  --landing-border: var(--border);
+  /* Always-dark surfaces (footer, phone shell, mini-card avatar). These
+     stay fixed even in light mode — the canonical does the same. */
+  --landing-bg-inverse: #0F0B1F;
+  --landing-fg-inverse: #ffffff;
+
+  /* Lime — canonical declares two values: `--lime` (0.78 0.22 119, the
+     AA-safe light variant) for body chrome, and `--lime-dark` (0.95
+     0.18 119) for surfaces sitting on dark gradients (CTA band button,
+     phone mockup play button, etc.). We keep both as private locals. */
+  --landing-lime: oklch(0.78 0.22 119);
+  --landing-lime-dark: oklch(0.95 0.18 119);
+
+  --shadow-sm: 0 1px 2px rgba(15, 11, 31, 0.05);
+  --shadow-md: 0 4px 12px rgba(15, 11, 31, 0.08);
+  --shadow-lg: 0 10px 30px rgba(15, 11, 31, 0.12);
+  --shadow-cta: 0 8px 24px -4px rgba(85, 36, 245, 0.2),
+                0 2px 8px -2px rgba(15, 11, 31, 0.1);
+
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+  --radius-2xl: 28px;
+  --radius-3xl: 36px;
+
+  /* `--font-display` is set by next/font/google as the CSS variable for
+     Ultra (in layout.tsx). Reference it directly — no self-reference,
+     no fallback chain that masks Ultra not loading. */
+  font-family: var(--font-sans, "Plus Jakarta Sans"), system-ui, sans-serif;
+  background: var(--landing-bg);
+  color: var(--landing-ink);
+  line-height: 1.5;
+}
+
+.landing *,
+.landing *::before,
+.landing *::after {
+  box-sizing: border-box;
+}
+
+.landing img {
+  display: block;
+  max-width: 100%;
+}
+.landing a {
+  color: inherit;
+  text-decoration: none;
+}
+.landing button {
+  font: inherit;
+  cursor: pointer;
+}
+
+/* Brand canvas — single unbroken gradient spanning hero → features →
+   how-it-works → trust → quote → CTA → footer. */
+.landing-brand-canvas {
+  background:
+    radial-gradient(ellipse 70% 30% at 10% 8%, color-mix(in oklch, var(--color-lavender) 32%, transparent), transparent 70%),
+    radial-gradient(ellipse 60% 30% at 90% 95%, color-mix(in oklch, var(--color-lime) 38%, transparent), transparent 70%),
+    radial-gradient(ellipse 70% 30% at 85% 35%, color-mix(in oklch, var(--color-pink) 22%, transparent), transparent 70%),
+    radial-gradient(ellipse 60% 30% at 15% 70%, color-mix(in oklch, var(--color-lavender) 22%, transparent), transparent 70%),
+    var(--landing-bg);
+}
+.landing-brand-canvas .landing-section--alt {
+  background: transparent;
+}
+.landing-brand-canvas .landing-section {
+  background: transparent;
+}
+
+/* ── Container ────────────────────────────────────────────── */
+.landing-container {
+  width: 100%;
+  max-width: 1200px;
+  margin-inline: auto;
+  padding-inline: 24px;
+}
+@media (min-width: 768px) {
+  .landing-container {
+    padding-inline: 32px;
+  }
+}
+
+/* ── Atoms ────────────────────────────────────────────────── */
+.landing-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-lg);
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: -0.005em;
+  height: 56px;
+  padding-inline: 24px;
+  transition: transform 150ms ease-out, background-color 150ms ease-out,
+    box-shadow 150ms ease-out;
+  white-space: nowrap;
+}
+.landing-btn:active {
+  transform: translateY(1px);
+}
+.landing-btn:focus-visible {
+  outline: 2px solid var(--landing-ink);
+  outline-offset: 2px;
+}
+.landing-btn--cta {
+  background: var(--color-lime);
+  color: #000;
+  box-shadow: var(--shadow-cta);
+}
+.landing-btn--cta:hover {
+  background: oklch(0.74 0.22 119);
+}
+.landing-btn--outline {
+  background: transparent;
+  color: var(--landing-ink);
+  border-color: var(--landing-border);
+}
+.landing-btn--outline:hover {
+  background: var(--landing-hairline);
+}
+
+.landing-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding-inline: 12px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.landing-pill--lavender {
+  background: var(--color-lavender);
+  color: #000;
+}
+
+.landing-overline {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--landing-ink-2);
+}
+.landing-section__head .landing-overline {
+  color: var(--color-lavender);
+}
+
+/* ── Nav ──────────────────────────────────────────────────── */
+.landing-nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: color-mix(in oklch, var(--landing-bg) 78%, transparent);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(20px) saturate(160%);
+  border-bottom: 1px solid var(--landing-hairline);
+}
+.landing-nav__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-block: 16px;
+}
+.landing-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  line-height: 0;
+}
+.landing-nav__links {
+  display: none;
+  align-items: center;
+  gap: 28px;
+}
+.landing-nav__links a {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--landing-ink-2);
+}
+.landing-nav__links a:hover {
+  color: var(--landing-ink);
+}
+@media (min-width: 768px) {
+  .landing-nav__links {
+    display: flex;
+  }
+}
+/* Sign-in pill — must use `.landing a.landing-nav__cta` (specificity
+   0,1,1) to win over `.landing a { color: inherit }` (same 0,1,1, but
+   source order — see below). Without this the Link inherits --ink from
+   `.landing`, which in light mode is near-black and matches the pill's
+   near-black bg, making the label invisible. */
+.landing a.landing-nav__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding-inline: 16px;
+  border-radius: 12px;
+  background: var(--landing-bg-inverse);
+  color: var(--landing-fg-inverse);
+  font-size: 14px;
+  font-weight: 600;
+}
+.landing a.landing-nav__cta:hover {
+  color: var(--landing-fg-inverse);
+}
+/* Right cluster — theme toggle + sign-in pill. The toggle uses kit
+   chrome (--card / --hairline / --ink) so it stays legible in both
+   modes against the translucent nav backdrop. */
+.landing-nav__right {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ── Hero ─────────────────────────────────────────────────── */
+.landing-hero {
+  position: relative;
+  overflow: hidden;
+  padding-block: 64px 80px;
+}
+@media (min-width: 1024px) {
+  .landing-hero {
+    padding-block: 96px 120px;
+  }
+}
+.landing-hero__grid {
+  position: relative;
+  display: grid;
+  gap: 48px;
+  grid-template-columns: 1fr;
+  align-items: center;
+}
+@media (min-width: 1024px) {
+  .landing-hero__grid {
+    grid-template-columns: 1.1fr 1fr;
+    gap: 64px;
+  }
+}
+.landing-hero__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+.landing-hero__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(56px, 9vw, 132px);
+  line-height: 0.92;
+  letter-spacing: -0.025em;
+  font-weight: 400;
+  color: var(--landing-ink);
+}
+.landing-hero__accent {
+  display: inline-block;
+  color: var(--color-lime);
+  transform: translateY(0.04em);
+}
+.landing-hero__sub {
+  margin: 28px 0 0;
+  font-size: clamp(17px, 1.5vw, 21px);
+  line-height: 1.55;
+  color: var(--landing-ink-2);
+  max-width: 540px;
+}
+.landing-hero__form-wrap {
+  margin-top: 36px;
+}
+.landing-hero__form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 520px;
+}
+@media (min-width: 640px) {
+  .landing-hero__form {
+    flex-direction: row;
+    align-items: stretch;
+  }
+}
+.landing-hero__input {
+  flex: 1;
+  height: 56px;
+  padding-inline: 22px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--landing-border);
+  background: var(--landing-card);
+  font-size: 16px;
+  color: var(--landing-ink);
+  transition: border-color 150ms ease-out;
+}
+.landing-hero__input::placeholder {
+  color: var(--landing-ink-3);
+}
+.landing-hero__input:focus {
+  outline: none;
+  border-color: var(--color-lavender);
+  border-width: 1.5px;
+}
+.landing-hero__helper {
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--landing-ink-3);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.landing-hero__msg {
+  margin-top: 12px;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  background: color-mix(in oklch, var(--color-lime) 14%, transparent);
+  border: 1px solid color-mix(in oklch, var(--color-lime) 30%, transparent);
+  font-size: 14px;
+  color: var(--landing-ink);
+  display: none;
+}
+.landing-hero__msg.is-visible {
+  display: block;
+}
+.landing-hero__msg.is-error {
+  background: color-mix(in oklch, var(--color-pink) 12%, transparent);
+  border-color: color-mix(in oklch, var(--color-pink) 30%, transparent);
+}
+.landing-hero__stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-top: 56px;
+  max-width: 520px;
+}
+.landing-hero__stat-num {
+  font-family: var(--font-display);
+  font-size: clamp(30px, 2.6vw, 40px);
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  line-height: 1;
+  color: var(--landing-ink);
+}
+.landing-hero__stat-lbl {
+  font-size: 13px;
+  color: var(--landing-ink-2);
+  margin-top: 8px;
+  letter-spacing: 0.02em;
+}
+
+/* ── Phone mockup ─────────────────────────────────────────── */
+.landing-phone-stack {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  margin-inline: auto;
+  aspect-ratio: 1 / 1.05;
+}
+.landing-phone {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 290px;
+  aspect-ratio: 9 / 19;
+  background: oklch(0.18 0.11 280);
+  border-radius: 40px;
+  padding: 12px;
+  box-shadow: 0 30px 80px rgba(15, 11, 31, 0.3),
+    0 12px 24px rgba(15, 11, 31, 0.15);
+  border: 8px solid #0f0b1f;
+  overflow: hidden;
+}
+.landing-phone__inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 30px;
+  overflow: hidden;
+  position: relative;
+  background: oklch(0.18 0.11 280);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+}
+.landing-phone__notch {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90px;
+  height: 24px;
+  background: #000;
+  border-radius: 14px;
+  z-index: 5;
+}
+.landing-phone__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 44px 16px 8px;
+}
+.landing-phone__brand-mini {
+  display: inline-flex;
+  align-items: center;
+}
+.landing-phone__chip {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: oklch(0.13 0.06 280);
+  display: grid;
+  place-items: center;
+}
+.landing-phone__card {
+  flex: 1;
+  margin: 8px 12px 12px;
+  border-radius: 18px;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #5524f5 0%, #9f76ea 70%, #bc96ff 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 14px;
+}
+.landing-phone__photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  z-index: 0;
+}
+.landing-phone__timeline {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  right: 14px;
+  display: flex;
+  gap: 4px;
+}
+.landing-phone__timeline span {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.2);
+}
+.landing-phone__timeline span:first-child {
+  background: oklch(0.95 0.18 119);
+  box-shadow: 0 0 6px rgba(215, 255, 129, 0.5);
+}
+.landing-phone__caption {
+  position: relative;
+  z-index: 2;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.7) 100%);
+  margin: -40px -14px -14px;
+  padding: 30px 16px 14px;
+}
+.landing-phone__name {
+  font-size: 17px;
+  font-weight: 700;
+  color: #fff;
+}
+.landing-phone__loc {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.85);
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.landing-phone__actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 8px 0 14px;
+}
+.landing-phone__circle {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+.landing-phone__circle--lavender {
+  background: var(--color-lavender);
+}
+.landing-phone__circle--lime {
+  background: oklch(0.95 0.18 119);
+  width: 50px;
+  height: 50px;
+}
+.landing-phone__circle--pink {
+  background: var(--color-pink);
+}
+
+/* Floating profile cards behind the phone */
+.landing-float-card {
+  position: absolute;
+  width: 100px;
+  aspect-ratio: 3/4;
+  border-radius: 16px;
+  border: 3px solid #fff;
+  box-shadow: 0 16px 40px rgba(15, 11, 31, 0.25);
+  overflow: hidden;
+  background: var(--landing-canvas);
+}
+.landing-float-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.landing-float-card--1 {
+  top: 6%;
+  left: 4%;
+  transform: rotate(-10deg);
+}
+.landing-float-card--2 {
+  bottom: 8%;
+  right: 2%;
+  transform: rotate(12deg);
+}
+.landing-float-card--3 {
+  bottom: 16%;
+  left: 0%;
+  transform: rotate(8deg);
+  width: 80px;
+}
+.landing-float-card--4 {
+  top: 14%;
+  right: 6%;
+  transform: rotate(-6deg);
+  width: 86px;
+}
+
+/* ── Sections ─────────────────────────────────────────────── */
+.landing-section {
+  padding-block: 80px;
+  position: relative;
+}
+@media (min-width: 1024px) {
+  .landing-section {
+    padding-block: 120px;
+  }
+}
+.landing-section__head {
+  max-width: 820px;
+  margin-inline: auto;
+  text-align: center;
+  margin-bottom: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.landing-section__head h2 {
+  margin: 16px 0 0;
+  font-family: var(--font-display);
+  font-size: clamp(40px, 5.4vw, 76px);
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  font-weight: 400;
+}
+.landing-section__head p {
+  margin: 24px 0 0;
+  font-size: 18px;
+  line-height: 1.6;
+  color: var(--landing-ink-2);
+  max-width: 640px;
+}
+
+/* ── Features grid ────────────────────────────────────────── */
+.landing-features {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 640px) {
+  .landing-features {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (min-width: 1024px) {
+  .landing-features {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+.landing-feature {
+  padding: 32px 28px;
+  border-radius: var(--radius-2xl);
+  background: var(--landing-card);
+  border: 1px solid var(--landing-hairline);
+  box-shadow: var(--shadow-sm);
+  transition: transform 250ms ease-out, box-shadow 250ms ease-out;
+}
+.landing-feature:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+.landing-feature__icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 20px;
+}
+/* Feature icon colours: each tone gets a light-mode AA-safe darker
+   variant and a dark-mode bright variant. lavender/pink/indigo flow
+   from their brand vars which already have light/dark forms. lime,
+   success, gold need explicit per-theme overrides — their darker
+   light-mode shades go invisible on the dark feature card. */
+.landing-feature__icon--lavender {
+  background: color-mix(in oklch, var(--color-lavender) 14%, transparent);
+  color: var(--color-lavender);
+}
+.landing-feature__icon--lime {
+  background: color-mix(in oklch, var(--color-lime) 18%, transparent);
+  color: oklch(0.4 0.2 119);
+}
+[data-theme="dark"] .landing-feature__icon--lime {
+  color: var(--color-lime);
+}
+.landing-feature__icon--pink {
+  background: color-mix(in oklch, var(--color-pink) 14%, transparent);
+  color: var(--color-pink);
+}
+.landing-feature__icon--success {
+  background: color-mix(in oklch, var(--color-success) 18%, transparent);
+  color: oklch(0.5 0.21 138);
+}
+[data-theme="dark"] .landing-feature__icon--success {
+  color: var(--color-success);
+}
+.landing-feature__icon--indigo {
+  background: color-mix(in oklch, var(--indigo) 14%, transparent);
+  color: var(--indigo);
+}
+.landing-feature__icon--gold {
+  background: color-mix(in oklch, #ffd700 24%, transparent);
+  color: oklch(0.6 0.16 90);
+}
+[data-theme="dark"] .landing-feature__icon--gold {
+  color: #ffd700;
+}
+.landing-feature h3 {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.landing-feature p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--landing-ink-2);
+}
+
+/* ── How it works ─────────────────────────────────────────── */
+.landing-how {
+  display: grid;
+  gap: 32px;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 1024px) {
+  .landing-how {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 48px;
+  }
+}
+.landing-step {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.landing-step__badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--landing-bg-inverse);
+  color: var(--color-lime);
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  font-weight: 800;
+}
+.landing-step__media {
+  aspect-ratio: 4/3;
+  border-radius: var(--radius-2xl);
+  background: var(--landing-card);
+  border: 1px solid var(--landing-hairline);
+  box-shadow: var(--shadow-md);
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+.landing-step__media--1 {
+  background: linear-gradient(
+    135deg,
+    var(--landing-card) 0%,
+    color-mix(in oklch, var(--color-lavender) 12%, var(--landing-card)) 100%
+  );
+}
+.landing-step__media--2 {
+  background: linear-gradient(
+    135deg,
+    var(--landing-card) 0%,
+    color-mix(in oklch, var(--color-lime) 14%, var(--landing-card)) 100%
+  );
+}
+.landing-step__media--3 {
+  background: linear-gradient(
+    135deg,
+    var(--landing-card) 0%,
+    color-mix(in oklch, var(--color-pink) 10%, var(--landing-card)) 100%
+  );
+}
+.landing-step__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.landing-step h3 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+.landing-step p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--landing-ink-2);
+}
+
+/* ── Tiers ────────────────────────────────────────────────── */
+.landing-tiers {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 768px) {
+  .landing-tiers {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+.landing-tier {
+  padding: 28px;
+  border-radius: var(--radius-2xl);
+  background: var(--landing-card);
+  box-shadow: inset 0 0 0 1.5px var(--landing-hairline);
+  transition: box-shadow 250ms ease-out, transform 250ms ease-out;
+}
+.landing-tier:hover {
+  transform: translateY(-3px);
+}
+.landing-tier--bronze {
+  box-shadow: inset 0 0 0 1.5px #cd7f32;
+}
+.landing-tier--silver {
+  box-shadow: inset 0 0 0 1.5px #c0c0c0;
+}
+.landing-tier--gold {
+  box-shadow: inset 0 0 0 1.5px #ffd700;
+}
+.landing-tier__chip {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 16px;
+  color: #000;
+}
+.landing-tier--bronze .landing-tier__chip {
+  background: #cd7f32;
+}
+.landing-tier--silver .landing-tier__chip {
+  background: #c0c0c0;
+}
+.landing-tier--gold .landing-tier__chip {
+  background: #ffd700;
+}
+.landing-tier h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.landing-tier .landing-overline {
+  display: block;
+  margin-top: 4px;
+}
+.landing-tier p {
+  margin: 12px 0 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--landing-ink-2);
+}
+
+/* ── Quote ────────────────────────────────────────────────── */
+.landing-quote {
+  max-width: 880px;
+  margin-inline: auto;
+  text-align: center;
+  padding: 48px 24px;
+}
+.landing-quote__text {
+  font-size: clamp(22px, 2.5vw, 32px);
+  line-height: 1.4;
+  letter-spacing: -0.015em;
+  font-weight: 600;
+  color: var(--landing-ink);
+}
+.landing-quote__meta {
+  margin-top: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+.landing-quote__avatar {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--landing-bg-inverse);
+  color: var(--color-lime);
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+}
+.landing-quote__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.landing-quote__author {
+  font-size: 15px;
+  font-weight: 600;
+}
+.landing-quote__role {
+  font-size: 13px;
+  color: var(--landing-ink-2);
+}
+
+/* ── CTA band ─────────────────────────────────────────────── */
+.landing-cta-band {
+  background: linear-gradient(135deg, #5524f5 0%, #9f76ea 60%, #bc96ff 100%);
+  color: #fff;
+  border-radius: var(--radius-3xl);
+  padding: 64px 32px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.landing-cta-band__mark {
+  position: absolute;
+  bottom: -28%;
+  right: -10%;
+  width: 60%;
+  max-width: 560px;
+  opacity: 0.16;
+  pointer-events: none;
+  transform: rotate(-12deg);
+}
+/* Lift content above the watermark mark — but explicitly exclude the
+   mark itself, otherwise this rule's `position: relative` overrides
+   the mark's `position: absolute` on source-order (same specificity)
+   and the mark renders in normal flow at the top of the band instead
+   of anchored bottom-right. The canonical source has this same latent
+   bug; fixed here by scoping the rule. */
+.landing-cta-band > *:not(.landing-cta-band__mark) {
+  position: relative;
+  z-index: 1;
+}
+@media (min-width: 1024px) {
+  .landing-cta-band {
+    padding: 80px 64px;
+  }
+}
+.landing-cta-band h2 {
+  margin: 16px 0 0;
+  font-family: var(--font-display);
+  font-size: clamp(36px, 5vw, 72px);
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  font-weight: 400;
+}
+.landing-cta-band p {
+  margin: 16px auto 32px;
+  max-width: 540px;
+  font-size: 17px;
+  line-height: 1.55;
+  opacity: 0.85;
+}
+.landing-cta-band .landing-btn--cta {
+  background: oklch(0.95 0.18 119);
+  color: #000;
+}
+.landing-cta-band .landing-btn--cta:hover {
+  background: oklch(0.92 0.18 119);
+}
+
+/* ── Footer ───────────────────────────────────────────────── */
+.landing-footer {
+  background: var(--landing-bg-inverse);
+  color: var(--landing-fg-inverse);
+  padding-block: 56px;
+}
+.landing-footer__grid {
+  display: grid;
+  gap: 32px;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 768px) {
+  .landing-footer__grid {
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+  }
+}
+.landing-footer__brand {
+  max-width: 360px;
+}
+.landing-footer__tag {
+  margin: 16px 0 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.65);
+}
+.landing-footer__col h4 {
+  margin: 0 0 16px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+.landing-footer__col a {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+}
+.landing-footer__col a:hover {
+  color: #fff;
+}
+.landing-footer__legal {
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: flex-start;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.55);
+}
+@media (min-width: 768px) {
+  .landing-footer__legal {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+/* Respect reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .landing *,
+  .landing *::before,
+  .landing *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

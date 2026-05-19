@@ -21,10 +21,10 @@ const checkboxVariants = cva(
     variants: {
       tone: {
         default: "border-input dark:bg-input/30 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",
-        // White/30 border (3.5:1 on bg-indigo per Lighthouse audit) +
-        // bg-bg-elevated fill so the unchecked box reads against the dark
-        // canvas. Matches the Input tone="elevated" pairing.
-        elevated: "border-white/30 bg-bg-elevated",
+        // 2026-05-18: migrated from `border-white/30 bg-bg-elevated`
+        // (dark-only — invisible white border on white in light mode) to
+        // theme-aware hairline + card tokens.
+        elevated: "border-(--hairline) bg-(--card)",
       },
     },
     defaultVariants: {

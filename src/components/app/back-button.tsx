@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 /**
  * BackButton — restores the user's actual previous screen instead of
@@ -49,10 +50,13 @@ export function BackButton({
   return (
     <Button
       size="circle-lg"
-      tone="elevated"
+      variant="outline"
       aria-label={label}
       onClick={onClick}
-      className={className}
+      className={cn(
+        "bg-(--card) border-(--hairline) text-(--ink) hover:bg-(--app)",
+        className,
+      )}
     >
       <ArrowLeft className="text-(--ink)" />
     </Button>

@@ -18,15 +18,20 @@ const buttonVariants = cva(
         // Subtle hairline outline for low-emphasis actions on dark surfaces
         // (chat "New conversation", verify "Get verified", etc.). Replaces the
         // ad-hoc `border-white/15 bg-transparent text-white hover:bg-white/5`.
+        // 2026-05-18: migrated from `border-white/15 text-white hover:bg-white/5`
+        // (dark-only — invisible on light bg) to theme-aware hairline + ink tokens.
         outlineSubtle:
-          "border-white/15 bg-transparent text-white hover:bg-white/5",
+          "border-(--hairline) bg-transparent text-(--ink) hover:bg-(--app)",
         // Tier-coloured BORDER + white body text. Use inside a Card that
         // sets --tier-color. The previous version painted body text in
         // --tier-color too, which made silver and gold buttons read as
         // disabled (text identical to background on dark surfaces).
         // Keeping tier signal via the ring; body stays alive in white.
+        // 2026-05-18: text-(--ink) replaces text-white so the body text
+        // stays legible whether the parent Card surface is dark (--ink=white)
+        // or light (--ink=near-black). The tier-color ring still signals tier.
         outlineTier:
-          "border bg-transparent border-(--tier-color) text-white hover:bg-(--tier-color)/10",
+          "border bg-transparent border-(--tier-color) text-(--ink) hover:bg-(--tier-color)/10",
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-secondary/80 aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
         ghost:
@@ -56,7 +61,10 @@ const buttonVariants = cva(
         // (back / more / image overlays). White icon, ~45% black bg.
         overlay:  "border-0 bg-black/45 text-white hover:bg-black/60",
         // Elevated dark fill (notifications bell, secondary chrome on canvas).
-        elevated: "border-0 bg-bg-elevated text-white hover:bg-bg-elevated/70",
+        // 2026-05-18: bg-bg-elevated → bg-(--card), text-white → text-(--ink).
+        // The bg-bg-elevated utility inlines the dark-theme value at build
+        // time and never honors the [data-theme=light] override.
+        elevated: "border-0 bg-(--card) text-(--ink) hover:bg-(--card)/70",
         // Solid black — for small accent buttons sitting INSIDE a coloured
         // bubble (chat voice-message play). White/lavender icon.
         dark:     "border-0 bg-black text-white hover:bg-black/85",
@@ -114,8 +122,11 @@ const buttonVariants = cva(
         // Photo-upload tile (onboarding/photos): 3:4 portrait dashed slot.
         // Replaces per-instance `aspect-3/4 border-[1.5px] border-dashed
         // border-lavender bg-bg-elevated` overrides.
+        // 2026-05-18: bg-bg-elevated → bg-(--card); hover bg-white/5 →
+        // hover:bg-(--app). text-lavender stays — lavender has a light-mode
+        // override and reads on both surfaces.
         dashedTile:
-          "h-auto w-full aspect-3/4 p-0 rounded-2xl border-[1.5px] border-dashed border-lavender bg-bg-elevated text-lavender hover:bg-white/5 [&_svg:not([class*='size-'])]:size-6",
+          "h-auto w-full aspect-3/4 p-0 rounded-2xl border-[1.5px] border-dashed border-lavender bg-(--card) text-lavender hover:bg-(--app) [&_svg:not([class*='size-'])]:size-6",
         // Circular dashed-lavender slot — story-row "Add" affordance.
         // Same dashed treatment as `dashedTile`, but a 56px round target
         // (matches StoryAvatar size="md") so the inbox row aligns visually

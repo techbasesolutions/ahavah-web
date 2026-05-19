@@ -25,10 +25,10 @@ const selectTriggerVariants = cva(
       tone: {
         default:
           "border border-input bg-transparent dark:bg-input/30 dark:hover:bg-input/50",
-        // Mirrors Input.tone='elevated' — same WCAG 3:1 boundary rationale
-        // (subtle white/10 border on bg-bg-elevated against page bg).
+        // 2026-05-18: migrated from `border-white/10 bg-bg-elevated text-white`
+        // (dark-only) to theme-aware hairline + card + ink tokens.
         elevated:
-          "border border-white/10 bg-bg-elevated text-white placeholder:text-(--ink-3)",
+          "border border-(--hairline) bg-(--card) text-(--ink) placeholder:text-(--ink-3)",
       },
     },
     defaultVariants: {

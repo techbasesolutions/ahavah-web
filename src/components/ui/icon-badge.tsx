@@ -27,10 +27,10 @@ const iconBadgeVariants = cva(
         // Solid lime check pill (paywall feature list, etc.) — NOT the
         // 10%-tint pattern of the other tones; this one IS the badge colour.
         cta:         "bg-lime text-black",
-        // Solid bg-elevated tile — for hero/illustrative containers like the
-        // onboarding sparkle hero. Doesn't tint the icon (icon brings its
-        // own colour, e.g. via SparkleMark's `color` prop).
-        elevated:    "bg-bg-elevated text-white",
+        // 2026-05-18: bg-bg-elevated + text-white → theme-aware tokens.
+        // The icon brings its own colour (SparkleMark `color` prop) so
+        // text-(--ink) is mostly a fallback for any text content.
+        elevated:    "bg-(--card) text-(--ink)",
         // Reads its bg from the nearest `--tier-color` CSS variable (set
         // by Card.tone="tier"/"tierInactive"). Used inside tier Cards
         // (verify) for the bronze/silver/gold icon tile.
@@ -40,8 +40,10 @@ const iconBadgeVariants = cva(
         // verify-tier-shell timeline steps as the numbered badge ("1", "2"
         // etc.) — text content instead of an icon, so the tier color
         // surfaces as the ring + the numeral.
+        // 2026-05-18: bg-bg-canvas inlines dark value; switched to bg-(--canvas)
+        // which IS theme-aware (defined outside @theme).
         tierOutlined:
-          "bg-bg-canvas text-(--tier-color) ring-[1.5px] ring-inset ring-(--tier-color)",
+          "bg-(--canvas) text-(--tier-color) ring-[1.5px] ring-inset ring-(--tier-color)",
       },
       // Square (rounded-xl) is the kit default for icon tiles; circle
       // (rounded-full) is for round affordances (paywall checks, hero

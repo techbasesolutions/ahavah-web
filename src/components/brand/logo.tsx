@@ -8,13 +8,13 @@ import { useTheme, resolveTheme } from "@/lib/theme";
 type Variant = "horizontal" | "stacked";
 
 /**
- * Native viewBox aspect ratios from /public/brand/*.svg.
- *   horizontal: 335×95  → ~3.53:1
- *   stacked:    223×239 → ~0.93:1
+ * Native viewBox aspect ratios from /public/brand/*.svg (Logos v2).
+ *   horizontal: 468×145 → ~3.23:1   (full lockup, mark + AHAVAH wordmark)
+ *   stacked:    293×238 → ~1.23:1   (mark above, AHAVAH wordmark below)
  */
 const RATIO = {
-  horizontal: 335 / 95,
-  stacked: 223 / 239,
+  horizontal: 468 / 145,
+  stacked: 293 / 238,
 } as const;
 
 const SIZE_HEIGHT = {

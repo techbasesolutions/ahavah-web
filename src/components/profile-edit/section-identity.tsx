@@ -125,7 +125,7 @@ export default function IdentitySection() {
         <Input
           id="edit-children"
           size="lg"
-          tone="elevated"
+          tone="default"
           type="number"
           inputMode="numeric"
           min={0}

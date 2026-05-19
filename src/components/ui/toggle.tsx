@@ -22,14 +22,18 @@ const toggleVariants = cva(
         // ----- Ahavah brand: lime active fill, elevated rest. -------------
         // Replaces the old per-instance pattern of nullifying the default
         // `data-[state=on]:bg-muted` and re-painting via conditional className.
+        // 2026-05-18: rest state migrated from `bg-bg-elevated text-white
+        // border-white/10` (dark-only — text invisible on the white
+        // bg-elevated in light mode) to theme-aware --card / --ink /
+        // --hairline tokens. Active state unchanged (lime + black).
         brand:
-          "bg-bg-elevated text-white border-[1.5px] border-white/10 hover:bg-bg-elevated/80 aria-pressed:bg-lime aria-pressed:text-black aria-pressed:border-lime data-[state=on]:bg-lime data-[state=on]:text-black data-[state=on]:border-lime",
+          "bg-(--card) text-(--ink) border-[1.5px] border-(--hairline) hover:bg-(--app) aria-pressed:bg-lime aria-pressed:text-black aria-pressed:border-lime data-[state=on]:bg-lime data-[state=on]:text-black data-[state=on]:border-lime",
         // ----- Pill: same brand colours, full-radius shape. ----------------
         // Per Dateasy ref #12 (filters drawer): "Looking for" / "Show me"
         // pills are rounded-full, NOT rounded-lg. Pair with `size="tap"` for
         // mobile-friendly touch targets (44px).
         pill:
-          "rounded-full bg-bg-elevated text-white border-[1.5px] border-white/10 hover:bg-bg-elevated/80 aria-pressed:bg-lime aria-pressed:text-black aria-pressed:border-lime data-[state=on]:bg-lime data-[state=on]:text-black data-[state=on]:border-lime",
+          "rounded-full bg-(--card) text-(--ink) border-[1.5px] border-(--hairline) hover:bg-(--app) aria-pressed:bg-lime aria-pressed:text-black aria-pressed:border-lime data-[state=on]:bg-lime data-[state=on]:text-black data-[state=on]:border-lime",
       },
       size: {
         default:

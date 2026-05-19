@@ -19,10 +19,9 @@ const inputGroupVariants = cva(
     variants: {
       tone: {
         default: "border border-input dark:bg-input/30",
-        // Mirrors Input.tone='elevated' — see that file for the contrast
-        // rationale (bg-bg-elevated vs page bg-indigo is below WCAG 3:1, so
-        // a subtle 1px white/10 border carries the boundary at rest).
-        elevated: "border border-white/10 bg-bg-elevated",
+        // 2026-05-18: dark-only tokens → theme-aware. Hairline border +
+        // bg-(--card) carry the same boundary in both themes.
+        elevated: "border border-(--hairline) bg-(--card)",
       },
     },
     defaultVariants: {

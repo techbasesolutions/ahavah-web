@@ -87,7 +87,7 @@ export function TextField({
       <Component
         id={id}
         size="lg"
-        tone="elevated"
+        tone="default"
         type={multiline ? undefined : type}
         value={value}
         onChange={(e) =>
@@ -150,12 +150,12 @@ export function SingleSelectField<T extends string>({
               className="block w-full cursor-pointer"
             >
               <Card
-                tone={active ? "flat" : "elevated"}
+                tone={active ? "flat" : "default"}
                 className={cn(
                   "flex flex-row items-center gap-3 rounded-xl px-4 py-3 transition-all active:scale-[0.98]",
                   active
                     ? "bg-lime ring-2 ring-inset ring-lime"
-                    : "hover:bg-(--card)/80 hover:ring-1 hover:ring-inset hover:ring-border",
+                    : "hover:bg-(--app) hover:ring-1 hover:ring-inset hover:ring-border",
                 )}
               >
                 <span
@@ -223,7 +223,7 @@ export function SelectField<T extends string>({
         <SelectTrigger
           id={id}
           size="lg"
-          tone="elevated"
+          tone="default"
           className="w-full"
         >
           {/* Base UI's SelectValue renders the raw `value` when given
@@ -316,7 +316,7 @@ export function ComboboxField<T extends string>({
         <Input
           id={id}
           size="lg"
-          tone="elevated"
+          tone="default"
           role="combobox"
           autoComplete="off"
           aria-expanded={open}
@@ -486,7 +486,7 @@ export function MultiComboboxField<T extends string>({
         <Input
           id={id}
           size="lg"
-          tone="elevated"
+          tone="default"
           role="combobox"
           autoComplete="off"
           aria-expanded={open}

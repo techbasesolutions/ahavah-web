@@ -50,7 +50,7 @@ export default function PracticalSection() {
           onValueChange={(v: Intent) => update({ intent: v })}
         />
       ) : (
-        <Card tone="elevated" className="rounded-xl px-4 py-3">
+        <Card tone="default" className="rounded-xl px-4 py-3">
           <p className="text-meta text-(--ink-3)">
             Set your gender first to edit intent —{" "}
             <Link

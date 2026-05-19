@@ -244,7 +244,7 @@ export function FiltersSheet({
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger render={trigger} />
+      <SheetTrigger nativeButton={false} render={trigger} />
       <SheetContent
         side={isDesktop ? "right" : "bottom"}
         className={cn(

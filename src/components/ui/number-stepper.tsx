@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const readoutVariants = cva(
-  "flex h-24 w-20 items-center justify-center rounded-2xl border-[3px] border-white bg-bg-elevated shadow-2xl overflow-hidden",
+  // 2026-05-18: border-white + bg-bg-elevated dark-only → theme-aware tokens
+  "flex h-24 w-20 items-center justify-center rounded-2xl border-[3px] border-(--hairline) bg-(--card) shadow-2xl overflow-hidden",
   {
     variants: {
       tone: {

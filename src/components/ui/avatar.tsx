@@ -63,11 +63,12 @@ const avatarFallbackVariants = cva(
     variants: {
       variant: {
         default: "bg-muted text-muted-foreground",
-        // Ahavah brand: indigo tile with lime initial — used everywhere a
-        // user's photo is unavailable. Replaces per-instance bg/color overrides.
-        brand: "bg-bg-indigo text-lime font-bold",
-        // Spec alias: brand-fallback == brand (indigo bg + lime initial 800w)
-        "brand-fallback": "bg-bg-indigo text-lime font-extrabold",
+        // 2026-05-18: bg-bg-indigo flips to cream in light mode (lime
+        // initial on cream is barely visible); locked to bg-(--indigo) —
+        // the brand-saturated indigo that stays constant across themes.
+        // Avatar fallback should look like the brand in both themes.
+        brand: "bg-(--indigo) text-lime font-bold",
+        "brand-fallback": "bg-(--indigo) text-lime font-extrabold",
         // Photo variant — transparent bg, image renders on top via AvatarImage
         photo: "bg-transparent",
         // name-gradient — deterministic gradient applied via inline style at render;
