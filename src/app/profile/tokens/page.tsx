@@ -79,7 +79,7 @@ const HOW_IT_WORKS: ReadonlyArray<{
   body: string;
 }> = [
   { Icon: Sparkles, title: "Boost",      body: "Be one of the first profiles people see for 30 minutes." },
-  { Icon: Heart,    title: "Super Like", body: "Skip the queue — your profile shows up first in their deck." },
+  { Icon: Heart,    title: "Super Like", body: "Skip the queue. Your profile shows up first in their deck." },
   { Icon: Rewind,   title: "Rewind",     body: "Undo your last pass and reconsider." },
 ];
 
@@ -176,7 +176,7 @@ export default function TokensPage() {
                 <ChoiceboxIndicator variant="brand" />
                 <ChoiceboxItemHeader>
                   <ChoiceboxItemTitle className="flex items-center gap-2 text-body text-(--ink)">
-                    {s.label} — {s.price}
+                    {s.label} · {s.price}
                     {s.badge ? (
                       <Pill variant="lime" size="sm">
                         {s.badge}

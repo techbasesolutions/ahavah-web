@@ -79,7 +79,7 @@ export default function PaywallPage() {
       if (err instanceof ApiError) {
         if (err.status === 503) {
           setErrorMessage(
-            "Subscriptions aren't available yet. We're rolling them out — try again shortly.",
+            "Subscriptions aren't available yet. We're rolling them out. Try again shortly.",
           );
         } else if (err.status === 401) {
           setErrorMessage("Sign in again to subscribe.");

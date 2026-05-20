@@ -56,7 +56,7 @@ export default function OnboardingCompletePage() {
   const handleStartMatching = async () => {
     if (submitting) return;
     if (!graduated) {
-      setError("Still finalising your profile — give it a second.");
+      setError("Still finalising your profile. Give it a second.");
       return;
     }
     setError(null);

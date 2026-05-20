@@ -16,7 +16,7 @@ export default function OfflinePage() {
       description={
         <>
           We can&apos;t reach our servers right now. Check your connection and
-          try again — your matches and chats will be here when you&apos;re
+          try again. Your matches and chats will be here when you&apos;re
           back.
         </>
       }

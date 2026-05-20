@@ -37,7 +37,7 @@ const FAQS: ReadonlyArray<{ q: string; a: string }> = [
   },
   {
     q: "Will it work on my phone?",
-    a: "Ahavah is a Progressive Web App — Add to Home Screen on iOS and Android. There is no separate app store binary at launch.",
+    a: "Ahavah is a Progressive Web App. Add to Home Screen on iOS and Android. There is no separate app store binary at launch.",
   },
   {
     q: "How is my data handled?",

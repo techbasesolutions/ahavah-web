@@ -233,7 +233,7 @@ export default function BillingPortalRedirect() {
               </span>
               <p className="text-caption text-(--ink-3) m-0 max-w-135 leading-relaxed">
                 We never see your card details. Payment and billing data live
-                with Stripe — PCI-DSS Level 1, 3-D Secure where required.
+                with Stripe (PCI-DSS Level 1, 3-D Secure where required).
               </p>
             </div>
           </CardContent>

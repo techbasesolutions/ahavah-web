@@ -129,7 +129,7 @@ export function TokenSpendSheet({
           <Pill variant="lime" size="sm">
             <Coins className="size-3" aria-hidden />
             <span className="tabular-nums">
-              {currentBalance == null ? "—" : currentBalance}
+              {currentBalance == null ? "-" : currentBalance}
             </span>
           </Pill>
           {insufficient ? (

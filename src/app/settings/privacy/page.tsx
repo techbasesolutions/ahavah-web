@@ -160,7 +160,7 @@ export default function PrivacySettingsPage() {
                 </ItemTitle>
                 <ItemDescription className="text-caption text-(--ink-3)">
                   Display your city and country on your profile. Turn off
-                  to hide both — peers see only your name and age.
+                  to hide both. Peers see only your name and age.
                 </ItemDescription>
               </ItemContent>
               <Switch

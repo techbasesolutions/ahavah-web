@@ -65,7 +65,7 @@ export default function IdentitySection() {
         value={profile.displayName ?? ""}
         onChange={(v) => update({ displayName: v || undefined })}
         maxLength={40}
-        helper="Optional — overrides first name in matches"
+        helper="Optional. Overrides first name in matches."
         placeholder="E.g. Sarah or Sarah from Jamaica"
       />
 
@@ -79,7 +79,7 @@ export default function IdentitySection() {
         <Label htmlFor="age-display">Age</Label>
         <Input
           id="age-display"
-          value={profile.age ? String(profile.age) : "—"}
+          value={profile.age ? String(profile.age) : "-"}
           readOnly
           aria-readonly="true"
           tabIndex={-1}

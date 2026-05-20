@@ -32,7 +32,7 @@ export default function AssemblyStep() {
         </h1>
         <p className="text-body text-(--ink-2)">
           Used to surface matches who share your faith background. Pick the
-          closest fit — you can refine later.
+          closest fit. You can refine later.
         </p>
       </motion.div>
 

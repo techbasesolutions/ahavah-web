@@ -147,7 +147,7 @@ export default function LandingPage() {
                 <div className="flex flex-wrap items-center gap-2 mb-6">
                   <Pill variant="lavender">Pre-launch</Pill>
                   <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-(--ink-2)">
-                    Spring 2026 · Invite only
+                    Spring 2026
                   </span>
                 </div>
 
@@ -279,7 +279,7 @@ export default function LandingPage() {
             <SectionHead
               overline="What's different"
               title="A dating app that respects who you are."
-              body="Built around real-world commitments — Shabbat, kashrut, calendar, family. So your first message isn't a 20-question screener."
+              body="Built around real-world commitments: Shabbat, calendar, family. So your first message isn't a 20-question screener."
             />
 
             {/* Mobile (<sm): single col / sm: 2 col / lg: 3 col. Mobile feature
@@ -293,7 +293,7 @@ export default function LandingPage() {
               </FeatureCard>
               <FeatureCard tone="lime"          Icon={Globe}          title="100+ languages">
                 Match across borders. Live translation in chat for the languages
-                our community speaks — from Hebrew to Yoruba to Tagalog.
+                our community speaks, from Hebrew to Yoruba to Tagalog.
               </FeatureCard>
               <FeatureCard tone="pink"          Icon={Heart}          title="Faith-aware filters">
                 Calendar (lunar/solar), assembly, Torah level, polygyny stance —
@@ -305,7 +305,7 @@ export default function LandingPage() {
               </FeatureCard>
               <FeatureCard tone="indigo"        Icon={MapPin}         title="Diaspora map">
                 See your community geographically. Pan to a region, find people
-                there — useful for traveling, relocating, or finding home.
+                there. Useful for traveling, relocating, or finding home.
               </FeatureCard>
               <FeatureCard tone="gold"          Icon={IdCard}         title="Privacy by design">
                 Hide from map. Require verified matches. Block + report in one
@@ -321,7 +321,7 @@ export default function LandingPage() {
             <SectionHead
               overline="How it works"
               title="Three steps to your first conversation."
-              body="Designed to get you talking with real people fast — without the endless onboarding spiral most apps make you suffer through."
+              body="Designed to get you talking with real people fast, without the endless onboarding spiral most apps make you suffer through."
             />
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
@@ -362,7 +362,7 @@ export default function LandingPage() {
             <SectionHead
               overline="Trust"
               title="Three tiers of verification."
-              body="Built around how much trust you want to invest — and how much you want to see from the other side."
+              body="Built around how much trust you want to invest, and how much you want to see from the other side."
             />
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 lg:gap-6">
@@ -386,7 +386,7 @@ export default function LandingPage() {
                   Icon: ShieldCheck,
                   title: "Gold",
                   label: "ID verified",
-                  body: "Government ID + face match via Stripe Identity. Highest trust signal. Your document stays with Stripe — we only see the result.",
+                  body: "Government ID + face match via Stripe Identity. Highest trust signal. Your document stays with Stripe. We only see the result.",
                 },
               ].map(({ tier, Icon, title, label, body }) => (
                 <Card
@@ -427,7 +427,7 @@ export default function LandingPage() {
                 }}
               >
                 &ldquo;Other apps treated my observance like a niche preference.
-                Ahavah is the first place I felt seen — before I&apos;d even
+                Ahavah is the first place I felt seen, before I&apos;d even
                 written a bio.&rdquo;
               </blockquote>
               <figcaption className="mt-6 flex items-center gap-3 lg:justify-center not-italic">

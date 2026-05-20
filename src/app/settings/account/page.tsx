@@ -402,7 +402,7 @@ export default function AccountSettingsPage() {
                     permanently deleted in 7 days. You&apos;ll see a
                     &ldquo;Cancel deletion&rdquo; banner on your{" "}
                     <span className="text-(--ink)">Profile</span> page
-                    during the 7-day window — tap it any time to undo.
+                    during the 7-day window. Tap it any time to undo.
                     After 7 days deletion is irreversible.
                   </DialogDescription>
                 </DialogHeader>

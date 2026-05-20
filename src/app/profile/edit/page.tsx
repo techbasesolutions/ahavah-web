@@ -123,7 +123,7 @@ function buildSuggestions(
   // signal additions that genuinely lift match quality.
   return [
     {
-      text: "Write a bio — profiles with a bio get 3× more matches.",
+      text: "Write a bio. Profiles with a bio get 3× more matches.",
       lift: "+12%",
     },
     {

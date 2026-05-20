@@ -31,7 +31,7 @@ export default function PrivacyPage() {
         {
           slug: "your-rights",
           heading: "Your rights",
-          body: "Delete your account at any time from Settings → Account. Hard delete is immediate today; we're moving to a 7-day grace window for safety. Request a data export by emailing us — we use the same backend endpoint Ahavah's GDPR data-export uses.",
+          body: "Delete your account at any time from Settings → Account. Hard delete is immediate today; we're moving to a 7-day grace window for safety. Request a data export by emailing us. We use the same backend endpoint Ahavah's GDPR data-export uses.",
         },
       ]}
     />

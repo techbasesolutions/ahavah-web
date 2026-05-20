@@ -174,7 +174,7 @@ export default function HelpPage() {
                   Verification tiers
                 </p>
                 <p className="text-caption leading-relaxed text-(--ink-2) m-0">
-                  Bronze, Silver, Gold — what each unlocks and what&apos;s required.
+                  Bronze, Silver, Gold: what each unlocks and what&apos;s required.
                 </p>
               </CardContent>
             </Card>

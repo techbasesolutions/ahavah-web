@@ -112,7 +112,7 @@ export function QuotaExceededCard({
       <TokenSpendSheet
         open={sheetOpen}
         onOpenChange={setSheetOpen}
-        title="Day pass — unlimited likes for 24 hours"
+        title="Day pass: unlimited likes for 24 hours"
         description="Bypass today's like quota. The pass expires 24 hours after purchase."
         cost={3}
         currentBalance={balanceForSheet}

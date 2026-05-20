@@ -204,7 +204,7 @@ function MatchesPageContent() {
       await apiClient.post("/tokens/reveal", { liker_id: revealing.id });
       await refreshBalance();
       await fetchLikes();
-      toast.success(`Revealed — ${revealing.name} added to your matches.`);
+      toast.success(`Revealed. ${revealing.name} added to your matches.`);
     } catch (e) {
       // 402 surfaces via the sheet's own insufficient-balance branch
       // once refreshBalance fires.

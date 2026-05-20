@@ -412,7 +412,7 @@ function RouterBody({
     return (
       <EmptyState
         variant="no-messages"
-        title="Inbox zero — no open reports"
+        title="Inbox zero, no open reports"
         description="Anyone the community blocks with a report reason shows up here."
       />
     );
@@ -594,10 +594,10 @@ function DetailRail({ report }: { report: AdminReport }) {
             Account signal
           </p>
           <div className="grid grid-cols-2 gap-2">
-            <StatTile label="Reports against" value="—" dot="pink" />
-            <StatTile label="Reports by them" value="—" dot="lavender" />
-            <StatTile label="Days active"     value="—" dot="lavender" />
-            <StatTile label="Match rate"      value="—" dot="lime" />
+            <StatTile label="Reports against" value="-" dot="pink" />
+            <StatTile label="Reports by them" value="-" dot="lavender" />
+            <StatTile label="Days active"     value="-" dot="lavender" />
+            <StatTile label="Match rate"      value="-" dot="lime" />
           </div>
         </CardContent>
       </Card>

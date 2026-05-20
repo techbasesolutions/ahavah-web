@@ -84,7 +84,7 @@ export default function VerifyBronzePage() {
       case "queueing":
         return "Queueing review…";
       case "reviewing":
-        return "Reviewing — this usually takes 1–2 minutes…";
+        return "Reviewing. This usually takes 1-2 minutes…";
       default:
         return "";
     }
@@ -263,7 +263,7 @@ export default function VerifyBronzePage() {
               <p className="text-meta text-(--ink-2)">{statusLabel}</p>
               {state.kind === "reviewing" ? (
                 <p className="text-caption text-(--ink-3)">
-                  You can leave this page — we&apos;ll update your badge
+                  You can leave this page. We&apos;ll update your badge
                   automatically.
                 </p>
               ) : null}

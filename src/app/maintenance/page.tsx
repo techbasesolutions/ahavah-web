@@ -16,7 +16,7 @@ export default function MaintenancePage() {
       description={
         <>
           Ahavah is in scheduled maintenance. We&apos;ll be back in about 30
-          minutes — your matches are safe.
+          minutes. Your matches are safe.
         </>
       }
       action={

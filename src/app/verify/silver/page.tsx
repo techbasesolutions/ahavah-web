@@ -84,7 +84,7 @@ export default function VerifySilverPage() {
       case "queueing":
         return "Queueing review…";
       case "reviewing":
-        return "Reviewing — this usually takes 1–2 minutes…";
+        return "Reviewing. This usually takes 1-2 minutes…";
       default:
         return "";
     }
@@ -140,7 +140,7 @@ export default function VerifySilverPage() {
             </h2>
             <p className="text-body leading-relaxed text-(--ink-2)">
               Three quick selfies with different head angles prove
-              you&apos;re a live person — not a single photo held to
+              you&apos;re a live person, not a single photo held to
               the camera. Stronger trust signal than Bronze, no ID
               upload like Gold.
             </p>
@@ -309,7 +309,7 @@ export default function VerifySilverPage() {
               <p className="text-meta text-(--ink-2)">{statusLabel}</p>
               {state.kind === "reviewing" ? (
                 <p className="text-caption text-(--ink-3)">
-                  You can leave this page — we&apos;ll update your badge
+                  You can leave this page. We&apos;ll update your badge
                   automatically.
                 </p>
               ) : null}

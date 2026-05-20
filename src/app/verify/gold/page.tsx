@@ -25,7 +25,7 @@ export default function VerifyGoldPage() {
           Icon: ScanFace,
           title: "Take a selfie inside the Stripe flow",
           description:
-            "Stripe matches the selfie to the photo on your ID — no further action needed.",
+            "Stripe matches the selfie to the photo on your ID. No further action needed.",
         },
         {
           Icon: ShieldCheck,

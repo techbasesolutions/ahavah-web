@@ -48,9 +48,9 @@ export default function VerificationSection() {
         <ShieldCheck className="size-4 text-lavender" />
         <span className="text-meta text-(--ink)">
           {verificationLevel === "Photos + ID"
-            ? "Gold — ID verified"
+            ? "Gold - ID verified"
             : verificationLevel === "Photos"
-              ? "Bronze — Photo verified"
+              ? "Bronze - Photo verified"
               : "Not yet verified"}
         </span>
       </div>
