@@ -152,6 +152,14 @@ function adaptProspect(raw: Record<string, unknown>): Profile & { country?: stri
       if (v !== null && v !== undefined) extras[k] = v;
     }
   }
+  // assembly went multi-select 2026-05-19 (Assembly[]). Pre-existing
+  // profiles stored a single string in ahavah_extra.assembly; the detail
+  // page now calls profile.assembly.map(...), so a raw string would throw
+  // "x.map is not a function" and crash the page. Normalise string ->
+  // one-element array here, mirroring translateInbound in use-profile.ts.
+  if (typeof extras.assembly === "string") {
+    extras.assembly = [extras.assembly];
+  }
   // Derive verificationTags from real backend signals — was previously
   // mock-only via profile-sample data, so live peers always rendered an
   // empty Verified cluster regardless of their tier. Maps real signals
