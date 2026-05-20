@@ -18,7 +18,11 @@
  */
 
 import { useEffect, useState } from "react";
-import { Sparkles, Zap } from "lucide-react";
+import { TokenActionIcon } from "@/lib/icon-map";
+
+// Canonical boost icon (icon-map.ts) — Zap. Was a Zap (card) + Sparkles
+// (button) mix; both now route through the single source of truth.
+const BoostIcon = TokenActionIcon.Boost;
 import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
@@ -123,7 +127,7 @@ export function BoostCard() {
     <>
       <Card tone="elevated">
         <CardContent className="flex items-center gap-4">
-          <Zap
+          <BoostIcon
             className={cn(
               "size-8 text-lime",
               // Active-state signal: the boost icon pulses while the
@@ -159,7 +163,7 @@ export function BoostCard() {
               variant="default"
               onClick={() => setSheetOpen(true)}
             >
-              <Sparkles aria-hidden />
+              <BoostIcon aria-hidden />
               Boost · 5
             </Button>
           ) : null}

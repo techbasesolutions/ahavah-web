@@ -5,7 +5,13 @@ import { apiClient } from "@/lib/api-client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, type PanInfo } from "motion/react";
-import { ChevronRight, Heart, MapPin, Pause, Play, SlidersHorizontal, Sparkles, X } from "lucide-react";
+import { ChevronRight, MapPin, Pause, Play, SlidersHorizontal, X } from "lucide-react";
+
+import { TokenActionIcon } from "@/lib/icon-map";
+
+// Canonical action icons (icon-map.ts): Like = Heart, SuperLike = Star.
+const LikeIcon = TokenActionIcon.Like;
+const SuperLikeIcon = TokenActionIcon.SuperLike;
 import { toast } from "sonner";
 
 import { Avatar, AvatarBadge, AvatarFallback, AvatarGroup, AvatarImage } from "@/components/ui/avatar";
@@ -559,7 +565,7 @@ export default function DiscoverPage() {
         aria-label="Like"
         onClick={() => advance("like")}
       >
-        <Heart className="size-7 text-black" fill="currentColor" />
+        <LikeIcon className="size-7 text-black" fill="currentColor" />
       </Button>
       <Button
         size="circle-2xl"
@@ -568,7 +574,7 @@ export default function DiscoverPage() {
         aria-label="Super like, costs 2 tokens"
         onClick={() => setSuperSheetOpen(true)}
       >
-        <Sparkles className="size-7 text-black" />
+        <SuperLikeIcon className="size-7 text-black" fill="currentColor" />
       </Button>
     </div>
   ) : null;
@@ -823,7 +829,7 @@ export default function DiscoverPage() {
                 aria-label="Like"
                 onClick={() => advance("like")}
               >
-                <Heart className="size-7 text-(--ink)" fill="currentColor" />
+                <LikeIcon className="size-7 text-(--ink)" fill="currentColor" />
               </Button>
               <Button
                 size="circle-2xl"
@@ -832,7 +838,7 @@ export default function DiscoverPage() {
                 aria-label="Super like, costs 2 tokens"
                 onClick={() => setSuperSheetOpen(true)}
               >
-                <Sparkles className="size-7 text-black" />
+                <SuperLikeIcon className="size-7 text-black" fill="currentColor" />
               </Button>
             </div>
           ) : null}

@@ -8,11 +8,10 @@ import {
   Coins,
   CreditCard,
   FileText,
-  Heart,
   HelpCircle,
-  Rewind,
-  Sparkles,
 } from "lucide-react";
+
+import { TokenActionIcon } from "@/lib/icon-map";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -74,13 +73,13 @@ const PLACEHOLDER_HISTORY: ReadonlyArray<{
 ];
 
 const HOW_IT_WORKS: ReadonlyArray<{
-  Icon: typeof Sparkles;
+  Icon: typeof TokenActionIcon.Boost;
   title: string;
   body: string;
 }> = [
-  { Icon: Sparkles, title: "Boost",      body: "Be one of the first profiles people see for 30 minutes." },
-  { Icon: Heart,    title: "Super Like", body: "Skip the queue. Your profile shows up first in their deck." },
-  { Icon: Rewind,   title: "Rewind",     body: "Undo your last pass and reconsider." },
+  { Icon: TokenActionIcon.Boost,     title: "Boost",      body: "Be one of the first profiles people see for 30 minutes." },
+  { Icon: TokenActionIcon.SuperLike, title: "Super Like", body: "Skip the queue. Your profile shows up first in their deck." },
+  { Icon: TokenActionIcon.Rewind,    title: "Rewind",     body: "Undo your last pass and reconsider." },
 ];
 
 export default function TokensPage() {
@@ -260,7 +259,7 @@ export default function TokensPage() {
                   lift="float"
                   render={<Link href="/profile" prefetch={false} />}
                 >
-                  <Sparkles className="size-4" />
+                  <TokenActionIcon.Boost className="size-4" />
                   Boost me now
                 </Button>
                 <Button
@@ -268,7 +267,7 @@ export default function TokensPage() {
                   tone="brand"
                   render={<Link href="/discover" prefetch={false} />}
                 >
-                  <Heart className="size-4" fill="currentColor" />
+                  <TokenActionIcon.SuperLike className="size-4" fill="currentColor" />
                   Send a Super Like
                 </Button>
               </div>

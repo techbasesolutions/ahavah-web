@@ -5,6 +5,12 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
 import { Lock, MapPin, MessageCircle, Sparkles } from "lucide-react";
+
+import { TokenActionIcon } from "@/lib/icon-map";
+
+// Super-like marker uses the canonical Star (icon-map.ts). Sparkles
+// stays for the separate Premium-upgrade card below.
+const SuperLikeIcon = TokenActionIcon.SuperLike;
 import { toast } from "sonner";
 
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -502,7 +508,7 @@ function LikesGrid({
                   size="sm"
                   className="absolute top-2 left-2 z-10 gap-1"
                 >
-                  <Sparkles className="size-3" aria-hidden /> Super
+                  <SuperLikeIcon className="size-3" aria-hidden fill="currentColor" /> Super
                 </Pill>
               ) : null}
               <button
@@ -554,7 +560,7 @@ function LikesGrid({
                 size="sm"
                 className="absolute top-2 left-2 z-10 gap-1"
               >
-                <Sparkles className="size-3" aria-hidden /> Super
+                <SuperLikeIcon className="size-3" aria-hidden fill="currentColor" /> Super
               </Pill>
             ) : null}
             {/* Card structure mirrors MatchesGrid: photo-link → profile,
