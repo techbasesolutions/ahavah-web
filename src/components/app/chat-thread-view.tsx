@@ -123,7 +123,8 @@ export function ChatThreadView({ id }: Props) {
     0,
   );
 
-  const { messages, isHydrated, theyAreTyping, send, setMyTyping } = useChatThread(id, myUuid);
+  const { messages, isHydrated, theyAreTyping, send, setMyTyping, reactions, react } =
+    useChatThread(id, myUuid);
 
   const [reportOpen, setReportOpen] = useState(false);
   const [draft, setDraft] = useState("");
@@ -232,6 +233,9 @@ export function ChatThreadView({ id }: Props) {
               side={m.fromUserId === myUuid ? "me" : "them"}
               avatar={m.fromUserId === myUuid ? undefined : subject.name[0]}
               delay={0}
+              reacted={reactions.has(m.id)}
+              canReact={m.fromUserId !== myUuid}
+              onReact={() => react(m.id)}
             >
               <span
                 className={cn(
