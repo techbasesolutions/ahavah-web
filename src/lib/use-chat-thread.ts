@@ -26,6 +26,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { chatClient } from "@/lib/chat-client";
 import { appendMessage, getThreadHistory } from "@/lib/chat-cache";
+import { apiClient } from "@/lib/api-client";
 import type { ChatEvent, ChatMessage } from "@/lib/chat-types";
 
 const ACK_TIMEOUT_MS = 10_000;
@@ -42,6 +43,10 @@ export type UseChatThreadResult = {
   send: (body: string) => void;
   /** Forward a typing indicator. Caller debounces; hook just relays. */
   setMyTyping: (isTyping: boolean) => void;
+  /** messageId -> {kind, mine}. `mine` true = the viewer's own reaction. */
+  reactions: Map<string, { kind: string; mine: boolean }>;
+  /** Toggle the viewer's reaction to a message (optimistic + POST). */
+  react: (messageId: string) => void;
 };
 
 /**
@@ -58,6 +63,9 @@ export function useChatThread(threadId: string, myUuid: string): UseChatThreadRe
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isHydrated, setIsHydrated] = useState(false);
   const [theyAreTyping, setTheyAreTyping] = useState(false);
+  const [reactions, setReactions] = useState<Map<string, { kind: string; mine: boolean }>>(
+    new Map(),
+  );
 
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Map of clientId → timeout handle for pending-ack timeouts.
@@ -126,6 +134,35 @@ export function useChatThread(threadId: string, myUuid: string): UseChatThreadRe
   }, [threadId, myUuid]);
 
   // -----------------------------------------------------------------------
+  // Reaction hydrate — fetch existing reactions for this thread once we
+  // know both ids. Best-effort: live reaction-in events still work if this
+  // misses. `mine` = the viewer reacted (they react to peer bubbles; the
+  // peer reacts to the viewer's bubbles).
+  // -----------------------------------------------------------------------
+  useEffect(() => {
+    if (!threadId || !myUuid) return;
+    let cancelled = false;
+    void apiClient
+      .get<{
+        reactions: Array<{ message_stanza_id: string; reactor_uuid: string; kind: string }>;
+      }>(`/reactions?with=${encodeURIComponent(threadId)}`)
+      .then((res) => {
+        if (cancelled) return;
+        const next = new Map<string, { kind: string; mine: boolean }>();
+        for (const r of res.reactions ?? []) {
+          next.set(r.message_stanza_id, { kind: r.kind, mine: r.reactor_uuid === myUuid });
+        }
+        setReactions(next);
+      })
+      .catch(() => {
+        // Best-effort hydrate; live events still work.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [threadId, myUuid]);
+
+  // -----------------------------------------------------------------------
   // Event subscription — live messages, acks, typing.
   // -----------------------------------------------------------------------
   useEffect(() => {
@@ -181,6 +218,17 @@ export function useChatThread(threadId: string, myUuid: string): UseChatThreadRe
             clearTimeout(timer);
             ackTimersRef.current.delete(e.clientId);
           }
+          return;
+        }
+        case "reaction-in": {
+          if (e.threadId !== threadId) return;
+          // Server only publishes the PEER's reactions to us -> mine=false.
+          setReactions((prev) => {
+            const next = new Map(prev);
+            if (e.action === "remove") next.delete(e.messageId);
+            else next.set(e.messageId, { kind: e.kind, mine: false });
+            return next;
+          });
           return;
         }
         case "typing-in": {
@@ -268,6 +316,43 @@ export function useChatThread(threadId: string, myUuid: string): UseChatThreadRe
     [threadId, myUuid],
   );
 
+  // -----------------------------------------------------------------------
+  // React — optimistic toggle of MY reaction + POST. Roll back on failure.
+  // -----------------------------------------------------------------------
+  const react = useCallback(
+    (messageId: string) => {
+      if (!threadId || !myUuid) return;
+      let didAdd = false;
+      setReactions((prev) => {
+        const next = new Map(prev);
+        const existing = next.get(messageId);
+        if (existing?.mine) {
+          next.delete(messageId);
+          didAdd = false;
+        } else {
+          next.set(messageId, { kind: "heart", mine: true });
+          didAdd = true;
+        }
+        return next;
+      });
+      void apiClient
+        .post(`/messages/${encodeURIComponent(messageId)}/reactions`, {
+          peer_uuid: threadId,
+          kind: "heart",
+        })
+        .catch(() => {
+          // Roll back the optimistic change on failure.
+          setReactions((prev) => {
+            const next = new Map(prev);
+            if (didAdd) next.delete(messageId);
+            else next.set(messageId, { kind: "heart", mine: true });
+            return next;
+          });
+        });
+    },
+    [threadId, myUuid],
+  );
+
   // Clean up timers on unmount.
   useEffect(() => {
     const timers = ackTimersRef.current;
@@ -278,8 +363,8 @@ export function useChatThread(threadId: string, myUuid: string): UseChatThreadRe
   }, []);
 
   return useMemo(
-    () => ({ messages, isHydrated, theyAreTyping, send, setMyTyping }),
-    [messages, isHydrated, theyAreTyping, send, setMyTyping],
+    () => ({ messages, isHydrated, theyAreTyping, send, setMyTyping, reactions, react }),
+    [messages, isHydrated, theyAreTyping, send, setMyTyping, reactions, react],
   );
 }
 
