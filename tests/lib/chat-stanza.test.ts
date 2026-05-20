@@ -72,7 +72,7 @@ describe("encodeAuth", () => {
 describe("encodeBind", () => {
   it("emits resource-bind iq", () => {
     expect(encodeBind("bind1", "web")).toBe(
-      `<iq type="set" id="bind1"><bind xmlns="urn:ietf:params:xml:ns:xmpp-bind"><resource>web</resource></bind></iq>`,
+      `<iq xmlns="jabber:client" type="set" id="bind1"><bind xmlns="urn:ietf:params:xml:ns:xmpp-bind"><resource>web</resource></bind></iq>`,
     );
   });
 });
@@ -132,7 +132,7 @@ describe("encodeTyping", () => {
 describe("encodeInboxQuery", () => {
   it("emits inbox iq matching backend fixture", () => {
     expect(encodeInboxQuery("q42")).toBe(
-      `<iq type="set" id="q42"><inbox xmlns="erlang-solutions.com:xmpp:inbox:0" queryid="q42"/></iq>`,
+      `<iq xmlns="jabber:client" type="set" id="q42"><inbox xmlns="erlang-solutions.com:xmpp:inbox:0" queryid="q42"/></iq>`,
     );
   });
 });
@@ -147,7 +147,7 @@ describe("encodeHistoryQuery", () => {
       before: undefined,
     });
     expect(out).toBe(
-      `<iq type="set" id="1">` +
+      `<iq xmlns="jabber:client" type="set" id="1">` +
       `<query xmlns="urn:xmpp:mam:2" queryid="1">` +
       `<x xmlns="jabber:x:data" type="submit">` +
       `<field var="FORM_TYPE"><value>urn:xmpp:mam:2</value></field>` +
@@ -181,7 +181,7 @@ describe("encodeMarkDisplayed", () => {
       receiptId: "d1",
     });
     expect(out).toBe(
-      `<message to="${PEER_UUID}@ahavah.app" from="${OWN_UUID}@ahavah.app">` +
+      `<message xmlns="jabber:client" to="${PEER_UUID}@ahavah.app" from="${OWN_UUID}@ahavah.app">` +
       `<displayed xmlns="urn:xmpp:chat-markers:0" id="d1"/>` +
       `</message>`,
     );
