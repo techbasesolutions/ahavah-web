@@ -92,9 +92,14 @@ function passesAllFilters(candidate: DiscoverCandidate, filters: DiscoverFilters
     if (!candidate.age || candidate.age > filters.ageMax) return false;
   }
 
-  // Assemblies
+  // Assemblies — candidate.assembly is multi-select (2026-05-19). Pass if
+  // ANY of the candidate's identifications intersects the filter set.
   if (filters.assemblies && filters.assemblies.length > 0) {
-    if (!candidate.assembly || !filters.assemblies.includes(candidate.assembly)) {
+    const candidateAssemblies = candidate.assembly ?? [];
+    const hasOverlap = candidateAssemblies.some((a) =>
+      filters.assemblies!.includes(a),
+    );
+    if (!hasOverlap) {
       return false;
     }
   }

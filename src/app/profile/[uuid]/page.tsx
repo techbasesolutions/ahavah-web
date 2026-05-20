@@ -740,7 +740,7 @@ export default function ProfileDetailPage({ params }: Props) {
         </div>
       )}
 
-      {(profile.assembly ||
+      {(profile.assembly?.length ||
         profile.torahLevel ||
         profile.shabbat ||
         profile.calendar ||
@@ -749,15 +749,19 @@ export default function ProfileDetailPage({ params }: Props) {
           <h2 className="text-meta font-semibold uppercase text-(--ink-2)">
             Faith
           </h2>
-          <dl className="space-y-2">
-            {profile.assembly && (
-              <div className="flex gap-2">
-                <dt className="text-meta text-(--ink-2)">Identifies as:</dt>
-                <dd className="text-meta text-(--ink)">
-                  {labelOf(profile.assembly, ASSEMBLIES)}
-                </dd>
+          {profile.assembly?.length ? (
+            <div className="flex flex-col gap-1">
+              <span className="text-caption text-(--ink-2)">Identifies as</span>
+              <div className="flex flex-wrap gap-2">
+                {profile.assembly.map((a) => (
+                  <Pill key={a} variant="lavender" size="sm">
+                    {labelOf(a, ASSEMBLIES) ?? a}
+                  </Pill>
+                ))}
               </div>
-            )}
+            </div>
+          ) : null}
+          <dl className="space-y-2">
             {profile.torahLevel && (
               <div className="flex gap-2">
                 <dt className="text-meta text-(--ink-2)">Torah stage:</dt>
@@ -1301,16 +1305,18 @@ export default function ProfileDetailPage({ params }: Props) {
                       </dd>
                     </div>
                   )}
-                  {profile.assembly && (
+                  {profile.assembly?.length ? (
                     <div className="grid grid-cols-[90px_minmax(0,1fr)] gap-2">
                       <dt className="text-meta text-(--ink-2)">
-                        Religion
+                        Identity
                       </dt>
                       <dd className="m-0 text-meta font-medium text-(--ink)">
-                        {labelOf(profile.assembly, ASSEMBLIES)}
+                        {profile.assembly
+                          .map((a) => labelOf(a, ASSEMBLIES) ?? a)
+                          .join(", ")}
                       </dd>
                     </div>
-                  )}
+                  ) : null}
                   {profile.children !== undefined && (
                     <div className="grid grid-cols-[90px_minmax(0,1fr)] gap-2">
                       <dt className="text-meta text-(--ink-2)">

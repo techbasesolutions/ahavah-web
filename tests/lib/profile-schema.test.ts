@@ -126,14 +126,20 @@ describe("RelationshipIntent", () => {
 });
 
 describe("Faith cluster", () => {
-  it("ASSEMBLIES has 6 documented values", () => {
+  it("ASSEMBLIES has 12 documented values (multi-select since 2026-05-19)", () => {
     expect(ASSEMBLIES.map((a) => a.value)).toEqual([
       "messianic",
       "torah-observant",
       "hebrew-israelite",
+      "israelite",
+      "hebrew-roots",
+      "pronomian",
+      "natsarim",
+      "follower-of-the-way",
+      "jew",
+      "non-denom-torah",
       "independent",
       "christian-transitioning",
-      "non-denom-torah",
     ]);
   });
 

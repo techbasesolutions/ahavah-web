@@ -127,9 +127,9 @@ describe("discover-engine", () => {
     it("requires candidate assembly in the list", () => {
       const viewer: Profile = { firstName: "Sarah" };
       const candidates: DiscoverCandidate[] = [
-        makeCandidate({ firstName: "Daniel", assembly: "torah-observant" }),
-        makeCandidate({ firstName: "Esther", assembly: "hebrew-israelite" }),
-        makeCandidate({ firstName: "Adam", assembly: "messianic" }),
+        makeCandidate({ firstName: "Daniel", assembly: ["torah-observant"] }),
+        makeCandidate({ firstName: "Esther", assembly: ["hebrew-israelite"] }),
+        makeCandidate({ firstName: "Adam", assembly: ["messianic"] }),
       ];
       const filters: DiscoverFilters = {
         assemblies: ["torah-observant", "messianic"] as readonly Assembly[],

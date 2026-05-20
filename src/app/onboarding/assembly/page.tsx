@@ -4,7 +4,7 @@ import { motion } from "motion/react";
 
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
 
 import { cn } from "@/lib/utils";
 import { ASSEMBLIES, type Assembly } from "@/lib/profile-schema";
@@ -19,9 +19,20 @@ const fadeUp = {
 
 export default function AssemblyStep() {
   const { profile, update } = useProfile();
+  const selected = profile.assembly ?? [];
+
+  const toggle = (value: Assembly) => {
+    const next = selected.includes(value)
+      ? selected.filter((v) => v !== value)
+      : [...selected, value];
+    update({ assembly: next });
+  };
 
   return (
-    <OnboardingShell href="/onboarding/assembly" ctaDisabled={!profile.assembly}>
+    <OnboardingShell
+      href="/onboarding/assembly"
+      ctaDisabled={selected.length === 0}
+    >
       <motion.div
         {...fadeUp}
         transition={{ duration: 0.4 }}
@@ -31,8 +42,8 @@ export default function AssemblyStep() {
           I identify as<span className="text-lime">…</span>
         </h1>
         <p className="text-body text-(--ink-2)">
-          Used to surface matches who share your faith background. Pick the
-          closest fit. You can refine later.
+          Used to surface matches who share your beliefs. Pick every term
+          that fits. You can refine later.
         </p>
       </motion.div>
 
@@ -40,15 +51,12 @@ export default function AssemblyStep() {
         {...fadeUp}
         transition={{ duration: 0.3, delay: 0.08 }}
         className="mt-8"
+        role="group"
+        aria-label="Faith identification (select all that apply)"
       >
-        <RadioGroup
-          value={profile.assembly ?? ""}
-          onValueChange={(v) => update({ assembly: v as Assembly })}
-          aria-label="Faith identification"
-          className="grid gap-3"
-        >
+        <div className="grid gap-3">
           {ASSEMBLIES.map((opt, i) => {
-            const active = opt.value === profile.assembly;
+            const active = selected.includes(opt.value);
             return (
               <motion.div
                 key={opt.value}
@@ -76,13 +84,14 @@ export default function AssemblyStep() {
                     >
                       {opt.label}
                     </span>
-                    <RadioGroupItem
+                    <Checkbox
                       id={`assembly-${opt.value}`}
-                      value={opt.value}
-                      variant="brand"
+                      checked={active}
+                      onCheckedChange={() => toggle(opt.value)}
+                      aria-label={opt.label}
                       className={
                         active
-                          ? "border-black data-checked:bg-black data-checked:border-black"
+                          ? "border-black data-checked:bg-black data-checked:border-black data-checked:text-lime"
                           : undefined
                       }
                     />
@@ -91,7 +100,7 @@ export default function AssemblyStep() {
               </motion.div>
             );
           })}
-        </RadioGroup>
+        </div>
       </motion.div>
     </OnboardingShell>
   );

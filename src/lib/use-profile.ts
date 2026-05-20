@@ -453,6 +453,14 @@ function translateInbound(server: Partial<Profile> | Record<string, unknown>): P
     }
   }
 
+  // assembly went multi-select 2026-05-19. Pre-existing profiles stored a
+  // single string in ahavah_extra.assembly; normalise to a one-element
+  // array so the new Assembly[] type + the multi-select UI read it
+  // cleanly. New profiles already write an array.
+  if (typeof out.assembly === "string") {
+    out.assembly = [out.assembly];
+  }
+
   return out as Partial<Profile>;
 }
 

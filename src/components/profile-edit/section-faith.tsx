@@ -34,11 +34,11 @@ export default function FaithSection() {
       title="Faith"
       description="What you believe and how you keep it."
     >
-      <SingleSelectField<Assembly>
-        id="assembly"
+      <MultiSelectField<Assembly>
         label="I identify as"
+        description="Pick every term that fits."
         options={ASSEMBLIES}
-        value={profile.assembly}
+        value={profile.assembly ?? []}
         onValueChange={(v) => update({ assembly: v })}
       />
 

@@ -48,7 +48,7 @@ describe("decision-engine", () => {
     const viewer: Profile = {
       firstName: "Test",
       age: 30, sex: "male", country: "BB",
-      intent: "first-wife", assembly: "torah-observant",
+      intent: "first-wife", assembly: ["torah-observant"],
       relocation: "local-only", verificationTags: ["government-id"],
     };
     const a = simulateLikesBack(viewer, SAMPLE_PROFILES[0]);

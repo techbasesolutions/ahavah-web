@@ -92,13 +92,25 @@ export function intentOptionsForSex(sex: Sex): ReadonlyArray<IntentOption> {
 
 // Faith cluster -----------------------------------------------------------
 
+// 2026-05-19: expanded from 6 -> 12 terms (PDF "self-identify as several
+// things") and converted to MULTI-SELECT. The canonical list now lives in
+// lib/identification.ts (IDENTIFICATION_TERMS); ASSEMBLIES re-exports it
+// so existing consumers keep working. `assembly` is now an ARRAY on the
+// profile. Pre-existing single-string values are normalised to a
+// one-element array on read in use-profile.ts.
 export type Assembly =
   | "messianic"
   | "torah-observant"
   | "hebrew-israelite"
+  | "israelite"
+  | "hebrew-roots"
+  | "pronomian"
+  | "natsarim"
+  | "follower-of-the-way"
+  | "jew"
+  | "non-denom-torah"
   | "independent"
-  | "christian-transitioning"
-  | "non-denom-torah";
+  | "christian-transitioning";
 
 export type AssemblyOption = { value: Assembly; label: string };
 
@@ -106,9 +118,15 @@ export const ASSEMBLIES: ReadonlyArray<AssemblyOption> = [
   { value: "messianic",               label: "Messianic" },
   { value: "torah-observant",         label: "Torah observant" },
   { value: "hebrew-israelite",        label: "Hebrew Israelite" },
+  { value: "israelite",               label: "Israelite" },
+  { value: "hebrew-roots",            label: "Hebrew Roots" },
+  { value: "pronomian",               label: "Pronomian" },
+  { value: "natsarim",                label: "Natsarim" },
+  { value: "follower-of-the-way",     label: "Follower of The Way" },
+  { value: "jew",                     label: "Jew" },
+  { value: "non-denom-torah",         label: "Non-denominational Torah believer" },
   { value: "independent",             label: "Independent fellowship" },
   { value: "christian-transitioning", label: "Christian transitioning into Torah observance" },
-  { value: "non-denom-torah",         label: "Non-denominational Torah believer" },
 ];
 
 export function isAssembly(value: unknown): value is Assembly {
@@ -851,8 +869,11 @@ export type Profile = {
   photos?: PhotoRecord[];
   // Relationship intent (gender-conditional)
   intent?: Intent;
-  // Faith cluster
-  assembly?: Assembly;
+  // Faith cluster. assembly is MULTI-SELECT as of 2026-05-19 (a believer
+  // self-identifies as several terms). Stored inside the ahavah_extra
+  // JSONB blob; pre-existing single-string values are normalised to a
+  // one-element array on read (see use-profile.ts normalizeProfile).
+  assembly?: Assembly[];
   torahLevel?: TorahLevel;
   shabbat?: Shabbat;
   feastDays?: FeastDay[];

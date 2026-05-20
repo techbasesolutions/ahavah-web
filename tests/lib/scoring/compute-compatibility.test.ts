@@ -75,7 +75,7 @@ describe("computeCompatibility - finite-score guard", () => {
       sex: "male",
       country: "BB",
       intent: "first-wife",
-      assembly: "torah-observant",
+      assembly: ["torah-observant"],
       polygyny: "supports",
       relocation: "wants-partner-willing",
       verificationTags: ["government-id"],

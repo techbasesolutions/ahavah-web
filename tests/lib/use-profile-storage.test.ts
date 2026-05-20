@@ -27,7 +27,7 @@ describe("profile cache adapter (Phase W)", () => {
       firstName: "Daniel",
       age: 32,
       sex: "male",
-      assembly: "torah-observant",
+      assembly: ["torah-observant"],
       feastDays: ["passover", "shavuot"],
     });
     const loaded = loadProfileFromCache();
