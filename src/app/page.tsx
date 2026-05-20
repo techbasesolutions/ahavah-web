@@ -15,6 +15,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   Globe,
@@ -41,6 +42,7 @@ import { IconBadge } from "@/components/ui/icon-badge";
 import { Pill } from "@/components/kibo-ui/pill";
 import { useRedirectIfSignedIn } from "@/lib/use-redirect-if-signed-in";
 import { PENDING_EMAIL_KEY } from "@/lib/storage-keys";
+import { postWaitlist } from "@/lib/waitlist";
 
 const WAITLIST_STORAGE_KEY = "ahavah.waitlist.email";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -68,6 +70,7 @@ const CTA_GRADIENT = `linear-gradient(
 
 export default function LandingPage() {
   const { checking } = useRedirectIfSignedIn();
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [msg, setMsg] = useState<{ kind: "success" | "error"; text: string } | null>(null);
@@ -93,18 +96,21 @@ export default function LandingPage() {
     }
     setSubmitting(true);
     setMsg(null);
-    await new Promise((r) => setTimeout(r, 400));
     try {
       localStorage.setItem(WAITLIST_STORAGE_KEY, trimmed);
       sessionStorage.setItem(PENDING_EMAIL_KEY, trimmed);
     } catch {
       /* storage unavailable */
     }
-    setMsg({
-      kind: "success",
-      text: `You're on the list. We'll email ${trimmed} when invites open.`,
-    });
+    // Best-effort early capture; route to the full form regardless of result
+    // (the form's own submit creates/updates the row).
+    try {
+      await postWaitlist(trimmed);
+    } catch {
+      /* the /waitlist form will create the row */
+    }
     setSubmitting(false);
+    router.push(`/waitlist?email=${encodeURIComponent(trimmed)}`);
   };
 
   const scrollToForm = () => {
