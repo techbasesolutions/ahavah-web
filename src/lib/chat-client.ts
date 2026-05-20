@@ -336,6 +336,9 @@ export class ChatClient {
       this.state = "ready";
       this.reconnectAttempt = 0;
       this.startPing();
+      // Signal consumers that the connection can now carry queries/sends.
+      // They fetch on this rather than guessing a delay after auth-success.
+      this.emit({ type: "ready" });
       return;
     }
     if (xml.startsWith("<open") && this.state === "authenticated" && this.postAuthReopen) {

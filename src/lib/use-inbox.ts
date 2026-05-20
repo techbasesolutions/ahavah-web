@@ -82,9 +82,11 @@ export function useInbox(myUuid: string): UseInboxResult {
 
     const handle = (e: ChatEvent) => {
       switch (e.type) {
-        case "auth-success": {
-          // Fresh connect — schedule a refresh after the bind round-trip.
-          setTimeout(() => refresh(), 250);
+        case "ready": {
+          // Connection is bound and can carry the inbox query. Fetch now —
+          // no delay-after-auth guess (that raced the bind on slow links
+          // and left the inbox stuck on the skeleton until the 10s timeout).
+          refresh();
           return;
         }
         case "inbox-result": {

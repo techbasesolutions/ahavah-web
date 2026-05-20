@@ -114,14 +114,11 @@ export function useChatThread(threadId: string, myUuid: string): UseChatThreadRe
       return false;
     };
     if (tryFetch()) return;
-    // Otherwise wait for auth-success.
+    // Otherwise fetch the moment the connection is bound + ready. (Was a
+    // 250ms-after-auth-success guess that raced the bind on slow links and
+    // could miss the fetch entirely until a reconnect.)
     const off = chatClient.subscribe((e) => {
-      if (e.type === "auth-success") {
-        // Client transitions auth → bound → ready in ChatClient internals.
-        // Schedule a fetch slightly later; the bind round-trip is fast.
-        const t = setTimeout(() => tryFetch(), 250);
-        return () => clearTimeout(t);
-      }
+      if (e.type === "ready") tryFetch();
     });
     return off;
     // threadId/myUuid only — re-running on every state churn would

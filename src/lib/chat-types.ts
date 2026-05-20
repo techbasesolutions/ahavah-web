@@ -63,6 +63,12 @@ export type ChatThread = {
  */
 export type ChatEvent =
   | { type: "auth-success" }
+  // Emitted once the resource bind completes and the connection can carry
+  // queries (inbox / MAM history) and sends. This is the signal consumers
+  // should fetch on — `auth-success` fires one round-trip too early (bind
+  // hasn't happened yet), which is why the old "wait 250ms after auth"
+  // heuristic raced the bind on slow links and stalled the inbox.
+  | { type: "ready" }
   | { type: "auth-fail"; reason?: string }
   | { type: "connected" }
   | { type: "disconnected"; willReconnect: boolean }
