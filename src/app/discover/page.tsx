@@ -625,28 +625,34 @@ export default function DiscoverPage() {
   );
 
   // ── Action rows ──────────────────────────────────────────────────────────
-  // Discover polish C1 (2026-05-19): Play/Pause moved off the row onto the
-  // card (see the on-photo overlay button above), leaving three circles:
-  // Pass / Like / Super at circle-2xl (64px). Super uses tone="brand"
-  // (lavender) — distinct from Like's action-pink. Mobile + desktop share
-  // the same order. The PDF's leading "Back" (rewind) circle is a
-  // token-gated feature with no backend endpoint yet; it is deliberately
-  // not rendered as a dead button (see scope note surfaced to the user).
+  // Order: Back / Pass / Like / Super (mobile + desktop share it).
+  // Sizing (2026-05-20): Back + Super are circle-xl (56px) — same height,
+  // smaller than the primary Pass + Like at circle-2xl (64px), the
+  // Tinder-style "secondary actions are smaller" convention.
+  // Tones, all theme-safe (visible in light + dark):
+  //   Back  = indigo (Persian Indigo #5524F5 + white Undo2; ~7:1 AAA)
+  //   Pass  = cta (lime + black X)        ← was brand/lavender; recoloured
+  //                                          so it no longer clashed with Super
+  //   Like  = action (pink + black heart)
+  //   Super = brand (lavender + black star)
+  // White-on-indigo and black-on-lime/pink/lavender all pass the §1.3
+  // contrast audit in both themes (these brand fills are fixed colours,
+  // not theme-flipping tokens).
   const actionRowMobile = candidate && !quotaState ? (
     <div className="flex shrink-0 items-center justify-center gap-5">
       <Button
-        size="circle-2xl"
-        tone="elevated"
+        size="circle-xl"
+        tone="indigo"
         lift="float"
         aria-label="Rewind last pass, costs 1 token"
         disabled={!lastPassedId}
         onClick={() => setRewindSheetOpen(true)}
       >
-        <RewindIcon className="size-7" />
+        <RewindIcon className="size-6" />
       </Button>
       <Button
         size="circle-2xl"
-        tone="brand"
+        tone="cta"
         lift="float"
         aria-label="Pass"
         onClick={() => advance("nope")}
@@ -663,13 +669,13 @@ export default function DiscoverPage() {
         <LikeIcon className="size-7 text-black" fill="currentColor" />
       </Button>
       <Button
-        size="circle-2xl"
+        size="circle-xl"
         tone="brand"
         lift="float"
         aria-label="Super like, costs 2 tokens"
         onClick={() => setSuperSheetOpen(true)}
       >
-        <SuperLikeIcon className="size-7 text-black" fill="currentColor" />
+        <SuperLikeIcon className="size-6 text-black" fill="currentColor" />
       </Button>
     </div>
   ) : null;
@@ -886,25 +892,24 @@ export default function DiscoverPage() {
               port — it is a post-canonical monetization surface introduced
               in Step 6 of Task 13 after user-approved placement. */}
           {candidate && !quotaState ? (
-            // Action row — Discover polish C1 (2026-05-19): Pass / Like /
-            // Super at circle-2xl (64px). Play/Pause moved onto the card
-            // (on-photo overlay). Super uses tone="brand" (lavender,
-            // distinct from Like's action-pink), wired to setSuperSheetOpen
-            // — TokenSpendSheet at the file bottom handles confirm.
+            // Action row — same Back / Pass / Like / Super order, tones and
+            // sizing as mobile (see the actionRowMobile comment above):
+            // Back + Super circle-xl (56px), Pass + Like circle-2xl (64px),
+            // Pass recoloured to lime so it no longer matches Super.
             <div className="flex items-center gap-7">
               <Button
-                size="circle-2xl"
-                tone="elevated"
+                size="circle-xl"
+                tone="indigo"
                 lift="float"
                 aria-label="Rewind last pass, costs 1 token"
                 disabled={!lastPassedId}
                 onClick={() => setRewindSheetOpen(true)}
               >
-                <RewindIcon className="size-7" />
+                <RewindIcon className="size-6" />
               </Button>
               <Button
                 size="circle-2xl"
-                tone="brand"
+                tone="cta"
                 lift="float"
                 aria-label="Pass"
                 onClick={() => advance("nope")}
@@ -918,16 +923,16 @@ export default function DiscoverPage() {
                 aria-label="Like"
                 onClick={() => advance("like")}
               >
-                <LikeIcon className="size-7 text-(--ink)" fill="currentColor" />
+                <LikeIcon className="size-7 text-black" fill="currentColor" />
               </Button>
               <Button
-                size="circle-2xl"
+                size="circle-xl"
                 tone="brand"
                 lift="float"
                 aria-label="Super like, costs 2 tokens"
                 onClick={() => setSuperSheetOpen(true)}
               >
-                <SuperLikeIcon className="size-7 text-black" fill="currentColor" />
+                <SuperLikeIcon className="size-6 text-black" fill="currentColor" />
               </Button>
             </div>
           ) : null}

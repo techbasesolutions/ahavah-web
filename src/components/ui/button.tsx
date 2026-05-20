@@ -50,6 +50,11 @@ const buttonVariants = cva(
         cta:      "border-0 bg-lime text-black hover:bg-lime/90",
         brand:    "border-0 bg-lavender text-black hover:bg-lavender/90",
         action:   "border-0 bg-pink text-black hover:bg-pink/90",
+        // Persian Indigo (#5524F5, --color-indigo) brand fill + white icon.
+        // Used for the /discover Rewind/Back circle. The brand indigo is
+        // fixed in both themes (it does not flip in light mode), and white
+        // on it is ~7:1 — AAA in light and dark.
+        indigo:   "border-0 bg-indigo text-white hover:bg-indigo/90",
         // Super-like button: lavender fill + black icon — distinct from the
         // Play/Pause CTA (lime) so the four action-row circles each read as
         // a unique brand tone. Used ONLY in the desktop action row; the
