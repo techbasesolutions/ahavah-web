@@ -33,14 +33,16 @@
  *     `country` — no crash on bad ISO data.
  */
 
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Marker } from "react-leaflet";
+import { Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 
 import { ALL_COUNTRIES, flagFromCC } from "@/lib/countries";
 import { centroidOf } from "@/lib/country-centroids";
 import { flagSvg } from "@/lib/flag-svg";
 import { photoOrGradient } from "@/lib/photo-or-gradient";
+import { MapProfilePopup } from "@/components/app/map-profile-popup";
 import type { MarkerState } from "@/lib/map-avatar-state";
 import type { Profile } from "@/lib/profile-schema";
 
@@ -52,6 +54,8 @@ export interface MapAvatarProps {
    * wrapper (passed). Defaults to `"none"` — no badge, normal marker.
    */
   state?: MarkerState;
+  /** 0..100 compatibility vs. the viewer, shown in the hover popup. */
+  compatScore?: number;
 }
 
 // Lucide SVG paths inlined for Leaflet divIcon (can't use React inside).
@@ -110,8 +114,44 @@ function escapeAttr(s: string): string {
   );
 }
 
-export function MapAvatar({ candidate, state = "none" }: MapAvatarProps) {
+export function MapAvatar({
+  candidate,
+  state = "none",
+  compatScore,
+}: MapAvatarProps) {
   const router = useRouter();
+
+  // Hover popup is desktop-only: gate on a hover-capable, fine pointer so
+  // touch devices keep the tap → profile behaviour (no popup). All hooks
+  // run before the early returns below to satisfy rules-of-hooks.
+  const markerRef = useRef<L.Marker | null>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [canHover, setCanHover] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCanHover(
+      window.matchMedia?.("(hover: hover) and (pointer: fine)").matches ?? false,
+    );
+  }, []);
+  useEffect(
+    () => () => {
+      if (closeTimer.current) clearTimeout(closeTimer.current);
+    },
+    [],
+  );
+  const openPopup = () => {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+    markerRef.current?.openPopup();
+  };
+  const scheduleClose = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    // Delay so the cursor can travel from the marker onto the card without
+    // it closing out from under them.
+    closeTimer.current = setTimeout(() => markerRef.current?.closePopup(), 250);
+  };
 
   const iso = candidate.country;
   if (!iso) return null;
@@ -235,8 +275,14 @@ export function MapAvatar({ candidate, state = "none" }: MapAvatarProps) {
       `</div>`,
   });
 
+  const popupLocation =
+    candidate.city && countryLabel
+      ? `${candidate.city}, ${countryLabel}`
+      : countryLabel;
+
   return (
     <Marker
+      ref={markerRef}
       position={[centroid.lat, centroid.lng]}
       icon={icon}
       eventHandlers={{
@@ -248,9 +294,41 @@ export function MapAvatar({ candidate, state = "none" }: MapAvatarProps) {
             router.push(href);
           }
         },
+        ...(canHover ? { mouseover: openPopup, mouseout: scheduleClose } : {}),
       }}
       title={ariaLabel}
       alt={ariaLabel}
-    />
+    >
+      {canHover ? (
+        <Popup
+          className="ahavah-map-popup"
+          closeButton={false}
+          autoClose={false}
+          closeOnClick={false}
+          minWidth={0}
+          maxWidth={260}
+          offset={[0, -18]}
+        >
+          {/* Keep the popup open while the cursor is over the card so the
+              "View profile" CTA is reachable (the marker's mouseout would
+              otherwise close it mid-travel). */}
+          <div onMouseEnter={openPopup} onMouseLeave={scheduleClose}>
+            <MapProfilePopup
+              name={name}
+              age={candidate.age ?? undefined}
+              location={popupLocation}
+              photoSrc={
+                photoSource.kind === "photo" ? photoSource.src : undefined
+              }
+              gradientCss={
+                photoSource.kind === "gradient" ? photoSource.css : undefined
+              }
+              compatScore={compatScore}
+              href={href}
+            />
+          </div>
+        </Popup>
+      ) : null}
+    </Marker>
   );
 }

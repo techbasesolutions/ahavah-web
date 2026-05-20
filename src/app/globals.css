@@ -790,6 +790,23 @@
   }
 }
 
+/* Map marker hover popup (MapProfilePopup) — strip Leaflet's default white
+   wrapper / padding / tip so our kit Card surface shows edge-to-edge.
+   Scoped to `.ahavah-map-popup` set on the react-leaflet <Popup>. */
+.ahavah-map-popup .leaflet-popup-content-wrapper {
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  border-radius: 0;
+}
+.ahavah-map-popup .leaflet-popup-content {
+  margin: 0;
+  width: auto !important;
+}
+.ahavah-map-popup .leaflet-popup-tip-container {
+  display: none;
+}
+
 /* /match celebration halo — slow ambient pulse on the lime backdrop
    blur. Decorative; respects prefers-reduced-motion via the @media
    block. SP19 T3. */

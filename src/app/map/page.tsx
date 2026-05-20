@@ -59,7 +59,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { MapPin, MessageCircle, SlidersHorizontal } from "lucide-react";
+import { ChevronRight, MapPin, MessageCircle, SlidersHorizontal } from "lucide-react";
 
 import type { BBox } from "@/lib/continent-bbox";
 
@@ -69,8 +69,10 @@ import { PageShell } from "@/components/app/page-shell";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { photoOrGradient } from "@/lib/photo-or-gradient";
+import { computeCompatibility } from "@/lib/scoring/compute-compatibility";
 
 
 import { apiClient } from "@/lib/api-client";
@@ -367,7 +369,10 @@ export default function MapPage() {
       matched,
       activeChatIds: matchedUuids,
     });
-    return <MapAvatar key={id} candidate={p} state={state} />;
+    const compatScore = viewer ? computeCompatibility(viewer, p).score : undefined;
+    return (
+      <MapAvatar key={id} candidate={p} state={state} compatScore={compatScore} />
+    );
   });
 
   // Shared filter button used in both mobile top bar and desktop top bar actions.
@@ -479,6 +484,9 @@ export default function MapPage() {
                     p.city && p.country
                       ? `${p.city}, ${p.country}`
                       : (p.country ?? "");
+                  const src = photoOrGradient(p, 0);
+                  const matched = matchedUuids.has(p.id);
+                  const name = p.firstName ?? "Match";
                   return (
                     <Card
                       key={p.id}
@@ -486,18 +494,26 @@ export default function MapPage() {
                       size="sm"
                       className="flex flex-row items-center gap-3 p-3 rounded-2xl bg-(--card) border border-(--hairline)"
                     >
-                      {/* Kit Avatar — size="tap" (44px) with brand fallback
-                          (indigo tile + lime initial, per §Avatar variants).
-                          Uses size prop not className override so typography
-                          scales via group-data selectors in avatarVariants. */}
+                      {/* Prospect photo (first slot); gradient/brand initial
+                          as fallback. Mirrors the discover desktop rail. */}
                       <Avatar size="tap">
-                        <AvatarFallback variant="brand">
+                        {src.kind === "photo" ? (
+                          <AvatarImage src={src.src} alt="" />
+                        ) : null}
+                        <AvatarFallback
+                          variant="brand"
+                          style={
+                            src.kind === "gradient"
+                              ? ({ background: src.css } as React.CSSProperties)
+                              : undefined
+                          }
+                        >
                           {nameInitial}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <p className="text-meta font-semibold truncate text-(--ink)">
-                          {p.firstName ?? "Match"}
+                          {name}
                           {p.age ? `, ${p.age}` : ""}
                         </p>
                         {location ? (
@@ -507,22 +523,31 @@ export default function MapPage() {
                           </p>
                         ) : null}
                       </div>
-                      {/* Kit Button + render={<Link/>} pattern (replaces
-                          previous buttonVariants() classname application
-                          which bypassed the primitive's slot semantics). */}
-                      <Button
-                        size="circle-lg"
-                        tone="cta"
-                        render={
-                          <Link
-                            href={`/chat/${p.id}`}
-                            prefetch={false}
-                          />
-                        }
-                        aria-label={`Message ${p.firstName ?? "Match"}`}
-                      >
-                        <MessageCircle className="size-4" aria-hidden />
-                      </Button>
+                      {/* You can only message a confirmed match. For everyone
+                          else the action is "view profile" (the marker click
+                          does the same) — messaging an unmatched prospect
+                          isn't allowed, so we don't offer a chat affordance. */}
+                      {matched ? (
+                        <Button
+                          size="circle-lg"
+                          tone="cta"
+                          render={<Link href={`/chat/${p.id}`} prefetch={false} />}
+                          aria-label={`Message ${name}`}
+                        >
+                          <MessageCircle className="size-4" aria-hidden />
+                        </Button>
+                      ) : (
+                        <Button
+                          size="circle-lg"
+                          tone="elevated"
+                          render={
+                            <Link href={`/profile/${p.id}?from=map`} prefetch={false} />
+                          }
+                          aria-label={`View ${name}'s profile`}
+                        >
+                          <ChevronRight className="size-4" aria-hidden />
+                        </Button>
+                      )}
                     </Card>
                   );
                 })
