@@ -147,9 +147,9 @@ export function LegalArticleShell({
             size="tap"
             tone={signedIn ? "elevated" : "cta"}
             className="ml-2"
-            render={<Link href={signedIn ? "/discover" : "/auth/sign-in"} prefetch={false} />}
+            render={<Link href={signedIn ? "/settings" : "/auth/sign-in"} prefetch={false} />}
           >
-            {signedIn ? "Back to app" : "Sign in"}
+            {signedIn ? "Back to settings" : "Sign in"}
           </Button>
           <ThemeToggle variant="icon" />
         </nav>
@@ -157,7 +157,9 @@ export function LegalArticleShell({
 
       {/* ── Mobile header ───────────────────────────────────────────── */}
       <PageHeader pad="tight" className="md:hidden flex items-center gap-3">
-        <BackButton fallback="/" label="Back" />
+        {/* Signed-in users reach legal from settings, so a direct load with
+            no history falls back there (not the landing page). */}
+        <BackButton fallback={signedIn ? "/settings" : "/"} label="Back" />
         <PageHeaderTitle>{title}</PageHeaderTitle>
       </PageHeader>
 

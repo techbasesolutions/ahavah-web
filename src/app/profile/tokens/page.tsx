@@ -233,12 +233,6 @@ export default function TokensPage() {
             >
               <LogoMark size={64} decorative />
             </span>
-            <span
-              aria-hidden
-              className="absolute top-35 right-26 opacity-40"
-            >
-              <LogoMark size={28} decorative />
-            </span>
             <div className="relative">
               <p className="text-overline opacity-85 m-0">Your balance</p>
               <div className="flex items-end gap-3 mt-2">
