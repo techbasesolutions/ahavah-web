@@ -3,13 +3,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
-import { Check } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 
-import { WaitlistWizard } from "@/components/app/waitlist-wizard";
+import { WaitlistWizard, type WaitlistPhase } from "@/components/app/waitlist-wizard";
 import { PENDING_EMAIL_KEY } from "@/lib/storage-keys";
 import {
   ASSEMBLIES,
@@ -36,6 +38,14 @@ const CHILD_VIEWS = FAMILY_VIEWS.filter((f) =>
   ["wants-children", "does-not-want", "open-to-more", "has-children"].includes(f.value),
 );
 
+// Right-rail phase groups (mirrors OnboardingShell's PHASES; waitlist content).
+const PHASES: ReadonlyArray<WaitlistPhase> = [
+  { label: "About you", firstStep: 1, lastStep: 3 },
+  { label: "Faith", firstStep: 4, lastStep: 4 },
+  { label: "Looking for", firstStep: 5, lastStep: 6 },
+  { label: "Background", firstStep: 7, lastStep: 9 },
+];
+
 const fadeUp = {
   initial: { opacity: 0, y: 12 },
   animate: { opacity: 1, y: 0 },
@@ -52,8 +62,6 @@ export default function WaitlistPage() {
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Hydrate from a saved draft (survives refresh / back-nav); fall back to the
-  // landing-captured email.
   useEffect(() => {
     let draft: Draft | null = null;
     try {
@@ -69,18 +77,12 @@ export default function WaitlistPage() {
     } catch {
       /* ignore */
     }
-    const next = {
-      email: draft?.email || fromQuery || stored || "",
-      answers: draft?.answers ?? {},
-      step: draft?.step ?? 1,
-    };
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setEmail(next.email);
-    setA(next.answers);
-    setStep(next.step);
+    setEmail(draft?.email || fromQuery || stored || "");
+    setA(draft?.answers ?? {});
+    setStep(draft?.step ?? 1);
   }, [params]);
 
-  // Persist the draft on change (skip once finished).
   useEffect(() => {
     if (done) return;
     try {
@@ -99,13 +101,8 @@ export default function WaitlistPage() {
       return { ...prev, sex, intent: (prev.intent ?? []).filter((i) => allowed.has(i)) };
     });
 
-  const intentOptions = useMemo(
-    () => (a.sex ? intentOptionsForSex(a.sex) : []),
-    [a.sex],
-  );
+  const intentOptions = useMemo(() => (a.sex ? intentOptionsForSex(a.sex) : []), [a.sex]);
 
-  // One question per screen. required steps gate the CTA; the rest are
-  // optional (low-friction waitlist) so users can breeze through.
   const steps: Array<{ heading: React.ReactNode; sub?: string; control: React.ReactNode; valid: boolean }> = [
     {
       heading: <>Where can we reach you<span className="text-lime">?</span></>,
@@ -125,11 +122,7 @@ export default function WaitlistPage() {
       heading: <>Which best describes you<span className="text-lime">?</span></>,
       valid: !!a.sex,
       control: (
-        <SingleChoice
-          value={a.sex}
-          onChange={(v) => setSex(v as Sex)}
-          options={GENDER_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
-        />
+        <SingleChoice value={a.sex} onChange={(v) => setSex(v as Sex)} options={GENDER_OPTIONS} />
       ),
     },
     {
@@ -138,7 +131,7 @@ export default function WaitlistPage() {
       valid: !!a.country,
       control: (
         <div className="flex flex-col gap-4">
-          <SearchableChoice
+          <SearchChoice
             value={a.country}
             onChange={(v) => set("country", v)}
             placeholder="Search countries"
@@ -193,7 +186,7 @@ export default function WaitlistPage() {
       sub: "Optional.",
       valid: true,
       control: (
-        <SearchableChoice
+        <SearchChoice
           value={a.ethnicity}
           onChange={(v) => set("ethnicity", v as WaitlistAnswers["ethnicity"])}
           placeholder="Search ethnicity"
@@ -206,7 +199,7 @@ export default function WaitlistPage() {
       sub: "Optional.",
       valid: true,
       control: (
-        <SearchableChoice
+        <SearchChoice
           value={a.nationality}
           onChange={(v) => set("nationality", v as WaitlistAnswers["nationality"])}
           placeholder="Search nationality"
@@ -281,23 +274,19 @@ export default function WaitlistPage() {
     <WaitlistWizard
       step={step}
       total={total}
+      phases={PHASES}
       onBack={step > 1 ? () => setStep((s) => s - 1) : undefined}
       onNext={handleNext}
       ctaLabel={isLast ? "Join the waitlist" : "Continue"}
       ctaDisabled={!current.valid}
       ctaLoading={submitting}
     >
-      <motion.div key={step} {...fadeUp} transition={{ duration: 0.35 }} className="flex flex-col gap-2">
+      <motion.div key={step} {...fadeUp} transition={{ duration: 0.4 }} className="flex flex-col gap-2">
         <h1 className="text-display text-(--ink)">{current.heading}</h1>
         {current.sub ? <p className="text-body text-(--ink-2)">{current.sub}</p> : null}
       </motion.div>
 
-      <motion.div
-        key={`c-${step}`}
-        {...fadeUp}
-        transition={{ duration: 0.3, delay: 0.08 }}
-        className="mt-8"
-      >
+      <motion.div key={`c-${step}`} {...fadeUp} transition={{ duration: 0.3, delay: 0.08 }} className="mt-8">
         {current.control}
       </motion.div>
 
@@ -311,46 +300,11 @@ export default function WaitlistPage() {
 }
 
 // ---------------------------------------------------------------------------
-// Choice controls — onboarding-style selectable cards.
+// Selection controls — the canonical onboarding markup (RadioGroup+Card for
+// single, Checkbox+Card for multi), parameterized by options.
 // ---------------------------------------------------------------------------
 
 type Opt = { value: string; label: string };
-
-function ChoiceCard({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <Card
-      tone={active ? "flat" : "elevated"}
-      role="button"
-      tabIndex={0}
-      onClick={onClick}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onClick();
-        }
-      }}
-      className={cn(
-        "flex cursor-pointer flex-row items-center gap-3 rounded-2xl px-5 py-4 transition-all active:scale-[0.98]",
-        active
-          ? "bg-lime ring-2 ring-inset ring-lime"
-          : "hover:bg-(--card)/80 hover:ring-1 hover:ring-inset hover:ring-border",
-      )}
-    >
-      <span className={cn("flex-1 text-body font-medium", active ? "text-black" : "text-(--ink)")}>
-        {children}
-      </span>
-      {active ? <Check className="size-5 shrink-0 text-black" /> : null}
-    </Card>
-  );
-}
 
 function SingleChoice({
   value,
@@ -362,19 +316,46 @@ function SingleChoice({
   options: ReadonlyArray<Opt>;
 }) {
   return (
-    <div className="grid gap-3">
-      {options.map((o, i) => (
-        <motion.div
-          key={o.value}
-          {...fadeUp}
-          transition={{ duration: 0.25, delay: 0.04 + Math.min(i, 6) * 0.03 }}
-        >
-          <ChoiceCard active={value === o.value} onClick={() => onChange(o.value)}>
-            {o.label}
-          </ChoiceCard>
-        </motion.div>
-      ))}
-    </div>
+    <RadioGroup
+      value={value ?? ""}
+      onValueChange={(v) => onChange(v as string)}
+      className="grid gap-3"
+    >
+      {options.map((opt, i) => {
+        const active = value === opt.value;
+        return (
+          <motion.div
+            key={opt.value}
+            {...fadeUp}
+            transition={{ duration: 0.25, delay: 0.06 + Math.min(i, 5) * 0.03 }}
+          >
+            <Label htmlFor={`opt-${opt.value}`} className="block w-full cursor-pointer">
+              <Card
+                tone={active ? "flat" : "elevated"}
+                className={cn(
+                  "flex flex-row items-center gap-3 rounded-2xl px-5 py-4 transition-all active:scale-[0.98]",
+                  active
+                    ? "bg-lime ring-2 ring-inset ring-lime"
+                    : "hover:bg-(--card)/80 hover:ring-1 hover:ring-inset hover:ring-border",
+                )}
+              >
+                <span className={cn("flex-1 text-body font-medium", active ? "text-black" : "text-(--ink)")}>
+                  {opt.label}
+                </span>
+                <RadioGroupItem
+                  id={`opt-${opt.value}`}
+                  value={opt.value}
+                  variant="brand"
+                  className={
+                    active ? "border-black data-checked:bg-black data-checked:border-black" : undefined
+                  }
+                />
+              </Card>
+            </Label>
+          </motion.div>
+        );
+      })}
+    </RadioGroup>
   );
 }
 
@@ -391,23 +372,49 @@ function MultiChoice({
   const toggle = (val: string) =>
     onChange(v.includes(val) ? v.filter((x) => x !== val) : [...v, val]);
   return (
-    <div className="grid gap-3">
-      {options.map((o, i) => (
-        <motion.div
-          key={o.value}
-          {...fadeUp}
-          transition={{ duration: 0.25, delay: 0.04 + Math.min(i, 6) * 0.03 }}
-        >
-          <ChoiceCard active={v.includes(o.value)} onClick={() => toggle(o.value)}>
-            {o.label}
-          </ChoiceCard>
-        </motion.div>
-      ))}
+    <div role="group" className="grid gap-3">
+      {options.map((opt, i) => {
+        const active = v.includes(opt.value);
+        return (
+          <motion.div
+            key={opt.value}
+            {...fadeUp}
+            transition={{ duration: 0.25, delay: 0.06 + Math.min(i, 5) * 0.03 }}
+          >
+            <Label htmlFor={`opt-${opt.value}`} className="block w-full cursor-pointer">
+              <Card
+                tone={active ? "flat" : "elevated"}
+                className={cn(
+                  "flex flex-row items-center gap-3 rounded-2xl px-5 py-4 transition-all active:scale-[0.98]",
+                  active
+                    ? "bg-lime ring-2 ring-inset ring-lime"
+                    : "hover:bg-(--card)/80 hover:ring-1 hover:ring-inset hover:ring-border",
+                )}
+              >
+                <span className={cn("flex-1 text-body font-medium", active ? "text-black" : "text-(--ink)")}>
+                  {opt.label}
+                </span>
+                <Checkbox
+                  id={`opt-${opt.value}`}
+                  checked={active}
+                  onCheckedChange={() => toggle(opt.value)}
+                  aria-label={opt.label}
+                  className={
+                    active
+                      ? "border-black data-checked:bg-black data-checked:border-black data-checked:text-lime"
+                      : undefined
+                  }
+                />
+              </Card>
+            </Label>
+          </motion.div>
+        );
+      })}
     </div>
   );
 }
 
-function SearchableChoice({
+function SearchChoice({
   value,
   onChange,
   options,
@@ -421,24 +428,18 @@ function SearchableChoice({
   const [q, setQ] = useState("");
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    const base = needle
-      ? options.filter((o) => o.label.toLowerCase().includes(needle))
-      : options;
-    return base.slice(0, 60);
+    return (needle ? options.filter((o) => o.label.toLowerCase().includes(needle)) : options).slice(0, 80);
   }, [q, options]);
 
   return (
     <div className="flex flex-col gap-3">
       <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={placeholder} />
-      <div className="grid max-h-96 gap-2 overflow-y-auto pr-1">
-        {filtered.map((o) => (
-          <ChoiceCard key={o.value} active={value === o.value} onClick={() => onChange(o.value)}>
-            {o.label}
-          </ChoiceCard>
-        ))}
-        {filtered.length === 0 ? (
-          <p className="px-1 py-2 text-meta text-(--ink-3)">No matches.</p>
-        ) : null}
+      <div className="max-h-96 overflow-y-auto px-1">
+        {filtered.length > 0 ? (
+          <SingleChoice value={value} onChange={onChange} options={filtered} />
+        ) : (
+          <p className="text-meta text-(--ink-3)">No matches.</p>
+        )}
       </div>
     </div>
   );
