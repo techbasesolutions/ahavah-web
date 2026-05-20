@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
+import { ArrowLeft } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -309,6 +312,13 @@ export default function WaitlistPage() {
         >
           Welcome to Ahavah.
         </motion.p>
+
+        <motion.div {...fadeUp} transition={{ duration: 0.3, delay: 0.4 }}>
+          <Button variant="outline" size="tap" render={<Link href="/" prefetch={false} />}>
+            <ArrowLeft className="size-4" />
+            Back to home
+          </Button>
+        </motion.div>
       </main>
     );
   }
