@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { apiClient } from "@/lib/api-client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -12,6 +12,7 @@ import { TokenActionIcon } from "@/lib/icon-map";
 // Canonical action icons (icon-map.ts): Like = Heart, SuperLike = Star.
 const LikeIcon = TokenActionIcon.Like;
 const SuperLikeIcon = TokenActionIcon.SuperLike;
+const RewindIcon = TokenActionIcon.Rewind;
 import { toast } from "sonner";
 
 import { Avatar, AvatarBadge, AvatarFallback, AvatarGroup, AvatarImage } from "@/components/ui/avatar";
@@ -32,6 +33,7 @@ import { TokenSpendSheet } from "@/components/app/token-spend-sheet";
 import { useTokenBalance } from "@/lib/use-token-balance";
 import { ApiError } from "@/lib/api-client";
 import { useProfile } from "@/lib/use-profile";
+import { cn } from "@/lib/utils";
 import { readOnboarded } from "@/lib/onboarded-storage";
 import { firstMissingStepFor, isDiscoverEligible } from "@/lib/profile-completeness";
 import { useDecisions } from "@/lib/use-decisions";
@@ -66,6 +68,11 @@ export default function DiscoverPage() {
   // array. Reset to 0 whenever the candidate changes (effect below).
   const [photoIndex, setPhotoIndex] = useState(0);
   const [cyclePhotos, setCyclePhotos] = useState(false);
+  // Story-style progression fill for the active bar atop the card. While
+  // auto-cycling, the active bar sweeps 0→100% over PHOTO_CYCLE_MS via the
+  // Progress indicator's CSS transition; when paused it sits full to mark
+  // the current photo. Driven below by a layout effect keyed on photoIndex.
+  const [photoFill, setPhotoFill] = useState(100);
   const [resettingDecisions, setResettingDecisions] = useState(false);
   // FiltersSheet is hoisted to /discover so the empty-state CTA can open
   // it. The header trigger uses the same sheet via a render prop.
@@ -172,6 +179,14 @@ export default function DiscoverPage() {
   // Phase 6: super-like state.
   const [superSheetOpen, setSuperSheetOpen] = useState(false);
   const [superBusy, setSuperBusy] = useState(false);
+
+  // Discover Rewind (Back button): the most recent profile the user
+  // passed, and the token-spend sheet state. Rewind undoes a PASS only
+  // (POST /tokens/rewind), so the Back button is enabled only while a
+  // pass is on record this session.
+  const [lastPassedId, setLastPassedId] = useState<string | null>(null);
+  const [rewindSheetOpen, setRewindSheetOpen] = useState(false);
+  const [rewindBusy, setRewindBusy] = useState(false);
   const {
     state: tokenBalanceState,
     balance: tokenBalance,
@@ -221,6 +236,9 @@ export default function DiscoverPage() {
           router.push(`/match?matchId=${encodeURIComponent(result.matchId)}`);
           return;
         }
+        // Pass recorded cleanly — remember it so the Back/Rewind button
+        // can undo it. (Likes aren't rewindable.)
+        if (decision === "nope") setLastPassedId(candidateId);
       } catch {
         setDecidedIds((prev) => {
           const next = new Set(prev);
@@ -280,6 +298,46 @@ export default function DiscoverPage() {
     }
   }, [candidate, hasMore, visibleItems.length, loadMore, refreshTokens, router]);
 
+  // Discover Rewind: spend a token to undo the last pass. On success,
+  // drop the profile from decidedIds and re-fetch the deck (by re-setting
+  // filters) so it re-enters the candidate list near the front. 402 keeps
+  // the sheet open in its insufficient state; other errors toast + close.
+  const handleRewind = useCallback(async () => {
+    if (!lastPassedId) return;
+    setRewindBusy(true);
+    try {
+      await apiClient.post("/tokens/rewind", { profile_uuid: lastPassedId });
+      await refreshTokens();
+      setRewindSheetOpen(false);
+      setDecidedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(lastPassedId);
+        return next;
+      });
+      setLastPassedId(null);
+      setFilters({ ...filters });
+      toast.success("Brought that profile back.");
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 402) {
+        await refreshTokens();
+      } else {
+        setRewindSheetOpen(false);
+        const status = e instanceof ApiError ? e.status : null;
+        const msg =
+          status === 409
+            ? "Nothing to rewind."
+            : status === 404
+              ? "Rewind isn't available yet."
+              : status === 401
+                ? "Sign in to rewind."
+                : "Couldn't rewind. Try again.";
+        toast.error(msg);
+      }
+    } finally {
+      setRewindBusy(false);
+    }
+  }, [lastPassedId, refreshTokens, filters, setFilters]);
+
   // Tap-zone handlers.
   const prevPhoto = useCallback(() => {
     setPhotoIndex((i) => (i > 0 ? i - 1 : 0));
@@ -310,6 +368,21 @@ export default function DiscoverPage() {
     }, PHOTO_CYCLE_MS);
     return () => clearInterval(id);
   }, [cyclePhotos, candidate]);
+
+  // Drive the active progress bar's sweep. useLayoutEffect snaps the fill
+  // to 0 BEFORE paint when the photo changes (no full-width flash), then a
+  // rAF flips it to 100 so the indicator's CSS transition animates the
+  // sweep. When not cycling the bar sits full to mark the current photo.
+  useLayoutEffect(() => {
+    if (!cyclePhotos) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPhotoFill(100);
+      return;
+    }
+    setPhotoFill(0);
+    const id = requestAnimationFrame(() => setPhotoFill(100));
+    return () => cancelAnimationFrame(id);
+  }, [photoIndex, cyclePhotos]);
 
   // Loading / redirect guard.
   if (!loaded || (loaded && !readOnboarded() && !isDiscoverEligible(userProfile))) {
@@ -420,14 +493,47 @@ export default function DiscoverPage() {
             aria-hidden
             className="absolute top-5 right-5 left-5 z-20 flex gap-1.5"
           >
-            {Array.from({ length: photoCount }).map((_, i) => (
-              <Progress
-                key={i}
-                value={i <= photoIndex ? 100 : 0}
-                className="flex-1"
-              />
-            ))}
+            {Array.from({ length: photoCount }).map((_, i) => {
+              const isActive = i === photoIndex;
+              const value = i < photoIndex ? 100 : isActive ? photoFill : 0;
+              return (
+                <Progress
+                  key={i}
+                  value={value}
+                  className={cn(
+                    "flex-1",
+                    // The active bar sweeps over the cycle interval (3500ms,
+                    // matches PHOTO_CYCLE_MS) when playing; everything else
+                    // snaps quickly so past bars fill without a slow drag.
+                    isActive && cyclePhotos
+                      ? "[&_[data-slot=progress-indicator]]:duration-[3500ms] [&_[data-slot=progress-indicator]]:ease-linear"
+                      : "[&_[data-slot=progress-indicator]]:duration-300",
+                  )}
+                />
+              );
+            })}
           </div>
+
+          {/* Slideshow play/pause — moved off the action row onto the card
+              (Discover polish C2). tone="overlay" = translucent black scrim
+              for on-photo icon buttons. z-30 keeps it tappable above the
+              photo prev/next tap zones (z-10). */}
+          {photoCount > 1 ? (
+            <Button
+              size="circle-lg"
+              tone="overlay"
+              className="absolute top-9 right-4 z-30"
+              aria-label={cyclePhotos ? "Pause photo slideshow" : "Play photo slideshow"}
+              aria-pressed={cyclePhotos}
+              onClick={() => setCyclePhotos((on) => !on)}
+            >
+              {cyclePhotos ? (
+                <Pause className="size-5" fill="currentColor" />
+              ) : (
+                <Play className="size-5" fill="currentColor" />
+              )}
+            </Button>
+          ) : null}
 
           <button
             type="button"
@@ -519,44 +625,33 @@ export default function DiscoverPage() {
   );
 
   // ── Action rows ──────────────────────────────────────────────────────────
-  // Mobile: current behavior preserved verbatim (stacked "Super" label
-  // keeps the existing feel on small screens).
-  // Desktop: 4 equal circles in a single items-center flex row — no stacked
-  // labels. The Super button uses `tone="brand"` (lavender + black
-  // sparkle) so all four circles are visually distinct. Like icon is
-  // `text-black` (not text-(--ink)) per §1.3 contrast audit (pink + black = 6.6:1 ✓).
-  // Mobile action row — Task 13 Step 6 (2026-05-17): aligned with desktop
-  // canonical 4-button row per user direction. Order: Skip / Play / Like /
-  // Super, all at circle-2xl (64px). Stacked "Super" label removed (was a
-  // mobile-only divergence the user called out as bad placement). Super
-  // uses tone="brand" (lavender) — distinct from Play's cta-lime and
-  // Like's action-pink — matching desktop. Like icon switched from
-  // text-(--ink) to text-black to match canonical contrast rule §1.3
-  // (pink + black = 6.6:1 ✓; pink + white = 3.66:1 ✗).
+  // Discover polish C1 (2026-05-19): Play/Pause moved off the row onto the
+  // card (see the on-photo overlay button above), leaving three circles:
+  // Pass / Like / Super at circle-2xl (64px). Super uses tone="brand"
+  // (lavender) — distinct from Like's action-pink. Mobile + desktop share
+  // the same order. The PDF's leading "Back" (rewind) circle is a
+  // token-gated feature with no backend endpoint yet; it is deliberately
+  // not rendered as a dead button (see scope note surfaced to the user).
   const actionRowMobile = candidate && !quotaState ? (
     <div className="flex shrink-0 items-center justify-center gap-5">
       <Button
         size="circle-2xl"
-        tone="brand"
+        tone="elevated"
         lift="float"
-        aria-label="Skip"
-        onClick={() => advance("nope")}
+        aria-label="Rewind last pass, costs 1 token"
+        disabled={!lastPassedId}
+        onClick={() => setRewindSheetOpen(true)}
       >
-        <X className="size-7 text-black" strokeWidth={2.4} />
+        <RewindIcon className="size-7" />
       </Button>
       <Button
         size="circle-2xl"
-        tone="cta"
+        tone="brand"
         lift="float"
-        aria-label={cyclePhotos ? "Pause photo slideshow" : "Play photo slideshow"}
-        aria-pressed={cyclePhotos}
-        onClick={() => setCyclePhotos((on) => !on)}
+        aria-label="Pass"
+        onClick={() => advance("nope")}
       >
-        {cyclePhotos ? (
-          <Pause className="size-8 text-black" fill="currentColor" />
-        ) : (
-          <Play className="size-8 text-black" fill="currentColor" />
-        )}
+        <X className="size-7 text-black" strokeWidth={2.4} />
       </Button>
       <Button
         size="circle-2xl"
@@ -791,36 +886,30 @@ export default function DiscoverPage() {
               port — it is a post-canonical monetization surface introduced
               in Step 6 of Task 13 after user-approved placement. */}
           {candidate && !quotaState ? (
-            // Action row — Task 13 Step 6: Super-like added at A1/B1/C1
-            // per user-approved placement (2026-05-17). Order: Skip /
-            // Play / Like / Super. All 4 at circle-2xl (64px) for
-            // canonical row uniformity. Super uses tone="brand" (lavender,
-            // distinct from Play's cta-lime and Like's action-pink) +
-            // Sparkles size-7 black. Wired to existing setSuperSheetOpen
-            // state — TokenSpendSheet at the file bottom handles confirm.
+            // Action row — Discover polish C1 (2026-05-19): Pass / Like /
+            // Super at circle-2xl (64px). Play/Pause moved onto the card
+            // (on-photo overlay). Super uses tone="brand" (lavender,
+            // distinct from Like's action-pink), wired to setSuperSheetOpen
+            // — TokenSpendSheet at the file bottom handles confirm.
             <div className="flex items-center gap-7">
+              <Button
+                size="circle-2xl"
+                tone="elevated"
+                lift="float"
+                aria-label="Rewind last pass, costs 1 token"
+                disabled={!lastPassedId}
+                onClick={() => setRewindSheetOpen(true)}
+              >
+                <RewindIcon className="size-7" />
+              </Button>
               <Button
                 size="circle-2xl"
                 tone="brand"
                 lift="float"
-                aria-label="Skip"
+                aria-label="Pass"
                 onClick={() => advance("nope")}
               >
                 <X className="size-7 text-black" strokeWidth={2.4} />
-              </Button>
-              <Button
-                size="circle-2xl"
-                tone="cta"
-                lift="float"
-                aria-label={cyclePhotos ? "Pause photo slideshow" : "Play photo slideshow"}
-                aria-pressed={cyclePhotos}
-                onClick={() => setCyclePhotos((on) => !on)}
-              >
-                {cyclePhotos ? (
-                  <Pause className="size-8 text-black" fill="currentColor" />
-                ) : (
-                  <Play className="size-8 text-black" fill="currentColor" />
-                )}
               </Button>
               <Button
                 size="circle-2xl"
@@ -959,6 +1048,18 @@ export default function DiscoverPage() {
         currentBalance={tokenBalanceForSheet}
         onConfirm={handleSuperLike}
         busy={superBusy}
+      />
+
+      {/* Discover Rewind: undo the last pass for 1 token */}
+      <TokenSpendSheet
+        open={rewindSheetOpen}
+        onOpenChange={setRewindSheetOpen}
+        title="Rewind your last pass?"
+        description="Bring the last profile you passed back into your deck."
+        cost={1}
+        currentBalance={tokenBalanceForSheet}
+        onConfirm={handleRewind}
+        busy={rewindBusy}
       />
 
       <BottomNav />
