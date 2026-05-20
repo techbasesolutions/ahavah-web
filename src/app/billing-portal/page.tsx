@@ -131,9 +131,9 @@ function PlanBlock({ sub }: { sub: Subscription }) {
         <p className="m-0 mt-0.5 text-caption text-(--ink-3)">{sub.price_label}</p>
       ) : null}
 
-      <div className="mt-4.5 flex flex-col gap-2.5">
+      <div className="mt-4.5 flex flex-col gap-3">
         {sub.card_brand && sub.card_last4 ? (
-          <KvRow label="Payment method" value={`${cap(sub.card_brand)} ${sub.card_last4}`} />
+          <PaymentMethodChip brand={sub.card_brand} last4={sub.card_last4} />
         ) : null}
         {sub.current_period_end ? (
           <KvRow
@@ -298,9 +298,34 @@ function PciNote() {
   );
 }
 
+function PaymentMethodChip({ brand, last4 }: { brand: string; last4: string }) {
+  return (
+    <Item variant="muted" className="gap-3">
+      <ItemMedia>
+        <IconBadge tone="brand" shape="square" size="md">
+          <CreditCard />
+        </IconBadge>
+      </ItemMedia>
+      <ItemContent className="gap-0.5">
+        <span className="text-caption text-(--ink-3)">Card on file</span>
+        <span className="text-meta font-semibold tracking-wide text-(--ink)">
+          {cap(brand)} <span aria-hidden>•••• </span>
+          <span className="sr-only">ending in </span>
+          {last4}
+        </span>
+      </ItemContent>
+      <ItemActions>
+        <Pill variant="lavender" size="sm">
+          Secured
+        </Pill>
+      </ItemActions>
+    </Item>
+  );
+}
+
 function KvRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between gap-2.5">
+    <div className="flex justify-between gap-2.5 px-1">
       <span className="text-caption text-(--ink-3)">{label}</span>
       <span className="text-meta font-semibold text-(--ink)">{value}</span>
     </div>
