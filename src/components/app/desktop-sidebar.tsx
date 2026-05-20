@@ -7,6 +7,8 @@ import { Globe, Heart, Home, Mail, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useInboxUnreadCount } from "@/lib/use-inbox-unread-count";
 import { useBoostActive } from "@/lib/use-boost-active";
+import { useProfile } from "@/lib/use-profile";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Logo } from "@/components/brand/logo";
 
 const TABS = [
@@ -28,6 +30,9 @@ export function DesktopSidebar() {
   const pathname = usePathname();
   const unreadCount = useInboxUnreadCount();
   const boostActive = useBoostActive();
+  const { profile } = useProfile();
+  const userPhotoUrl = profile.photos?.[0]?.cdn_url;
+  const userInitial = profile.firstName?.[0]?.toUpperCase() ?? "•";
 
   return (
     <aside
@@ -118,21 +123,21 @@ export function DesktopSidebar() {
           from sidebar — relocated to the DesktopTopBar's top-left icon
           slot per user direction. */}
       <div className="flex flex-col gap-2 px-6 pb-6 pt-4">
-        {/* Minimal user block — session wiring is Wave 6 work */}
         <div className="flex items-center gap-3 rounded-xl px-2 py-2 min-w-0">
-          {/* Avatar circle — brand fallback (indigo + lime initial).
-              Lime ring while boost is active (Phase 8 spec — boost
+          {/* Current user's photo (first slot), brand initial as fallback.
+              Lime ring while boost is active (Phase 8 spec — the boost
               indicator lives on the sidebar user avatar). */}
-          <span
-            className={cn(
-              "flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-extrabold select-none",
-              boostActive && "ring-2 ring-(--color-lime) ring-offset-2 ring-offset-(--nav-bg)",
-            )}
-            style={{ background: "oklch(0.46 0.30 270)", color: "#D7FF81" }}
+          <Avatar
+            size="md"
             aria-hidden
+            className={cn(
+              boostActive &&
+                "ring-2 ring-(--color-lime) ring-offset-2 ring-offset-(--nav-bg)",
+            )}
           >
-            Y
-          </span>
+            {userPhotoUrl ? <AvatarImage src={userPhotoUrl} alt="" /> : null}
+            <AvatarFallback variant="brand">{userInitial}</AvatarFallback>
+          </Avatar>
           <span
             className="flex-1 truncate text-sm font-semibold"
             style={{ color: "var(--ink)" }}

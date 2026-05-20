@@ -56,6 +56,7 @@ import { formatLastSeen, isOnline } from "@/lib/last-seen";
 export default function DiscoverPage() {
   const router = useRouter();
   const { profile: userProfile, loaded } = useProfile();
+  const userPhotoUrl = userProfile.photos?.[0]?.cdn_url;
   const { decide, pendingIds } = useDecisions();
   const { filters, setFilters } = useFilters();
   const [exitDirection, setExitDirection] = useState<"left" | "right">("left");
@@ -762,6 +763,7 @@ export default function DiscoverPage() {
               render={<Link href="/profile" prefetch={false} />}
             >
               <Avatar size="tap-lg">
+                {userPhotoUrl ? <AvatarImage src={userPhotoUrl} alt="" /> : null}
                 <AvatarFallback variant="brand">
                   {userProfile.firstName?.[0] ?? "•"}
                 </AvatarFallback>
