@@ -100,8 +100,8 @@ export function MarketingFooter() {
               <Logo variant="horizontal" forceTheme="dark" height={32} />
             </div>
             <p className="text-sm leading-[1.55] text-white/60">
-              Find love across borders. Verified profiles, 100+ languages, real
-              connections. Made for the diaspora.
+              Find a spouse across borders. Verified profiles, 100+ languages,
+              real connections. Made for the diaspora.
             </p>
           </div>
           <FooterCol title="Product" links={PRODUCT_LINKS} />
@@ -114,8 +114,8 @@ export function MarketingFooter() {
           <div className="mb-6">
             <Logo variant="horizontal" forceTheme="dark" height={32} />
             <p className="mt-4 text-[13px] leading-[1.55] text-white/60">
-              Find love across borders. Verified profiles, 100+ languages, real
-              connections. Made for the diaspora.
+              Find a spouse across borders. Verified profiles, 100+ languages,
+              real connections. Made for the diaspora.
             </p>
           </div>
           <Accordion multiple className="border-t border-white/10">

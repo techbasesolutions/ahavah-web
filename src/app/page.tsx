@@ -160,7 +160,7 @@ export default function LandingPage() {
                     fontWeight: 400,
                   }}
                 >
-                  Find love
+                  Find a spouse
                   <br />
                   across{" "}
                   <span className="whitespace-nowrap">
@@ -169,8 +169,9 @@ export default function LandingPage() {
                 </h1>
 
                 <p className="mt-6 lg:mt-7 max-w-[540px] text-[17px] lg:text-[21px] leading-[1.55] text-(--ink-2)">
-                  Verified profiles, 100+ languages, real connections. The dating
-                  app built for Torah-observant singles who don&apos;t fit anywhere else.
+                  Verified profiles, 100+ languages, real connections. The
+                  matchmaking platform for Messianic Torah-observant believers,
+                  here to help you meet a future spouse.
                 </p>
 
                 {/* ── Waitlist form ────────────────────────────────────────── */}
@@ -278,7 +279,7 @@ export default function LandingPage() {
           <div className="mx-auto max-w-[480px] lg:max-w-[1200px]">
             <SectionHead
               overline="What's different"
-              title="A dating app that respects who you are."
+              title="A platform that respects who you are."
               body="Built around real-world commitments: Shabbat, calendar, family. So your first message isn't a 20-question screener."
             />
 
@@ -297,7 +298,7 @@ export default function LandingPage() {
               </FeatureCard>
               <FeatureCard tone="pink"          Icon={Heart}          title="Faith-aware filters">
                 Calendar (lunar/solar), assembly, Torah level, polygyny stance —
-                all first-class filters. Find someone whose practice fits yours.
+                all first-class filters. Find a spouse whose practice fits yours.
               </FeatureCard>
               <FeatureCard tone="success"       Icon={SparklesIcon}  title="Real compatibility">
                 9-axis compatibility scoring — observance, language, family,

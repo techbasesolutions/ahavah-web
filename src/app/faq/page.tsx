@@ -25,7 +25,7 @@ import { MarketingFooter } from "@/components/app/marketing-footer";
 const FAQS: ReadonlyArray<{ q: string; a: string }> = [
   {
     q: "Who is Ahavah for?",
-    a: "Torah-observant singles seeking marriage. Members across the diaspora can match across borders with verified identity and faith-aware filters.",
+    a: "Messianic Torah-observant believers seeking a spouse. Members across the diaspora can meet across borders with verified identity and shared-belief filters. Polygyny is a recognised path, so the platform is not for never-married singles only.",
   },
   {
     q: "Is it free?",

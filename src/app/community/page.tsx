@@ -16,7 +16,7 @@ const SECTIONS: ReadonlyArray<{ slug: string; heading: string; body: string }> =
   {
     slug: "spirit",
     heading: "The spirit of it",
-    body: "Ahavah exists so people seeking marriage in a faith-observant context can meet without the noise of mainstream apps. Behave like someone you'd want to date.",
+    body: "Ahavah exists so Messianic Torah-observant believers seeking a spouse can meet without the noise of mainstream apps. Behave like someone you'd want to marry.",
   },
   {
     slug: "be-real",
