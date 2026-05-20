@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
@@ -58,6 +58,16 @@ const fadeUp = {
 type Draft = { email: string; answers: WaitlistAnswers; step: number };
 
 export default function WaitlistPage() {
+  // useSearchParams requires a Suspense boundary for static generation
+  // (next build prerender). Wrap the flow so the route builds.
+  return (
+    <Suspense fallback={null}>
+      <WaitlistFlow />
+    </Suspense>
+  );
+}
+
+function WaitlistFlow() {
   const params = useSearchParams();
   const [email, setEmail] = useState("");
   const [a, setA] = useState<WaitlistAnswers>({});
