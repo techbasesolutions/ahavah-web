@@ -244,7 +244,12 @@ export function FiltersSheet({
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger nativeButton={false} render={trigger} />
+      {/* The trigger is always a kit <Button> (no render prop), which
+          renders a NATIVE <button>. SheetTrigger must therefore declare
+          nativeButton={true} so Base UI doesn't warn about adding
+          non-native attrs to a real button. Was false, which threw a
+          console error on every /discover + /map mount. */}
+      <SheetTrigger nativeButton render={trigger} />
       <SheetContent
         side={isDesktop ? "right" : "bottom"}
         className={cn(
