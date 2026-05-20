@@ -12,6 +12,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 
 import { WaitlistWizard, type WaitlistPhase } from "@/components/app/waitlist-wizard";
+import { LogoMark } from "@/components/brand/logo-mark";
 import { PENDING_EMAIL_KEY } from "@/lib/storage-keys";
 import {
   ASSEMBLIES,
@@ -259,13 +260,55 @@ export default function WaitlistPage() {
 
   if (done) {
     return (
-      <main className="mx-auto flex min-h-dvh max-w-xl flex-col items-center justify-center gap-4 px-5 text-center">
-        <h1 className="text-display text-(--ink)">
-          You&apos;re on the list<span className="text-lime">.</span>
-        </h1>
-        <p className="text-body text-(--ink-2)">
-          We&apos;ll email {email} a sign-in link when we launch.
-        </p>
+      <main
+        className="relative flex min-h-dvh flex-col items-center justify-center gap-8 overflow-hidden px-6 text-center"
+        style={{
+          background:
+            "linear-gradient(160deg, var(--app) 0%, color-mix(in oklch, var(--color-lavender) 14%, var(--app)) 100%)",
+        }}
+      >
+        {/* Brandmark — spring-in, soft lime glow, gentle pulse. */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.7 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, type: "spring", stiffness: 200, damping: 16 }}
+          className="relative"
+        >
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-0 rounded-full bg-lime/25 blur-3xl"
+          />
+          <motion.div
+            animate={{ scale: [1, 1.04, 1] }}
+            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+            className="relative"
+          >
+            <LogoMark size={104} decorative className="drop-shadow-xl" />
+          </motion.div>
+        </motion.div>
+
+        <motion.div
+          {...fadeUp}
+          transition={{ duration: 0.4, delay: 0.15 }}
+          className="flex max-w-md flex-col gap-4"
+        >
+          <h1 className="text-display-lg text-(--ink)">
+            You&apos;re on the list<span className="text-lime">.</span>
+          </h1>
+          <p className="text-h2 font-normal leading-relaxed text-(--ink-2)">
+            We&apos;ll email{" "}
+            <span className="font-semibold text-(--ink)">{email}</span> a sign-in
+            link the moment we launch.
+          </p>
+        </motion.div>
+
+        <motion.p
+          {...fadeUp}
+          transition={{ duration: 0.3, delay: 0.3 }}
+          className="text-meta text-(--ink-3)"
+        >
+          Welcome to Ahavah.
+        </motion.p>
       </main>
     );
   }
