@@ -3,8 +3,52 @@
 import * as React from "react";
 import { motion } from "motion/react";
 import { cva, type VariantProps } from "class-variance-authority";
+import { Heart } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+
+const LONG_PRESS_MS = 500;
+const DOUBLE_TAP_MS = 300;
+
+/**
+ * Touch reaction gesture: double-tap OR 500ms long-press fires onReact.
+ * Returns pointer handlers to spread onto the bubble surface. Only wire it
+ * up when reacting is allowed (them bubbles). Touch pointers only — mouse
+ * uses the hover heart button instead.
+ */
+function useReactGesture(onReact?: () => void) {
+  const lastTapRef = React.useRef(0);
+  const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clear = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+  return {
+    onPointerDown: (e: React.PointerEvent) => {
+      if (e.pointerType !== "touch" || !onReact) return;
+      clear();
+      timerRef.current = setTimeout(() => onReact(), LONG_PRESS_MS);
+    },
+    onPointerUp: (e: React.PointerEvent) => {
+      if (e.pointerType !== "touch" || !onReact) return;
+      clear();
+      const now = Date.now();
+      if (now - lastTapRef.current < DOUBLE_TAP_MS) {
+        onReact();
+        lastTapRef.current = 0;
+      } else {
+        lastTapRef.current = now;
+      }
+    },
+    onPointerLeave: clear,
+    onPointerCancel: clear,
+  };
+}
 
 // Shared entrance animation — bubble fades up + slides in from the side it
 // belongs to (them from left, me from right). Caller passes `delay` for
@@ -62,6 +106,12 @@ type TextBubbleProps = VariantProps<typeof bubbleRowVariants> & {
   /** Entrance-animation delay (seconds) — page passes index-based stagger
       for initial load; live new messages use the default 0. */
   delay?: number;
+  /** True when the viewer has reacted to this message (renders the chip). */
+  reacted?: boolean;
+  /** True when reacting is allowed (them bubbles only). Mounts affordances. */
+  canReact?: boolean;
+  /** Toggle the viewer's reaction. */
+  onReact?: () => void;
   children: React.ReactNode;
 };
 
@@ -69,9 +119,13 @@ export function TextBubble({
   side,
   avatar,
   delay = 0,
+  reacted = false,
+  canReact = false,
+  onReact,
   children,
 }: TextBubbleProps) {
   const resolvedSide = side ?? "them";
+  const gesture = useReactGesture(canReact ? onReact : undefined);
   return (
     <motion.div
       className={bubbleRowVariants({ side })}
@@ -83,7 +137,43 @@ export function TextBubble({
           <AvatarFallback variant="brand">{avatar}</AvatarFallback>
         </Avatar>
       )}
-      <div className={bubbleSurfaceVariants({ side })}>{children}</div>
+      <div className="group relative">
+        <div
+          className={bubbleSurfaceVariants({ side })}
+          {...(canReact ? gesture : {})}
+        >
+          {children}
+        </div>
+
+        {/* Desktop hover affordance — heart button, hover-capable pointers
+            only. Touch uses the double-tap / long-press gesture above. */}
+        {canReact && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            aria-label={reacted ? "Remove like" : "Like message"}
+            onClick={onReact}
+            className="absolute -right-2 -top-3 hidden bg-(--app) text-(--ink-3) opacity-0 shadow-sm transition-opacity [@media(hover:hover)]:inline-flex group-hover:opacity-100"
+          >
+            <Heart className={reacted ? "fill-(--color-pink) text-(--color-pink)" : ""} />
+          </Button>
+        )}
+
+        {/* Reaction chip — floats bottom-right, partially overlapping. */}
+        {reacted && (
+          <motion.span
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            role="status"
+            aria-label="Liked"
+            className="absolute -bottom-2 right-1 flex size-5 items-center justify-center rounded-full bg-(--app) shadow-sm"
+          >
+            <Heart className="size-3 fill-(--color-pink) text-(--color-pink)" />
+          </motion.span>
+        )}
+      </div>
     </motion.div>
   );
 }
