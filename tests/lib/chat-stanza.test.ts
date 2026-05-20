@@ -465,3 +465,47 @@ describe("decodeStanza", () => {
     expect(out.message.audioUuid).toBe("abc");
   });
 });
+
+describe("decodeStanza — reaction", () => {
+  it("decodes an incoming heart add", () => {
+    const xml =
+      `<reaction xmlns="ahavah:reactions:0" ` +
+      `from="${PEER_UUID}@ahavah.app" to="${OWN_UUID}@ahavah.app" ` +
+      `message-id="msg-123" kind="heart" action="add"/>`;
+    expect(decodeStanza(xml, OWN_UUID)).toEqual({
+      type: "reaction-in",
+      threadId: PEER_UUID,
+      messageId: "msg-123",
+      kind: "heart",
+      action: "add",
+    });
+  });
+
+  it("decodes a remove and resolves threadId as the peer", () => {
+    const xml =
+      `<reaction xmlns="ahavah:reactions:0" ` +
+      `from="${PEER_UUID}@ahavah.app" to="${OWN_UUID}@ahavah.app" ` +
+      `message-id="msg-9" kind="heart" action="remove"/>`;
+    expect(decodeStanza(xml, OWN_UUID)).toEqual({
+      type: "reaction-in",
+      threadId: PEER_UUID,
+      messageId: "msg-9",
+      kind: "heart",
+      action: "remove",
+    });
+  });
+
+  it("defaults a bad action to add and missing kind to heart", () => {
+    const xml =
+      `<reaction xmlns="ahavah:reactions:0" ` +
+      `from="${PEER_UUID}@ahavah.app" to="${OWN_UUID}@ahavah.app" ` +
+      `message-id="m"/>`;
+    expect(decodeStanza(xml, OWN_UUID)).toEqual({
+      type: "reaction-in",
+      threadId: PEER_UUID,
+      messageId: "m",
+      kind: "heart",
+      action: "add",
+    });
+  });
+});

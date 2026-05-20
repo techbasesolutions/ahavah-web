@@ -84,6 +84,9 @@ export type ChatEvent =
   | { type: "inbox-result"; threads: ChatThread[] }
   | { type: "inbox-fin"; queryId: string }
   | { type: "history-result"; threadId: string; messages: ChatMessage[]; queryId: string }
+  // A reaction toggle relayed from the peer (the server only publishes to
+  // the OTHER party's channel). `action` mirrors the toggle: add | remove.
+  | { type: "reaction-in"; threadId: string; messageId: string; kind: string; action: "add" | "remove" }
   | { type: "error"; message: string };
 
 export type ChatEventListener = (event: ChatEvent) => void;

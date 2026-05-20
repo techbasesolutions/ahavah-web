@@ -449,6 +449,21 @@ export function decodeStanza(xml: string, ownUuid: string): ChatEvent | null {
       }
       return null;
     }
+    case "reaction": {
+      // <reaction xmlns="ahavah:reactions:0" from=.. to=.. message-id=..
+      //   kind="heart" action="add|remove"/> — published by the API to the
+      // peer's Redis channel and forwarded by the chat server. The server
+      // only ever relays the OTHER party's reactions to us.
+      const messageId = root.getAttribute("message-id") ?? "";
+      if (!messageId) return null;
+      const fromUserId = bareJid(root.getAttribute("from"));
+      const toUserId = bareJid(root.getAttribute("to"));
+      const threadId = fromUserId === ownUuid ? toUserId : fromUserId;
+      if (!threadId) return null;
+      const kind = root.getAttribute("kind") || "heart";
+      const action = root.getAttribute("action") === "remove" ? "remove" : "add";
+      return { type: "reaction-in", threadId, messageId, kind, action };
+    }
     case "open":
     case "features":
       // Stream handshake artifacts — consumed by ChatClient state machine.
