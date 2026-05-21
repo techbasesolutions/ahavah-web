@@ -5,10 +5,10 @@
 /* eslint-disable no-restricted-syntax */
 import { LogoMark } from "@/components/brand/logo-mark";
 
-// Stable Unsplash portrait IDs. ?w=400&h=480 keeps payload small for the
-// 160×200 card slots. crop=faces centers on the subject.
-const IMG = (id: string) =>
-  `https://images.unsplash.com/${id}?w=400&h=480&fit=crop&crop=faces&auto=format&q=70`;
+// Local optimized portraits from public/marketing (Ahavah Stock). The folder
+// has 3 distinct single women + 1 man, so the panel shows 4 distinct,
+// gender-matched cards rather than repeating a face. Add a 5th portrait to
+// the folder + this list to restore a fifth card.
 
 /**
  * Floating profile cards — positions are container-relative (percent)
@@ -28,11 +28,10 @@ const CARDS: ReadonlyArray<{
   top: string;
   rot: number;
 }> = [
-  { name: "Yael",   src: IMG("photo-1494790108377-be9c29b29330"), left: "8%",  top: "8%",  rot: -6 },
-  { name: "Adina",  src: IMG("photo-1438761681033-6461ffad8d80"), left: "44%", top: "18%", rot: 4 },
-  { name: "Daniel", src: IMG("photo-1500648767791-00dcc994a43e"), left: "70%", top: "5%",  rot: -3 },
-  { name: "Esther", src: IMG("photo-1544005313-94ddf0286df2"),    left: "18%", top: "36%", rot: 5 },
-  { name: "Rivka",  src: IMG("photo-1502823403499-6ccfcf4fb453"), left: "58%", top: "42%", rot: -8 },
+  { name: "Yael",   src: "/marketing/woman-1.webp",  left: "8%",  top: "8%",  rot: -6 },
+  { name: "Adina",  src: "/marketing/avatar-1.webp", left: "44%", top: "18%", rot: 4 },
+  { name: "Daniel", src: "/marketing/avatar-2.webp", left: "70%", top: "5%",  rot: -3 },
+  { name: "Esther", src: "/marketing/avatar-3.webp", left: "18%", top: "42%", rot: 5 },
 ];
 
 /**

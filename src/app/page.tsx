@@ -336,21 +336,21 @@ export default function LandingPage() {
                 {
                   n: 1,
                   title: "Build your profile",
-                  img: "https://images.unsplash.com/photo-1521119989659-a83eee488004?w=800&q=80&auto=format&fit=crop",
+                  img: "/marketing/step-discover.webp",
                   alt: "Person on a phone, smiling, sunlit",
                   body: "16 quick questions about who you are, what you practice, and what you're looking for. Photos + one selfie verification.",
                 },
                 {
                   n: 2,
                   title: "Discover, on your terms",
-                  img: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=800&q=80&auto=format&fit=crop",
+                  img: "/marketing/step-map.webp",
                   alt: "World map with pins, evoking a global community",
                   body: "Browse curated profiles, filter by faith + lifestyle + location, or pan the map to find your diaspora. No swipe-fatigue feed.",
                 },
                 {
                   n: 3,
                   title: "Match. Message. Meet.",
-                  img: "https://images.unsplash.com/photo-1529333166437-7750a6dd5a70?w=800&q=80&auto=format&fit=crop",
+                  img: "/marketing/step-match.webp",
                   alt: "Two cups of coffee on a sunlit table",
                   body: "Mutual likes unlock chat. Translation built in. Block + report in one tap if anything's off. We're here to find a partner, not a pen-pal.",
                 },
@@ -440,7 +440,7 @@ export default function LandingPage() {
               <figcaption className="mt-6 flex items-center gap-3 lg:justify-center not-italic">
                 <div className="size-11 rounded-full overflow-hidden shrink-0 bg-(--card)">
                   <img
-                    src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=160&q=80&auto=format&fit=crop"
+                    src="/marketing/avatar-1.webp"
                     alt=""
                     loading="lazy"
                     decoding="async"
@@ -645,12 +645,12 @@ function CardStack({ className = "" }: { className?: string }) {
   const cards = [
     {
       key: 3,
-      src: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=600&q=80&auto=format&fit=crop",
+      src: "/marketing/couple-1.webp",
       classes: "rotate-[-7deg] translate-y-2 scale-[0.93] brightness-[0.92] z-1",
     },
     {
       key: 2,
-      src: "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=600&q=80&auto=format&fit=crop",
+      src: "/marketing/couple-2.webp",
       classes: "rotate-[4deg] translate-y-1 scale-[0.96] brightness-[0.96] z-2",
     },
   ];
@@ -671,7 +671,7 @@ function CardStack({ className = "" }: { className?: string }) {
       {/* Top card with caption */}
       <div className="absolute inset-0 rounded-[28px] overflow-hidden border-4 border-white bg-(--card) shadow-[0_20px_50px_rgba(15,11,31,0.20)] rotate-[-1deg] z-3">
         <img
-          src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=600&q=80&auto=format&fit=crop"
+          src="/marketing/woman-1.webp"
           alt=""
           loading="eager"
           className="w-full h-full object-cover"
@@ -700,19 +700,19 @@ function PhoneMockup({ className = "" }: { className?: string }) {
     <div className={`relative w-full max-w-[480px] aspect-[1/1.05] ${className}`} aria-hidden="true">
       {/* Floating profile cards */}
       <FloatCard
-        src="https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=200&q=80&auto=format&fit=crop"
+        src="/marketing/couple-3.webp"
         className="top-[6%] left-[4%] -rotate-[10deg] w-[100px]"
       />
       <FloatCard
-        src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&q=80&auto=format&fit=crop"
+        src="/marketing/couple-4.webp"
         className="bottom-[8%] right-[2%] rotate-[12deg] w-[100px]"
       />
       <FloatCard
-        src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=160&q=80&auto=format&fit=crop"
+        src="/marketing/couple-5.webp"
         className="bottom-[16%] left-0 rotate-[8deg] w-[80px]"
       />
       <FloatCard
-        src="https://images.unsplash.com/photo-1463453091185-61582044d556?w=180&q=80&auto=format&fit=crop"
+        src="/marketing/couple-6.webp"
         className="top-[14%] right-[6%] -rotate-[6deg] w-[86px]"
       />
 
@@ -733,7 +733,7 @@ function PhoneMockup({ className = "" }: { className?: string }) {
           {/* Profile card */}
           <div className="flex-1 mx-3 mt-2 mb-3 rounded-[18px] overflow-hidden relative">
             <img
-              src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&q=80&auto=format&fit=crop"
+              src="/marketing/avatar-2.webp"
               alt=""
               loading="eager"
               decoding="async"
