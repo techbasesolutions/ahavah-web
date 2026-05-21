@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, Ultra } from "next/font/google";
 
+import { Analytics } from "@vercel/analytics/next";
+
 import { ServiceWorkerRegister } from "@/components/sw-register";
 import { ThemeProvider } from "@/components/system/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
@@ -115,6 +117,9 @@ export default function RootLayout({
               when handlers called toast.error(). */}
           <Toaster position="top-center" richColors closeButton />
         </ThemeProvider>
+        {/* Vercel Web Analytics — privacy-friendly page-view + visitor metrics.
+            Activated in the Vercel dashboard; this mounts the collector. */}
+        <Analytics />
       </body>
     </html>
   );
