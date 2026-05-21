@@ -45,7 +45,7 @@ const FAQS: ReadonlyArray<{ q: string; a: string }> = [
   },
   {
     q: "When does it launch?",
-    a: "Spring 2026 for founding members. The waitlist will receive an email with a one-tap sign-in link as soon as invites open.",
+    a: "Summer 2026 for founding members. The waitlist will receive an email with a one-tap sign-in link as soon as invites open.",
   },
 ];
 

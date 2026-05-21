@@ -174,7 +174,7 @@ export default function LandingPage() {
                 <div className="flex flex-wrap items-center gap-2 mb-6">
                   <Pill variant="lavender">Pre-launch</Pill>
                   <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-(--ink-2)">
-                    Spring 2026
+                    Summer 2026
                   </span>
                 </div>
 

@@ -62,7 +62,7 @@ export function LandingStickyCta({ targetId = "waitlist" }: { targetId?: string 
           Join the waitlist
         </div>
         <div className="text-[11px] text-(--ink-2) mt-0.5">
-          12,400+ already on the list · Spring 2026
+          Founding members welcome · Summer 2026
         </div>
       </div>
       <Button
