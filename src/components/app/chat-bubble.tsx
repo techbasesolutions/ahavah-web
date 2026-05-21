@@ -112,6 +112,18 @@ type TextBubbleProps = VariantProps<typeof bubbleRowVariants> & {
   canReact?: boolean;
   /** Toggle the viewer's reaction. */
   onReact?: () => void;
+  /** Incoming bubbles only: enables the on-demand Translate affordance. */
+  translatable?: boolean;
+  /** Translation state for this message (from the chat hook). */
+  translation?: {
+    state: "loading" | "done" | "error";
+    text?: string;
+    showing: "original" | "translation";
+  };
+  /** Trigger an on-demand translation. */
+  onTranslate?: () => void;
+  /** Flip original/translation. */
+  onToggleTranslation?: () => void;
   children: React.ReactNode;
 };
 
@@ -122,10 +134,16 @@ export function TextBubble({
   reacted = false,
   canReact = false,
   onReact,
+  translatable = false,
+  translation,
+  onTranslate,
+  onToggleTranslation,
   children,
 }: TextBubbleProps) {
   const resolvedSide = side ?? "them";
   const gesture = useReactGesture(canReact ? onReact : undefined);
+  const showingTranslation =
+    translation?.state === "done" && translation.showing === "translation";
   return (
     <motion.div
       className={bubbleRowVariants({ side })}
@@ -142,8 +160,35 @@ export function TextBubble({
           className={bubbleSurfaceVariants({ side })}
           {...(canReact ? gesture : {})}
         >
-          {children}
+          {showingTranslation ? translation?.text : children}
         </div>
+
+        {/* On-demand translate affordance (incoming bubbles only). */}
+        {translatable && (
+          <div className="mt-2">
+            {!translation || translation.state === "error" ? (
+              <Button
+                variant="link"
+                size="xs"
+                onClick={onTranslate}
+                className="h-auto p-0 text-(--ink-3)"
+              >
+                {translation?.state === "error" ? "Couldn't translate, retry" : "Translate"}
+              </Button>
+            ) : translation.state === "loading" ? (
+              <span className="text-caption text-(--ink-3)">Translating…</span>
+            ) : (
+              <Button
+                variant="link"
+                size="xs"
+                onClick={onToggleTranslation}
+                className="h-auto p-0 text-(--ink-3)"
+              >
+                {translation.showing === "translation" ? "Show original" : "Show translation"}
+              </Button>
+            )}
+          </div>
+        )}
 
         {/* Desktop hover affordance — heart button, hover-capable pointers
             only. Touch uses the double-tap / long-press gesture above. */}
