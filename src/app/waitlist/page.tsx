@@ -15,6 +15,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 
 import { WaitlistWizard, type WaitlistPhase } from "@/components/app/waitlist-wizard";
+import { WaitlistShareCard } from "@/components/app/waitlist-share-card";
 import { LogoMark } from "@/components/brand/logo-mark";
 import { PENDING_EMAIL_KEY } from "@/lib/storage-keys";
 import {
@@ -26,6 +27,7 @@ import {
   ALL_COUNTRIES,
   REFERRAL_SOURCES,
   postWaitlist,
+  getWaitlistCount,
   type WaitlistAnswers,
 } from "@/lib/waitlist";
 import type { Intent, Sex } from "@/lib/profile-schema";
@@ -74,6 +76,7 @@ function WaitlistFlow() {
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const [position, setPosition] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -264,6 +267,11 @@ function WaitlistFlow() {
         /* ignore */
       }
       setDone(true);
+      getWaitlistCount()
+        .then((r) => setPosition(r.count))
+        .catch(() => {
+          /* position is decorative; leave null */
+        });
     } catch {
       setError("Couldn't save your details. Please try again.");
     } finally {
@@ -313,6 +321,10 @@ function WaitlistFlow() {
             <span className="font-semibold text-(--ink)">{email}</span> a sign-in
             link the moment we launch.
           </p>
+        </motion.div>
+
+        <motion.div {...fadeUp} transition={{ duration: 0.3, delay: 0.25 }}>
+          <WaitlistShareCard position={position} />
         </motion.div>
 
         <motion.p

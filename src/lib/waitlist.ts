@@ -57,3 +57,7 @@ export {
 export async function postWaitlist(email: string, answers: WaitlistAnswers = {}) {
   return apiClient.post<{ ok: boolean }>("/waitlist", { email, answers });
 }
+
+export async function getWaitlistCount(): Promise<{ count: number }> {
+  return apiClient.get<{ count: number }>("/waitlist/count");
+}
