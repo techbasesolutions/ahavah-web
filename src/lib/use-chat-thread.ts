@@ -27,6 +27,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { chatClient } from "@/lib/chat-client";
 import { appendMessage, getThreadHistory } from "@/lib/chat-cache";
 import { apiClient } from "@/lib/api-client";
+import { translateText } from "@/lib/translate";
 import type { ChatEvent, ChatMessage } from "@/lib/chat-types";
 
 const ACK_TIMEOUT_MS = 10_000;
@@ -47,6 +48,21 @@ export type UseChatThreadResult = {
   reactions: Map<string, { kind: string; mine: boolean }>;
   /** Toggle the viewer's reaction to a message (optimistic + POST). */
   react: (messageId: string) => void;
+  /** messageId -> on-demand translation state. */
+  translations: Map<
+    string,
+    { state: "loading" | "done" | "error"; text?: string; showing: "original" | "translation" }
+  >;
+  /** Translate a message to the reader's browser locale (on demand). */
+  translate: (messageId: string, text: string) => void;
+  /** Flip a translated message between original + translation. */
+  toggleTranslation: (messageId: string) => void;
+};
+
+type TranslationEntry = {
+  state: "loading" | "done" | "error";
+  text?: string;
+  showing: "original" | "translation";
 };
 
 /**
@@ -66,6 +82,7 @@ export function useChatThread(threadId: string, myUuid: string): UseChatThreadRe
   const [reactions, setReactions] = useState<Map<string, { kind: string; mine: boolean }>>(
     new Map(),
   );
+  const [translations, setTranslations] = useState<Map<string, TranslationEntry>>(new Map());
 
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Map of clientId → timeout handle for pending-ack timeouts.
@@ -353,6 +370,47 @@ export function useChatThread(threadId: string, myUuid: string): UseChatThreadRe
     [threadId, myUuid],
   );
 
+  // -----------------------------------------------------------------------
+  // Translate — on-demand, to the reader's browser locale. Per-session
+  // (state lives here; backend passes through on any failure).
+  // -----------------------------------------------------------------------
+  const translate = useCallback((messageId: string, text: string) => {
+    setTranslations((prev) => {
+      const next = new Map(prev);
+      next.set(messageId, { state: "loading", showing: "translation" });
+      return next;
+    });
+    const target = typeof navigator !== "undefined" ? navigator.language : "en-US";
+    void translateText(text, target)
+      .then((res) => {
+        setTranslations((prev) => {
+          const next = new Map(prev);
+          next.set(messageId, { state: "done", text: res.translated, showing: "translation" });
+          return next;
+        });
+      })
+      .catch(() => {
+        setTranslations((prev) => {
+          const next = new Map(prev);
+          next.set(messageId, { state: "error", showing: "original" });
+          return next;
+        });
+      });
+  }, []);
+
+  const toggleTranslation = useCallback((messageId: string) => {
+    setTranslations((prev) => {
+      const cur = prev.get(messageId);
+      if (!cur || cur.state !== "done") return prev;
+      const next = new Map(prev);
+      next.set(messageId, {
+        ...cur,
+        showing: cur.showing === "translation" ? "original" : "translation",
+      });
+      return next;
+    });
+  }, []);
+
   // Clean up timers on unmount.
   useEffect(() => {
     const timers = ackTimersRef.current;
@@ -363,8 +421,30 @@ export function useChatThread(threadId: string, myUuid: string): UseChatThreadRe
   }, []);
 
   return useMemo(
-    () => ({ messages, isHydrated, theyAreTyping, send, setMyTyping, reactions, react }),
-    [messages, isHydrated, theyAreTyping, send, setMyTyping, reactions, react],
+    () => ({
+      messages,
+      isHydrated,
+      theyAreTyping,
+      send,
+      setMyTyping,
+      reactions,
+      react,
+      translations,
+      translate,
+      toggleTranslation,
+    }),
+    [
+      messages,
+      isHydrated,
+      theyAreTyping,
+      send,
+      setMyTyping,
+      reactions,
+      react,
+      translations,
+      translate,
+      toggleTranslation,
+    ],
   );
 }
 
