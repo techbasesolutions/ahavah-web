@@ -264,20 +264,20 @@ export default function LandingPage() {
                 </form>
 
                 {/* ── Stats ────────────────────────────────────────────────── */}
-                <div className="grid grid-cols-3 gap-6 mt-14 max-w-[520px]" aria-label="Pre-launch interest">
+                <div className="mt-14 flex flex-wrap items-start gap-x-9 gap-y-6 max-w-[520px]" aria-label="Pre-launch interest">
                   {[
                     aboveFloor(waitlistCount)
                       ? { num: waitlistCount.toLocaleString(), suffix: "", lbl: "on the waitlist" }
-                      : { num: "Early", suffix: "", lbl: "be among the first" },
-                    { num: "Worldwide", suffix: "", lbl: "diaspora reach" },
+                      : { num: "Founding", suffix: "", lbl: "members welcome" },
+                    { num: "Worldwide", suffix: "",  lbl: "diaspora reach" },
                     { num: "100",       suffix: "+", lbl: "languages"      },
                   ].map(({ num, suffix, lbl }) => (
-                    <div key={lbl} className="min-w-0 text-center">
+                    <div key={lbl}>
                       <div
-                        className="text-(--ink) tabular-nums"
+                        className="whitespace-nowrap text-(--ink) tabular-nums"
                         style={{
                           fontFamily: "var(--font-display)",
-                          fontSize: "clamp(22px, 2.6vw, 40px)",
+                          fontSize: "clamp(22px, 2.2vw, 32px)",
                           fontWeight: 400,
                           letterSpacing: "-0.015em",
                           lineHeight: 1,
