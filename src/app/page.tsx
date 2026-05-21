@@ -350,7 +350,7 @@ export default function LandingPage() {
               {/* Covenant values */}
               <div className="relative z-10 grid gap-5 sm:grid-cols-3 sm:gap-7">
                 {[
-                  "Built for Messianic Torah-observant singles",
+                  "Built for Messianic Torah-observant believers",
                   "Aligned in Torah, faith, family, and covenant values",
                   "For believers who take Torah, marriage, and family seriously",
                 ].map((v) => (
@@ -548,41 +548,6 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ════════════════════════════ QUOTE ═════════════════════════════ */}
-        <section className="px-4 sm:px-6 md:px-8 py-12 lg:py-20">
-          <div className="mx-auto max-w-[480px] lg:max-w-[880px]">
-            <figure className="lg:text-center px-2 lg:px-6 py-12">
-              <blockquote
-                className="text-(--ink) font-semibold"
-                style={{
-                  fontSize: "clamp(22px, 2.5vw, 32px)",
-                  lineHeight: 1.4,
-                  letterSpacing: "-0.015em",
-                }}
-              >
-                &ldquo;Other apps treated my observance like a niche preference.
-                Ahavah is the first place I felt seen, before I&apos;d even
-                written a bio.&rdquo;
-              </blockquote>
-              <figcaption className="mt-6 flex items-center gap-3 lg:justify-center not-italic">
-                <div className="size-11 rounded-full overflow-hidden shrink-0 bg-(--card)">
-                  <img
-                    src="/marketing/avatar-1.webp"
-                    alt=""
-                    loading="lazy"
-                    decoding="async"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="text-left">
-                  <div className="text-[15px] font-semibold text-(--ink)">Devorah, beta tester</div>
-                  <div className="text-[13px] text-(--ink-2)">Brooklyn → Jerusalem · matched in week 3</div>
-                </div>
-              </figcaption>
-            </figure>
-          </div>
-        </section>
-
         {/* ═══════════════════════════ CTA BAND ═══════════════════════════ */}
         <section className="px-4 sm:px-6 md:px-8 pt-4 pb-20 lg:pb-30">
           <div className="mx-auto max-w-[480px] lg:max-w-[1200px]">
@@ -615,8 +580,8 @@ export default function LandingPage() {
                 Built across borders. Built for you.
               </h2>
               <p className="relative z-1 mt-4 mb-8 mx-auto max-w-[540px] text-[15px] lg:text-[17px] leading-[1.55] text-white/85">
-                Join 12,400+ Torah-observant singles waiting for launch. Founding
-                members get six months of Premium free.
+                Join the remnant of Torah-observant believers waiting for launch.
+                Founding members get six months of Premium free.
               </p>
               <Button
                 tone="cta"
