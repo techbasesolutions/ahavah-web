@@ -14,6 +14,7 @@ export default function CommunityGuidelinesPage() {
       toc={[
         { label: "Be kind",              icon: "heart",  slug: "be-kind", active: true },
         { label: "Be real",              icon: "shield", slug: "be-real" },
+        { label: "Be modest",            icon: "heart",  slug: "be-modest" },
         { label: "Be safe",              icon: "lock",   slug: "be-safe" },
         { label: "If you see something", icon: "alert",  slug: "if-you-see-something" },
         { label: "Reporting emergency",  icon: "phone",  slug: "contact" },
@@ -28,6 +29,11 @@ export default function CommunityGuidelinesPage() {
           slug: "be-real",
           heading: "Be real",
           body: "Use real photos of yourself, real first name, real age. No filters that obscure your face. No catfishing. Verification is optional but encouraged.",
+        },
+        {
+          slug: "be-modest",
+          heading: "Be modest",
+          body: "Dress and present yourself modestly, in line with Torah values. No revealing clothing, cleavage, or suggestive imagery. Photos that do not meet these standards will be removed.",
         },
         {
           slug: "be-safe",

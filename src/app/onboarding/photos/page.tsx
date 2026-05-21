@@ -249,7 +249,15 @@ export default function PhotosStep() {
           ? `${quota.currentPhotoCount} of ${SLOT_COUNT} added.`
           : "At least one photo required."}
       </p>
-      <p className="mt-1 text-caption text-(--ink-3)">
+      <div className="mt-4 rounded-2xl bg-(--card) p-4 ring-1 ring-(--hairline)">
+        <p className="text-caption font-semibold text-(--ink)">Photo guidelines</p>
+        <p className="mt-1 text-caption text-(--ink-2)">
+          Dress modestly. No cleavage, no revealing or tight clothing, and
+          nothing suggestive. Stay fully covered, no exposed midriff. Your face
+          must be clearly visible, and your main photo should be of you alone.
+        </p>
+      </div>
+      <p className="mt-3 text-caption text-(--ink-3)">
         JPEG, PNG, or WebP. Photos are compressed before upload, then
         reviewed by automated moderation.
       </p>
