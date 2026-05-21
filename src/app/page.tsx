@@ -21,6 +21,7 @@ import {
   Globe,
   Heart,
   IdCard,
+  Languages,
   MapPin,
   PlayIcon,
   Scan,
@@ -48,7 +49,12 @@ import {
   type CarouselApi,
 } from "@/components/ui/carousel";
 import { ProgressDots } from "@/components/app/progress-dots";
-import { Pill } from "@/components/kibo-ui/pill";
+import {
+  Pill,
+  PillAvatar,
+  PillAvatarGroup,
+  PillIndicator,
+} from "@/components/kibo-ui/pill";
 import { useRedirectIfSignedIn } from "@/lib/use-redirect-if-signed-in";
 import { PENDING_EMAIL_KEY } from "@/lib/storage-keys";
 import { postWaitlist } from "@/lib/waitlist";
@@ -568,48 +574,204 @@ function FeatureCard({
   );
 }
 
-/* ── FeatureSlider — six composed marketing screens (canonical artworks from
-   "Ahavah Marketing Screens.html") shown one at a time in the kit Carousel
-   (embla). Each screen bakes in its own overline + display headline + caption
-   + phone mockup, so the slide is the full artwork; the headline/caption ride
-   along as alt text for assistive tech. Screens 01–05 share the phone-mockup
-   portrait ratio (object-cover, full bleed); 06 is a community poster of a
-   different ratio, so it sits object-contain on its own indigo so the letter-
-   box bands read as part of the slide. Swipe everywhere; arrows on desktop;
-   ProgressDots indicator (lavender, matching the section overline). */
-const FEATURE_SLIDES = [
+/* ── FeatureSlider — the canonical "Ahavah Marketing Screens" feature deck
+   rebuilt as LIVE kit components (not pictures of the slides). Each slide keeps
+   the canonical signature — an overline, a heavy display headline with one
+   accent-coloured phrase, a caption, and the canonical floating chip rendered
+   as a real kit Pill — so it stays theme-adaptive and selectable. Light slides
+   sit on the themed Card surface with a deep accent; the two "global" slides
+   (Map, Community) keep the canonical dark surface so their lime/gold accents
+   pop. Swipe everywhere, arrows on desktop, ProgressDots indicator. */
+type SlideTone = "lavender" | "lime" | "pink" | "indigo" | "emerald" | "gold";
+
+// Accent text class + raw colour (for the dot + corner glow + watermark). All
+// brand tokens exist in globals.css; emerald is the Tailwind default.
+const SLIDE_TONE: Record<SlideTone, { text: string; color: string }> = {
+  lavender: { text: "text-(--color-lavender)", color: "var(--color-lavender)" },
+  lime:     { text: "text-lime",               color: "var(--color-lime)" },
+  pink:     { text: "text-(--color-pink)",     color: "var(--color-pink)" },
+  indigo:   { text: "text-indigo",             color: "var(--color-indigo)" },
+  emerald:  { text: "text-emerald-600",        color: "#10b981" },
+  gold:     { text: "text-gold",               color: "var(--color-gold)" },
+};
+
+type ChipSpec =
+  | { kind: "indicator"; text: string }
+  | { kind: "icon"; icon: typeof Heart; text: string }
+  | { kind: "match" }
+  | { kind: "avatars"; text: string };
+
+type FeatureSlide = {
+  n: string;
+  category: string;
+  head: string;
+  accent: string;
+  body: string;
+  tone: SlideTone;
+  dark?: boolean;
+  chip: ChipSpec;
+};
+
+const FEATURE_SLIDES: FeatureSlide[] = [
   {
-    src: "/marketing/feature-discover.webp",
-    alt: "Discover: Browse with intention. One verified profile at a time. Skip what isn't right, like what is.",
-    fit: "cover" as const,
+    n: "01",
+    category: "Discover",
+    head: "Browse with ",
+    accent: "intention.",
+    body: "One verified profile at a time. Skip what isn't right, like what is.",
+    tone: "lavender",
+    chip: { kind: "indicator", text: "Verified profile" },
   },
   {
-    src: "/marketing/feature-map.webp",
-    alt: "Map: Love is anywhere on earth. See who's nearby, or oceans away. Tap a pin, open a profile.",
-    fit: "cover" as const,
+    n: "02",
+    category: "Map",
+    head: "Love is anywhere on ",
+    accent: "earth.",
+    body: "See who's nearby, or oceans away. Tap a pin, open a profile.",
+    tone: "lime",
+    dark: true,
+    chip: { kind: "icon", icon: MapPin, text: "2,840 nearby" },
   },
   {
-    src: "/marketing/feature-match.webp",
-    alt: "It's a match: When it clicks, it sparks. Two yeses, one moment, then a way to actually say hello.",
-    fit: "cover" as const,
+    n: "03",
+    category: "It's a match",
+    head: "When it clicks, ",
+    accent: "it sparks.",
+    body: "Two yeses, one moment. Then a way to actually say hello.",
+    tone: "pink",
+    chip: { kind: "match" },
   },
   {
-    src: "/marketing/feature-chat.webp",
-    alt: "Chat: Communicate with matches. Real-time translation in 100+ languages, built in. No copy-paste.",
-    fit: "cover" as const,
+    n: "04",
+    category: "Chat",
+    head: "Communicate with ",
+    accent: "matches.",
+    body: "Real-time translation in 100+ languages, built in. No copy-paste.",
+    tone: "indigo",
+    chip: { kind: "icon", icon: Languages, text: "עברית → English" },
   },
   {
-    src: "/marketing/feature-matches.webp",
-    alt: "Matches and liked-you: Your people, all in one place. Every mutual match in a tap. See exactly who liked you with Premium.",
-    fit: "cover" as const,
+    n: "05",
+    category: "Matches & liked you",
+    head: "Your people, ",
+    accent: "all in one place.",
+    body: "Every mutual match in a tap. See exactly who liked you with Premium.",
+    tone: "emerald",
+    chip: { kind: "icon", icon: Heart, text: "7 liked you" },
   },
   {
-    src: "/marketing/feature-community.webp",
-    alt: "Community: For the diaspora. By the diaspora.",
-    fit: "contain" as const,
-    bg: "#1a1340",
+    n: "06",
+    category: "Community",
+    head: "For the diaspora. ",
+    accent: "By the diaspora.",
+    body: "A home built for Torah-observant believers worldwide, wherever you are.",
+    tone: "gold",
+    dark: true,
+    chip: { kind: "avatars", text: "@ahavah" },
   },
 ];
+
+const DARK_SLIDE_BG =
+  "linear-gradient(155deg, oklch(0.22 0.09 285), oklch(0.15 0.07 285))";
+
+function SlideChip({ slide }: { slide: FeatureSlide }) {
+  const onDark = slide.dark
+    ? "border-transparent bg-white/12 text-white backdrop-blur-sm"
+    : "";
+  switch (slide.chip.kind) {
+    case "indicator":
+      return (
+        <Pill className={onDark}>
+          <PillIndicator variant="brand" pulse />
+          {slide.chip.text}
+        </Pill>
+      );
+    case "icon": {
+      const Icon = slide.chip.icon;
+      return (
+        <Pill className={onDark}>
+          <Icon size={13} className={slide.dark ? undefined : SLIDE_TONE[slide.tone].text} />
+          {slide.chip.text}
+        </Pill>
+      );
+    }
+    case "match":
+      return (
+        <Pill className="border-transparent bg-lime text-[#0F0B1F]">
+          <Heart size={12} fill="#0F0B1F" stroke="none" />
+          It&apos;s a match!
+        </Pill>
+      );
+    case "avatars":
+      return (
+        <Pill className={onDark}>
+          <PillAvatarGroup>
+            <PillAvatar src="/marketing/avatar-1.webp" fallback="A" />
+            <PillAvatar src="/marketing/avatar-2.webp" fallback="B" />
+            <PillAvatar src="/marketing/avatar-3.webp" fallback="C" />
+          </PillAvatarGroup>
+          {slide.chip.text}
+        </Pill>
+      );
+  }
+}
+
+function FeatureSlideCard({ slide }: { slide: FeatureSlide }) {
+  const tone = SLIDE_TONE[slide.tone];
+  return (
+    <Card
+      tone="elevated"
+      className="relative h-full overflow-hidden rounded-[28px] p-7 sm:p-9 lg:p-11 min-h-[360px] sm:min-h-[400px] flex flex-col justify-between items-start gap-7 ring-1 ring-(--hairline)"
+      style={slide.dark ? { background: DARK_SLIDE_BG } : undefined}
+    >
+      {/* accent corner glow */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -right-12 -top-16 size-64 rounded-full blur-3xl"
+        style={{ background: `color-mix(in oklch, ${tone.color} ${slide.dark ? "55%" : "32%"}, transparent)` }}
+      />
+      {/* oversized feature numeral watermark */}
+      <span
+        aria-hidden
+        className={`pointer-events-none absolute right-3 -bottom-8 leading-none select-none ${tone.text}`}
+        style={{ fontFamily: "var(--font-display)", fontSize: "clamp(150px, 26vw, 260px)", opacity: slide.dark ? 0.16 : 0.09 }}
+      >
+        {slide.n}
+      </span>
+
+      <div className="relative z-10 flex flex-col gap-3.5 sm:gap-4">
+        <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em]">
+          <span aria-hidden className="size-1.5 rounded-full" style={{ backgroundColor: tone.color }} />
+          <span className={tone.text}>
+            {slide.n} · {slide.category}
+          </span>
+        </div>
+
+        <h3
+          className={slide.dark ? "text-white" : "text-(--ink)"}
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: "clamp(30px, 5.4vw, 46px)",
+            lineHeight: 1.04,
+            letterSpacing: "-0.02em",
+            fontWeight: 400,
+          }}
+        >
+          {slide.head}
+          <span className={tone.text}>{slide.accent}</span>
+        </h3>
+
+        <p className={`text-[15px] sm:text-base leading-[1.6] max-w-[44ch] ${slide.dark ? "text-white/70" : "text-(--ink-2)"}`}>
+          {slide.body}
+        </p>
+      </div>
+
+      <div className="relative z-10">
+        <SlideChip slide={slide} />
+      </div>
+    </Card>
+  );
+}
 
 function FeatureSlider() {
   const [api, setApi] = useState<CarouselApi>();
@@ -631,23 +793,12 @@ function FeatureSlider() {
       <Carousel
         setApi={setApi}
         opts={{ loop: true, align: "center" }}
-        className="w-full max-w-[340px] sm:max-w-[380px]"
+        className="w-full max-w-[560px] lg:max-w-[760px]"
       >
         <CarouselContent>
           {FEATURE_SLIDES.map((slide) => (
-            <CarouselItem key={slide.src}>
-              <div
-                className="relative aspect-[1200/2134] overflow-hidden rounded-[28px] border border-(--hairline) shadow-[0_20px_50px_rgba(15,11,31,0.18)]"
-                style={slide.bg ? { backgroundColor: slide.bg } : undefined}
-              >
-                <img
-                  src={slide.src}
-                  alt={slide.alt}
-                  loading="lazy"
-                  decoding="async"
-                  className={`w-full h-full ${slide.fit === "contain" ? "object-contain" : "object-cover"}`}
-                />
-              </div>
+            <CarouselItem key={slide.n}>
+              <FeatureSlideCard slide={slide} />
             </CarouselItem>
           ))}
         </CarouselContent>
