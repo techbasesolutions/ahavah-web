@@ -39,6 +39,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { IconBadge } from "@/components/ui/icon-badge";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+  type CarouselApi,
+} from "@/components/ui/carousel";
+import { ProgressDots } from "@/components/app/progress-dots";
 import { Pill } from "@/components/kibo-ui/pill";
 import { useRedirectIfSignedIn } from "@/lib/use-redirect-if-signed-in";
 import { PENDING_EMAIL_KEY } from "@/lib/storage-keys";
@@ -322,44 +331,15 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ═════════════════════════ HOW IT WORKS ═════════════════════════ */}
+        {/* ═══════════════════ FEATURES — SIX-SCREEN SLIDER ═══════════════════ */}
         <section id="how" className="px-4 sm:px-6 md:px-8 py-20 lg:py-30">
           <div className="mx-auto max-w-[480px] lg:max-w-[1200px]">
             <SectionHead
-              overline="How it works"
-              title="Three steps to your first conversation."
-              body="Designed to get you talking with real people fast, without the endless onboarding spiral most apps make you suffer through."
+              overline="The experience"
+              title="Everything Ahavah does."
+              body="Six screens that carry the whole journey, from your first verified profile to a community spread across the diaspora."
             />
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
-              {[
-                {
-                  n: 1,
-                  title: "Build your profile",
-                  img: "/marketing/step-discover.webp",
-                  alt: "Person on a phone, smiling, sunlit",
-                  body: "16 quick questions about who you are, what you practice, and what you're looking for. Photos + one selfie verification.",
-                },
-                {
-                  n: 2,
-                  title: "Discover, on your terms",
-                  img: "/marketing/step-map.webp",
-                  alt: "World map with pins, evoking a global community",
-                  body: "Browse curated profiles, filter by faith + lifestyle + location, or pan the map to find your diaspora. No swipe-fatigue feed.",
-                },
-                {
-                  n: 3,
-                  title: "Match. Message. Meet.",
-                  img: "/marketing/step-match.webp",
-                  alt: "Two cups of coffee on a sunlit table",
-                  body: "Mutual likes unlock chat. Translation built in. Block + report in one tap if anything's off. We're here to find a partner, not a pen-pal.",
-                },
-              ].map(({ n, title, img, alt, body }) => (
-                <StepBlock key={n} n={n} title={title} img={img} alt={alt}>
-                  {body}
-                </StepBlock>
-              ))}
-            </div>
+            <FeatureSlider />
           </div>
         </section>
 
@@ -588,53 +568,99 @@ function FeatureCard({
   );
 }
 
-/* ── StepBlock — design has DIFFERENT mobile vs desktop layouts:
-   - Mobile: grid [44px badge | title+body], media tile spans both cols below
-   - Desktop: vertical stack — badge, media (4:3), h3, p
-   Achieved with responsive grid + reordering. */
-function StepBlock({
-  n,
-  title,
-  img,
-  alt,
-  children,
-}: {
-  n: number;
-  title: string;
-  img: string;
-  alt: string;
-  children: React.ReactNode;
-}) {
+/* ── FeatureSlider — six composed marketing screens (canonical artworks from
+   "Ahavah Marketing Screens.html") shown one at a time in the kit Carousel
+   (embla). Each screen bakes in its own overline + display headline + caption
+   + phone mockup, so the slide is the full artwork; the headline/caption ride
+   along as alt text for assistive tech. Screens 01–05 share the phone-mockup
+   portrait ratio (object-cover, full bleed); 06 is a community poster of a
+   different ratio, so it sits object-contain on its own indigo so the letter-
+   box bands read as part of the slide. Swipe everywhere; arrows on desktop;
+   ProgressDots indicator (lavender, matching the section overline). */
+const FEATURE_SLIDES = [
+  {
+    src: "/marketing/feature-discover.webp",
+    alt: "Discover: Browse with intention. One verified profile at a time. Skip what isn't right, like what is.",
+    fit: "cover" as const,
+  },
+  {
+    src: "/marketing/feature-map.webp",
+    alt: "Map: Love is anywhere on earth. See who's nearby, or oceans away. Tap a pin, open a profile.",
+    fit: "cover" as const,
+  },
+  {
+    src: "/marketing/feature-match.webp",
+    alt: "It's a match: When it clicks, it sparks. Two yeses, one moment, then a way to actually say hello.",
+    fit: "cover" as const,
+  },
+  {
+    src: "/marketing/feature-chat.webp",
+    alt: "Chat: Communicate with matches. Real-time translation in 100+ languages, built in. No copy-paste.",
+    fit: "cover" as const,
+  },
+  {
+    src: "/marketing/feature-matches.webp",
+    alt: "Matches and liked-you: Your people, all in one place. Every mutual match in a tap. See exactly who liked you with Premium.",
+    fit: "cover" as const,
+  },
+  {
+    src: "/marketing/feature-community.webp",
+    alt: "Community: For the diaspora. By the diaspora.",
+    fit: "contain" as const,
+    bg: "#1a1340",
+  },
+];
+
+function FeatureSlider() {
+  const [api, setApi] = useState<CarouselApi>();
+  const [selected, setSelected] = useState(0);
+
+  useEffect(() => {
+    if (!api) return;
+    const onSelect = () => setSelected(api.selectedScrollSnap());
+    onSelect();
+    api.on("select", onSelect);
+    api.on("reInit", onSelect);
+    return () => {
+      api.off("select", onSelect);
+    };
+  }, [api]);
+
   return (
-    <div className="grid lg:flex grid-cols-[44px_1fr] lg:flex-col gap-x-4 gap-y-2 lg:gap-y-5 items-start">
-      {/* Badge — col 1 mobile / first item desktop */}
-      <span
-        aria-hidden
-        className="row-span-2 lg:row-auto inline-grid place-items-center size-11 rounded-xl bg-[#0F0B1F] text-(--color-lime) font-extrabold text-lg shrink-0"
+    <div className="flex flex-col items-center">
+      <Carousel
+        setApi={setApi}
+        opts={{ loop: true, align: "center" }}
+        className="w-full max-w-[340px] sm:max-w-[380px]"
       >
-        {n}
-      </span>
+        <CarouselContent>
+          {FEATURE_SLIDES.map((slide) => (
+            <CarouselItem key={slide.src}>
+              <div
+                className="relative aspect-[1200/2134] overflow-hidden rounded-[28px] border border-(--hairline) shadow-[0_20px_50px_rgba(15,11,31,0.18)]"
+                style={slide.bg ? { backgroundColor: slide.bg } : undefined}
+              >
+                <img
+                  src={slide.src}
+                  alt={slide.alt}
+                  loading="lazy"
+                  decoding="async"
+                  className={`w-full h-full ${slide.fit === "contain" ? "object-contain" : "object-cover"}`}
+                />
+              </div>
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+        <CarouselPrevious className="hidden lg:flex -left-16 size-11 bg-(--card)" />
+        <CarouselNext className="hidden lg:flex -right-16 size-11 bg-(--card)" />
+      </Carousel>
 
-      {/* Title — col 2 mobile (above body) / after media desktop */}
-      <h3 className="lg:order-3 self-start lg:self-auto text-[19px] lg:text-[22px] font-bold text-(--ink) tracking-tight">
-        {title}
-      </h3>
-
-      {/* Body — col 2 mobile (below title) / last desktop */}
-      <p className="lg:order-4 text-[14px] lg:text-[15px] leading-[1.6] text-(--ink-2)">
-        {children}
-      </p>
-
-      {/* Media — spans both cols mobile (below text) / second desktop (above title) */}
-      <div className="col-span-2 lg:col-span-1 lg:order-2 mt-2 lg:mt-0 aspect-[16/10] lg:aspect-[4/3] overflow-hidden rounded-[20px] lg:rounded-[28px] bg-(--card) border border-(--hairline) shadow-[0_4px_12px_rgba(0,0,0,0.08)]">
-        <img
-          src={img}
-          alt={alt}
-          loading="lazy"
-          decoding="async"
-          className="w-full h-full object-cover"
-        />
-      </div>
+      <ProgressDots
+        count={FEATURE_SLIDES.length}
+        active={selected}
+        tone="lavender"
+        className="mt-7"
+      />
     </div>
   );
 }

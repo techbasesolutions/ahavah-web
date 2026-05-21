@@ -39,6 +39,9 @@ const dotVariants = cva("rounded-full transition-all duration-200", {
       lime:  "data-[state=active]:bg-lime data-[state=inactive]:bg-foreground/15",
       // White = on-photo paginator (profile/[uuid]).
       white: "data-[state=active]:bg-white data-[state=inactive]:bg-white/40",
+      // Lavender = on light/canvas surfaces (landing feature slider) where
+      // lime is too pale; pairs with the section's lavender overline accent.
+      lavender: "data-[state=active]:bg-(--color-lavender) data-[state=inactive]:bg-foreground/15",
     },
   },
   defaultVariants: { size: "md", tone: "lime" },
@@ -51,6 +54,7 @@ const barVariants = cva(
       tone: {
         lime:  "data-[state=reached]:bg-lime data-[state=upcoming]:bg-foreground/15",
         white: "data-[state=reached]:bg-white data-[state=upcoming]:bg-white/40",
+        lavender: "data-[state=reached]:bg-(--color-lavender) data-[state=upcoming]:bg-foreground/15",
       },
     },
     defaultVariants: { tone: "lime" },
