@@ -57,10 +57,10 @@ export default function FaqPage() {
           <Button
             tone="elevated"
             size="tap"
-            render={<Link href="/auth/sign-in" prefetch={false} />}
+            render={<Link href="/" prefetch={false} />}
             className="rounded-xl"
           >
-            Sign in
+            Join the waitlist
           </Button>
         }
       />

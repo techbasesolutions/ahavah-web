@@ -341,7 +341,7 @@ export default function LandingPage() {
                   className="text-(--ink)"
                   style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px, 4.6vw, 48px)", lineHeight: 1.04, letterSpacing: "-0.02em", fontWeight: 400 }}
                 >
-                  This is <span className="text-(--color-lavender)">Torah-observant dating</span> for serious believers.
+                  This is <span className="text-(--color-lavender)">courtship and marriage</span> for serious believers.
                 </p>
               </div>
 
