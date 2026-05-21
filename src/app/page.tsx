@@ -18,10 +18,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
+  EyeOff,
   Globe,
   Heart,
   IdCard,
   Languages,
+  Lock,
   MapPin,
   PlayIcon,
   Scan,
@@ -49,6 +51,7 @@ import {
   type CarouselApi,
 } from "@/components/ui/carousel";
 import { ProgressDots } from "@/components/app/progress-dots";
+import { useWaitlistCount, aboveFloor } from "@/components/app/waitlist-count";
 import {
   Pill,
   PillAvatar,
@@ -90,6 +93,7 @@ export default function LandingPage() {
   const [submitting, setSubmitting] = useState(false);
   const [msg, setMsg] = useState<{ kind: "success" | "error"; text: string } | null>(null);
   const formInputRef = useRef<HTMLInputElement>(null);
+  const waitlistCount = useWaitlistCount();
 
   useEffect(() => {
     try {
@@ -260,16 +264,18 @@ export default function LandingPage() {
                 {/* ── Stats ────────────────────────────────────────────────── */}
                 <div className="grid grid-cols-3 gap-6 mt-14 max-w-[520px]" aria-label="Pre-launch interest">
                   {[
-                    { num: "12,400", suffix: "+", lbl: "on the waitlist" },
-                    { num: "63",     suffix: "",  lbl: "countries"       },
-                    { num: "100",    suffix: "+", lbl: "languages"       },
+                    aboveFloor(waitlistCount)
+                      ? { num: waitlistCount.toLocaleString(), suffix: "", lbl: "on the waitlist" }
+                      : { num: "Early", suffix: "", lbl: "be among the first" },
+                    { num: "Worldwide", suffix: "", lbl: "diaspora reach" },
+                    { num: "100",       suffix: "+", lbl: "languages"      },
                   ].map(({ num, suffix, lbl }) => (
                     <div key={lbl} className="min-w-0 text-center">
                       <div
                         className="text-(--ink) tabular-nums"
                         style={{
                           fontFamily: "var(--font-display)",
-                          fontSize: "clamp(28px, 2.6vw, 40px)",
+                          fontSize: "clamp(22px, 2.6vw, 40px)",
                           fontWeight: 400,
                           letterSpacing: "-0.015em",
                           lineHeight: 1,
@@ -292,6 +298,43 @@ export default function LandingPage() {
                 <PhoneMockup className="hidden lg:block" />
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* ═══════════════════════ WHO IT'S FOR ═══════════════════════ */}
+        <section id="who" className="px-4 sm:px-6 md:px-8 py-20 lg:py-30">
+          <div className="mx-auto max-w-[480px] lg:max-w-[900px]">
+            <SectionHead
+              overline="Who it's for"
+              title="Built for believers who take it seriously."
+              body="Ahavah is a set-apart space for people seriously seeking marriage. We're here to grow legacy, build covenant love, raise families in the truth, and strengthen Torah-based communities and family structures. Not a numbers game. A remnant."
+            />
+
+            <div className="flex flex-wrap justify-center gap-2.5">
+              {[
+                "Torah-observant dating for serious believers",
+                "Built for Messianic Torah-observant singles",
+                "Not mainstream Christian dating. Not secular dating.",
+                "Aligned in Torah, faith, family, and covenant values",
+                "For believers who take Torah, marriage, and family seriously",
+              ].map((line) => (
+                <Pill key={line} variant="lavender" className="px-4 py-2 text-[13px]">
+                  {line}
+                </Pill>
+              ))}
+            </div>
+
+            <p className="mt-8 text-center text-[14px] text-(--ink-3)">
+              Modesty matters here, in conduct and in photos.{" "}
+              <Link
+                href="/legal/community-guidelines"
+                prefetch={false}
+                className="font-semibold text-(--color-lavender) underline-offset-2 hover:underline"
+              >
+                See our guidelines
+              </Link>
+              .
+            </p>
           </div>
         </section>
 
@@ -401,6 +444,39 @@ export default function LandingPage() {
                       {body}
                     </p>
                   </div>
+                </Card>
+              ))}
+            </div>
+
+            {/* Privacy principles — verification done responsibly */}
+            <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-3.5 lg:gap-6">
+              {[
+                {
+                  Icon: ShieldCheck,
+                  title: "Verification is for safety",
+                  body: "We confirm real people to keep predators and catfish out. Not surveillance. Not data harvesting.",
+                },
+                {
+                  Icon: Lock,
+                  title: "Minimal data retention",
+                  body: "ID and selfie checks are processed, not stockpiled. Your government ID stays with our verification provider (Stripe Identity). We keep only the pass or fail result.",
+                },
+                {
+                  Icon: EyeOff,
+                  title: "Never public",
+                  body: "Your verification photos and ID are never shown to other users and never posted anywhere. Sensitive data is not exposed.",
+                },
+              ].map(({ Icon, title, body }) => (
+                <Card
+                  key={title}
+                  tone="elevated"
+                  className="p-6 lg:p-7 gap-3 items-start rounded-[22px] lg:rounded-[28px]"
+                >
+                  <IconBadge tone="brand" size="xl" shape="square">
+                    <Icon size={22} />
+                  </IconBadge>
+                  <h3 className="text-[16px] lg:text-[17px] font-bold text-(--ink) tracking-tight">{title}</h3>
+                  <p className="text-sm leading-[1.55] text-(--ink-2)">{body}</p>
                 </Card>
               ))}
             </div>
