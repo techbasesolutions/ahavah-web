@@ -123,8 +123,18 @@ export function ChatThreadView({ id }: Props) {
     0,
   );
 
-  const { messages, isHydrated, theyAreTyping, send, setMyTyping, reactions, react } =
-    useChatThread(id, myUuid);
+  const {
+    messages,
+    isHydrated,
+    theyAreTyping,
+    send,
+    setMyTyping,
+    reactions,
+    react,
+    translations,
+    translate,
+    toggleTranslation,
+  } = useChatThread(id, myUuid);
 
   const [reportOpen, setReportOpen] = useState(false);
   const [draft, setDraft] = useState("");
@@ -236,6 +246,10 @@ export function ChatThreadView({ id }: Props) {
               reacted={reactions.has(m.id)}
               canReact={m.fromUserId !== myUuid}
               onReact={() => react(m.id)}
+              translatable={m.fromUserId !== myUuid}
+              translation={translations.get(m.id)}
+              onTranslate={() => translate(m.id, m.body)}
+              onToggleTranslation={() => toggleTranslation(m.id)}
             >
               <span
                 className={cn(
