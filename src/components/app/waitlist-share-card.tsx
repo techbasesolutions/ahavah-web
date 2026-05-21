@@ -7,7 +7,7 @@
 /* eslint-disable no-restricted-syntax */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Check, Copy, Download, Share2 } from "lucide-react";
+import { Check, Copy, Download, Share2, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -138,30 +138,53 @@ export function WaitlistShareCard({ position }: { position: number | null }) {
   }, []);
 
   return (
-    <div className="flex w-full max-w-sm flex-col items-center gap-5">
-      {/* On-screen preview (brand fonts) */}
+    <div className="flex w-full max-w-sm flex-col items-center gap-6">
+      <div className="text-center">
+        <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-(--color-lavender)">
+          Spread the word
+        </span>
+        <p className="mt-1.5 text-body font-semibold text-(--ink)">Invite the remnant.</p>
+      </div>
+
+      {/* On-screen preview (brand fonts) — mirrors the saved story image */}
       <Card
         tone="elevated"
-        className="relative w-full max-w-[260px] aspect-[9/16] items-center justify-center gap-5 rounded-[28px] p-7 text-center text-white ring-1 ring-white/10"
-        style={{ background: "linear-gradient(155deg, #1a1340, #3b2f7a)" }}
+        className="relative w-full max-w-[280px] aspect-[9/16] items-center justify-center gap-4 overflow-hidden rounded-[32px] p-7 text-center text-white ring-1 ring-white/10"
+        style={{ background: "linear-gradient(160deg, #1a1340 0%, #2d2568 55%, #3b2f7a 100%)" }}
       >
-        <LogoMark size={56} decorative />
-        <div style={{ fontFamily: "var(--font-display)", fontSize: "28px", lineHeight: 1.05 }}>
-          I&apos;m on the Ahavah waitlist.
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -top-10 left-1/2 size-40 -translate-x-1/2 rounded-full bg-lime/25 blur-3xl"
+        />
+        <Sparkles aria-hidden className="absolute right-5 top-5 size-4 text-lime/70" />
+
+        <LogoMark size={40} decorative className="relative" />
+
+        <div className="relative" style={{ fontFamily: "var(--font-display)", fontSize: "25px", lineHeight: 1.08 }}>
+          I&apos;m on the
+          <br />
+          Ahavah waitlist.
         </div>
+
         {position ? (
-          <div className="text-lime" style={{ fontFamily: "var(--font-display)", fontSize: "44px" }}>
-            #{position.toLocaleString()}
+          <div className="relative inline-flex flex-col items-center">
+            <span className="text-lime" style={{ fontFamily: "var(--font-display)", fontSize: "48px", lineHeight: 1 }}>
+              #{position.toLocaleString()}
+            </span>
+            <span className="mt-1 text-[11px] font-bold uppercase tracking-[0.14em] text-white/70">
+              of the remnant
+            </span>
           </div>
         ) : null}
-        <div className="text-[13px] text-white/80">
-          Torah-observant matchmaking for serious believers.
+
+        <div className="relative flex flex-col items-center gap-1">
+          <span className="text-[12px] text-white/75">Torah-observant matchmaking</span>
+          <span className="text-[13px] font-bold text-lime">ahavah.app</span>
         </div>
-        <div className="text-[13px] font-bold text-lime">ahavah.app</div>
       </Card>
 
       <div className="flex flex-wrap items-center justify-center gap-2.5">
-        <Button variant="outline" size="tap" onClick={handleSave}>
+        <Button size="tap" onClick={handleSave}>
           <Download className="size-4" />
           Save image
         </Button>

@@ -2,9 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
+import { Shirt } from "lucide-react";
 
 import { OnboardingShell } from "@/components/app/onboarding-shell";
 import { PhotoSlot } from "@/components/app/photo-slot";
+import { Card } from "@/components/ui/card";
+import { IconBadge } from "@/components/ui/icon-badge";
 import { listPhotos } from "@/lib/photo-storage";
 import { readOnboarded } from "@/lib/onboarded-storage";
 import { usePhotoQuota } from "@/lib/use-photo-quota";
@@ -249,14 +252,19 @@ export default function PhotosStep() {
           ? `${quota.currentPhotoCount} of ${SLOT_COUNT} added.`
           : "At least one photo required."}
       </p>
-      <div className="mt-4 rounded-2xl bg-(--card) p-4 ring-1 ring-(--hairline)">
-        <p className="text-caption font-semibold text-(--ink)">Photo guidelines</p>
-        <p className="mt-1 text-caption text-(--ink-2)">
-          Dress modestly. No cleavage, no revealing or tight clothing, and
-          nothing suggestive. Stay fully covered, no exposed midriff. Your face
-          must be clearly visible, and your main photo should be of you alone.
-        </p>
-      </div>
+      <Card tone="elevated" className="mt-4 flex-row items-start gap-3 rounded-2xl p-4 ring-1 ring-(--hairline)">
+        <IconBadge tone="brand" size="md" shape="square">
+          <Shirt size={16} />
+        </IconBadge>
+        <div className="flex flex-col gap-1">
+          <p className="text-caption font-semibold text-(--ink)">Dress modestly</p>
+          <p className="text-caption text-(--ink-2)">
+            No cleavage, revealing or tight clothing, or anything suggestive.
+            Stay fully covered. Your face must be clearly visible, and your main
+            photo should be of you alone.
+          </p>
+        </div>
+      </Card>
       <p className="mt-3 text-caption text-(--ink-3)">
         JPEG, PNG, or WebP. Photos are compressed before upload, then
         reviewed by automated moderation.

@@ -18,6 +18,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
+  Check,
   EyeOff,
   Globe,
   Heart,
@@ -42,6 +43,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { IconBadge } from "@/components/ui/icon-badge";
+import { Separator } from "@/components/ui/separator";
 import {
   Carousel,
   CarouselContent,
@@ -303,26 +305,64 @@ export default function LandingPage() {
 
         {/* ═══════════════════════ WHO IT'S FOR ═══════════════════════ */}
         <section id="who" className="px-4 sm:px-6 md:px-8 py-20 lg:py-30">
-          <div className="mx-auto max-w-[480px] lg:max-w-[900px]">
+          <div className="mx-auto max-w-[480px] lg:max-w-[940px]">
             <SectionHead
               overline="Who it's for"
               title="Built for believers who take it seriously."
               body="Ahavah is a set-apart space for people seriously seeking marriage. We're here to grow legacy, build covenant love, raise families in the truth, and strengthen Torah-based communities and family structures. Not a numbers game. A remnant."
             />
 
-            <div className="flex flex-wrap justify-center gap-2.5">
-              {[
-                "Torah-observant dating for serious believers",
-                "Built for Messianic Torah-observant singles",
-                "Not mainstream Christian dating. Not secular dating.",
-                "Aligned in Torah, faith, family, and covenant values",
-                "For believers who take Torah, marriage, and family seriously",
-              ].map((line) => (
-                <Pill key={line} variant="lavender" className="px-4 py-2 text-[13px]">
-                  {line}
-                </Pill>
-              ))}
-            </div>
+            <Card
+              tone="elevated"
+              className="relative overflow-hidden rounded-[28px] lg:rounded-[36px] p-8 lg:p-14 gap-0 ring-1 ring-(--hairline)"
+            >
+              {/* brand-canvas glows */}
+              <span
+                aria-hidden
+                className="pointer-events-none absolute -right-16 -top-24 size-72 rounded-full blur-3xl"
+                style={{ background: "color-mix(in oklch, var(--color-lavender) 26%, transparent)" }}
+              />
+              <span
+                aria-hidden
+                className="pointer-events-none absolute -left-20 -bottom-24 size-72 rounded-full blur-3xl"
+                style={{ background: "color-mix(in oklch, var(--color-lime) 20%, transparent)" }}
+              />
+
+              {/* Contrast statement — what Ahavah is NOT, then what it is. */}
+              <div className="relative z-10 flex flex-col gap-3 lg:gap-4">
+                <p
+                  className="text-(--ink-3)"
+                  style={{ fontFamily: "var(--font-display)", fontSize: "clamp(19px, 3vw, 28px)", lineHeight: 1.12, fontWeight: 400 }}
+                >
+                  <span className="line-through decoration-2">Not mainstream Christian dating.</span>{" "}
+                  <span className="line-through decoration-2">Not secular dating.</span>
+                </p>
+                <p
+                  className="text-(--ink)"
+                  style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px, 4.6vw, 48px)", lineHeight: 1.04, letterSpacing: "-0.02em", fontWeight: 400 }}
+                >
+                  This is <span className="text-(--color-lavender)">Torah-observant dating</span> for serious believers.
+                </p>
+              </div>
+
+              <Separator className="relative z-10 my-8 lg:my-10" />
+
+              {/* Covenant values */}
+              <div className="relative z-10 grid gap-5 sm:grid-cols-3 sm:gap-7">
+                {[
+                  "Built for Messianic Torah-observant singles",
+                  "Aligned in Torah, faith, family, and covenant values",
+                  "For believers who take Torah, marriage, and family seriously",
+                ].map((v) => (
+                  <div key={v} className="flex items-start gap-3">
+                    <IconBadge tone="cta" size="sm" shape="circle">
+                      <Check size={14} strokeWidth={3} />
+                    </IconBadge>
+                    <span className="text-[14px] lg:text-[15px] leading-[1.5] text-(--ink-2)">{v}</span>
+                  </div>
+                ))}
+              </div>
+            </Card>
 
             <p className="mt-8 text-center text-[14px] text-(--ink-3)">
               Modesty matters here, in conduct and in photos.{" "}
@@ -449,36 +489,61 @@ export default function LandingPage() {
             </div>
 
             {/* Privacy principles — verification done responsibly */}
-            <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-3.5 lg:gap-6">
-              {[
-                {
-                  Icon: ShieldCheck,
-                  title: "Verification is for safety",
-                  body: "We confirm real people to keep predators and catfish out. Not surveillance. Not data harvesting.",
-                },
-                {
-                  Icon: Lock,
-                  title: "Minimal data retention",
-                  body: "ID and selfie checks are processed, not stockpiled. Your government ID stays with our verification provider (Stripe Identity). We keep only the pass or fail result.",
-                },
-                {
-                  Icon: EyeOff,
-                  title: "Never public",
-                  body: "Your verification photos and ID are never shown to other users and never posted anywhere. Sensitive data is not exposed.",
-                },
-              ].map(({ Icon, title, body }) => (
-                <Card
-                  key={title}
-                  tone="elevated"
-                  className="p-6 lg:p-7 gap-3 items-start rounded-[22px] lg:rounded-[28px]"
+            <div className="mt-16 lg:mt-20">
+              <div className="mb-9 flex flex-col items-center text-center">
+                <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-(--color-lavender)">
+                  Privacy by design
+                </span>
+                <h3
+                  className="mt-2.5 text-(--ink)"
+                  style={{ fontFamily: "var(--font-display)", fontSize: "clamp(24px, 3.4vw, 38px)", lineHeight: 1.05, letterSpacing: "-0.02em", fontWeight: 400 }}
                 >
-                  <IconBadge tone="brand" size="xl" shape="square">
-                    <Icon size={22} />
-                  </IconBadge>
-                  <h3 className="text-[16px] lg:text-[17px] font-bold text-(--ink) tracking-tight">{title}</h3>
-                  <p className="text-sm leading-[1.55] text-(--ink-2)">{body}</p>
-                </Card>
-              ))}
+                  Verification you can trust.
+                </h3>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 lg:gap-6">
+                {[
+                  {
+                    Icon: ShieldCheck,
+                    badge: "bg-lavender/12 text-lavender",
+                    glow: "var(--color-lavender)",
+                    title: "Verification is for safety",
+                    body: "We confirm real people to keep predators and catfish out. Not surveillance. Not data harvesting.",
+                  },
+                  {
+                    Icon: Lock,
+                    badge: "bg-success/12 text-success",
+                    glow: "#10b981",
+                    title: "Minimal data retention",
+                    body: "ID and selfie checks are processed, not stockpiled. Your government ID stays with our verification provider (Stripe Identity). We keep only the pass or fail result.",
+                  },
+                  {
+                    Icon: EyeOff,
+                    badge: "bg-gold/20 text-gold",
+                    glow: "var(--color-gold)",
+                    title: "Never public",
+                    body: "Your verification photos and ID are never shown to other users and never posted anywhere. Sensitive data is not exposed.",
+                  },
+                ].map(({ Icon, badge, glow, title, body }) => (
+                  <Card
+                    key={title}
+                    tone="elevated"
+                    className="relative overflow-hidden p-6 lg:p-7 gap-3 items-start rounded-[22px] lg:rounded-[28px]"
+                  >
+                    <span
+                      aria-hidden
+                      className="pointer-events-none absolute -right-10 -top-12 size-40 rounded-full blur-3xl"
+                      style={{ background: `color-mix(in oklch, ${glow} 22%, transparent)` }}
+                    />
+                    <IconBadge size="xl" shape="square" className={`relative z-10 ${badge}`}>
+                      <Icon size={22} />
+                    </IconBadge>
+                    <h3 className="relative z-10 text-[16px] lg:text-[17px] font-bold text-(--ink) tracking-tight">{title}</h3>
+                    <p className="relative z-10 text-sm leading-[1.55] text-(--ink-2)">{body}</p>
+                  </Card>
+                ))}
+              </div>
             </div>
           </div>
         </section>
