@@ -143,7 +143,7 @@ export function WaitlistShareCard({ position }: { position: number | null }) {
         <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-(--color-lavender)">
           Spread the word
         </span>
-        <p className="mt-1.5 text-body font-semibold text-(--ink)">Invite the remnant.</p>
+        <p className="mt-1.5 text-body font-semibold text-(--ink)">Invite a friend.</p>
       </div>
 
       {/* On-screen preview (brand fonts) — mirrors the saved story image */}
@@ -172,7 +172,7 @@ export function WaitlistShareCard({ position }: { position: number | null }) {
               #{position.toLocaleString()}
             </span>
             <span className="mt-1 text-[11px] font-bold uppercase tracking-[0.14em] text-white/70">
-              of the remnant
+              founding member
             </span>
           </div>
         ) : null}

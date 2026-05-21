@@ -309,7 +309,7 @@ export default function LandingPage() {
             <SectionHead
               overline="Who it's for"
               title="Built for believers who take it seriously."
-              body="Ahavah is a set-apart space for people seriously seeking marriage. We're here to grow legacy, build covenant love, raise families in the truth, and strengthen Torah-based communities and family structures. Not a numbers game. A remnant."
+              body="Ahavah is a set-apart space for people seriously seeking marriage. We're here to grow legacy, build covenant love, raise families in the truth, and strengthen Torah-based communities and family structures. Not a numbers game. A community of believers who mean it."
             />
 
             <Card
@@ -580,7 +580,7 @@ export default function LandingPage() {
                 Built across borders. Built for you.
               </h2>
               <p className="relative z-1 mt-4 mb-8 mx-auto max-w-[540px] text-[15px] lg:text-[17px] leading-[1.55] text-white/85">
-                Join the remnant of Torah-observant believers waiting for launch.
+                Join the Torah-observant believers waiting for launch.
                 Founding members get six months of Premium free.
               </p>
               <Button
