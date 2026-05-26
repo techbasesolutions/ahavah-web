@@ -6,6 +6,7 @@
 // handoff. Same eslint-disable rationale as src/app/page.tsx.
 /* eslint-disable no-restricted-syntax */
 
+import { useState } from "react";
 import Link from "next/link";
 
 import { Logo } from "@/components/brand/logo";
@@ -15,6 +16,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { FeedbackDialog } from "@/components/app/feedback-dialog";
 
 const PRODUCT_LINKS = [
   { href: "/#features", label: "Features" },
@@ -36,8 +38,9 @@ const LEGAL_LINKS = [
 ];
 
 type ColLink = { href: string; label: string };
+type ColAction = { label: string; onClick: () => void };
 
-function FooterCol({ title, links }: { title: string; links: ColLink[] }) {
+function FooterCol({ title, links, action }: { title: string; links: ColLink[]; action?: ColAction }) {
   return (
     <nav aria-label={`${title} links`} className="flex flex-col">
       <h4 className="mb-4 text-[13px] font-bold uppercase tracking-[0.08em] text-white/55">
@@ -59,12 +62,23 @@ function FooterCol({ title, links }: { title: string; links: ColLink[] }) {
             </li>
           ),
         )}
+        {action ? (
+          <li>
+            <button
+              type="button"
+              onClick={action.onClick}
+              className="text-left text-sm text-white/80 hover:text-white transition-colors"
+            >
+              {action.label}
+            </button>
+          </li>
+        ) : null}
       </ul>
     </nav>
   );
 }
 
-function FooterAccordionCol({ title, links }: { title: string; links: ColLink[] }) {
+function FooterAccordionCol({ title, links, action }: { title: string; links: ColLink[]; action?: ColAction }) {
   return (
     <AccordionItem value={title.toLowerCase()} className="border-b border-white/10 border-t-0">
       <AccordionTrigger className="py-4 px-1 text-[13px] font-bold uppercase tracking-[0.08em] text-white/85 hover:no-underline">
@@ -83,6 +97,17 @@ function FooterAccordionCol({ title, links }: { title: string; links: ColLink[] 
               </li>
             ),
           )}
+          {action ? (
+            <li>
+              <button
+                type="button"
+                onClick={action.onClick}
+                className="text-left text-sm text-white/80"
+              >
+                {action.label}
+              </button>
+            </li>
+          ) : null}
         </ul>
       </AccordionContent>
     </AccordionItem>
@@ -90,6 +115,12 @@ function FooterAccordionCol({ title, links }: { title: string; links: ColLink[] 
 }
 
 export function MarketingFooter() {
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const feedbackAction: ColAction = {
+    label: "Send feedback",
+    onClick: () => setFeedbackOpen(true),
+  };
+
   return (
     <footer className="bg-[#0F0B1F] text-white/80 px-4 sm:px-6 md:px-8 py-14 mt-auto">
       <div className="mx-auto max-w-[1200px]">
@@ -105,7 +136,7 @@ export function MarketingFooter() {
             </p>
           </div>
           <FooterCol title="Product" links={PRODUCT_LINKS} />
-          <FooterCol title="Company" links={COMPANY_LINKS} />
+          <FooterCol title="Company" links={COMPANY_LINKS} action={feedbackAction} />
           <FooterCol title="Legal"   links={LEGAL_LINKS} />
         </div>
 
@@ -120,10 +151,12 @@ export function MarketingFooter() {
           </div>
           <Accordion multiple className="border-t border-white/10">
             <FooterAccordionCol title="Product" links={PRODUCT_LINKS} />
-            <FooterAccordionCol title="Company" links={COMPANY_LINKS} />
+            <FooterAccordionCol title="Company" links={COMPANY_LINKS} action={feedbackAction} />
             <FooterAccordionCol title="Legal"   links={LEGAL_LINKS} />
           </Accordion>
         </div>
+
+        <FeedbackDialog open={feedbackOpen} onOpenChange={setFeedbackOpen} />
 
         <div className="pt-6 border-t border-white/10 flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center text-[13px] text-white/50">
           <span>© 2026 Ahavah. All rights reserved.</span>
