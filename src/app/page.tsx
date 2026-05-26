@@ -26,7 +26,6 @@ import {
   Languages,
   Lock,
   MapPin,
-  PlayIcon,
   Scan,
   ShieldCheck,
   Sliders,
@@ -1036,16 +1035,14 @@ function PhoneMockup({ className = "" }: { className?: string }) {
             </div>
           </div>
 
-          {/* Action row */}
-          <div className="flex items-center justify-center gap-3.5 pb-3.5">
-            <div className="size-10 rounded-full grid place-items-center bg-lavender shadow-[0_4px_12px_rgba(0,0,0,0.3)]">
-              <XIcon size={16} strokeWidth={2.4} className="text-black" />
+          {/* Action row — matches the real discover deck: two outlined circle
+              buttons, pink Pass (X) + lime Like (heart). No center button. */}
+          <div className="flex items-center justify-center gap-6 pb-3.5">
+            <div className="size-11 rounded-full grid place-items-center border-2 border-pink/60 text-pink">
+              <XIcon size={20} strokeWidth={2.4} />
             </div>
-            <div className="size-[50px] rounded-full grid place-items-center bg-lime shadow-[0_4px_12px_rgba(0,0,0,0.3)]">
-              <PlayIcon size={20} fill="#000" stroke="none" />
-            </div>
-            <div className="size-10 rounded-full grid place-items-center bg-pink shadow-[0_4px_12px_rgba(0,0,0,0.3)]">
-              <Heart size={16} fill="#fff" stroke="none" />
+            <div className="size-11 rounded-full grid place-items-center border-2 border-lime/60 text-lime">
+              <Heart size={18} fill="currentColor" stroke="none" />
             </div>
           </div>
         </div>
