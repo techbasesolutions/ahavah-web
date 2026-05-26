@@ -1014,7 +1014,7 @@ function PhoneMockup({ className = "" }: { className?: string }) {
           </div>
 
           {/* Profile card */}
-          <div className="flex-1 mx-3 mt-2 mb-3 rounded-[18px] overflow-hidden relative">
+          <div className="flex flex-col flex-1 mx-3 mt-2 mb-3 rounded-[18px] overflow-hidden relative">
             <img
               src="/marketing/avatar-2.webp"
               alt=""
@@ -1028,10 +1028,10 @@ function PhoneMockup({ className = "" }: { className?: string }) {
               <span className="flex-1 h-[3px] rounded-[2px] bg-white/20" />
             </div>
             <div className="relative z-2 mt-auto bg-gradient-to-t from-black/70 to-transparent px-4 pt-10 pb-3.5">
-              <div className="text-[17px] font-bold">Yael, 27</div>
+              <div className="text-[17px] font-bold">Jonathan, 27</div>
               <div className="mt-1 flex items-center gap-1 text-[11px] text-white/85">
                 <MapPin size={10} />
-                Jerusalem, IL
+                California
               </div>
             </div>
           </div>
