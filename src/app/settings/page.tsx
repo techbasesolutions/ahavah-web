@@ -8,6 +8,7 @@ import {
   ChevronRight,
   FileText,
   HelpCircle,
+  MessageSquareText,
   ShieldAlert,
   ShieldCheck,
   UserCog,
@@ -113,7 +114,8 @@ const SETTINGS_GROUPS: ReadonlyArray<{
     label: "Support",
     accent: "bg-lavender/60",
     items: [
-      { Icon: HelpCircle, title: "Help center", subtitle: "FAQ, contact, bug report", href: "/help", tone: "muted" },
+      { Icon: HelpCircle,        title: "Help center",   subtitle: "FAQ, contact, bug report", href: "/help",     tone: "muted" },
+      { Icon: MessageSquareText, title: "Send feedback", subtitle: "Ideas, problems, praise",  href: "/feedback", tone: "muted" },
     ],
   },
 ];
@@ -135,7 +137,8 @@ const DESKTOP_NAV_ITEMS: ReadonlyArray<{
   { Icon: BookOpen,   label: "Community guidelines",  href: "/legal/community-guidelines", group: "Safety & Legal" },
   { Icon: ShieldCheck,label: "Privacy policy",        href: "/legal/privacy",              group: "Safety & Legal" },
   { Icon: FileText,   label: "Terms of service",      href: "/legal/terms",                group: "Safety & Legal" },
-  { Icon: HelpCircle, label: "Help center",           href: "/help",                       group: "Support" },
+  { Icon: HelpCircle,        label: "Help center",   href: "/help",     group: "Support" },
+  { Icon: MessageSquareText, label: "Send feedback", href: "/feedback", group: "Support" },
 ];
 
 export default function SettingsPage() {
