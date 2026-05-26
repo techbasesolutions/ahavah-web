@@ -907,8 +907,16 @@ function FeatureSlider() {
             </CarouselItem>
           ))}
         </CarouselContent>
-        <CarouselPrevious className="hidden lg:flex -left-16 size-11 bg-(--card)" />
-        <CarouselNext className="hidden lg:flex -right-16 size-11 bg-(--card)" />
+        <CarouselPrevious
+          variant="default"
+          tone="indigo"
+          className="hidden lg:flex -left-16 size-11 ring-1 ring-white/15 shadow-[0_8px_24px_-8px_rgba(15,11,31,0.55)] active:not-aria-[haspopup]:translate-y-0 active:scale-95"
+        />
+        <CarouselNext
+          variant="default"
+          tone="indigo"
+          className="hidden lg:flex -right-16 size-11 ring-1 ring-white/15 shadow-[0_8px_24px_-8px_rgba(15,11,31,0.55)] active:not-aria-[haspopup]:translate-y-0 active:scale-95"
+        />
       </Carousel>
 
       <ProgressDots
