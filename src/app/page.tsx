@@ -30,6 +30,8 @@ import {
   ShieldCheck,
   Sliders,
   Sparkles as SparklesIcon,
+  Star,
+  Undo2,
   X as XIcon,
 } from "lucide-react";
 
@@ -1043,14 +1045,22 @@ function PhoneMockup({ className = "" }: { className?: string }) {
             </div>
           </div>
 
-          {/* Action row — matches the real discover deck: two outlined circle
-              buttons, pink Pass (X) + lime Like (heart). No center button. */}
-          <div className="flex items-center justify-center gap-6 pb-3.5">
-            <div className="size-11 rounded-full grid place-items-center border-2 border-pink/60 text-pink">
-              <XIcon size={20} strokeWidth={2.4} />
+          {/* Action row — matches the canonical discover deck: 4 circles.
+              Rewind (indigo, white) / Pass (lime, black X) / Like (pink, black
+              heart) / Super like (lavender, black star). Secondaries (Rewind +
+              Super) are smaller than the primary Pass + Like, per the deck. */}
+          <div className="flex items-center justify-center gap-2 pb-3.5">
+            <div className="size-8 rounded-full grid place-items-center bg-indigo text-white shadow-[0_4px_12px_rgba(0,0,0,0.3)]">
+              <Undo2 size={14} strokeWidth={2.2} />
             </div>
-            <div className="size-11 rounded-full grid place-items-center border-2 border-lime/60 text-lime">
-              <Heart size={18} fill="currentColor" stroke="none" />
+            <div className="size-10 rounded-full grid place-items-center bg-lime shadow-[0_4px_12px_rgba(0,0,0,0.3)]">
+              <XIcon size={18} strokeWidth={2.4} className="text-black" />
+            </div>
+            <div className="size-10 rounded-full grid place-items-center bg-pink shadow-[0_4px_12px_rgba(0,0,0,0.3)]">
+              <Heart size={16} fill="#000" stroke="none" />
+            </div>
+            <div className="size-8 rounded-full grid place-items-center bg-lavender shadow-[0_4px_12px_rgba(0,0,0,0.3)]">
+              <Star size={14} fill="#000" stroke="none" />
             </div>
           </div>
         </div>
