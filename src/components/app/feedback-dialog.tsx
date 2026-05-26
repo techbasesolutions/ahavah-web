@@ -31,7 +31,7 @@ export function FeedbackDialog({ open, onOpenChange }: FeedbackDialogProps) {
             Help us make Ahavah better. We read every note.
           </DialogDescription>
         </DialogHeader>
-        <FeedbackForm onSuccess={() => onOpenChange(false)} />
+        <FeedbackForm key={open ? "open" : "closed"} onSuccess={() => onOpenChange(false)} />
       </DialogContent>
     </Dialog>
   );

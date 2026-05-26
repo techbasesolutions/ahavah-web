@@ -8,6 +8,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { ApiError } from "@/lib/api-client";
 import {
   FEEDBACK_CATEGORIES,
   postFeedback,
@@ -42,11 +43,13 @@ export function FeedbackForm({ onSuccess }: FeedbackFormProps) {
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
+  const [website, setWebsite] = useState(""); // honeypot
 
   const reset = () => {
     setCategory("");
     setMessage("");
     setEmail("");
+    setWebsite("");
     setErrorMessage(null);
     setSent(false);
   };
@@ -66,16 +69,23 @@ export function FeedbackForm({ onSuccess }: FeedbackFormProps) {
         email: email.trim() || undefined,
         path: typeof window !== "undefined" ? window.location.pathname : undefined,
         user_agent: typeof navigator !== "undefined" ? navigator.userAgent : undefined,
+        website: website || undefined,
       });
-      toast.success("Thank you. Your feedback is on its way.");
       if (onSuccess) {
+        // Dialog mode: toast + close (no room for an inline panel).
+        toast.success("Thank you. Your feedback is on its way.");
         reset();
         onSuccess();
       } else {
+        // Page mode: inline confirmation panel (no toast — avoids double "thank you").
         setSent(true);
       }
-    } catch {
-      setErrorMessage("Something went wrong. Please try again in a moment.");
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 429) {
+        setErrorMessage("We've had a lot of feedback today. Please try again later.");
+      } else {
+        setErrorMessage("Something went wrong. Please try again in a moment.");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -102,6 +112,18 @@ export function FeedbackForm({ onSuccess }: FeedbackFormProps) {
 
   return (
     <div className="flex flex-col gap-5">
+      {/* Honeypot — hidden from people, catches bots. Not announced to AT. */}
+      <input
+        type="text"
+        name="website"
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden="true"
+        className="sr-only"
+        value={website}
+        onChange={(e) => setWebsite(e.target.value)}
+      />
+
       {/* Category */}
       <div className="flex flex-col gap-2.5">
         <p id="fb-category-label" className="text-meta font-medium text-(--ink)">

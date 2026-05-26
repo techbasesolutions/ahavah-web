@@ -24,6 +24,8 @@ export type FeedbackPayload = {
   email?: string;
   path?: string;
   user_agent?: string;
+  /** Honeypot — always empty for real users; bots fill it. */
+  website?: string;
 };
 
 export async function postFeedback(payload: FeedbackPayload) {
