@@ -963,7 +963,7 @@ function CardStack({ className = "" }: { className?: string }) {
       {/* Top card with caption */}
       <div className="absolute inset-0 rounded-[28px] overflow-hidden border-4 border-white bg-(--card) shadow-[0_20px_50px_rgba(15,11,31,0.20)] rotate-[-1deg] z-3">
         <img
-          src="/marketing/avatar-3.webp"
+          src="/marketing/hero-mobile.webp"
           alt=""
           loading="eager"
           className="w-full h-full object-cover"
