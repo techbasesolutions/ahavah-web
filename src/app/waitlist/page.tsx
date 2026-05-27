@@ -29,6 +29,7 @@ import {
   REFERRAL_SOURCES,
   postWaitlist,
   getWaitlistCount,
+  checkWaitlist,
   type WaitlistAnswers,
 } from "@/lib/waitlist";
 import type { Intent, Sex } from "@/lib/profile-schema";
@@ -81,6 +82,10 @@ function WaitlistFlow() {
   const [error, setError] = useState<string | null>(null);
   // True when the submitted email was already on the waitlist (returning user).
   const [returning, setReturning] = useState(false);
+  // Set when the email step detects an existing registrant → show the
+  // short-circuit interstitial instead of re-walking the wizard.
+  const [alreadyRegistered, setAlreadyRegistered] = useState(false);
+  const [checking, setChecking] = useState(false);
 
   useEffect(() => {
     let draft: Draft | null = null;
@@ -254,8 +259,32 @@ function WaitlistFlow() {
   const current = steps[step - 1];
   const isLast = step === total;
 
+  const continueEditing = () => {
+    setAlreadyRegistered(false);
+    setStep(2);
+  };
+
   const handleNext = async () => {
     if (!current.valid) return;
+
+    // Email step: short-circuit a returning registrant before they re-walk the
+    // wizard. Read-only check; fail open so a check error never blocks signup.
+    if (step === 1) {
+      setChecking(true);
+      let exists = false;
+      try {
+        const res = await checkWaitlist(email.trim());
+        exists = res.exists;
+      } catch {
+        /* check unavailable — proceed into the wizard */
+      } finally {
+        setChecking(false);
+      }
+      if (exists) setAlreadyRegistered(true);
+      else setStep(2);
+      return;
+    }
+
     if (!isLast) {
       setStep((s) => s + 1);
       return;
@@ -374,6 +403,52 @@ function WaitlistFlow() {
     );
   }
 
+  if (alreadyRegistered) {
+    return (
+      <main
+        className="relative flex min-h-dvh flex-col items-center justify-center gap-7 overflow-hidden px-6 py-12 text-center"
+        style={{
+          background:
+            "linear-gradient(160deg, var(--app) 0%, color-mix(in oklch, var(--color-lavender) 14%, var(--app)) 100%)",
+        }}
+      >
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -top-32 left-1/2 size-96 -translate-x-1/2 rounded-full bg-lavender/15 blur-3xl"
+        />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, type: "spring", stiffness: 200, damping: 16 }}
+        >
+          <LogoMark size={64} decorative className="drop-shadow-xl" />
+        </motion.div>
+        <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.1 }} className="flex max-w-md flex-col gap-3">
+          <h1 className="text-display-lg text-(--ink)">
+            You&apos;re already in<span className="text-lime">.</span>
+          </h1>
+          <p className="text-body leading-relaxed text-(--ink-2)">
+            <span className="font-semibold break-words text-(--ink)">{email}</span> is
+            already on the list. We&apos;ll email your sign-in link the moment we
+            launch, no need to sign up again.
+          </p>
+        </motion.div>
+        <motion.div {...fadeUp} transition={{ duration: 0.3, delay: 0.18 }} className="w-full max-w-sm">
+          <BetaTesterCard email={email} />
+        </motion.div>
+        <motion.div {...fadeUp} transition={{ duration: 0.3, delay: 0.26 }} className="flex flex-col items-center gap-2">
+          <Button variant="outline" size="tap" onClick={continueEditing}>
+            Edit my details
+          </Button>
+          <Button variant="link" size="tap" className="text-(--ink-3)" render={<Link href="/" prefetch={false} />}>
+            <ArrowLeft className="size-4" />
+            Back to home
+          </Button>
+        </motion.div>
+      </main>
+    );
+  }
+
   return (
     <WaitlistWizard
       step={step}
@@ -383,7 +458,7 @@ function WaitlistFlow() {
       onNext={handleNext}
       ctaLabel={isLast ? "Join the waitlist" : "Continue"}
       ctaDisabled={!current.valid}
-      ctaLoading={submitting}
+      ctaLoading={submitting || checking}
     >
       <motion.div key={step} {...fadeUp} transition={{ duration: 0.4 }} className="flex flex-col gap-2">
         <h1 className="text-display text-(--ink)">{current.heading}</h1>
