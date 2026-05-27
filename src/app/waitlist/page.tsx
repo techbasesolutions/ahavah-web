@@ -79,6 +79,8 @@ function WaitlistFlow() {
   const [done, setDone] = useState(false);
   const [position, setPosition] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // True when the submitted email was already on the waitlist (returning user).
+  const [returning, setReturning] = useState(false);
 
   useEffect(() => {
     let draft: Draft | null = null;
@@ -261,7 +263,8 @@ function WaitlistFlow() {
     setSubmitting(true);
     setError(null);
     try {
-      await postWaitlist(email.trim(), a);
+      const res = await postWaitlist(email.trim(), a);
+      setReturning(res.isNew === false);
       try {
         sessionStorage.removeItem(DRAFT_KEY);
       } catch {
@@ -281,71 +284,92 @@ function WaitlistFlow() {
   };
 
   if (done) {
+    const headline = returning ? (
+      <>Welcome back<span className="text-lime">.</span></>
+    ) : (
+      <>You&apos;re on the list<span className="text-lime">.</span></>
+    );
+    const lede = returning ? (
+      <>
+        You&apos;re already on the list. We&apos;ll email{" "}
+        <span className="font-semibold break-words text-(--ink)">{email}</span> your
+        sign-in link the moment we launch.
+      </>
+    ) : (
+      <>
+        We&apos;ll email{" "}
+        <span className="font-semibold break-words text-(--ink)">{email}</span> a
+        sign-in link the moment we launch.
+      </>
+    );
+    const backHome = (
+      <Button variant="outline" size="tap" render={<Link href="/" prefetch={false} />}>
+        <ArrowLeft className="size-4" />
+        Back to home
+      </Button>
+    );
+
     return (
       <main
-        className="relative flex min-h-dvh flex-col items-center justify-center gap-8 overflow-hidden px-6 text-center"
+        className="relative min-h-dvh overflow-hidden"
         style={{
           background:
             "linear-gradient(160deg, var(--app) 0%, color-mix(in oklch, var(--color-lavender) 14%, var(--app)) 100%)",
         }}
       >
-        {/* Brandmark — spring-in, soft lime glow, gentle pulse. */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.7 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, type: "spring", stiffness: 200, damping: 16 }}
-          className="relative"
-        >
-          <span
-            aria-hidden
-            className="pointer-events-none absolute inset-0 rounded-full bg-lime/25 blur-3xl"
-          />
+        {/* Ambient brand glow so the canvas reads as atmosphere, not a void. */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -top-32 left-1/2 size-96 -translate-x-1/2 rounded-full bg-lavender/15 blur-3xl"
+        />
+
+        {/* ── Mobile (<md) — tight vertical flow, beta elevated above share ── */}
+        <div className="md:hidden relative flex min-h-dvh flex-col items-center justify-center gap-8 px-6 py-12 text-center">
           <motion.div
-            animate={{ scale: [1, 1.04, 1] }}
-            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-            className="relative"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, type: "spring", stiffness: 200, damping: 16 }}
           >
-            <LogoMark size={104} decorative className="drop-shadow-xl" />
+            <LogoMark size={64} decorative className="drop-shadow-xl" />
           </motion.div>
-        </motion.div>
+          <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.1 }} className="flex max-w-md flex-col gap-3">
+            <h1 className="text-display-lg text-(--ink)">{headline}</h1>
+            <p className="text-body leading-relaxed text-(--ink-2)">{lede}</p>
+          </motion.div>
+          <motion.div {...fadeUp} transition={{ duration: 0.3, delay: 0.18 }} className="w-full max-w-sm">
+            <BetaTesterCard email={email} />
+          </motion.div>
+          <motion.div {...fadeUp} transition={{ duration: 0.3, delay: 0.26 }}>
+            <WaitlistShareCard position={position} />
+          </motion.div>
+          <motion.div {...fadeUp} transition={{ duration: 0.3, delay: 0.34 }}>
+            {backHome}
+          </motion.div>
+        </div>
 
-        <motion.div
-          {...fadeUp}
-          transition={{ duration: 0.4, delay: 0.15 }}
-          className="flex max-w-md flex-col gap-4"
-        >
-          <h1 className="text-display-lg text-(--ink)">
-            You&apos;re on the list<span className="text-lime">.</span>
-          </h1>
-          <p className="text-h2 font-normal leading-relaxed text-(--ink-2)">
-            We&apos;ll email{" "}
-            <span className="font-semibold text-(--ink)">{email}</span> a sign-in
-            link the moment we launch.
-          </p>
-        </motion.div>
+        {/* ── Desktop (md+) — centered two-column: messaging + beta | the pass ── */}
+        <div className="hidden md:flex min-h-dvh items-center justify-center px-10 py-16">
+          <div className="grid w-full max-w-5xl grid-cols-2 items-center gap-16">
+            <motion.div {...fadeUp} transition={{ duration: 0.5 }} className="flex flex-col items-start gap-6 text-left">
+              <LogoMark size={44} decorative />
+              <div className="flex flex-col gap-3">
+                <h1 className="text-display-lg text-(--ink)">{headline}</h1>
+                <p className="max-w-md text-h2 font-normal leading-relaxed text-(--ink-2)">{lede}</p>
+              </div>
+              <BetaTesterCard email={email} />
+              {backHome}
+            </motion.div>
 
-        <motion.div {...fadeUp} transition={{ duration: 0.3, delay: 0.25 }}>
-          <WaitlistShareCard position={position} />
-        </motion.div>
-
-        <motion.div {...fadeUp} transition={{ duration: 0.3, delay: 0.32 }} className="flex w-full justify-center">
-          <BetaTesterCard email={email} />
-        </motion.div>
-
-        <motion.p
-          {...fadeUp}
-          transition={{ duration: 0.3, delay: 0.38 }}
-          className="text-meta text-(--ink-3)"
-        >
-          Welcome to Ahavah.
-        </motion.p>
-
-        <motion.div {...fadeUp} transition={{ duration: 0.3, delay: 0.4 }}>
-          <Button variant="outline" size="tap" render={<Link href="/" prefetch={false} />}>
-            <ArrowLeft className="size-4" />
-            Back to home
-          </Button>
-        </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.12 }}
+              className="flex justify-center"
+            >
+              <WaitlistShareCard position={position} />
+            </motion.div>
+          </div>
+        </div>
       </main>
     );
   }

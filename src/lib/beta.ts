@@ -7,5 +7,6 @@
 import { apiClient } from "@/lib/api-client";
 
 export async function registerBetaTester(email: string) {
-  return apiClient.post<{ ok: boolean }>("/beta-tester", { email });
+  // isNew=false → already a beta tester (the card shows an "already in" state).
+  return apiClient.post<{ ok: boolean; isNew?: boolean }>("/beta-tester", { email });
 }

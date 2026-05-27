@@ -31,6 +31,7 @@ type BetaTesterCardProps = {
 
 export function BetaTesterCard({ email }: BetaTesterCardProps) {
   const [status, setStatus] = useState<"idle" | "loading" | "done">("idle");
+  const [already, setAlready] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const submit = async () => {
@@ -38,9 +39,15 @@ export function BetaTesterCard({ email }: BetaTesterCardProps) {
     setStatus("loading");
     setError(null);
     try {
-      await registerBetaTester(email);
+      const res = await registerBetaTester(email);
+      const wasAlready = res.isNew === false;
+      setAlready(wasAlready);
       setStatus("done");
-      toast.success("You're in. We'll email your sign-in link on June 15.");
+      toast.success(
+        wasAlready
+          ? "You're already a beta tester."
+          : "You're in. We'll email your sign-in link on June 15.",
+      );
     } catch (err) {
       setStatus("idle");
       setError(
@@ -71,7 +78,7 @@ export function BetaTesterCard({ email }: BetaTesterCardProps) {
         </IconBadge>
         <div className="flex flex-col gap-1">
           <p className="text-meta font-semibold text-(--ink)">
-            {done ? "You're a beta tester" : "Become a beta tester"}
+            {done ? (already ? "Already a beta tester" : "You're a beta tester") : "Become a beta tester"}
           </p>
           <p className="text-caption leading-relaxed text-(--ink-2)">
             {done
