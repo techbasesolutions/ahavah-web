@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { IconBadge } from "@/components/ui/icon-badge";
 
 import { PageShell } from "@/components/app/page-shell";
+import { BetaTesterCard } from "@/components/app/beta-tester-card";
 import { useProfile } from "@/lib/use-profile";
 
 /**
@@ -115,6 +116,14 @@ export default function OnboardingCompletePage() {
             Your profile is live. Start swiping to find people who match what
             you&apos;re looking for.
           </p>
+        </motion.div>
+
+        <motion.div
+          {...fadeUp}
+          transition={{ duration: 0.3, delay: 0.18 }}
+          className="flex w-full justify-center"
+        >
+          <BetaTesterCard disabled={!graduated} />
         </motion.div>
       </div>
 
