@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 
 import { WaitlistWizard, type WaitlistPhase } from "@/components/app/waitlist-wizard";
 import { WaitlistShareCard } from "@/components/app/waitlist-share-card";
+import { BetaTesterCard } from "@/components/app/beta-tester-card";
 import { LogoMark } from "@/components/brand/logo-mark";
 import { PENDING_EMAIL_KEY } from "@/lib/storage-keys";
 import {
@@ -327,9 +328,13 @@ function WaitlistFlow() {
           <WaitlistShareCard position={position} />
         </motion.div>
 
+        <motion.div {...fadeUp} transition={{ duration: 0.3, delay: 0.32 }} className="flex w-full justify-center">
+          <BetaTesterCard email={email} />
+        </motion.div>
+
         <motion.p
           {...fadeUp}
-          transition={{ duration: 0.3, delay: 0.3 }}
+          transition={{ duration: 0.3, delay: 0.38 }}
           className="text-meta text-(--ink-3)"
         >
           Welcome to Ahavah.
