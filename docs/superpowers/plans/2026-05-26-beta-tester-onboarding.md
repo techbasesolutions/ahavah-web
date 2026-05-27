@@ -2,7 +2,17 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add a beta-tester opt-in card to `/onboarding/complete` that records the user in a durable `beta_signup` cohort and emails a confirmation promising a sign-in link on June 15, 2026.
+> ## ⚠ Amendment (2026-05-26) — shipped placement differs
+>
+> Tasks 4, 6 and 7 below targeted the **authed** `/onboarding/complete` with an
+> **authenticated** `POST /beta-tester`. As shipped, the opt-in lives on the
+> **public `/waitlist` completion screen** instead (the real public flow), and the
+> route is **public** (`POST /beta-tester` body `{ email }`, `PostBetaTester`,
+> rate-limited; `person_id` NULL). The card (`BetaTesterCard`) takes an `email`
+> prop and was removed from `/onboarding/complete`. Tasks 1–3, 5 are unchanged.
+> Shipped: `ahavah-api c2f7807`, `ahavah-web 6f033a8`.
+
+**Goal:** Add a beta-tester opt-in card to the **public `/waitlist` completion screen** that records the user in a durable `beta_signup` cohort and emails a confirmation promising a sign-in link on June 15, 2026.
 
 **Architecture:** Backend mirrors the waitlist/feedback patterns — a `beta_signup` table, a raw-SQL `service.beta`, a branded confirmation email, and an authenticated `POST /beta-tester` sibling route that derives identity from the session. Frontend adds a kit-primitive card (designed via `/frontend-design`) on the completion screen. Spec: `docs/superpowers/specs/2026-05-26-beta-tester-onboarding-optin-design.md`.
 

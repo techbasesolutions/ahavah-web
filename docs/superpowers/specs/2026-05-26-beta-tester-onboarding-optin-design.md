@@ -1,8 +1,26 @@
 # Beta-tester onboarding opt-in — Design
 
 **Date:** 2026-05-26
-**Status:** Approved (pending spec review) → next: writing-plans
+**Status:** Shipped (see amendment) — `ahavah-api c2f7807`, `ahavah-web 6f033a8`
 **Repos:** `ahavah-api` (branch `ahavah/main`) + `ahavah-web` (branch `master`)
+
+> ## ⚠ Amendment (2026-05-26) — placement corrected after testing
+>
+> The original design below placed the opt-in on the **authed** app onboarding
+> completion (`/onboarding/complete`) with an **authenticated** `POST /beta-tester`
+> (identity from the session). Testing revealed the real public flow is the
+> **waitlist wizard** (`/waitlist`), which is unauthenticated — so an authed route
+> and an `/onboarding`-only card never reached real users. **As shipped:**
+> - The opt-in card lives on the **`/waitlist` completion screen** ("You're on the
+>   list"), below the share card, keyed by the **email the user just entered**.
+> - `POST /beta-tester` is **public**: body `{ email }` (validated `PostBetaTester`,
+>   rate-limited), records `beta_signup` with `person_id = NULL`, emails the June-15
+>   confirmation on a new row. (`@example.com` addresses are skipped for the send.)
+> - The card was **removed** from `/onboarding/complete`.
+>
+> Everything else (the `beta_signup` table, `service.beta`, `emails/beta_welcome.py`,
+> the June-15 copy, edge cases) is unchanged. The sections below describe the
+> original authed approach and are kept for history.
 
 ## Goal
 
