@@ -972,7 +972,7 @@ function CardStack({ className = "" }: { className?: string }) {
           <div className="text-[18px] font-bold">Yael, 27</div>
           <div className="mt-0.5 flex items-center gap-1 text-xs opacity-90">
             <MapPin size={10} />
-            Jerusalem, IL
+            California
           </div>
         </div>
       </div>
