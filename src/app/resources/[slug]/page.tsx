@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     title: guide.title,
     description: guide.description,
     alternates: { canonical: `/resources/${guide.slug}` },
-    openGraph: { title: `${guide.title} · Ahavah`, description: guide.description, url: `https://ahavah.app/resources/${guide.slug}` },
+    openGraph: { title: `${guide.title} · Ahavah`, description: guide.description, url: `https://ahavah.app/resources/${guide.slug}`, images: ["/og.png"] },
   };
 }
 

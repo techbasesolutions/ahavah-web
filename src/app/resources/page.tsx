@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
   alternates: { canonical: "/resources" },
-  openGraph: { title: `${TITLE} · Ahavah`, description: DESCRIPTION, url: "https://ahavah.app/resources" },
+  openGraph: { title: `${TITLE} · Ahavah`, description: DESCRIPTION, url: "https://ahavah.app/resources", images: ["/og.png"] },
 };
 
 const CLUSTER_ORDER: Cluster[] = ["messianic", "polygyny", "cross-border"];

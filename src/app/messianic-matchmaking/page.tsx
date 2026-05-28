@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
   alternates: { canonical: "/messianic-matchmaking" },
-  openGraph: { title: `${TITLE} · Ahavah`, description: DESCRIPTION, url: "https://ahavah.app/messianic-matchmaking" },
+  openGraph: { title: `${TITLE} · Ahavah`, description: DESCRIPTION, url: "https://ahavah.app/messianic-matchmaking", images: ["/og.png"] },
 };
 
 const FEATURES = [

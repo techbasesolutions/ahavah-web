@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
   alternates: { canonical: "/biblical-polygyny" },
-  openGraph: { title: `${TITLE} · Ahavah`, description: DESCRIPTION, url: "https://ahavah.app/biblical-polygyny" },
+  openGraph: { title: `${TITLE} · Ahavah`, description: DESCRIPTION, url: "https://ahavah.app/biblical-polygyny", images: ["/og.png"] },
 };
 
 const FEATURES = [

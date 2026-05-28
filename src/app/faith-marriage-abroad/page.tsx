@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
   alternates: { canonical: "/faith-marriage-abroad" },
-  openGraph: { title: `${TITLE} · Ahavah`, description: DESCRIPTION, url: "https://ahavah.app/faith-marriage-abroad" },
+  openGraph: { title: `${TITLE} · Ahavah`, description: DESCRIPTION, url: "https://ahavah.app/faith-marriage-abroad", images: ["/og.png"] },
 };
 
 const FEATURES = [
