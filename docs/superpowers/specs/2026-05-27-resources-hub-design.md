@@ -32,7 +32,7 @@ Decisions locked during brainstorming:
 ### Content directory
 
 ```
-content/
+src/content/
   guides/        # evergreen, undated topical articles
     <slug>.mdx
   updates/       # dated announcements (empty at launch)
@@ -57,9 +57,11 @@ This module is the CMS-swap seam: a future migration replaces only this file. Ty
 
 ### MDX rendering
 
-Article bodies compile with `next-mdx-remote/rsc` (`compileMDX`) inside server components, using a shared `mdx-components` map that styles headings, paragraphs, links (Next `<Link>` for internal), lists, and blockquotes with the existing marketing tokens. No `"use client"` on article pages.
+Uses the Next 16 native MDX pipeline (`@next/mdx`), per `node_modules/next/dist/docs/01-app/02-guides/mdx.md`. `next.config.ts` is wrapped with `withMDX`, configured with `remark-frontmatter` so YAML frontmatter is stripped from the rendered body (it does not leak as text). Article pages are server components that `await import("@/content/guides/<slug>.mdx")` for the body component and read metadata via the content loader. A required `src/mdx-components.tsx` maps headings, paragraphs, links (Next `<Link>` for internal), lists, and blockquotes to the existing marketing tokens. Routes use `generateStaticParams` + `export const dynamicParams = false` so unknown slugs 404. `params` is typed `Promise<{ slug: string }>` and awaited (Next 16).
 
-New dependencies: `next-mdx-remote`, `gray-matter`, `reading-time`.
+Content lives under `src/content/` (matching the `@/*` -> `./src/*` alias) rather than a repo-root `content/`.
+
+New dependencies: `@next/mdx`, `@mdx-js/loader`, `@mdx-js/react`, `@types/mdx`, `remark-frontmatter`, `gray-matter`, `reading-time`.
 
 ### Routes
 
