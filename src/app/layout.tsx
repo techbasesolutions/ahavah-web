@@ -33,6 +33,7 @@ export const metadata: Metadata = {
   },
   description:
     "Verified profiles, 100+ languages, real connections. The matchmaking platform for Messianic Torah-observant believers seeking a spouse. Join the waitlist.",
+  alternates: { canonical: "/" },
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -53,25 +54,48 @@ export const metadata: Metadata = {
     description:
       "Verified profiles, 100+ languages, real connections. For Messianic Torah-observant believers seeking a spouse. Join the waitlist.",
     url: "https://ahavah.app",
-    images: [{ url: "/icon-512.svg", width: 512, height: 512, alt: "Ahavah" }],
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: "Ahavah — Torah-observant matchmaking" }],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "Ahavah · Find a spouse across borders",
     description:
       "Verified profiles, 100+ languages, real connections. For Messianic Torah-observant believers seeking a spouse.",
-    images: ["/icon-512.svg"],
+    images: ["/og.png"],
   },
 };
 
-// Mobile-first PWA viewport. No zoom; Add-to-Home-Screen feel.
+// Mobile-first PWA viewport. Pinch-zoom left enabled for accessibility
+// (WCAG 1.4.4) — do not re-add maximumScale/userScalable.
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   themeColor: "#000000",
   colorScheme: "dark",
+};
+
+// Site-level structured data: declares the Ahavah brand entity (Organization)
+// and the site (WebSite) for search + AI engines (GEO/entity recognition).
+const siteJsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://ahavah.app/#organization",
+      name: "Ahavah",
+      url: "https://ahavah.app",
+      logo: "https://ahavah.app/email/logo-horizontal.png",
+      description:
+        "Torah-observant matchmaking for Messianic believers seeking a spouse, across borders and 100+ languages.",
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://ahavah.app/#website",
+      name: "Ahavah",
+      url: "https://ahavah.app",
+      publisher: { "@id": "https://ahavah.app/#organization" },
+    },
+  ],
 };
 
 export default function RootLayout({
@@ -86,6 +110,10 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd) }}
+        />
         <ThemeProvider>
           {/* Skip link — hidden by default, surfaces on keyboard focus.
               WCAG 2.4.1 (Bypass Blocks). Lets keyboard users jump past

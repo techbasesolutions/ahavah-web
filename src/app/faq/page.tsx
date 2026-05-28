@@ -50,8 +50,23 @@ const FAQS: ReadonlyArray<{ q: string; a: string }> = [
 ];
 
 export default function FaqPage() {
+  // FAQPage structured data (AEO): lets search + answer engines surface these
+  // Q&As as rich results / People-Also-Ask. Built from the same FAQS array.
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: FAQS.map((faq) => ({
+      "@type": "Question",
+      name: faq.q,
+      acceptedAnswer: { "@type": "Answer", text: faq.a },
+    })),
+  };
   return (
     <div className="min-h-dvh flex flex-col text-(--ink)" style={{ background: "var(--app)" }}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
       <MarketingHeader
         cta={
           <Button
