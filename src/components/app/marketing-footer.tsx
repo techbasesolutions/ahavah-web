@@ -25,6 +25,12 @@ const PRODUCT_LINKS = [
   { href: "/#waitlist", label: "Join waitlist" },
 ];
 
+const AUDIENCE_LINKS = [
+  { href: "/messianic-matchmaking", label: "Messianic matchmaking" },
+  { href: "/biblical-polygyny",     label: "Biblical marriage" },
+  { href: "/faith-marriage-abroad", label: "Across borders" },
+];
+
 const COMPANY_LINKS = [
   { href: "/faq",                    label: "Help & FAQ" },
   { href: "mailto:admin@ahavah.app", label: "Contact" },
@@ -125,7 +131,7 @@ export function MarketingFooter() {
     <footer className="bg-[#0F0B1F] text-white/80 px-4 sm:px-6 md:px-8 py-14 mt-auto">
       <div className="mx-auto max-w-[1200px]">
         {/* Desktop / md+ — 4-col grid */}
-        <div className="hidden md:grid md:grid-cols-[2fr_1fr_1fr_1fr] gap-8 mb-12">
+        <div className="hidden md:grid md:grid-cols-[2fr_1fr_1fr_1fr_1fr] gap-8 mb-12">
           <div className="max-w-[360px]">
             <div className="mb-4">
               <Logo variant="horizontal" forceTheme="dark" height={32} />
@@ -135,9 +141,10 @@ export function MarketingFooter() {
               real connections. Made for the diaspora.
             </p>
           </div>
-          <FooterCol title="Product" links={PRODUCT_LINKS} />
-          <FooterCol title="Company" links={COMPANY_LINKS} action={feedbackAction} />
-          <FooterCol title="Legal"   links={LEGAL_LINKS} />
+          <FooterCol title="Product"      links={PRODUCT_LINKS} />
+          <FooterCol title="Who it's for" links={AUDIENCE_LINKS} />
+          <FooterCol title="Company"      links={COMPANY_LINKS} action={feedbackAction} />
+          <FooterCol title="Legal"        links={LEGAL_LINKS} />
         </div>
 
         {/* Mobile — accordion */}
@@ -151,6 +158,7 @@ export function MarketingFooter() {
           </div>
           <Accordion multiple className="border-t border-white/10">
             <FooterAccordionCol title="Product" links={PRODUCT_LINKS} />
+            <FooterAccordionCol title="Who it's for" links={AUDIENCE_LINKS} />
             <FooterAccordionCol title="Company" links={COMPANY_LINKS} action={feedbackAction} />
             <FooterAccordionCol title="Legal"   links={LEGAL_LINKS} />
           </Accordion>
