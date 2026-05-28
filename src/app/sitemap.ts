@@ -1,5 +1,7 @@
 import type { MetadataRoute } from "next";
 
+import { getGuides, getUpdates } from "@/lib/content";
+
 const BASE = "https://ahavah.app";
 
 // Public, indexable routes only (the in-app/auth routes are excluded — see robots.ts).
@@ -19,10 +21,31 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/privacy", priority: 0.3, changeFrequency: "yearly" },
     { path: "/terms", priority: 0.3, changeFrequency: "yearly" },
   ];
-  return routes.map(({ path, priority, changeFrequency }) => ({
+  const staticEntries = routes.map(({ path, priority, changeFrequency }) => ({
     url: `${BASE}${path}`,
     lastModified: now,
     changeFrequency,
     priority,
   }));
+
+  const hubEntries = [
+    { url: `${BASE}/resources`, lastModified: now, changeFrequency: "weekly" as const, priority: 0.7 },
+    { url: `${BASE}/resources/updates`, lastModified: now, changeFrequency: "weekly" as const, priority: 0.4 },
+  ];
+
+  const guideEntries = getGuides().map((g) => ({
+    url: `${BASE}/resources/${g.slug}`,
+    lastModified: new Date(g.updated),
+    changeFrequency: "monthly" as const,
+    priority: 0.6,
+  }));
+
+  const updateEntries = getUpdates().map((u) => ({
+    url: `${BASE}/resources/updates/${u.slug}`,
+    lastModified: new Date(u.date),
+    changeFrequency: "yearly" as const,
+    priority: 0.3,
+  }));
+
+  return [...staticEntries, ...hubEntries, ...guideEntries, ...updateEntries];
 }

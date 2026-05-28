@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
+import createMDX from "@next/mdx";
 
 const nextConfig: NextConfig = {
+  // Let .md/.mdx files be processed by the MDX loader. App routes remain
+  // .ts/.tsx; content MDX lives outside app/ so these add no extra routes.
+  pageExtensions: ["ts", "tsx", "md", "mdx"],
   // Dev-mode equivalent of vercel.json's /api rewrite. With this, the
   // frontend can use `NEXT_PUBLIC_API_BASE_URL=/api` in dev too, and the
   // dev server proxies same-origin -> the droplet. Avoids the
@@ -37,4 +41,10 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+const withMDX = createMDX({
+  // String form is required for Turbopack (JS functions can't cross into the
+  // Rust loader). remark-frontmatter strips the YAML so it does not render.
+  options: { remarkPlugins: [["remark-frontmatter", { type: "yaml", marker: "-" }]] },
+});
+
+export default withMDX(nextConfig);

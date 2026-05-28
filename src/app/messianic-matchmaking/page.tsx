@@ -72,6 +72,7 @@ export default function MessianicMatchmakingPage() {
         <LandingCta
           heading="Find someone who shares your walk."
           body="The waitlist is free and takes a minute. Founding members are invited first."
+          secondary={{ href: "/resources/how-to-find-a-torah-observant-spouse", label: "Read: How to find a Torah-observant spouse" }}
         />
       </main>
       <MarketingFooter />

@@ -72,6 +72,7 @@ export default function BiblicalPolygynyPage() {
         <LandingCta
           heading="A place for what you believe."
           body="The waitlist is free. Be open about what you are seeking from the start."
+          secondary={{ href: "/resources/biblical-plural-marriage-online", label: "Read: What a platform should get right" }}
         />
       </main>
       <MarketingFooter />

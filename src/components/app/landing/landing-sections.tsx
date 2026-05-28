@@ -68,7 +68,15 @@ export function FeatureGrid({
   );
 }
 
-export function LandingCta({ heading, body }: { heading: string; body: string }) {
+export function LandingCta({
+  heading,
+  body,
+  secondary,
+}: {
+  heading: string;
+  body: string;
+  secondary?: { href: string; label: string };
+}) {
   return (
     <section className="rounded-3xl border border-lavender/30 bg-lavender/10 p-8 lg:p-12 flex flex-col gap-4 items-start">
       <h2
@@ -86,6 +94,11 @@ export function LandingCta({ heading, body }: { heading: string; body: string })
       >
         Join the waitlist
       </Button>
+      {secondary ? (
+        <Link href={secondary.href} className="text-sm font-semibold text-(--color-lavender) hover:underline">
+          {secondary.label}
+        </Link>
+      ) : null}
     </section>
   );
 }

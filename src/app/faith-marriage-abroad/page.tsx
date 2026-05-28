@@ -71,6 +71,7 @@ export default function FaithMarriageAbroadPage() {
         <LandingCta
           heading="The right person might live abroad."
           body="The waitlist is free. Meet verified believers across the diaspora."
+          secondary={{ href: "/resources/marrying-across-borders-safely", label: "Read: Marrying across borders safely" }}
         />
       </main>
       <MarketingFooter />
