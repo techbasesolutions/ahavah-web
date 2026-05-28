@@ -1,4 +1,4 @@
-// /resources/[slug] — a guide article. Server component: dynamic-imports
+// /resources/[slug]: a guide article. Server component that dynamic-imports
 // the MDX body, reads metadata from the content loader.
 /* eslint-disable no-restricted-syntax */
 

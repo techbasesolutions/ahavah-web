@@ -1,4 +1,4 @@
-// /resources/rss.xml — updates feed. Hand-rolled XML (no extra dep).
+// /resources/rss.xml: updates feed. Hand-rolled XML (no extra dep).
 import { getUpdates } from "@/lib/content";
 
 const BASE = "https://ahavah.app";

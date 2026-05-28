@@ -1,4 +1,4 @@
-// /resources/updates/[slug] — a dated update article.
+// /resources/updates/[slug]: a dated update article.
 /* eslint-disable no-restricted-syntax */
 
 import type { Metadata } from "next";

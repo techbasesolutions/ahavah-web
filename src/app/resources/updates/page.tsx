@@ -1,4 +1,4 @@
-// /resources/updates — dated announcements index. Empty state until posts exist.
+// /resources/updates: dated announcements index. Empty state until posts exist.
 /* eslint-disable no-restricted-syntax */
 
 import type { Metadata } from "next";

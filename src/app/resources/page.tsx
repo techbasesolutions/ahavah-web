@@ -1,4 +1,4 @@
-// /resources — hub index. Guides grouped by cluster + latest updates row.
+// /resources: hub index. Guides grouped by cluster + latest updates row.
 /* eslint-disable no-restricted-syntax */
 
 import type { Metadata } from "next";
