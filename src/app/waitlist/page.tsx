@@ -271,16 +271,19 @@ function WaitlistFlow() {
     // wizard. Read-only check; fail open so a check error never blocks signup.
     if (step === 1) {
       setChecking(true);
-      let exists = false;
+      // Short-circuit ONLY a *completed* signup. An email-only early-capture row
+      // (created by the landing hero before redirecting here) has no answers, so
+      // it must still walk the demographic steps rather than hit "already in".
+      let completed = false;
       try {
         const res = await checkWaitlist(email.trim());
-        exists = res.exists;
+        completed = res.exists && res.complete === true;
       } catch {
         /* check unavailable — proceed into the wizard */
       } finally {
         setChecking(false);
       }
-      if (exists) setAlreadyRegistered(true);
+      if (completed) setAlreadyRegistered(true);
       else setStep(2);
       return;
     }

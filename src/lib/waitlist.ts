@@ -63,8 +63,10 @@ export async function getWaitlistCount(): Promise<{ count: number }> {
   return apiClient.get<{ count: number }>("/waitlist/count");
 }
 
-/** Read-only check: is this email already on the waitlist? Used to short-circuit
- *  a returning registrant at the onboarding email step (no write). */
+/** Read-only check: is this email already on the waitlist, and is it a completed
+ *  signup (has answers)? `complete` lets the wizard short-circuit only genuine
+ *  returning registrants — an email-only early-capture row (answers {}) still
+ *  walks the demographic steps. No write. */
 export async function checkWaitlist(email: string) {
-  return apiClient.post<{ exists: boolean }>("/waitlist/check", { email });
+  return apiClient.post<{ exists: boolean; complete?: boolean }>("/waitlist/check", { email });
 }
