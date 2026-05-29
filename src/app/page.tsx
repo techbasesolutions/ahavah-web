@@ -179,6 +179,11 @@ export default function LandingPage() {
                   </span>
                 </div>
 
+                {/* Device-led on mobile: the app screen leads the hero, matching
+                    the design handoff. Desktop shows PhoneMockup in the right
+                    column instead (this instance is lg:hidden). */}
+                <MobileDeviceHero className="lg:hidden mt-3 mb-9" />
+
                 <h1
                   className="m-0 text-(--ink) text-[clamp(36px,9.8vw,92px)]"
                   style={{
@@ -295,10 +300,10 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              {/* Right — desktop phone (lg:+) / mobile card-stack (<lg:) */}
-              <div className="flex justify-center items-center" aria-hidden="true">
-                <CardStack className="lg:hidden" />
-                <PhoneMockup className="hidden lg:block" />
+              {/* Right — desktop phone only. The mobile device hero lives in the
+                  left column (above the headline) for device-first order. */}
+              <div className="hidden lg:flex justify-center items-center" aria-hidden="true">
+                <PhoneMockup />
               </div>
             </div>
           </div>
@@ -931,56 +936,115 @@ function FeatureSlider() {
   );
 }
 
-/* ── CardStack (mobile hero visual) — three layered profile photo cards with
-   a lime "like" badge. Pure layout component; the photos are decorative. */
-function CardStack({ className = "" }: { className?: string }) {
-  const cards = [
-    {
-      key: 3,
-      src: "/marketing/couple-1.webp",
-      classes: "rotate-[-7deg] translate-y-2 scale-[0.93] brightness-[0.92] z-1",
-    },
-    {
-      key: 2,
-      src: "/marketing/couple-2.webp",
-      classes: "rotate-[4deg] translate-y-1 scale-[0.96] brightness-[0.96] z-2",
-    },
-  ];
+/* ── MobileDeviceHero (mobile hero visual) — device-led phone showing the app
+   discover screen, with floating "Verified profiles" + "It's a match" chips and
+   a brand glow bloom. Translates the device-led hero from the design handoff
+   `Ahavah Landing Mobile.html`; reuses the same app-screen composition as the
+   desktop PhoneMockup but keeps the current persona (Yael, California,
+   hero-mobile.webp) rather than the design file's placeholder face. */
+function MobileDeviceHero({ className = "" }: { className?: string }) {
   return (
-    <div
-      className={`relative w-full max-w-[320px] mx-auto aspect-[3/4] ${className}`}
-      aria-hidden="true"
-    >
-      {cards.map(({ key, src, classes }) => (
-        <div
-          key={key}
-          className={`absolute inset-0 rounded-[28px] overflow-hidden border-4 border-white bg-(--card) shadow-[0_20px_50px_rgba(15,11,31,0.20)] ${classes}`}
-        >
-          <img src={src} alt="" loading="lazy" className="w-full h-full object-cover" />
-        </div>
-      ))}
+    <div className={`relative mx-auto w-[min(72vw,300px)] isolate ${className}`} aria-hidden="true">
+      {/* Brand glow bloom behind the device (sits behind via DOM order) */}
+      <span
+        className="pointer-events-none absolute blur-[26px] opacity-90"
+        style={{
+          inset: "-12% -22% -6%",
+          background:
+            "radial-gradient(ellipse 62% 56% at 50% 38%, color-mix(in oklch, var(--color-lavender) 60%, transparent), transparent 72%), radial-gradient(ellipse 60% 44% at 78% 88%, color-mix(in oklch, var(--color-lime) 58%, transparent), transparent 70%), radial-gradient(ellipse 54% 40% at 18% 80%, color-mix(in oklch, var(--color-pink) 30%, transparent), transparent 72%)",
+        }}
+      />
 
-      {/* Top card with caption */}
-      <div className="absolute inset-0 rounded-[28px] overflow-hidden border-4 border-white bg-(--card) shadow-[0_20px_50px_rgba(15,11,31,0.20)] rotate-[-1deg] z-3">
-        <img
-          src="/marketing/hero-mobile.webp"
-          alt=""
-          loading="eager"
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute left-4 right-4 bottom-3.5 text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.5)]">
-          <div className="text-[18px] font-bold">Yael, 27</div>
-          <div className="mt-0.5 flex items-center gap-1 text-xs opacity-90">
-            <MapPin size={10} />
-            California
+      {/* Phone shell */}
+      <div
+        className="relative w-full aspect-[754/1640] rounded-[46px] bg-[#0B0820] p-[9px]"
+        style={{
+          boxShadow:
+            "0 36px 80px -24px rgba(15,11,31,0.55), 0 12px 30px -10px rgba(15,11,31,0.30), inset 0 0 0 1.5px rgba(255,255,255,0.10)",
+        }}
+      >
+        <div className="relative w-full h-full rounded-[38px] overflow-hidden bg-[oklch(0.18_0.11_280)] text-white flex flex-col">
+          {/* Notch */}
+          <div className="absolute top-2 left-1/2 -translate-x-1/2 w-[84px] h-5 rounded-[14px] bg-black z-5" />
+
+          {/* App header */}
+          <div className="flex items-center justify-between px-4 pt-10 pb-2">
+            <Logo variant="horizontal" forceTheme="dark" height={20} />
+            <div className="size-[28px] rounded-full grid place-items-center bg-[oklch(0.13_0.06_280)]">
+              <Sliders size={13} stroke="oklch(0.71 0.16 295)" />
+            </div>
+          </div>
+
+          {/* Profile card — current persona */}
+          <div className="flex flex-col flex-1 mx-3 mt-1 mb-3 rounded-[18px] overflow-hidden relative">
+            <img
+              src="/marketing/hero-mobile.webp"
+              alt=""
+              loading="eager"
+              decoding="async"
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+            <div className="absolute top-3.5 left-3.5 right-3.5 flex gap-1">
+              <span className="flex-1 h-[3px] rounded-[2px] bg-lime shadow-[0_0_6px_rgba(215,255,129,0.5)]" />
+              <span className="flex-1 h-[3px] rounded-[2px] bg-white/20" />
+              <span className="flex-1 h-[3px] rounded-[2px] bg-white/20" />
+            </div>
+            <div className="relative z-2 mt-auto bg-gradient-to-t from-black/70 to-transparent px-4 pt-10 pb-3.5">
+              <div className="text-[17px] font-bold">Yael, 27</div>
+              <div className="mt-1 flex items-center gap-1 text-[11px] text-white/85">
+                <MapPin size={10} />
+                California
+              </div>
+            </div>
+          </div>
+
+          {/* Action row — canonical 4-button discover deck */}
+          <div className="flex items-center justify-center gap-2 pb-4">
+            <div className="size-8 rounded-full grid place-items-center bg-indigo text-white shadow-[0_4px_12px_rgba(0,0,0,0.3)]">
+              <Undo2 size={14} strokeWidth={2.2} />
+            </div>
+            <div className="size-10 rounded-full grid place-items-center bg-lime shadow-[0_4px_12px_rgba(0,0,0,0.3)]">
+              <XIcon size={18} strokeWidth={2.4} className="text-black" />
+            </div>
+            <div className="size-10 rounded-full grid place-items-center bg-pink shadow-[0_4px_12px_rgba(0,0,0,0.3)]">
+              <Heart size={16} fill="#000" stroke="none" />
+            </div>
+            <div className="size-8 rounded-full grid place-items-center bg-lavender shadow-[0_4px_12px_rgba(0,0,0,0.3)]">
+              <Star size={14} fill="#000" stroke="none" />
+            </div>
           </div>
         </div>
       </div>
 
-      {/* "Like" badge — lime circle, top-right, rotated, on top of all cards */}
-      <div className="absolute -top-2.5 -right-2.5 z-4 size-14 rounded-full bg-lime rotate-12 grid place-items-center shadow-[0_6px_18px_rgba(215,255,129,0.5)]">
-        <Heart size={26} fill="#000" stroke="none" />
-      </div>
+      {/* Floating feature chips — dark text fixed (chip bg is white in both themes) */}
+      <span
+        className="absolute z-5 inline-flex items-center gap-[7px] rounded-full bg-white/95 px-[13px] py-[9px] text-[12px] font-bold text-[#0F0B1F] whitespace-nowrap backdrop-blur-[10px]"
+        style={{
+          top: "15%",
+          left: "-4%",
+          transform: "rotate(-4deg)",
+          boxShadow: "0 10px 28px -6px rgba(15,11,31,0.28), inset 0 0 0 1px rgba(255,255,255,0.6)",
+        }}
+      >
+        <span className="size-[18px] rounded-full grid place-items-center bg-lime text-black">
+          <Check size={11} strokeWidth={3.5} />
+        </span>
+        Verified profiles
+      </span>
+      <span
+        className="absolute z-5 inline-flex items-center gap-[7px] rounded-full bg-white/95 px-[13px] py-[9px] text-[12px] font-bold text-[#0F0B1F] whitespace-nowrap backdrop-blur-[10px]"
+        style={{
+          bottom: "24%",
+          right: "-5%",
+          transform: "rotate(4deg)",
+          boxShadow: "0 10px 28px -6px rgba(15,11,31,0.28), inset 0 0 0 1px rgba(255,255,255,0.6)",
+        }}
+      >
+        <span className="size-[18px] rounded-full grid place-items-center bg-pink text-white">
+          <Heart size={10} fill="currentColor" stroke="none" />
+        </span>
+        It&apos;s a match
+      </span>
     </div>
   );
 }
