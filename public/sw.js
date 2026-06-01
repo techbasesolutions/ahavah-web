@@ -10,7 +10,7 @@
  * stale older bundle gets evicted in `activate`).
  */
 
-const CACHE = "ahavah-73b47bd0eb2c";
+const CACHE = "ahavah-3eabdd164b78";
 
 // Routes whose HTML we want available offline. Must all return 200 on
 // install or addAll() rejects the whole batch — keep this conservative.
