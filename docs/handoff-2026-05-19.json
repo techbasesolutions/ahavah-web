@@ -1,0 +1,269 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "handoff": {
+    "generated": "2026-05-19",
+    "scope": "Ahavah PWA — frontend + backend snapshot for the next agent picking up work",
+    "currentBranchFrontend": "master",
+    "currentBranchBackend": "ahavah/main",
+    "lastFrontendCommit": "73b47bd",
+    "lastBackendCommit": "3121644",
+    "lastWorkSession": "fixed billing auto-redirect, landing reverts, splash icons, desktop back button, deployed token endpoints"
+  },
+
+  "project": {
+    "name": "Ahavah",
+    "tagline": "Find love across borders — dating PWA for Torah-observant singles",
+    "category": "Dating PWA, swipe-deck + premium tokens",
+    "stage": "pre-launch, droplet live, ~20 routes built of ~40 planned",
+    "brandHex": {
+      "indigo": "#5524F5",
+      "lime": "#D7FF81",
+      "lavender": "#BC96FF",
+      "pink": "#FF4566",
+      "bgIndigo": "oklch(0.18 0.11 280)",
+      "bgElevated": "oklch(0.13 0.06 280)"
+    },
+    "tierColors": {
+      "bronze": "#CD7F32",
+      "silver": "#C0C0C0",
+      "gold": "#FFD700",
+      "note": "These three are referenced kit-wide as var(--color-bronze/silver/gold) but NEVER defined in globals.css. Use direct hex at call sites or define the tokens. Bit them in this session on the landing tier cards."
+    }
+  },
+
+  "repos": {
+    "frontend": {
+      "path": "d:/Antigravity/ahavah-web",
+      "github": "techbasesolutions/ahavah-web",
+      "branch": "master",
+      "stack": "Next.js 16 (App Router, Turbopack) + React 19 + Tailwind v4 + shadcn/ui (Base UI variant) + Kibo UI + Plus Jakarta Sans + Ultra (display) + sonner + lucide-react + motion + cva + tailwind-merge",
+      "fonts": {
+        "sans": "Plus Jakarta Sans (--font-sans)",
+        "display": "Ultra (--font-display) — landing only"
+      },
+      "deploy": "Vercel auto-deploy on push to master",
+      "dev": "pnpm dev (port 3000)"
+    },
+    "backend": {
+      "path": "d:/Antigravity/ahavah-api",
+      "github": "techbasesolutions/duolicious-backend",
+      "branch": "ahavah/main",
+      "stack": "Flask + custom Duolicious fork. Routes registered via @get/@post/@aget/@apost decorators in service/api/__init__.py.",
+      "deploy": "GitHub Actions (.github/workflows/deploy-ahavah.yml) on push to ahavah/main. SSH to droplet, git pull, run migrations/*.sql via psql, docker compose build api+chat, restart. ~3-5 min total.",
+      "droplet": "167.71.93.27 (IPv4) / 2604:a880:800:14:0:2:f28f:5000 (IPv6) port 5000",
+      "rolledback": "ssh root@droplet 'cd /opt/ahavah-api && git reset --hard <sha> && docker compose -f docker-compose.yml -f docker-compose.production.yml --env-file .env.production up -d --build api chat'"
+    },
+    "proxy": "Frontend uses NEXT_PUBLIC_API_BASE_URL=/api. Next.config.ts rewrites /api/:path* → http://167.71.93.27:5000/:path* in dev. vercel.json mirrors it in prod."
+  },
+
+  "entryPointDocs": {
+    "claudemd": "d:/Antigravity/ahavah-web/CLAUDE.md",
+    "buildPlan": "d:/Antigravity/ahavah-web/docs/BUILD-PLAN.md",
+    "projectStatus": "d:/Antigravity/ahavah-web/PROJECT-STATUS.md",
+    "agentsmd": "d:/Antigravity/ahavah-web/AGENTS.md",
+    "thisHandoff": "d:/Antigravity/ahavah-web/docs/handoff-2026-05-19.json"
+  },
+
+  "routes": [
+    { "path": "/", "category": "marketing", "status": "live", "shell": "no-shell, kit-primitive landing", "notes": "Rewritten this session — drops landing.css (1100 lines). Hero + Features + How-it-works + Tiers + Quote + CTA + Footer. PhoneMockup hidden until lg:. data-landing attribute releases the .ahavah-app 414px clamp." },
+    { "path": "/auth/sign-in", "category": "auth", "status": "live" },
+    { "path": "/auth/sign-up", "category": "auth", "status": "live" },
+    { "path": "/onboarding", "category": "onboarding", "status": "live", "notes": "Intro hub" },
+    { "path": "/onboarding/name", "category": "onboarding", "status": "live" },
+    { "path": "/onboarding/dob", "category": "onboarding", "status": "live", "notes": "Hydration warning per SESSION-SUMMARY" },
+    { "path": "/onboarding/gender", "category": "onboarding", "status": "live" },
+    { "path": "/onboarding/looking-for", "category": "onboarding", "status": "live" },
+    { "path": "/onboarding/photos", "category": "onboarding", "status": "live" },
+    { "path": "/onboarding/country", "category": "onboarding", "status": "live" },
+    { "path": "/onboarding/languages", "category": "onboarding", "status": "live" },
+    { "path": "/onboarding/bio", "category": "onboarding", "status": "live" },
+    { "path": "/onboarding/assembly", "category": "onboarding", "status": "live" },
+    { "path": "/onboarding/marital-status", "category": "onboarding", "status": "live" },
+    { "path": "/onboarding/children", "category": "onboarding", "status": "live" },
+    { "path": "/onboarding/polygyny", "category": "onboarding", "status": "live" },
+    { "path": "/onboarding/relocation", "category": "onboarding", "status": "live" },
+    { "path": "/onboarding/verify-email", "category": "onboarding", "status": "live" },
+    { "path": "/onboarding/verify-phone", "category": "onboarding", "status": "live" },
+    { "path": "/onboarding/verification", "category": "onboarding", "status": "live" },
+    { "path": "/onboarding/complete", "category": "onboarding", "status": "live" },
+    { "path": "/discover", "category": "tab-root", "status": "live", "topBarBack": false, "shell": "sidebar", "notes": "Swipe deck (static card, no real swipe gesture per PROJECT-STATUS §3). Desktop filter is a circle-lg Button with SlidersHorizontal (matches /map after this session's fix). " },
+    { "path": "/matches", "category": "tab-root", "status": "live", "topBarBack": false, "shell": "sidebar", "notes": "Matches + Likes tabs. Reveal token spend wired with toast." },
+    { "path": "/inbox", "category": "tab-root", "status": "live", "topBarBack": false, "shell": "sidebar" },
+    { "path": "/chat/[id]", "category": "messaging", "status": "live" },
+    { "path": "/profile", "category": "tab-root", "status": "live", "topBarBack": false, "shell": "sidebar" },
+    { "path": "/profile/[uuid]", "category": "profile", "status": "live", "notes": "Public profile view. Server-rendered (dynamic)." },
+    { "path": "/profile/edit", "category": "profile", "status": "live" },
+    { "path": "/profile/tokens", "category": "profile", "status": "live", "notes": "Token purchase. Uses /checkout/tokens endpoint." },
+    { "path": "/map", "category": "tab-root", "status": "live", "topBarBack": false, "shell": "sidebar", "notes": "OSM map with markers. Right rail filter button removed in this session (was duplicate). Topbar filter remains." },
+    { "path": "/match", "category": "match-celebration", "status": "live", "notes": "8 of 12 confetti shapes inline; 4 missing per BUILD-PLAN." },
+    { "path": "/verify", "category": "verification", "status": "live", "notes": "3-tier overview with bronze/silver/gold cards. Real tier-color tokens." },
+    { "path": "/verify/bronze", "category": "verification", "status": "live", "notes": "Single selfie. POST /verification-selfie → POST /verify → polls /check-verification." },
+    { "path": "/verify/silver", "category": "verification", "status": "live", "notes": "3-frame burst (straight/right-turn/left-turn) via <input capture='user'>. NOT real getUserMedia liveness; uses GPT-4.1 vision in backend for face match + pose check. Documented in feedback memory feedback_ahavah_verify_external_products." },
+    { "path": "/verify/gold", "category": "verification", "status": "live", "notes": "Stripe Identity hosted flow. window.location.assign(url) after POST /verification/start-id-flow. Webhook flips tier server-side." },
+    { "path": "/paywall", "category": "monetization", "status": "live" },
+    { "path": "/billing-portal", "category": "monetization", "status": "live", "notes": "REWRITTEN this session — no longer auto-redirects. Explicit 'Open billing portal' Button on mobile + desktop." },
+    { "path": "/settings", "category": "tab-root", "status": "live", "topBarBack": false, "shell": "sidebar" },
+    { "path": "/settings/account", "category": "settings", "status": "live" },
+    { "path": "/settings/notifications", "category": "settings", "status": "live" },
+    { "path": "/settings/privacy", "category": "settings", "status": "live" },
+    { "path": "/settings/safety", "category": "settings", "status": "live" },
+    { "path": "/settings/blocked", "category": "settings", "status": "live" },
+    { "path": "/banned", "category": "edge-state", "status": "live", "notes": "Uses EdgeStateCard — icon enlarged to 128×128 tile, 64px glyph this session." },
+    { "path": "/locked", "category": "edge-state", "status": "live" },
+    { "path": "/maintenance", "category": "edge-state", "status": "live" },
+    { "path": "/update-required", "category": "edge-state", "status": "live" },
+    { "path": "/offline", "category": "edge-state", "status": "live" },
+    { "path": "/help", "category": "support", "status": "live" },
+    { "path": "/legal/terms", "category": "legal", "status": "live" },
+    { "path": "/legal/privacy", "category": "legal", "status": "live" },
+    { "path": "/legal/community-guidelines", "category": "legal", "status": "live" },
+    { "path": "/admin/reports", "category": "admin", "status": "live" }
+  ],
+
+  "backendEndpoints": {
+    "verifiedLiveAt": "2026-05-19 (post commit 3121644 deploy via GHA)",
+    "auth": [
+      { "method": "POST", "path": "/request-otp" },
+      { "method": "POST", "path": "/check-otp" },
+      { "method": "POST", "path": "/check-session-token" },
+      { "method": "POST", "path": "/sign-out" }
+    ],
+    "profile": [
+      { "method": "GET", "path": "/me" },
+      { "method": "GET", "path": "/profile-info" },
+      { "method": "PATCH", "path": "/profile-info" },
+      { "method": "DELETE", "path": "/profile-info" },
+      { "method": "GET", "path": "/prospect-profile/{uuid}" }
+    ],
+    "discovery": [
+      { "method": "GET", "path": "/search", "notes": "the swipe deck data source. Frontend calls this for /discover deck." },
+      { "method": "GET", "path": "/feed" },
+      { "method": "GET", "path": "/discovery-prefs" },
+      { "method": "PATCH", "path": "/discovery-prefs" }
+    ],
+    "interactions": [
+      { "method": "POST", "path": "/decisions", "notes": "like/nope persistence" },
+      { "method": "POST", "path": "/decisions/reset" },
+      { "method": "GET", "path": "/matches" },
+      { "method": "GET", "path": "/matches/{id}" },
+      { "method": "GET", "path": "/likes/incoming", "notes": "boosted + revealed likers" }
+    ],
+    "tokens": [
+      { "method": "GET", "path": "/tokens/balance", "deployed": true },
+      { "method": "POST", "path": "/tokens/reveal", "deployed": true, "notes": "Spend 1, reveal a liker. 402 on insufficient." },
+      { "method": "POST", "path": "/tokens/boost", "deployed": true, "notes": "Spend 5, 30-min spotlight." },
+      { "method": "GET", "path": "/tokens/active-boost", "deployed": true },
+      { "method": "POST", "path": "/tokens/super-like", "deployed": true, "notes": "Spend 2, may create match." },
+      { "method": "POST", "path": "/tokens/day-pass", "deployed": true, "notes": "Spend 3, bypass 10/day like quota for 24h." }
+    ],
+    "verification": [
+      { "method": "POST", "path": "/verification-selfie" },
+      { "method": "POST", "path": "/verification-multi-selfie", "notes": "Silver: 3 frames" },
+      { "method": "POST", "path": "/verify" },
+      { "method": "GET", "path": "/check-verification" },
+      { "method": "POST", "path": "/verification/start-id-flow", "notes": "Gold: returns Stripe Identity hosted URL" }
+    ],
+    "billing": [
+      { "method": "GET", "path": "/billing-portal", "notes": "Returns Stripe Customer Portal session URL" },
+      { "method": "POST", "path": "/checkout/web", "notes": "Returns { url } for subscription checkout" },
+      { "method": "POST", "path": "/checkout/tokens", "notes": "Returns { url } for token bundle checkout" }
+    ],
+    "webhooks": [
+      { "method": "POST", "path": "/webhooks/stripe-identity" },
+      { "method": "POST", "path": "/webhooks/stripe-checkout" },
+      { "method": "POST", "path": "/webhooks/revenuecat" }
+    ],
+    "knownGaps": [
+      "Token Stripe price IDs may not be set in droplet env. Check: docker exec ahavah-api-api-1 env | grep STRIPE_PRICE_TOKENS",
+      "/discover (literal path) does NOT exist — use /search. Frontend correctly calls /search now.",
+      "/likes (literal path) does NOT exist — use /likes/incoming."
+    ]
+  },
+
+  "kitInventory": {
+    "uiPrimitives": ["Button", "Card", "Input", "Textarea", "Label", "Badge", "Avatar", "Checkbox", "Toggle", "ToggleGroup", "Select", "InputGroup", "Dialog", "Field", "IconBadge", "Item", "Empty", "NumberStepper", "Skeleton", "Accordion", "Carousel", "Popover", "Progress", "RadioGroup", "ScrollArea", "Separator", "Slider", "Sonner", "Switch", "Sheet", "Tooltip"],
+    "kiboBlocks": ["Pill", "AvatarStack", "Choicebox", "Comparison", "Deck", "Kanban", "List", "Marquee", "RelativeTime", "Status", "Stories"],
+    "appComponents": [
+      "PageShell (sidebar | full-bleed | mobile-only desktopShell modes; topBarTitle/topBarActions/topBarBack props)",
+      "DesktopTopBar (default-on back button with /discover fallback; tab roots opt out via topBarBack={false})",
+      "DesktopSidebar (hidden md:flex; persistent left nav)",
+      "BottomNav (mobile only)",
+      "BackButton (history.length check, fallback URL)",
+      "EdgeStateCard (banned/locked/maintenance/update-required/offline shared chrome; 128×128 tile, 64px icon as of 2026-05-19)",
+      "FiltersSheet (shared between /discover + /map; backed by useFilters() localStorage store)",
+      "TokenSpendSheet (Dialog wrapper, busy/insufficient state, onConfirm callback)",
+      "AuthIllustration (sign-up/sign-in right column; percentage-positioned photo cards)",
+      "BoostCard (30-min spotlight UI + countdown + token spend)",
+      "SwipeCard / SwipeDeck (visual only, no gesture)",
+      "PhotoTile / PhotoSlot / PhotoCaption",
+      "ChatBubble / ChatHeader / ChatInput / ChatThreadView"
+    ],
+    "brandComponents": [
+      "Logo (horizontal | stacked variant; theme-aware SVG)",
+      "LogoMark (3-path indigo square + lime heart-A + indigo teardrop; customizable colors via props)"
+    ]
+  },
+
+  "recentSession2026_05_19": {
+    "summary": "Landing rewrite, billing portal de-auto-redirect, splash icons enlarged, desktop back button added, token backend deployed (was 19 commits unpushed).",
+    "frontendCommits": [
+      { "sha": "73b47bd", "msg": "fix(tokens): surface backend failures via toast", "files": ["layout.tsx", "boost-card.tsx", "matches/page.tsx", "discover/page.tsx"] },
+      { "sha": "77dd0f0", "msg": "fix: billing auto-redirect, splash icons, landing reverts, desktop back-button", "files": ["billing-portal/page.tsx", "page.tsx (landing)", "globals.css", "edge-state-card.tsx", "desktop-topbar.tsx", "page-shell.tsx", "discover/page.tsx", "matches/page.tsx", "inbox/page.tsx", "profile/page.tsx", "settings/page.tsx", "map/page.tsx", "landing.css (DELETED)"] }
+    ],
+    "backendCommits": "2e798e2..3121644 (19 commits pushed; GHA deployed in 3m46s; migration 0014_token_economy.sql applied)",
+    "deltaHighlights": {
+      "billingPortal": "useEffect auto-redirect removed; opening = false on mount; explicit 'Open billing portal' Button on both mobile + desktop calls handleOpen() which POSTs /billing-portal and window.location.assigns the returned URL.",
+      "splashIcons": "EdgeStateCard tile w-24 → w-32, h-24 → h-32, rounded-[24px] → rounded-[28px], icon size-11 → size-16. Affects /banned /locked /maintenance /update-required /offline.",
+      "landingReverts": "Step number badges separate from photo (44×44 indigo tile, lime number BELOW image). CTA watermark anchored top-center, -12deg rotate, 55% width / 450px max, opacity 0.18. Tier icons use canonical hex (#CD7F32/#C0C0C0/#FFD700) — NOT var(--color-*) which is undefined.",
+      "landingEscape": ".ahavah-app:has(> [data-landing]) { max-width: none; ... } added to globals.css so the marketing landing escapes the 414px PWA-shell clamp on every theme.",
+      "desktopBackButton": "DesktopTopBar.back prop (string fallback | false). Default = '/discover'. Renders <BackButton> before title. PageShell.topBarBack forwards. Tab roots /discover, /matches, /inbox, /profile, /settings, /map all opt out with topBarBack={false}.",
+      "mapDedupe": "Right-rail filter button removed from /map desktop (line 463 in map/page.tsx). Topbar filter (line 409) remains the canonical trigger.",
+      "discoverFilterRestored": "Desktop topbar filter on /discover restored from glassDark Pill back to Button size='circle-lg' tone='elevated' with SlidersHorizontal (matches /map). The Pill was an unrequested change.",
+      "tokenToasts": "BoostCard.handleBoost, /matches.confirmReveal, /discover.handleSuperLike — all three now close sheet on non-402 errors + toast.error with status-specific copy. Toaster mounted in layout.tsx (sonner was installed but never rendered).",
+      "tokenBackendDeploy": "Pushed 19 backend commits from local ahavah/main HEAD (3121644) to origin (was at 2e798e2). GHA deploy-ahavah.yml ran ✓ in 3m46s. /tokens/* endpoints now return 400/405 (auth needed) instead of 404 (not found)."
+    }
+  },
+
+  "knownIssuesAndGaps": [
+    { "severity": "medium", "issue": "Tier color CSS variables (--color-bronze, --color-silver, --color-gold) are referenced by Card.tier variant + IconBadge tone='tier' but NEVER defined in globals.css. Workaround: pass color={hex} inline at call site. Fix: add the three vars to the @theme block." },
+    { "severity": "medium", "issue": "/discover swipe deck has no real gesture — static photo card only. Per PROJECT-STATUS §3, this is the central interaction and it's a visual stub. Top of roadmap." },
+    { "severity": "medium", "issue": "Silver verification is NOT real anti-spoof liveness. Uses <input capture='user'> (which on Android/desktop browsers allows gallery selection) and GPT-4.1 vision for pose/identity check. Gold (Stripe Identity) is real liveness." },
+    { "severity": "low", "issue": "Hydration warning on /onboarding/dob per session summary — not yet fixed." },
+    { "severity": "low", "issue": "Theme provider MQL bug at theme-provider.tsx:13 — uses (min-width: 768px) instead of (prefers-color-scheme: dark)." },
+    { "severity": "low", "issue": "Match celebration confetti — 8 of 12 sticker shapes inline; 4 missing per BUILD-PLAN." },
+    { "severity": "low", "issue": "Waitlist form on landing has no real POST endpoint — saves to localStorage only." },
+    { "severity": "low", "issue": "Toaster useTheme defaults to 'system' because next-themes provider is not wired (project uses its own ThemeProvider). Cosmetic; toasts still appear." }
+  ],
+
+  "deployMechanism": {
+    "frontend": "Push to master → Vercel auto-deploy. ~2-3 min for Next 16 build. No manual step.",
+    "backend": "Push to ahavah/main → GHA deploy-ahavah.yml → SSH droplet → git pull → apply migrations/*.sql → docker compose build api+chat → restart. ~3-5 min. Migrations use IF NOT EXISTS, safe to re-run.",
+    "rollbackBackend": "ssh root@<droplet> 'cd /opt/ahavah-api && git reset --hard <sha> && docker compose -f docker-compose.yml -f docker-compose.production.yml --env-file .env.production up -d --build api chat'"
+  },
+
+  "antiPatternsAvoidance": {
+    "doNotChangeWithoutAsk": "User has repeatedly flagged unsolicited UI changes (icons, button styles, layouts). When fixing one element, touch only that element. See feedback memory feedback_stop_unrequested_changes.md.",
+    "doNotMarkDoneWithoutObservation": "Type-check + build = compiles, NOT looks-right. UI changes require browser observation.",
+    "doNotHandRollPrimitives": "Every UI element MUST be a kit component (shadcn/ui, Kibo, app/), NEVER a hand-rolled <div className=''>. Bespoke atoms allowed only for documented exceptions (LogoMark, sticker SVGs).",
+    "doNotReadDocsRedundantly": "PROJECT-STATUS.md + BUILD-PLAN.md + this handoff + auto-memory in C:/Users/Ehud/.claude/projects/d--Antigravity/memory/MEMORY.md cover most context. Don't re-read 3,350-line master plan for routine work.",
+    "alwaysReadNextDocs": "Before non-trivial Next 16 API usage, read node_modules/next/dist/docs/. Per AGENTS.md, this is a hard rule that keeps getting ignored.",
+    "noEmDashesInUserStrings": "Per feedback memory feedback_no_em_dashes — never use — (em-dash) in user-facing copy.",
+    "gitCommitEmail": "All commits use admin@techbaseltd.com (set via git -c user.email=... if not configured globally)."
+  },
+
+  "credentialsLocations": {
+    "ahavahCredentials": "C:/Users/Ehud/.claude/projects/d--Antigravity/memory/ahavah-credentials.md (droplet, DB, third-party keys)",
+    "vercel": "C:/Users/Ehud/.claude/projects/d--Antigravity/memory/vercel-token.md (CLI token, techbase-hq scope)"
+  },
+
+  "nextLikelyTasks": [
+    "Build the real swipe-deck gesture on /discover (pan/rotation, LIKE/NOPE overlay, card stack).",
+    "Wire the missing 4 confetti shapes in /match.",
+    "Add --color-bronze/silver/gold to the @theme block in globals.css so tier-colored UI works without inline hex.",
+    "Set the Stripe token-bundle price env vars on the droplet (STRIPE_PRICE_TOKENS_*) and verify /checkout/tokens returns 200 with a URL.",
+    "Test the full token flow end-to-end as a real user (reveal, boost, super-like, day-pass) now that the endpoints are deployed.",
+    "Audit other routes (besides the 6 tab roots) — they all inherit the desktop back button by default now. Spot-check that the back behavior makes sense everywhere (e.g. /chat/[id] should back to /inbox, not /discover).",
+    "Fix theme-provider MQL bug (line 13).",
+    "Implement real waitlist POST endpoint for landing email capture."
+  ]
+}

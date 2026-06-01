@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ahavah PWA — handoff map (2026-05-19)</title>
+<style>
+  :root {
+    --indigo: #5524F5;
+    --bg-indigo: oklch(0.18 0.11 280);
+    --bg-elevated: oklch(0.13 0.06 280);
+    --canvas: #0A0820;
+    --lime: #D7FF81;
+    --lavender: #BC96FF;
+    --pink: #FF4566;
+    --ink: #ffffff;
+    --ink-2: oklch(0.75 0.04 280);
+    --ink-3: oklch(0.66 0.05 280);
+    --hairline: rgba(255,255,255,0.10);
+    --card: oklch(0.18 0.11 280);
+    --bronze: #CD7F32;
+    --silver: #C0C0C0;
+    --gold: #FFD700;
+    --ok: oklch(0.85 0.21 138);
+    --warn: oklch(0.83 0.18 90);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--canvas); color: var(--ink); font-family: ui-sans-serif, system-ui, "Plus Jakarta Sans", sans-serif; line-height: 1.5; }
+  body {
+    background:
+      radial-gradient(ellipse 60% 30% at 12% 8%, color-mix(in oklch, var(--lavender) 22%, transparent), transparent 70%),
+      radial-gradient(ellipse 50% 25% at 88% 92%, color-mix(in oklch, var(--lime) 18%, transparent), transparent 70%),
+      var(--canvas);
+    min-height: 100dvh;
+    padding: 48px 24px 96px;
+  }
+  .wrap { max-width: 1240px; margin: 0 auto; }
+  h1 { font-size: clamp(30px, 4vw, 52px); letter-spacing: -0.02em; line-height: 1.05; margin: 0 0 8px; font-weight: 900; }
+  h1 .accent { color: var(--lime); }
+  h2 { font-size: clamp(20px, 2.6vw, 30px); letter-spacing: -0.015em; margin: 56px 0 16px; font-weight: 800; }
+  h3 { font-size: 16px; letter-spacing: 0.02em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 12px; font-weight: 700; }
+  p { margin: 0 0 12px; color: var(--ink-2); }
+  a { color: var(--lavender); text-decoration: none; border-bottom: 1px solid color-mix(in oklch, var(--lavender) 30%, transparent); }
+  a:hover { color: var(--lime); border-color: var(--lime); }
+  code, kbd { font-family: "Fira Code", ui-monospace, monospace; font-size: 12.5px; background: rgba(255,255,255,0.05); padding: 1px 6px; border-radius: 4px; color: var(--ink); }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 32px; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .pill.indigo { background: color-mix(in oklch, var(--indigo) 22%, transparent); color: var(--lavender); border: 1px solid color-mix(in oklch, var(--lavender) 30%, transparent); }
+  .pill.lime { background: var(--lime); color: #000; }
+  .pill.lavender { background: color-mix(in oklch, var(--lavender) 20%, transparent); color: var(--lavender); border: 1px solid color-mix(in oklch, var(--lavender) 40%, transparent); }
+  .pill.pink { background: color-mix(in oklch, var(--pink) 18%, transparent); color: var(--pink); border: 1px solid color-mix(in oklch, var(--pink) 30%, transparent); }
+  .pill.muted { background: rgba(255,255,255,0.06); color: var(--ink-2); border: 1px solid var(--hairline); }
+  .grid { display: grid; gap: 16px; }
+  .grid.cols-2 { grid-template-columns: 1fr; }
+  @media (min-width: 720px) { .grid.cols-2 { grid-template-columns: 1fr 1fr; } }
+  .grid.cols-3 { grid-template-columns: 1fr; }
+  @media (min-width: 720px) { .grid.cols-3 { grid-template-columns: repeat(2, 1fr); } }
+  @media (min-width: 1024px) { .grid.cols-3 { grid-template-columns: repeat(3, 1fr); } }
+  .card { background: var(--card); border: 1px solid var(--hairline); border-radius: 16px; padding: 20px; }
+  .card h3 { margin-top: 0; }
+  .card.elevated { background: var(--bg-elevated); }
+  .kv { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; font-size: 13.5px; }
+  .kv dt { color: var(--ink-3); }
+  .kv dd { margin: 0; color: var(--ink); }
+  .kv dd code { font-size: 12px; }
+  .route-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  .route-table th { text-align: left; padding: 10px 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); border-bottom: 1px solid var(--hairline); position: sticky; top: 0; background: var(--canvas); }
+  .route-table td { padding: 9px 12px; border-bottom: 1px solid var(--hairline); vertical-align: top; }
+  .route-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .route-table code { background: rgba(255,255,255,0.07); }
+  .route-table .cat { color: var(--lavender); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
+  .route-table .notes { color: var(--ink-3); font-size: 12.5px; }
+  .endpoint-row { display: grid; grid-template-columns: 70px 1fr; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--hairline); align-items: baseline; }
+  .endpoint-row:last-child { border-bottom: 0; }
+  .method { font-size: 10.5px; font-weight: 800; letter-spacing: 0.05em; padding: 2px 6px; border-radius: 4px; text-align: center; font-family: ui-monospace, monospace; }
+  .method.GET { background: color-mix(in oklch, var(--lime) 25%, transparent); color: var(--lime); }
+  .method.POST { background: color-mix(in oklch, var(--lavender) 30%, transparent); color: var(--lavender); }
+  .method.PATCH { background: color-mix(in oklch, var(--pink) 28%, transparent); color: var(--pink); }
+  .method.DELETE { background: color-mix(in oklch, var(--pink) 40%, transparent); color: #fff; }
+  .endpoint-path { font-family: ui-monospace, monospace; font-size: 13px; }
+  .endpoint-note { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+  .tier-tile { display: inline-block; width: 28px; height: 28px; border-radius: 8px; vertical-align: middle; margin-right: 8px; }
+  .tier-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; }
+  .commit { font-family: ui-monospace, monospace; font-size: 12px; color: var(--lime); }
+  ul { padding-left: 18px; margin: 0 0 12px; }
+  li { margin-bottom: 6px; color: var(--ink-2); }
+  li strong { color: var(--ink); }
+  .severity { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+  .severity.high { background: color-mix(in oklch, var(--pink) 25%, transparent); color: var(--pink); }
+  .severity.medium { background: color-mix(in oklch, var(--warn) 25%, transparent); color: var(--warn); }
+  .severity.low { background: color-mix(in oklch, var(--lavender) 20%, transparent); color: var(--lavender); }
+  .topbar { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 32px; flex-wrap: wrap; gap: 12px; }
+  .topbar .date { color: var(--ink-3); font-size: 13px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 12px; color: var(--ink-3); margin-bottom: 12px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend .dot { width: 8px; height: 8px; border-radius: 999px; display: inline-block; }
+  .toc { columns: 2; column-gap: 32px; padding-left: 0; list-style: none; font-size: 13.5px; }
+  @media (min-width: 720px) { .toc { columns: 3; } }
+  .toc li { margin-bottom: 6px; break-inside: avoid; }
+  details summary { cursor: pointer; font-weight: 600; color: var(--ink); padding: 8px 0; }
+  details summary:hover { color: var(--lime); }
+  details[open] summary { color: var(--lime); }
+  details pre { background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px; overflow-x: auto; font-size: 12px; line-height: 1.4; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="topbar">
+    <div>
+      <h1>Ahavah PWA <span class="accent">·</span> handoff map</h1>
+      <p>Bumpy-style dating PWA for Torah-observant singles. Next.js 16 frontend + Flask (Duolicious fork) backend. Pre-launch, droplet live.</p>
+    </div>
+    <div class="date">Generated <strong>2026-05-19</strong></div>
+  </header>
+
+  <div class="meta">
+    <span class="pill indigo">Next.js 16 · React 19</span>
+    <span class="pill indigo">Tailwind v4</span>
+    <span class="pill indigo">shadcn/ui (Base UI)</span>
+    <span class="pill indigo">Kibo UI</span>
+    <span class="pill indigo">Flask backend</span>
+    <span class="pill lavender">53 routes</span>
+    <span class="pill lavender">~20 of 40 planned</span>
+    <span class="pill lime">Frontend HEAD: 73b47bd</span>
+    <span class="pill lime">Backend HEAD: 3121644</span>
+  </div>
+
+  <h3>Quick contents</h3>
+  <ul class="toc">
+    <li><a href="#stack">Stack &amp; brand</a></li>
+    <li><a href="#repos">Repos &amp; deploy</a></li>
+    <li><a href="#routes">Routes (53)</a></li>
+    <li><a href="#endpoints">Backend endpoints</a></li>
+    <li><a href="#kit">Kit inventory</a></li>
+    <li><a href="#recent">Recent session</a></li>
+    <li><a href="#gaps">Known gaps</a></li>
+    <li><a href="#antipatterns">Anti-patterns to avoid</a></li>
+    <li><a href="#next">Next likely tasks</a></li>
+  </ul>
+
+  <!-- ════════════════════════ STACK & BRAND ════════════════════════ -->
+  <h2 id="stack">Stack &amp; brand</h2>
+
+  <div class="grid cols-2">
+    <div class="card">
+      <h3>Brand palette</h3>
+      <div class="tier-row"><span class="tier-tile" style="background:#5524F5"></span><div><strong>Persian Indigo</strong> <code>#5524F5</code> — primary</div></div>
+      <div class="tier-row"><span class="tier-tile" style="background:#D7FF81"></span><div><strong>Mindaro lime</strong> <code>#D7FF81</code> — CTA</div></div>
+      <div class="tier-row"><span class="tier-tile" style="background:#BC96FF"></span><div><strong>Lavender</strong> <code>#BC96FF</code> — brand secondary</div></div>
+      <div class="tier-row"><span class="tier-tile" style="background:#FF4566"></span><div><strong>Pinkish red</strong> <code>#FF4566</code> — action</div></div>
+      <p style="margin-top:14px"><strong style="color:var(--ink)">Tier colors</strong> (hardcoded — <code>--color-bronze/silver/gold</code> are referenced kit-wide but <strong>never defined</strong> in <code>globals.css</code>):</p>
+      <div class="tier-row"><span class="tier-tile" style="background:#CD7F32"></span><div><code>#CD7F32</code> bronze</div></div>
+      <div class="tier-row"><span class="tier-tile" style="background:#C0C0C0"></span><div><code>#C0C0C0</code> silver</div></div>
+      <div class="tier-row"><span class="tier-tile" style="background:#FFD700"></span><div><code>#FFD700</code> gold</div></div>
+    </div>
+
+    <div class="card">
+      <h3>Typography</h3>
+      <dl class="kv">
+        <dt>Body</dt><dd><strong>Plus Jakarta Sans</strong> via <code>--font-sans</code></dd>
+        <dt>Display</dt><dd><strong>Ultra</strong> (slab serif) via <code>--font-display</code> — landing only</dd>
+        <dt>Scale</dt><dd><code>text-display</code> 30 / <code>text-h1</code> 24 / <code>text-h2</code> 20 / <code>text-body</code> 16 / <code>text-meta</code> 14 / <code>text-caption</code> 12</dd>
+      </dl>
+      <h3 style="margin-top:18px">Theme</h3>
+      <p>Dark default; light via <code>[data-theme="light"]</code> on <code>&lt;html&gt;</code>. App shell <code>.ahavah-app</code> clamps to 414px on mobile-dark only (PWA column), released on light + on desktop + on landing (via <code>:has([data-landing])</code>).</p>
+    </div>
+  </div>
+
+  <!-- ════════════════════════ REPOS & DEPLOY ════════════════════════ -->
+  <h2 id="repos">Repos &amp; deploy</h2>
+
+  <div class="grid cols-2">
+    <div class="card">
+      <h3>Frontend</h3>
+      <dl class="kv">
+        <dt>Path</dt><dd><code>d:/Antigravity/ahavah-web</code></dd>
+        <dt>Repo</dt><dd>techbasesolutions/ahavah-web</dd>
+        <dt>Branch</dt><dd><code>master</code></dd>
+        <dt>Dev</dt><dd><code>pnpm dev</code> → :3000</dd>
+        <dt>Deploy</dt><dd>Vercel auto-on-push to master</dd>
+        <dt>HEAD</dt><dd class="commit">73b47bd</dd>
+      </dl>
+    </div>
+
+    <div class="card">
+      <h3>Backend</h3>
+      <dl class="kv">
+        <dt>Path</dt><dd><code>d:/Antigravity/ahavah-api</code></dd>
+        <dt>Repo</dt><dd>techbasesolutions/duolicious-backend</dd>
+        <dt>Branch</dt><dd><code>ahavah/main</code></dd>
+        <dt>Droplet</dt><dd><code>167.71.93.27:5000</code></dd>
+        <dt>Deploy</dt><dd>GHA <code>deploy-ahavah.yml</code> on push to ahavah/main — SSH, git pull, run <code>migrations/*.sql</code>, docker compose rebuild api+chat. ~3–5 min.</dd>
+        <dt>HEAD</dt><dd class="commit">3121644</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px;">
+    <h3>Proxy</h3>
+    <p>Frontend uses <code>NEXT_PUBLIC_API_BASE_URL=/api</code>. <code>next.config.ts</code> rewrites <code>/api/:path*</code> → <code>http://167.71.93.27:5000/:path*</code> in dev. <code>vercel.json</code> mirrors it in prod. Avoids the CORS + credentials-include cross-origin problem.</p>
+  </div>
+
+  <!-- ════════════════════════ ROUTES ════════════════════════ -->
+  <h2 id="routes">Routes — 53 live</h2>
+
+  <div class="legend">
+    <span><span class="dot" style="background:var(--lime)"></span> tab-root (sidebar; back disabled)</span>
+    <span><span class="dot" style="background:var(--lavender)"></span> sub-route (sidebar; back enabled)</span>
+    <span><span class="dot" style="background:var(--pink)"></span> edge state (no shell)</span>
+    <span><span class="dot" style="background:var(--ink-3)"></span> public / legal</span>
+  </div>
+
+  <table class="route-table">
+    <thead><tr><th style="width:30%">Path</th><th style="width:14%">Category</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td><code>/</code></td><td class="cat">marketing</td><td class="notes">Rewritten with kit primitives this session. Drops landing.css. Hero · Features · How-it-works · Tiers · Quote · CTA · Footer. PhoneMockup hidden below lg:. <code>data-landing</code> attr escapes the 414px shell clamp.</td></tr>
+      <tr><td><code>/auth/sign-in</code> &amp; <code>/auth/sign-up</code></td><td class="cat">auth</td><td class="notes">Email + OTP. Right column uses AuthIllustration with percentage-positioned photo cards.</td></tr>
+      <tr><td><code>/onboarding</code> + 14 sub-routes</td><td class="cat">onboarding</td><td class="notes">name · dob · gender · looking-for · photos · country · languages · bio · assembly · marital-status · children · polygyny · relocation · verify-email · verify-phone · verification · complete</td></tr>
+      <tr><td><code>/discover</code></td><td class="cat">tab-root</td><td class="notes"><strong>Swipe deck — visual stub.</strong> No real swipe gesture, no card stack. Top of roadmap per PROJECT-STATUS §3. Desktop filter restored to circle-lg Button + SlidersHorizontal (matches /map) this session.</td></tr>
+      <tr><td><code>/matches</code></td><td class="cat">tab-root</td><td class="notes">Matches + Likes tabs. Reveal token spend wired with toast feedback.</td></tr>
+      <tr><td><code>/inbox</code></td><td class="cat">tab-root</td><td class="notes">Conversation list. Desktop has inline split-view.</td></tr>
+      <tr><td><code>/chat/[id]</code></td><td class="cat">messaging</td><td class="notes">ChatThreadView shared with /inbox split-view.</td></tr>
+      <tr><td><code>/profile</code></td><td class="cat">tab-root</td><td class="notes">Own profile preview + BoostCard slot + Completeness card.</td></tr>
+      <tr><td><code>/profile/[uuid]</code></td><td class="cat">profile</td><td class="notes">Public profile. Server-rendered (dynamic).</td></tr>
+      <tr><td><code>/profile/edit</code> · <code>/profile/tokens</code></td><td class="cat">profile</td><td class="notes">Edit form + token purchase (uses /checkout/tokens).</td></tr>
+      <tr><td><code>/map</code></td><td class="cat">tab-root</td><td class="notes">OSM markers + 360px candidate rail. Filter button de-duped this session — topbar one is canonical.</td></tr>
+      <tr><td><code>/match</code></td><td class="cat">celebration</td><td class="notes">8 of 12 confetti shapes inline. 4 missing.</td></tr>
+      <tr><td><code>/verify</code> + 3 tier sub-routes</td><td class="cat">verification</td><td class="notes">bronze (selfie) · silver (3-frame burst, GPT-4.1 vision — <strong>not real liveness</strong>) · gold (Stripe Identity hosted flow — real liveness).</td></tr>
+      <tr><td><code>/paywall</code> · <code>/billing-portal</code></td><td class="cat">monetization</td><td class="notes"><code>/billing-portal</code> rewritten this session — no auto-redirect, explicit "Open billing portal" CTA.</td></tr>
+      <tr><td><code>/settings</code> + 5 sub-routes</td><td class="cat">settings</td><td class="notes">account · notifications · privacy · safety · blocked</td></tr>
+      <tr><td><code>/banned · /locked · /maintenance · /update-required · /offline</code></td><td class="cat">edge-state</td><td class="notes">All use EdgeStateCard. Icon tile enlarged to <strong>128×128</strong> with 64px glyph this session.</td></tr>
+      <tr><td><code>/help</code> · <code>/legal/{terms,privacy,community-guidelines}</code></td><td class="cat">support</td><td class="notes">Static content.</td></tr>
+      <tr><td><code>/admin/reports</code></td><td class="cat">admin</td><td class="notes">Trust &amp; Safety inbox.</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ════════════════════════ BACKEND ENDPOINTS ════════════════════════ -->
+  <h2 id="endpoints">Backend endpoints — all verified live as of 2026-05-19</h2>
+
+  <div class="grid cols-3">
+
+    <div class="card">
+      <h3>Auth</h3>
+      <div class="endpoint-row"><span class="method POST">POST</span><div><div class="endpoint-path">/request-otp</div></div></div>
+      <div class="endpoint-row"><span class="method POST">POST</span><div><div class="endpoint-path">/check-otp</div></div></div>
+      <div class="endpoint-row"><span class="method POST">POST</span><div><div class="endpoint-path">/check-session-token</div></div></div>
+      <div class="endpoint-row"><span class="method POST">POST</span><div><div class="endpoint-path">/sign-out</div></div></div>
+    </div>
+
+    <div class="card">
+      <h3>Profile</h3>
+      <div class="endpoint-row"><span class="method GET">GET</span><div><div class="endpoint-path">/me</div></div></div>
+      <div class="endpoint-row"><span class="method GET">GET</span><div><div class="endpoint-path">/profile-info</div></div></div>
+      <div class="endpoint-row"><span class="method PATCH">PATCH</span><div><div class="endpoint-path">/profile-info</div></div></div>
+      <div class="endpoint-row"><span class="method DELETE">DELETE</span><div><div class="endpoint-path">/profile-info</div></div></div>
+      <div class="endpoint-row"><span class="method GET">GET</span><div><div class="endpoint-path">/prospect-profile/{uuid}</div></div></div>
+    </div>
+
+    <div class="card">
+      <h3>Discovery</h3>
+      <div class="endpoint-row"><span class="method GET">GET</span><div><div class="endpoint-path">/search</div><div class="endpoint-note">the swipe-deck data source</div></div></div>
+      <div class="endpoint-row"><span class="method GET">GET</span><div><div class="endpoint-path">/feed</div></div></div>
+      <div class="endpoint-row"><span class="method GET">GET</span><div><div class="endpoint-path">/discovery-prefs</div></div></div>
+      <div class="endpoint-row"><span class="method PATCH">PATCH</span><div><div class="endpoint-path">/discovery-prefs</div></div></div>
+    </div>
+
+    <div class="card">
+      <h3>Interactions</h3>
+      <div class="endpoint-row"><span class="method POST">POST</span><div><div class="endpoint-path">/decisions</div><div class="endpoint-note">like / nope persistence</div></div></div>
+      <div class="endpoint-row"><span class="method POST">POST</span><div><div class="endpoint-path">/decisions/reset</div></div></div>
+      <div class="endpoint-row"><span class="method GET">GET</span><div><div class="endpoint-path">/matches</div></div></div>
+      <div class="endpoint-row"><span class="method GET">GET</span><div><div class="endpoint-path">/likes/incoming</div><div class="endpoint-note">boosted + revealed likers; is_super sorted first</div></div></div>
+    </div>
+
+    <div class="card" style="border-color: color-mix(in oklch, var(--lime) 40%, transparent);">
+      <h3 style="color:var(--lime)">Tokens (deployed this session)</h3>
+      <div class="endpoint-row"><span class="method GET">GET</span><div><div class="endpoint-path">/tokens/balance</div></div></div>
+      <div class="endpoint-row"><span class="method POST">POST</span><div><div class="endpoint-path">/tokens/reveal</div><div class="endpoint-note">spend 1 · 402 on insufficient</div></div></div>
+      <div class="endpoint-row"><span class="method POST">POST</span><div><div class="endpoint-path">/tokens/boost</div><div class="endpoint-note">spend 5 · 30-min spotlight</div></div></div>
+      <div class="endpoint-row"><span class="method GET">GET</span><div><div class="endpoint-path">/tokens/active-boost</div></div></div>
+      <div class="endpoint-row"><span class="method POST">POST</span><div><div class="endpoint-path">/tokens/super-like</div><div class="endpoint-note">spend 2 · may create match</div></div></div>
+      <div class="endpoint-row"><span class="method POST">POST</span><div><div class="endpoint-path">/tokens/day-pass</div><div class="endpoint-note">spend 3 · 24h quota bypass</div></div></div>
+    </div>
+
+    <div class="card">
+      <h3>Verification</h3>
+      <div class="endpoint-row"><span class="method POST">POST</span><div><div class="endpoint-path">/verification-selfie</div></div></div>
+      <div class="endpoint-row"><span class="method POST">POST</span><div><div class="endpoint-path">/verification-multi-selfie</div><div class="endpoint-note">silver: 3 frames</div></div></div>
+      <div class="endpoint-row"><span class="method POST">POST</span><div><div class="endpoint-path">/verify</div></div></div>
+      <div class="endpoint-row"><span class="method GET">GET</span><div><div class="endpoint-path">/check-verification</div></div></div>
+      <div class="endpoint-row"><span class="method POST">POST</span><div><div class="endpoint-path">/verification/start-id-flow</div><div class="endpoint-note">gold: Stripe Identity URL</div></div></div>
+    </div>
+
+    <div class="card">
+      <h3>Billing</h3>
+      <div class="endpoint-row"><span class="method GET">GET</span><div><div class="endpoint-path">/billing-portal</div><div class="endpoint-note">returns Stripe Customer Portal URL</div></div></div>
+      <div class="endpoint-row"><span class="method POST">POST</span><div><div class="endpoint-path">/checkout/web</div><div class="endpoint-note">subscription session URL</div></div></div>
+      <div class="endpoint-row"><span class="method POST">POST</span><div><div class="endpoint-path">/checkout/tokens</div><div class="endpoint-note">token-bundle session URL</div></div></div>
+    </div>
+
+    <div class="card">
+      <h3>Webhooks</h3>
+      <div class="endpoint-row"><span class="method POST">POST</span><div><div class="endpoint-path">/webhooks/stripe-identity</div></div></div>
+      <div class="endpoint-row"><span class="method POST">POST</span><div><div class="endpoint-path">/webhooks/stripe-checkout</div></div></div>
+      <div class="endpoint-row"><span class="method POST">POST</span><div><div class="endpoint-path">/webhooks/revenuecat</div></div></div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════ KIT ════════════════════════ -->
+  <h2 id="kit">Kit inventory</h2>
+
+  <div class="grid cols-3">
+    <div class="card">
+      <h3>UI primitives (shadcn / Base UI)</h3>
+      <p>Button · Card · Input · Textarea · Label · Badge · Avatar · Checkbox · Toggle · ToggleGroup · Select · InputGroup · Dialog · Field · IconBadge · Item · Empty · NumberStepper · Skeleton · Accordion · Carousel · Popover · Progress · RadioGroup · ScrollArea · Separator · Slider · Sonner · Switch · Sheet · Tooltip</p>
+    </div>
+    <div class="card">
+      <h3>Kibo blocks</h3>
+      <p>Pill · AvatarStack · Choicebox · Comparison · Deck · Kanban · List · Marquee · RelativeTime · Status · Stories</p>
+      <p style="font-size:12px;color:var(--ink-3);margin-top:8px"><strong>Note:</strong> Several Kibo names mislead — Stories=TikTok cards (not avatar ring), List=drag-sortable kanban (not chat list), RelativeTime=timezone clocks. Verify API before assuming from name.</p>
+    </div>
+    <div class="card">
+      <h3>App / brand</h3>
+      <p><strong>App:</strong> PageShell · DesktopTopBar · DesktopSidebar · BottomNav · BackButton · EdgeStateCard · FiltersSheet · TokenSpendSheet · AuthIllustration · BoostCard · SwipeCard · SwipeDeck · PhotoTile · PhotoCaption · ChatBubble · ChatHeader · ChatInput · ChatThreadView</p>
+      <p style="margin-top:8px"><strong>Brand:</strong> Logo · LogoMark</p>
+    </div>
+  </div>
+
+  <!-- ════════════════════════ RECENT SESSION ════════════════════════ -->
+  <h2 id="recent">Recent session (2026-05-19)</h2>
+
+  <div class="grid cols-2">
+    <div class="card">
+      <h3>Frontend commits</h3>
+      <p><span class="commit">73b47bd</span> fix(tokens): surface backend failures via toast (was silent-swallow)</p>
+      <p><span class="commit">77dd0f0</span> fix: billing auto-redirect, splash icons, landing reverts, desktop back-button</p>
+    </div>
+    <div class="card">
+      <h3>Backend commits</h3>
+      <p><strong>2e798e2..3121644</strong> · 19 commits pushed (token economy, /likes/incoming sort, subscription stipend, day-pass)</p>
+      <p>GHA deploy ✓ in 3m46s · migration <code>0014_token_economy.sql</code> applied</p>
+    </div>
+  </div>
+
+  <details style="margin-top:16px;">
+    <summary>Δ Delta highlights</summary>
+    <ul>
+      <li><strong>Billing portal:</strong> useEffect auto-redirect removed; mount = idle. Explicit "Open billing portal" Button on mobile + desktop calls handleOpen() → POST /billing-portal → window.location.assign.</li>
+      <li><strong>Splash icons:</strong> EdgeStateCard tile <code>w-24 h-24</code> → <code>w-32 h-32</code> (96 → 128 px), icon <code>size-11</code> → <code>size-16</code> (44 → 64 px). Affects banned, locked, maintenance, update-required, offline.</li>
+      <li><strong>Landing reverts:</strong> Step number badges separate from photo (44×44 indigo tile, lime number, BELOW image — not overlaid). CTA watermark anchored <strong>top-center</strong>, -12deg, 55% width / 450px max, opacity 0.18. Tier icons use canonical hex (#CD7F32/#C0C0C0/#FFD700) because <code>var(--color-bronze/silver/gold)</code> are referenced but never defined.</li>
+      <li><strong>Landing shell escape:</strong> <code>.ahavah-app:has(&gt; [data-landing])</code> rule added so marketing fills the full viewport instead of being clamped to 414px.</li>
+      <li><strong>Desktop back button:</strong> DesktopTopBar default-on with <code>/discover</code> fallback. Tab roots (/discover /matches /inbox /profile /settings /map) opt out via <code>topBarBack={false}</code>.</li>
+      <li><strong>Map filter de-duped:</strong> right-rail Button removed; topbar Button is canonical.</li>
+      <li><strong>Discover filter restored:</strong> desktop topbar reverted from glassDark Pill (unrequested change) back to Button circle-lg + SlidersHorizontal (matches /map).</li>
+      <li><strong>Token error surfacing:</strong> Toaster mounted in layout.tsx. BoostCard / matches reveal / discover super-like — all three close sheet on non-402 errors + status-specific toast.</li>
+      <li><strong>Token backend live:</strong> 19 backend commits pushed (were locally unpushed for days). All /tokens/* now respond 400/405 (auth needed) instead of 404 (not found).</li>
+    </ul>
+  </details>
+
+  <!-- ════════════════════════ GAPS ════════════════════════ -->
+  <h2 id="gaps">Known gaps</h2>
+
+  <ul>
+    <li><span class="severity medium">Medium</span> <strong>Tier color tokens undefined.</strong> <code>--color-bronze/silver/gold</code> referenced by Card.tier + IconBadge tone='tier' but never declared in globals.css. Fix: add the three to the @theme block.</li>
+    <li><span class="severity medium">Medium</span> <strong>/discover swipe deck has no real gesture.</strong> Static photo card. No pan, no rotation, no LIKE/NOPE overlay, no card stack. Top of roadmap.</li>
+    <li><span class="severity medium">Medium</span> <strong>Silver verification ≠ real liveness.</strong> Uses <code>&lt;input capture='user'&gt;</code> (allows gallery on Android/desktop) + GPT-4.1 vision for pose/identity. Only Gold (Stripe Identity) is genuine anti-spoof.</li>
+    <li><span class="severity low">Low</span> Hydration warning on <code>/onboarding/dob</code>.</li>
+    <li><span class="severity low">Low</span> theme-provider.tsx:13 uses <code>(min-width: 768px)</code> MQL instead of <code>(prefers-color-scheme: dark)</code>.</li>
+    <li><span class="severity low">Low</span> 4 of 12 confetti shapes missing on /match.</li>
+    <li><span class="severity low">Low</span> Landing waitlist form has no real POST endpoint (localStorage only).</li>
+    <li><span class="severity low">Low</span> Toaster useTheme defaults to 'system' (project uses its own ThemeProvider, not next-themes); cosmetic.</li>
+    <li><span class="severity low">Low</span> Stripe token-bundle price env vars may not be set on the droplet. Verify: <code>docker exec ahavah-api-api-1 env | grep STRIPE_PRICE_TOKENS</code>.</li>
+  </ul>
+
+  <!-- ════════════════════════ ANTI-PATTERNS ════════════════════════ -->
+  <h2 id="antipatterns">Anti-patterns to avoid</h2>
+
+  <div class="grid cols-2">
+    <div class="card">
+      <h3>Don't change what wasn't asked</h3>
+      <p>User has flagged unsolicited UI changes repeatedly. When fixing one element, touch only that element. See <code>feedback_stop_unrequested_changes.md</code> in auto-memory.</p>
+    </div>
+    <div class="card">
+      <h3>Don't hand-roll primitives</h3>
+      <p>Every UI element must be a shadcn/Kibo/app component. Two documented exceptions: LogoMark + sticker SVGs.</p>
+    </div>
+    <div class="card">
+      <h3>Don't mark done without observation</h3>
+      <p>Type-check + build = compiles, not <em>looks right</em>. UI changes need browser observation. Type-check alone is insufficient.</p>
+    </div>
+    <div class="card">
+      <h3>Don't use em-dashes in user copy</h3>
+      <p>Per <code>feedback_no_em_dashes</code> — never <code>—</code> in user-facing strings. Use en-dash, hyphen, or rewrite.</p>
+    </div>
+    <div class="card">
+      <h3>Always set git email</h3>
+      <p>All commits use <code>admin@techbaseltd.com</code>. If not configured globally, pass <code>git -c user.email=admin@techbaseltd.com</code>.</p>
+    </div>
+    <div class="card">
+      <h3>Read Next 16 docs first</h3>
+      <p>Per AGENTS.md — before non-trivial Next 16 API usage, read <code>node_modules/next/dist/docs/</code>.</p>
+    </div>
+  </div>
+
+  <!-- ════════════════════════ NEXT ════════════════════════ -->
+  <h2 id="next">Next likely tasks</h2>
+
+  <ol style="padding-left: 20px;">
+    <li><strong>Real swipe gesture on /discover</strong> — pan + rotation + LIKE/NOPE overlay + card stack. The central interaction; currently a visual stub.</li>
+    <li><strong>Define tier-color tokens</strong> in globals.css <code>@theme</code> block so the kit's <code>var(--color-bronze/silver/gold)</code> references resolve.</li>
+    <li><strong>Stripe token-bundle price env vars</strong> on droplet. Verify <code>/checkout/tokens</code> returns a session URL.</li>
+    <li><strong>End-to-end test the token flows</strong> as a real signed-in user — reveal, boost, super-like, day-pass — now that endpoints are live.</li>
+    <li><strong>Spot-check the new desktop back button</strong> across all non-tab-root routes (e.g. /chat/[id] should back to /inbox, not /discover).</li>
+    <li><strong>Add the missing 4 confetti shapes</strong> to /match.</li>
+    <li><strong>Wire real waitlist POST</strong> for landing email capture.</li>
+    <li><strong>Fix theme-provider MQL bug</strong> at line 13.</li>
+  </ol>
+
+  <p style="margin-top:40px;color:var(--ink-3);font-size:12.5px;">Companion machine-readable doc: <a href="./handoff-2026-05-19.json">handoff-2026-05-19.json</a>. Read order for next agent: <a href="../CLAUDE.md">CLAUDE.md</a> → <a href="./BUILD-PLAN.md">BUILD-PLAN.md</a> → <a href="../PROJECT-STATUS.md">PROJECT-STATUS.md</a> → this doc.</p>
+</div>
+</body>
+</html>

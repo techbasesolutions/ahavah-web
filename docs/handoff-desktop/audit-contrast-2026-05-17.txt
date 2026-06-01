@@ -1,0 +1,46 @@
+Sub-plan 25 contrast audit
+Tokens parsed from src/app/globals.css + src/app/verify/page.tsx
+Sorted ascending by ratio. WCAG 2.1: 4.5 body / 3.0 large+UI.
+
+Pair                         | Ratio | Min | Result | Used in
+-------------------------------------------------------------
+white         on lime        |  1.12 | 4.5 | FAIL   | (diagnostic) text-white on lime CTA — should fail badly            
+white         on gold        |  1.40 | 3.0 | FAIL   | (alternative) white on gold                                        
+white         on silver      |  1.82 | 3.0 | FAIL   | (alternative) white on silver                                      
+white         on lavender    |  2.72 | 4.5 | FAIL   | (diagnostic) text-white on lavender pill                           
+white         on bronze      |  3.14 | 3.0 | PASS   | (alternative) white on bronze — hero icon if swapped               
+white         on pink/danger |  3.66 | 4.5 | FAIL   | (diagnostic) text-white on pink/danger surface                     
+pink          on indigo      |  5.25 | 4.5 | PASS   | text-pink hero icon (banned page) — body threshold for completeness
+pink          on elevated    |  5.53 | 4.5 | PASS   | text-pink inside Cards                                             
+text-muted    on indigo      |  6.13 | 4.5 | PASS   | small captions inside .ahavah-app                                  
+text-muted    on elevated    |  6.45 | 4.5 | PASS   | small captions inside Cards                                        
+black         on bronze      |  6.55 | 3.0 | PASS   | Bronze tier IconBadge (UI)                                         
+text-muted    on canvas      |  6.69 | 4.5 | PASS   | small captions on /map                                             
+lavender      on indigo      |  7.08 | 4.5 | PASS   | lavender text/links on .ahavah-app canvas                          
+lavender      on elevated    |  7.45 | 4.5 | PASS   | lavender text/links inside Cards                                   
+black         on lavender    |  7.58 | 4.5 | PASS   | lavender pill label (Button.tone='lavender')                       
+text-secondary on indigo     |  8.59 | 4.5 | PASS   | secondary copy on .ahavah-app body                                 
+text-secondary on elevated   |  9.04 | 4.5 | PASS   | secondary copy inside Cards / popovers                             
+text-secondary on canvas     |  9.38 | 4.5 | PASS   | secondary copy on /map                                             
+black         on silver      | 11.32 | 3.0 | PASS   | Silver tier IconBadge (UI)                                         
+success       on indigo      | 12.93 | 3.0 | PASS   | online dot color, occasional success text                          
+white/70      on indigo      | 13.76 | 3.0 | PASS   | placeholder hint text (large/UI threshold)                         
+black         on gold        | 14.68 | 3.0 | PASS   | Gold tier IconBadge (UI)                                           
+white/85      on indigo      | 16.49 | 4.5 | PASS   | tier-card body copy (verify page)                                  
+lime          on indigo      | 17.13 | 3.0 | PASS   | lime accents (number-stepper active, brand dot)                    
+white/85      on elevated    | 17.35 | 4.5 | PASS   | tier-card body copy inside elevated Cards                          
+black         on lime        | 18.35 | 4.5 | PASS   | lime CTA label (Button.tone='brand' primary-foreground)            
+white         on indigo      | 19.22 | 4.5 | PASS   | body inside .ahavah-app                                            
+white         on elevated    | 20.23 | 4.5 | PASS   | body inside Cards, popovers, sheets                                
+white         on canvas      | 21.00 | 4.5 | PASS   | body on /map, /chat (outside .ahavah-app)                          
+
+Total pairs:     29
+Passing:         24
+Failing:         5
+
+FAILURES:
+  - white         on lime: 1.12 < 4.5 ((diagnostic) text-white on lime CTA — should fail badly)
+  - white         on gold: 1.40 < 3.0 ((alternative) white on gold)
+  - white         on silver: 1.82 < 3.0 ((alternative) white on silver)
+  - white         on lavender: 2.72 < 4.5 ((diagnostic) text-white on lavender pill)
+  - white         on pink/danger: 3.66 < 4.5 ((diagnostic) text-white on pink/danger surface)

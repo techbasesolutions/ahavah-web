@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=1500,initial-scale=1" />
+  <title>Ahavah — Desktop screens (light mode handoff)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" />
+  <link rel="stylesheet" href="tokens.css" />
+  <style>
+    html, body {
+      margin: 0; padding: 0;
+      background: var(--canvas);
+      color: var(--ink);
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    * { box-sizing: border-box; }
+    .page-title {
+      max-width: 1440px; margin: 48px auto 16px; padding: 0 24px;
+    }
+    .page-title h1 {
+      margin: 0; font-size: 36px; font-weight: 800; letter-spacing: -0.025em;
+      color: var(--ink);
+    }
+    .page-title p {
+      margin: 8px 0 0; color: var(--ink-2); font-size: 16px; line-height: 1.55; max-width: 720px;
+    }
+    .screen-frame {
+      margin: 32px auto;
+      width: 1440px;
+      box-shadow: 0 24px 60px rgba(15,11,31,0.12);
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid rgba(15,11,31,0.08);
+    }
+    .screen-label {
+      max-width: 1440px; margin: 48px auto 0; padding: 0 24px;
+      font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--ink-3); font-weight: 700;
+    }
+    .screen-name {
+      max-width: 1440px; margin: 4px auto 0; padding: 0 24px;
+      font-size: 24px; font-weight: 700; color: var(--ink);
+    }
+    .screen-route {
+      max-width: 1440px; margin: 2px auto 0; padding: 0 24px;
+      font-size: 14px; color: var(--ink-2); font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script type="text/babel" src="icons.jsx"></script>
+  <script type="text/babel" src="ds.jsx"></script>
+  <script type="text/babel" src="screens.jsx"></script>
+  <script type="text/babel" src="explorations.jsx"></script>
+  <script type="text/babel" src="desktop.jsx"></script>
+
+  <script type="text/babel" data-presets="react">
+    (function() {
+      const SCREENS = [
+        ["01","Welcome",           "/",                window.WelcomeDesktop],
+        ["02","Sign up",           "/auth/sign-up",    window.SignUpDesktop],
+        ["03","Onboarding",        "/onboarding/name", window.OnboardingDesktop],
+        ["04","Discover",          "/discover",        window.DiscoverDesktop],
+        ["05","Profile detail",    "/profile/[uuid]",  window.ProfileDetailDesktop],
+        ["06","Match celebration", "/match",           window.MatchDesktop],
+        ["07","Map",               "/map",             window.MapDesktop],
+        ["08","Matches grid",      "/matches",         window.MatchesDesktop],
+        ["09","Inbox + Chat",      "/inbox + /chat",   window.InboxDesktop],
+        ["10","Profile (own)",     "/profile",         window.ProfileDesktop],
+        ["11","Paywall",           "/paywall",         window.PaywallDesktop],
+        ["12","Verify",            "/verify",          window.VerifyDesktop],
+        ["13","Settings",          "/settings",        window.SettingsDesktop],
+        ["14","Locked",            "/locked",          window.LockedDesktop],
+      ];
+      function App() {
+        return (
+          <React.Fragment>
+            <div className="page-title">
+              <h1>Ahavah · Desktop screens · Light mode</h1>
+              <p>Visual reference for the handoff. Open the matching <code>screens/NN-*.md</code> for layout, copy, and behaviour specs. Each frame below is 1440×900. Wrap any subtree with <code>data-theme="dark"</code> to inherit the dark theme.</p>
+            </div>
+            {SCREENS.map(([n, title, route, Comp]) => (
+              <React.Fragment key={n}>
+                <div className="screen-label">Screen {n}</div>
+                <div className="screen-name">{title}</div>
+                <div className="screen-route">{route}</div>
+                <div className="screen-frame">
+                  <Comp />
+                </div>
+              </React.Fragment>
+            ))}
+          </React.Fragment>
+        );
+      }
+      ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    })();
+  </script>
+</body>
+</html>
