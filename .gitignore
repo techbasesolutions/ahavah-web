@@ -43,4 +43,8 @@ yarn-error.log*
 next-env.d.ts
 docs/seed-accounts.md
 
-.vercel
+# design handoff dumps and dev scratch (do not commit)
+Claude Design/
+.dev-output.log
+.landing-html.txt
+*.log
