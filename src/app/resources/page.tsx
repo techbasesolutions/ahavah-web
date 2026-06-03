@@ -8,6 +8,7 @@ import { MarketingFooter } from "@/components/app/marketing-footer";
 import { ResourceHero, ArticleCard, ArticleList } from "@/components/app/resources/resource-sections";
 import { buildCollectionGraph } from "@/components/app/resources/resources-jsonld";
 import { getGuides, getUpdates, CLUSTER_META, type Cluster } from "@/lib/content";
+import { safeJsonLd } from "@/lib/json-ld";
 
 const TITLE = "Resources";
 const DESCRIPTION =
@@ -29,7 +30,7 @@ export default function ResourcesPage() {
 
   return (
     <div className="min-h-dvh flex flex-col text-(--ink)" style={{ background: "var(--app)" }}>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(graph) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(graph) }} />
       <MarketingHeader />
       <main className="flex-1 mx-auto w-full max-w-[1200px] px-4 sm:px-6 md:px-8 py-12 lg:py-20 flex flex-col gap-12">
         <ResourceHero

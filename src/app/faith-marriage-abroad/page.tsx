@@ -8,6 +8,7 @@ import { MarketingFooter } from "@/components/app/marketing-footer";
 import { LandingHero, FeatureGrid, LandingCta } from "@/components/app/landing/landing-sections";
 import { LandingFaq } from "@/components/app/landing/landing-faq";
 import { buildLandingGraph } from "@/components/app/landing/landing-jsonld";
+import { safeJsonLd } from "@/lib/json-ld";
 
 const TITLE = "International faith-based marriage";
 const DESCRIPTION =
@@ -58,7 +59,7 @@ export default function FaithMarriageAbroadPage() {
   const graph = buildLandingGraph({ slug: "faith-marriage-abroad", name: TITLE, description: DESCRIPTION });
   return (
     <div className="min-h-dvh flex flex-col text-(--ink)" style={{ background: "var(--app)" }}>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(graph) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(graph) }} />
       <MarketingHeader />
       <main className="flex-1 mx-auto w-full max-w-[1200px] px-4 sm:px-6 md:px-8 py-12 lg:py-20 flex flex-col gap-12">
         <LandingHero

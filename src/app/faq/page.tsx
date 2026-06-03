@@ -9,6 +9,8 @@
 import Link from "next/link";
 import { Mail } from "lucide-react";
 
+import { safeJsonLd } from "@/lib/json-ld";
+
 import {
   Accordion,
   AccordionContent,
@@ -127,7 +129,7 @@ export default function FaqPage() {
     <div className="min-h-dvh flex flex-col text-(--ink)" style={{ background: "var(--app)" }}>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(faqJsonLd) }}
       />
       <MarketingHeader
         cta={

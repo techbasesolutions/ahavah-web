@@ -32,5 +32,8 @@ export const config = {
     "/verify/:path*",
     "/paywall/:path*",
     "/billing-portal/:path*",
+    // Admin surface — moderator-only routes. Backend gates by role, but
+    // the HTML shell + bundle path should not leak pre-launch either.
+    "/admin/:path*",
   ],
 };

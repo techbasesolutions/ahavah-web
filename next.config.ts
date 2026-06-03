@@ -28,6 +28,40 @@ const nextConfig: NextConfig = {
   // caching; Cache-Control tells the browser to always revalidate
   // against origin.
   async headers() {
+    // Global security headers — applied to every response. CSP is intentionally
+    // permissive on script-src ('unsafe-inline' for Next's inline bootstrap +
+    // 'unsafe-eval' for Turbopack dev), but locks down frame-ancestors,
+    // object-src, base-uri, and limits connect-src to the API + chat WS. Tune
+    // when the bearer→cookie migration lands (DEFERRED).
+    const securityHeaders = [
+      { key: "X-Frame-Options", value: "DENY" },
+      { key: "X-Content-Type-Options", value: "nosniff" },
+      { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+      {
+        key: "Permissions-Policy",
+        value: "geolocation=(self), camera=(self), microphone=(), payment=(self)",
+      },
+      {
+        key: "Strict-Transport-Security",
+        value: "max-age=63072000; includeSubDomains; preload",
+      },
+      {
+        key: "Content-Security-Policy",
+        value: [
+          "default-src 'self'",
+          "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+          "style-src 'self' 'unsafe-inline'",
+          "img-src 'self' data: blob: https://user-images.ahavah.app https://email-assets.ahavah.app https://*.digitaloceanspaces.com",
+          "font-src 'self' data:",
+          "connect-src 'self' https://api.ahavah.app wss://chat.ahavah.app:5443 wss://chat.ahavah.app:5442",
+          "frame-ancestors 'none'",
+          "form-action 'self'",
+          "base-uri 'self'",
+          "object-src 'none'",
+          "upgrade-insecure-requests",
+        ].join("; "),
+      },
+    ];
     return [
       {
         source: "/sw.js",
@@ -36,6 +70,12 @@ const nextConfig: NextConfig = {
           { key: "Surrogate-Control", value: "no-store" },
           { key: "Pragma", value: "no-cache" },
         ],
+      },
+      {
+        // Apply to every other route. Order: more specific sw.js block above
+        // wins for its source; this catch-all applies elsewhere.
+        source: "/:path*",
+        headers: securityHeaders,
       },
     ];
   },

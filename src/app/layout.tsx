@@ -6,6 +6,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { ServiceWorkerRegister } from "@/components/sw-register";
 import { ThemeProvider } from "@/components/system/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { safeJsonLd } from "@/lib/json-ld";
 
 import "./globals.css";
 
@@ -112,7 +113,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(siteJsonLd) }}
         />
         <ThemeProvider>
           {/* Skip link — hidden by default, surfaces on keyboard focus.

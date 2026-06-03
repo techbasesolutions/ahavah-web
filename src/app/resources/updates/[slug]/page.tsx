@@ -9,6 +9,7 @@ import { MarketingHeader } from "@/components/app/marketing-header";
 import { MarketingFooter } from "@/components/app/marketing-footer";
 import { buildArticleGraph } from "@/components/app/resources/resources-jsonld";
 import { getUpdate, getUpdates } from "@/lib/content";
+import { safeJsonLd } from "@/lib/json-ld";
 
 export function generateStaticParams() {
   return getUpdates().map((u) => ({ slug: u.slug }));
@@ -44,7 +45,7 @@ export default async function UpdatePage({ params }: { params: Promise<{ slug: s
 
   return (
     <div className="min-h-dvh flex flex-col text-(--ink)" style={{ background: "var(--app)" }}>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(graph) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(graph) }} />
       <MarketingHeader />
       <main className="flex-1 mx-auto w-full max-w-[760px] px-4 sm:px-6 md:px-8 py-12 lg:py-20 flex flex-col gap-6">
         <nav className="text-sm text-(--ink-2)">

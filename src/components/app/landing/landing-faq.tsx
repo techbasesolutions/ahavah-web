@@ -10,6 +10,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { safeJsonLd } from "@/lib/json-ld";
 
 export function LandingFaq({
   heading,
@@ -31,7 +32,7 @@ export function LandingFaq({
     <section className="flex flex-col gap-5 max-w-[760px]">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(faqJsonLd) }}
       />
       <h2 className="m-0 text-2xl lg:text-3xl font-bold text-(--ink) tracking-tight">{heading}</h2>
       <Accordion className="flex flex-col gap-3">
