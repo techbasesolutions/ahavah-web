@@ -14,7 +14,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/api/:path*",
-        destination: "http://167.71.93.27:5000/:path*",
+        destination: "https://api.ahavah.app/:path*",
       },
     ];
   },
