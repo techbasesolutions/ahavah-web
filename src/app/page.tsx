@@ -64,6 +64,8 @@ import {
 import { useRedirectIfSignedIn } from "@/lib/use-redirect-if-signed-in";
 import { PENDING_EMAIL_KEY } from "@/lib/storage-keys";
 import { postWaitlist } from "@/lib/waitlist";
+import { AntibotFields, type AntibotHandle } from "@/components/app/antibot-fields";
+import { useRef } from "react";
 
 const WAITLIST_STORAGE_KEY = "ahavah.waitlist.email";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -96,12 +98,12 @@ export default function LandingPage() {
   const [submitting, setSubmitting] = useState(false);
   const [msg, setMsg] = useState<{ kind: "success" | "error"; text: string } | null>(null);
   const formInputRef = useRef<HTMLInputElement>(null);
+  const antibotRef = useRef<AntibotHandle>(null);
   const waitlistCount = useWaitlistCount();
 
   useEffect(() => {
     try {
       const prior = localStorage.getItem(WAITLIST_STORAGE_KEY);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (prior) setEmail(prior);
     } catch {
       /* storage unavailable */
@@ -127,7 +129,8 @@ export default function LandingPage() {
     // Best-effort early capture; route to the full form regardless of result
     // (the form's own submit creates/updates the row).
     try {
-      await postWaitlist(trimmed);
+      await postWaitlist(trimmed, {}, antibotRef.current?.payload() ?? {});
+      antibotRef.current?.reset();
     } catch {
       /* the /waitlist form will create the row */
     }
@@ -144,6 +147,7 @@ export default function LandingPage() {
 
   return (
     <div data-landing className="min-h-dvh font-sans text-(--ink)">
+      <AntibotFields ref={antibotRef} />
       {/* ════════════════════════════════ NAV ═════════════════════════════════ */}
       <MarketingHeader
         primaryNav={

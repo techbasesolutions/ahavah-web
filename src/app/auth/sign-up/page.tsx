@@ -16,6 +16,8 @@ import { PageShell } from "@/components/app/page-shell";
 import { AuthIllustration } from "@/components/app/auth-illustration";
 import { ApiError } from "@/lib/api-client";
 import { requestEmailOtp } from "@/lib/auth-otp";
+import { AntibotFields, type AntibotHandle } from "@/components/app/antibot-fields";
+import { useRef } from "react";
 import { PENDING_EMAIL_KEY } from "@/lib/storage-keys";
 import { useRedirectIfSignedIn } from "@/lib/use-redirect-if-signed-in";
 
@@ -206,6 +208,7 @@ export default function SignUpPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const { checking } = useRedirectIfSignedIn();
+  const antibotRef = useRef<AntibotHandle>(null);
 
   useEffect(() => {
     const prefill = sessionStorage.getItem(PENDING_EMAIL_KEY);
@@ -228,7 +231,8 @@ export default function SignUpPage() {
     setError(null);
     setSubmitting(true);
     try {
-      await requestEmailOtp(email);
+      await requestEmailOtp(email, antibotRef.current?.payload() ?? {});
+      antibotRef.current?.reset();
       sessionStorage.setItem(PENDING_EMAIL_KEY, email);
       router.push("/onboarding/verify-email");
     } catch (err) {
@@ -277,6 +281,7 @@ export default function SignUpPage() {
 
   return (
     <PageShell desktopShell="full-bleed" bottomPad="none" className="min-h-dvh">
+      <AntibotFields ref={antibotRef} />
       {/* ── DESKTOP (≥md) — canonical 5fr/7fr split per 02-sign-up.md ── */}
       {/* grid-rows-[1fr] explicitly fills the row track; without it the
           single auto row sizes to tallest column intrinsic, leaving a

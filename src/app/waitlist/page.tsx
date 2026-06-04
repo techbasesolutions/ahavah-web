@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { WaitlistWizard, type WaitlistPhase } from "@/components/app/waitlist-wizard";
 import { WaitlistShareCard } from "@/components/app/waitlist-share-card";
 import { BetaTesterCard } from "@/components/app/beta-tester-card";
+import { AntibotFields, type AntibotHandle } from "@/components/app/antibot-fields";
 import { LogoMark } from "@/components/brand/logo-mark";
 import { PENDING_EMAIL_KEY } from "@/lib/storage-keys";
 import {
@@ -82,6 +83,7 @@ function WaitlistFlow() {
   const [error, setError] = useState<string | null>(null);
   // True when the submitted email was already on the waitlist (returning user).
   const [returning, setReturning] = useState(false);
+  const antibotRef = useRef<AntibotHandle>(null);
   // Set when the email step detects an existing registrant → show the
   // short-circuit interstitial instead of re-walking the wizard.
   const [alreadyRegistered, setAlreadyRegistered] = useState(false);
@@ -295,7 +297,8 @@ function WaitlistFlow() {
     setSubmitting(true);
     setError(null);
     try {
-      const res = await postWaitlist(email.trim(), a);
+      const res = await postWaitlist(email.trim(), a, antibotRef.current?.payload() ?? {});
+      antibotRef.current?.reset();
       setReturning(res.isNew === false);
       try {
         sessionStorage.removeItem(DRAFT_KEY);
@@ -453,6 +456,8 @@ function WaitlistFlow() {
   }
 
   return (
+    <>
+    <AntibotFields ref={antibotRef} />
     <WaitlistWizard
       step={step}
       total={total}
@@ -478,6 +483,7 @@ function WaitlistFlow() {
         </p>
       ) : null}
     </WaitlistWizard>
+    </>
   );
 }
 

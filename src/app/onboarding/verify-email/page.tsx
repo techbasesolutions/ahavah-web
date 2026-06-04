@@ -13,6 +13,8 @@ import { OnboardingShell } from "@/components/app/onboarding-shell";
 
 import { ApiError } from "@/lib/api-client";
 import { checkOtp, requestEmailOtp } from "@/lib/auth-otp";
+import { AntibotFields, type AntibotHandle } from "@/components/app/antibot-fields";
+import { useRef } from "react";
 import { writeChatSession } from "@/lib/chat-session";
 import { useProfile, writeOnboarded } from "@/lib/use-profile";
 import { AUTH_NEXT_URL_KEY, PENDING_EMAIL_KEY } from "@/lib/storage-keys";
@@ -49,6 +51,7 @@ export default function VerifyEmailStep() {
   const [verifying, setVerifying] = useState(false);
   const [resendSeconds, setResendSeconds] = useState(RESEND_SECONDS);
   const [error, setError] = useState<string | null>(null);
+  const antibotRef = useRef<AntibotHandle>(null);
 
   const isComplete = code.length === 6;
 
@@ -77,7 +80,8 @@ export default function VerifyEmailStep() {
     setError(null);
     setResendSeconds(RESEND_SECONDS);
     try {
-      await requestEmailOtp(email);
+      await requestEmailOtp(email, antibotRef.current?.payload() ?? {});
+      antibotRef.current?.reset();
     } catch {
       // If resend fails the countdown still ran; show a soft error so the
       // user knows nothing was sent.
@@ -135,6 +139,8 @@ export default function VerifyEmailStep() {
   };
 
   return (
+    <>
+    <AntibotFields ref={antibotRef} />
     <OnboardingShell
       href="/onboarding/verify-email"
       ctaLabel="Continue"
@@ -211,5 +217,6 @@ export default function VerifyEmailStep() {
         </Button>
       </motion.div>
     </OnboardingShell>
+    </>
   );
 }

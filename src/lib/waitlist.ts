@@ -7,6 +7,7 @@
  */
 
 import { apiClient } from "@/lib/api-client";
+import type { AntibotPayload } from "@/lib/antibot";
 import {
   ASSEMBLIES,
   intentOptionsForSex,
@@ -54,9 +55,17 @@ export {
   ALL_COUNTRIES,
 };
 
-export async function postWaitlist(email: string, answers: WaitlistAnswers = {}) {
+export async function postWaitlist(
+  email: string,
+  answers: WaitlistAnswers = {},
+  antibot: AntibotPayload = {},
+) {
   // isNew=false → this email was already on the waitlist (returning registrant).
-  return apiClient.post<{ ok: boolean; isNew?: boolean }>("/waitlist", { email, answers });
+  return apiClient.post<{ ok: boolean; isNew?: boolean }>("/waitlist", {
+    email,
+    answers,
+    ...antibot,
+  });
 }
 
 export async function getWaitlistCount(): Promise<{ count: number }> {

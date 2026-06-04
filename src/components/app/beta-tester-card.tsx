@@ -9,6 +9,8 @@ import { IconBadge } from "@/components/ui/icon-badge";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api-client";
 import { registerBetaTester } from "@/lib/beta";
+import { antibotPayload, useTurnstile } from "@/lib/antibot";
+import { HoneypotField } from "@/components/app/honeypot-field";
 
 /**
  * BetaTesterCard — opt-in affordance on the /waitlist completion screen, below
@@ -33,13 +35,19 @@ export function BetaTesterCard({ email }: BetaTesterCardProps) {
   const [status, setStatus] = useState<"idle" | "loading" | "done">("idle");
   const [already, setAlready] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [website, setWebsite] = useState("");
+  const { ref: turnstileRef, token: turnstileToken, reset: resetTurnstile } = useTurnstile();
 
   const submit = async () => {
     if (status !== "idle" || !email) return;
     setStatus("loading");
     setError(null);
     try {
-      const res = await registerBetaTester(email);
+      const res = await registerBetaTester(
+        email,
+        antibotPayload(website, turnstileToken),
+      );
+      resetTurnstile();
       const wasAlready = res.isNew === false;
       setAlready(wasAlready);
       setStatus("done");
@@ -116,6 +124,10 @@ export function BetaTesterCard({ email }: BetaTesterCardProps) {
           {error}
         </p>
       ) : null}
+
+      <HoneypotField value={website} onChange={setWebsite} />
+      {/* Invisible Turnstile widget container — no layout/visual output. */}
+      <div ref={turnstileRef} aria-hidden hidden />
     </Card>
   );
 }

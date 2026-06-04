@@ -15,15 +15,22 @@
  */
 
 import { apiClient, setSessionToken } from "@/lib/api-client";
+import type { AntibotPayload } from "@/lib/antibot";
 
 type RequestOtpResponse = { session_token: string };
 
-export async function requestEmailOtp(email: string): Promise<void> {
+export async function requestEmailOtp(
+  email: string,
+  antibot: AntibotPayload = {},
+): Promise<void> {
   // /request-otp returns `{ session_token }` for an unauthenticated session;
   // /check-otp validates the OTP against that session via the bearer header.
   // Without storing the token here, /check-otp goes out with no auth and
   // the backend can't tie the request to the session that holds the OTP.
-  const res = await apiClient.post<RequestOtpResponse>("/request-otp", { email });
+  const res = await apiClient.post<RequestOtpResponse>("/request-otp", {
+    email,
+    ...antibot,
+  });
   setSessionToken(res.session_token);
 }
 
@@ -49,8 +56,14 @@ export async function checkOtp(
   return apiClient.post<CheckOtpResult>("/check-otp", { email, otp });
 }
 
-export async function requestPhoneOtp(phone: string): Promise<void> {
-  const res = await apiClient.post<RequestOtpResponse>("/request-otp", { phone });
+export async function requestPhoneOtp(
+  phone: string,
+  antibot: AntibotPayload = {},
+): Promise<void> {
+  const res = await apiClient.post<RequestOtpResponse>("/request-otp", {
+    phone,
+    ...antibot,
+  });
   setSessionToken(res.session_token);
 }
 

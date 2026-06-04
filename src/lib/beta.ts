@@ -5,8 +5,15 @@
  */
 
 import { apiClient } from "@/lib/api-client";
+import type { AntibotPayload } from "@/lib/antibot";
 
-export async function registerBetaTester(email: string) {
+export async function registerBetaTester(
+  email: string,
+  antibot: AntibotPayload = {},
+) {
   // isNew=false → already a beta tester (the card shows an "already in" state).
-  return apiClient.post<{ ok: boolean; isNew?: boolean }>("/beta-tester", { email });
+  return apiClient.post<{ ok: boolean; isNew?: boolean }>("/beta-tester", {
+    email,
+    ...antibot,
+  });
 }

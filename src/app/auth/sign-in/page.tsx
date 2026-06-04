@@ -15,6 +15,8 @@ import { PageShell } from "@/components/app/page-shell";
 import { AuthIllustration } from "@/components/app/auth-illustration";
 import { ApiError } from "@/lib/api-client";
 import { requestEmailOtp } from "@/lib/auth-otp";
+import { AntibotFields, type AntibotHandle } from "@/components/app/antibot-fields";
+import { useRef } from "react";
 import { AUTH_NEXT_URL_KEY, PENDING_EMAIL_KEY } from "@/lib/storage-keys";
 import { useRedirectIfSignedIn } from "@/lib/use-redirect-if-signed-in";
 
@@ -104,6 +106,7 @@ function SignInPageContent() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { checking } = useRedirectIfSignedIn();
+  const antibotRef = useRef<AntibotHandle>(null);
 
   useEffect(() => {
     const prefill = sessionStorage.getItem(PENDING_EMAIL_KEY);
@@ -127,7 +130,8 @@ function SignInPageContent() {
     setError(null);
     setSubmitting(true);
     try {
-      await requestEmailOtp(email);
+      await requestEmailOtp(email, antibotRef.current?.payload() ?? {});
+      antibotRef.current?.reset();
       sessionStorage.setItem(PENDING_EMAIL_KEY, email);
       router.push("/onboarding/verify-email");
     } catch (err) {
@@ -171,6 +175,7 @@ function SignInPageContent() {
 
   return (
     <PageShell desktopShell="full-bleed" bottomPad="none" className="min-h-dvh">
+      <AntibotFields ref={antibotRef} />
       {/* ── DESKTOP (≥md) — mirrors sign-up split shell ─────────────── */}
       {/* grid-rows-[1fr] + bottomPad="none" — same fix as sign-up:
           without them, the auto row sized to tallest column intrinsic
