@@ -48,3 +48,7 @@ Claude Design/
 .dev-output.log
 .landing-html.txt
 *.log
+
+
+# Agent scratch / design-handoff dumps
+desktop-extra.jsx
