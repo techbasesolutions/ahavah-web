@@ -5,7 +5,7 @@ import { Check, Share2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
-const CROCKFORD_BASE32 = /^[0-9A-HJ-NP-TV-Z]{7}$/;
+const CROCKFORD_BASE32 = /^[0-9A-HJKM-NP-TV-Z]{7}$/;
 
 export default function SharePage({
   params,

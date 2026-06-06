@@ -12,7 +12,10 @@
  */
 import { REFERRAL_CODE_KEY } from "@/lib/storage-keys";
 
-const CROCKFORD_BASE32 = /^[0-9A-HJ-NP-TV-Z]{7}$/;
+// Crockford base32 excludes I, L, O, U. The range J-N would include
+// L; explicit JKM-N enumerates J, K, then M-N (skipping L). 32 chars
+// total. Backend Pydantic pattern + service.referrals._ALPHABET match.
+const CROCKFORD_BASE32 = /^[0-9A-HJKM-NP-TV-Z]{7}$/;
 
 function isWellFormed(code: string | null | undefined): code is string {
   return !!code && CROCKFORD_BASE32.test(code);

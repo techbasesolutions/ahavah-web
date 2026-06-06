@@ -23,7 +23,7 @@ import { NextResponse } from "next/server";
 
 import { REFERRAL_CODE_KEY } from "@/lib/storage-keys";
 
-const CROCKFORD_BASE32 = /^[0-9A-HJ-NP-TV-Z]{7}$/;
+const CROCKFORD_BASE32 = /^[0-9A-HJKM-NP-TV-Z]{7}$/;
 const COOKIE_MAX_AGE_SEC = 60 * 60 * 24 * 90; // 90 days
 
 export const dynamic = "force-dynamic";

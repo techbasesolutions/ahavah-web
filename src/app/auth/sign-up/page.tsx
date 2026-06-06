@@ -215,7 +215,7 @@ export default function SignUpPage() {
   useEffect(() => {
     if (typeof document === "undefined") return;
     const m = document.cookie.match(/(?:^|; )ahavah\.ref=([^;]+)/);
-    if (m && /^[0-9A-HJ-NP-TV-Z]{7}$/.test(m[1])) {
+    if (m && /^[0-9A-HJKM-NP-TV-Z]{7}$/.test(m[1])) {
       try { window.localStorage.setItem("ahavah.ref", m[1]); } catch {}
     }
   }, []);
