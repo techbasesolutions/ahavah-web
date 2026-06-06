@@ -47,5 +47,21 @@ export async function GET(req: Request, { params }: { params: Params }) {
     });
   }
 
+  // Fire-and-forget click log to the backend. Tight timeout so a slow
+  // backend never delays the redirect. Errors are swallowed — the user
+  // still lands on the destination page either way.
+  const ua = req.headers.get("user-agent") || "";
+  void fetch("https://api.ahavah.app/referral-click", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      code: normalized,
+      well_formed: CROCKFORD_BASE32.test(normalized),
+      user_agent: ua.slice(0, 512),
+    }),
+    signal: AbortSignal.timeout(1500),
+    keepalive: true,
+  }).catch(() => {});
+
   return res;
 }
