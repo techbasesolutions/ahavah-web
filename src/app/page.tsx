@@ -146,7 +146,7 @@ export default function LandingPage() {
   void checking;
 
   return (
-    <div data-landing className="min-h-dvh font-sans text-(--ink)">
+    <div data-landing className="min-h-dvh overflow-x-hidden font-sans text-(--ink)">
       <AntibotFields ref={antibotRef} />
       {/* ════════════════════════════════ NAV ═════════════════════════════════ */}
       <MarketingHeader
