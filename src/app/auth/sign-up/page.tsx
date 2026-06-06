@@ -210,6 +210,16 @@ export default function SignUpPage() {
   const { checking } = useRedirectIfSignedIn();
   const antibotRef = useRef<AntibotHandle>(null);
 
+  // Mirror the referral cookie set by /i/[code] into localStorage so
+  // postWaitlist + registerBetaTester can read it from one source.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const m = document.cookie.match(/(?:^|; )ahavah\.ref=([^;]+)/);
+    if (m && /^[0-9A-HJ-NP-TV-Z]{7}$/.test(m[1])) {
+      try { window.localStorage.setItem("ahavah.ref", m[1]); } catch {}
+    }
+  }, []);
+
   useEffect(() => {
     const prefill = sessionStorage.getItem(PENDING_EMAIL_KEY);
     // eslint-disable-next-line react-hooks/set-state-in-effect
