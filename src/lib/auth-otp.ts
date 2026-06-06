@@ -23,6 +23,8 @@ export async function requestEmailOtp(
   email: string,
   antibot: AntibotPayload = {},
 ): Promise<void> {
+  const { readReferralCode } = await import("@/lib/referrals");
+  const inviter_code = readReferralCode();
   // /request-otp returns `{ session_token }` for an unauthenticated session;
   // /check-otp validates the OTP against that session via the bearer header.
   // Without storing the token here, /check-otp goes out with no auth and
@@ -30,6 +32,7 @@ export async function requestEmailOtp(
   const res = await apiClient.post<RequestOtpResponse>("/request-otp", {
     email,
     ...antibot,
+    ...(inviter_code ? { inviter_code } : {}),
   });
   setSessionToken(res.session_token);
 }

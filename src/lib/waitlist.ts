@@ -60,11 +60,14 @@ export async function postWaitlist(
   answers: WaitlistAnswers = {},
   antibot: AntibotPayload = {},
 ) {
+  const { readReferralCode } = await import("@/lib/referrals");
+  const inviter_code = readReferralCode();
   // isNew=false → this email was already on the waitlist (returning registrant).
   return apiClient.post<{ ok: boolean; isNew?: boolean }>("/waitlist", {
     email,
     answers,
     ...antibot,
+    ...(inviter_code ? { inviter_code } : {}),
   });
 }
 

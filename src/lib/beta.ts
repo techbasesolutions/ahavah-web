@@ -11,9 +11,12 @@ export async function registerBetaTester(
   email: string,
   antibot: AntibotPayload = {},
 ) {
+  const { readReferralCode } = await import("@/lib/referrals");
+  const inviter_code = readReferralCode();
   // isNew=false → already a beta tester (the card shows an "already in" state).
   return apiClient.post<{ ok: boolean; isNew?: boolean }>("/beta-tester", {
     email,
     ...antibot,
+    ...(inviter_code ? { inviter_code } : {}),
   });
 }
