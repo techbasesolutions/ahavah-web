@@ -41,3 +41,12 @@ export const ONBOARDED_KEY = "ahavah.onboarded";
 
 /** /map first-mount flag (SP17 sessionStorage gate). */
 export const MAP_FIRST_MOUNT_KEY = "ahavah.map-first-mount";
+
+/**
+ * Referral code captured by /i/[code]. Persisted in localStorage so it
+ * survives the multi-step landing → /waitlist → /beta-tester flow, and
+ * survives tab close (people often click links and come back later).
+ * 90-day TTL enforced by the cookie set on the same route — localStorage
+ * itself has no TTL, but the cookie's expiry implicitly invalidates.
+ */
+export const REFERRAL_CODE_KEY = "ahavah.ref";
