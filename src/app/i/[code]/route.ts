@@ -19,7 +19,7 @@
  * See docs/superpowers/specs/2026-06-05-beta-referrals-design.md.
  */
 
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 
 import { REFERRAL_CODE_KEY } from "@/lib/storage-keys";
 
@@ -47,27 +47,29 @@ export async function GET(req: Request, { params }: { params: Params }) {
     });
   }
 
-  // Click log to the backend. Vercel's Node runtime kills
-  // void/keepalive fetches before they complete (we observed 0
-  // requests landing despite keepalive: true), so we AWAIT with a
-  // tight timeout. Backend is fast (~50ms p50); cap at 800ms so a
-  // slow log never delays the redirect by more than that. Errors
-  // are swallowed — the user still gets to the destination page.
+  // Click log to the backend. Uses Next 16's after() so the redirect
+  // response goes out IMMEDIATELY; the log fires in the background.
+  // History note: an earlier attempt used `void fetch + keepalive`
+  // (silently dropped 100% of requests on Vercel Node runtime), then
+  // `await fetch` with 800ms timeout (worked but added 400-800ms to
+  // every redirect). after() is the documented canonical pattern.
   const ua = req.headers.get("user-agent") || "";
-  try {
-    await fetch("https://api.ahavah.app/referral-click", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        code: normalized,
-        well_formed: CROCKFORD_BASE32.test(normalized),
-        user_agent: ua.slice(0, 512),
-      }),
-      signal: AbortSignal.timeout(800),
-    });
-  } catch {
-    // Swallow — never block the redirect on logging failure.
-  }
+  const wellFormed = CROCKFORD_BASE32.test(normalized);
+  after(async () => {
+    try {
+      await fetch("https://api.ahavah.app/referral-click", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code: normalized,
+          well_formed: wellFormed,
+          user_agent: ua.slice(0, 512),
+        }),
+      });
+    } catch {
+      // Swallow — best-effort analytics.
+    }
+  });
 
   return res;
 }
