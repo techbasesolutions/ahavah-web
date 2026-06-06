@@ -65,7 +65,6 @@ import { useRedirectIfSignedIn } from "@/lib/use-redirect-if-signed-in";
 import { PENDING_EMAIL_KEY } from "@/lib/storage-keys";
 import { postWaitlist } from "@/lib/waitlist";
 import { AntibotFields, type AntibotHandle } from "@/components/app/antibot-fields";
-import { useRef } from "react";
 
 const WAITLIST_STORAGE_KEY = "ahavah.waitlist.email";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -104,6 +103,7 @@ export default function LandingPage() {
   useEffect(() => {
     try {
       const prior = localStorage.getItem(WAITLIST_STORAGE_KEY);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (prior) setEmail(prior);
     } catch {
       /* storage unavailable */

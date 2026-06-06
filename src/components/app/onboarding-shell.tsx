@@ -212,15 +212,18 @@ export function OnboardingShell({
         {/* CENTER: stepper + scrollable content + sticky CTA */}
         <div className="px-14 py-12 flex flex-col min-h-0">
           {stepperRow}
-          {/* Scrollable content area — paddingBlock 48 per canonical
-              "vertical center" of the column. flex-1 + min-h-0 lets it
-              scroll if the per-step content overflows.
+          {/* Scrollable content area. flex-1 + min-h-0 lets it scroll if
+              the per-step content overflows. NO `justify-center` — that
+              centers content vertically even when it overflows, which
+              clips both ends of long steps (e.g. /photos with its 3x2
+              grid + callouts) and the user has no way to scroll to the
+              CTA. Content starts at the top; tall pages scroll cleanly.
               `px-1` (4px) gives 4px horizontal breathing room so child
               inputs' focus borders (1.5px) don't collide with the
               implicit overflow-x: hidden boundary that overflow-y-auto
               creates. Without this the lavender focus stroke appeared
               clipped on the input's left edge at desktop. */}
-          <div className="flex min-h-0 flex-1 flex-col justify-center gap-8 py-12 overflow-y-auto px-1">
+          <div className="flex min-h-0 flex-1 flex-col gap-8 py-12 overflow-y-auto px-1">
             {children}
           </div>
           <div className="flex flex-col">{ctaRenderer}</div>

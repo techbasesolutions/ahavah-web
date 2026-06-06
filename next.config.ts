@@ -51,7 +51,11 @@ const nextConfig: NextConfig = {
           "default-src 'self'",
           "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
           "style-src 'self' 'unsafe-inline'",
-          "img-src 'self' data: blob: https://user-images.ahavah.app https://email-assets.ahavah.app https://*.digitaloceanspaces.com",
+          // OpenStreetMap tile servers (a.tile., b.tile., c.tile.) feed the
+        // /map page via react-leaflet's TileLayer; without explicit
+        // whitelist the CSP blocks the tile images and the map renders
+        // as a blank grey rectangle.
+        "img-src 'self' data: blob: https://user-images.ahavah.app https://email-assets.ahavah.app https://*.digitaloceanspaces.com https://*.tile.openstreetmap.org",
           "font-src 'self' data:",
           "connect-src 'self' https://api.ahavah.app wss://chat.ahavah.app:5443 wss://chat.ahavah.app:5442",
           "frame-ancestors 'none'",

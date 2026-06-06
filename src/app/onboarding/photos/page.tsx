@@ -203,6 +203,36 @@ export default function PhotosStep() {
     slotHooks.some((h) => h.state.kind === "moderating" || h.state.kind === "ready");
   const isComplete = hasUsablePhoto;
 
+  const renderSlot = (i: number) => {
+    const idx = i as SlotIndex;
+    const vis = visibleFor(idx);
+    return (
+      <PhotoSlot
+        key={i}
+        index={i}
+        isMain={i === 0}
+        state={vis.state}
+        src={vis.src}
+        errorMessage={vis.error}
+        onPick={(file) => handlePick(idx, file)}
+        onRemove={
+          vis.state === "filled" || vis.state === "pending-review"
+            ? () => void handleRemove(idx)
+            : undefined
+        }
+        onClearRejected={
+          vis.state === "rejected"
+            ? () => slotHooks[idx].reset()
+            : undefined
+        }
+      />
+    );
+  };
+
+  const counterCopy = hasUsablePhoto
+    ? `${quota.currentPhotoCount} of ${SLOT_COUNT} added.`
+    : "At least one photo required.";
+
   return (
     <OnboardingShell href="/onboarding/photos" ctaDisabled={!isComplete}>
       <motion.div
@@ -215,60 +245,76 @@ export default function PhotosStep() {
           Add your photos<span className="text-lime">.</span>
         </h1>
         <p className="text-body text-(--ink-2)">
-          Pick at least one photo. Your first photo is your main, it shows up on Discover and Map.
+          Your first photo is your main — it leads Discover and the Map.
         </p>
       </motion.div>
 
-      <div className="mt-8 grid grid-cols-3 gap-3">
-        {Array.from({ length: SLOT_COUNT }).map((_, i) => {
-          const idx = i as SlotIndex;
-          const vis = visibleFor(idx);
-          return (
-            <PhotoSlot
-              key={i}
-              index={i}
-              isMain={i === 0}
-              state={vis.state}
-              src={vis.src}
-              errorMessage={vis.error}
-              onPick={(file) => handlePick(idx, file)}
-              onRemove={
-                vis.state === "filled" || vis.state === "pending-review"
-                  ? () => void handleRemove(idx)
-                  : undefined
-              }
-              onClearRejected={
-                vis.state === "rejected"
-                  ? () => slotHooks[idx].reset()
-                  : undefined
-              }
-            />
-          );
-        })}
+      {/* MOBILE — original 3x2 grid. Works at narrow widths. */}
+      <div className="mt-6 md:hidden">
+        <div className="grid grid-cols-3 gap-3">
+          {Array.from({ length: SLOT_COUNT }).map((_, i) => renderSlot(i))}
+        </div>
+        <p className="mt-4 text-caption text-(--ink-2)" aria-live="polite">
+          {counterCopy}
+        </p>
+        <Card tone="elevated" className="mt-4 flex-row items-start gap-3 rounded-2xl p-4 ring-1 ring-(--hairline)">
+          <IconBadge tone="brand" size="md" shape="square">
+            <Shirt size={16} />
+          </IconBadge>
+          <div className="flex flex-col gap-1">
+            <p className="text-caption font-semibold text-(--ink)">Dress modestly</p>
+            <p className="text-caption text-(--ink-2)">
+              No cleavage, revealing or tight clothing, or anything suggestive.
+              Stay fully covered. Your face must be clearly visible, and your main
+              photo should be of you alone.
+            </p>
+          </div>
+        </Card>
+        <p className="mt-3 text-caption text-(--ink-3)">
+          JPEG, PNG, or WebP. Compressed before upload, then reviewed.
+        </p>
       </div>
 
-      <p className="mt-4 text-caption text-(--ink-2)" aria-live="polite">
-        {hasUsablePhoto
-          ? `${quota.currentPhotoCount} of ${SLOT_COUNT} added.`
-          : "At least one photo required."}
-      </p>
-      <Card tone="elevated" className="mt-4 flex-row items-start gap-3 rounded-2xl p-4 ring-1 ring-(--hairline)">
-        <IconBadge tone="brand" size="md" shape="square">
-          <Shirt size={16} />
-        </IconBadge>
-        <div className="flex flex-col gap-1">
-          <p className="text-caption font-semibold text-(--ink)">Dress modestly</p>
-          <p className="text-caption text-(--ink-2)">
-            No cleavage, revealing or tight clothing, or anything suggestive.
-            Stay fully covered. Your face must be clearly visible, and your main
-            photo should be of you alone.
+      {/* DESKTOP — hero + 3x2 ladder. Fits a 768px viewport without scroll. */}
+      <div className="mt-6 hidden md:grid grid-cols-[260px_1fr] gap-5">
+        {/* LEFT: Main photo, larger by virtue of its grid cell. */}
+        <div className="flex flex-col gap-2">
+          {renderSlot(0)}
+          <p className="text-caption text-(--ink-3) leading-snug">
+            JPEG · PNG · WebP. Compressed + auto-moderated.
           </p>
         </div>
-      </Card>
-      <p className="mt-3 text-caption text-(--ink-3)">
-        JPEG, PNG, or WebP. Photos are compressed before upload, then
-        reviewed by automated moderation.
-      </p>
+
+        {/* RIGHT: header row, supporting 3x2 thumbnail grid, modesty banner. */}
+        <div className="flex flex-col gap-3">
+          <div className="flex items-baseline justify-between">
+            <p className="text-meta font-semibold text-(--ink)">Your slots</p>
+            <p
+              className="text-caption text-(--ink-3) tabular-nums"
+              aria-live="polite"
+            >
+              {counterCopy}
+            </p>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            {Array.from({ length: SLOT_COUNT - 1 }).map((_, i) => renderSlot(i + 1))}
+          </div>
+          <Card
+            tone="elevated"
+            className="flex-row items-start gap-3 rounded-2xl p-3 ring-1 ring-(--hairline)"
+          >
+            <IconBadge tone="brand" size="sm" shape="square">
+              <Shirt size={14} />
+            </IconBadge>
+            <div className="flex flex-col gap-0.5">
+              <p className="text-caption font-semibold text-(--ink)">Dress modestly</p>
+              <p className="text-caption text-(--ink-2) leading-snug">
+                No revealing or tight clothing. Stay fully covered. Face clearly visible. Main photo: you alone.
+              </p>
+            </div>
+          </Card>
+        </div>
+      </div>
     </OnboardingShell>
   );
 }
