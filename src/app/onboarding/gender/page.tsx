@@ -45,7 +45,7 @@ export default function GenderStep() {
         className="flex flex-col gap-2"
       >
         <h1 className="text-display text-(--ink)">
-          Which best describes you<span className="text-lime">?</span>
+          Are you<span className="text-lime">?</span>
         </h1>
         <p className="text-body text-(--ink-2)">You can change this anytime.</p>
       </motion.div>
