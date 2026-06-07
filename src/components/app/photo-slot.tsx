@@ -115,24 +115,38 @@ export function PhotoSlot({
         </div>
       )}
 
-      {state === "filled" && src && (
+      {state === "filled" && (
         <>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={src}
-            alt={`Profile photo ${index + 1}${isMain ? " (main)" : ""}`}
-            className="size-full object-cover"
-          />
-          {isMain && (
+          {src ? (
             <>
-              <span
-                aria-hidden
-                className="pointer-events-none absolute left-2 top-2 z-10 h-2 w-6 rotate-12 rounded-sm bg-lavender/70"
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={src}
+                alt={`Profile photo ${index + 1}${isMain ? " (main)" : ""}`}
+                className="size-full object-cover"
               />
-              <div className="pointer-events-none absolute right-2 top-2 z-10 -rotate-3 shadow-[0_2px_8px_rgba(200,255,136,0.4)]">
-                <Pill variant="lime" size="sm">Main</Pill>
-              </div>
+              {isMain && (
+                <>
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute left-2 top-2 z-10 h-2 w-6 rotate-12 rounded-sm bg-lavender/70"
+                  />
+                  <div className="pointer-events-none absolute right-2 top-2 z-10 -rotate-3 shadow-[0_2px_8px_rgba(200,255,136,0.4)]">
+                    <Pill variant="lime" size="sm">Main</Pill>
+                  </div>
+                </>
+              )}
             </>
+          ) : (
+            // Onboardee path: backend has the photo but no CDN URL is
+            // round-tripped yet (no GET /onboardee-info). Show a neutral
+            // placeholder so the slot looks intentionally filled rather
+            // than blank-but-bordered — and crucially, still render the
+            // X below so the user can undo a wrong pick.
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-(--card)/60 text-(--ink-3)">
+              <Clock className="size-5" aria-hidden />
+              <span className="text-overline">Uploaded</span>
+            </div>
           )}
           {onRemove && (
             <button
