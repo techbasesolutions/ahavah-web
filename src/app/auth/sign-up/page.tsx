@@ -117,6 +117,18 @@ function SignUpForm({
         )}
       </Button>
 
+      {/* Without this hint the disabled CTA looks unresponsive — caught
+          when a new user reported "I clicked but never got a code" and
+          had simply skipped the Terms checkbox. */}
+      {email.includes("@") && !accepted && !submitting && (
+        <p
+          aria-live="polite"
+          className="text-center text-caption text-(--ink-2)"
+        >
+          Tick the box above to enable &ldquo;Send me a code&rdquo;.
+        </p>
+      )}
+
       {error && (
         <p
           role="alert"
