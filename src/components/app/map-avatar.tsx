@@ -33,7 +33,7 @@
  *     `country` — no crash on bad ISO data.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Marker, Popup } from "react-leaflet";
 import L from "leaflet";
@@ -153,11 +153,10 @@ export function MapAvatar({
     closeTimer.current = setTimeout(() => markerRef.current?.closePopup(), 250);
   };
 
-  const iso = candidate.country;
-  if (!iso) return null;
-
-  const centroid = centroidOf(iso);
-  if (!centroid) return null;
+  // Early-return checks deferred to AFTER the useMemo below so we don't
+  // call hooks conditionally (rules-of-hooks).
+  const iso = candidate.country ?? null;
+  const centroid = iso ? centroidOf(iso) : null;
 
   const name = candidate.firstName ?? "Profile";
   // ?from=map → /profile/[uuid] reads this and points its back button
@@ -171,7 +170,7 @@ export function MapAvatar({
   // the real prospect UUID from the /search response.
   const href = `/profile/${candidate.id}?from=map`;
 
-  const countryLabel = labelForCountry(iso) ?? iso;
+  const countryLabel = iso ? (labelForCountry(iso) ?? iso) : "";
   // SR users hear marker state context first ("Matched. Adina, 24, in
   // Israel") so blind/low-vision users can triage matches/chats without
   // visiting each marker. Empty for "none" — no extra noise on neutral
@@ -247,33 +246,47 @@ export function MapAvatar({
   // so the flag fills edge-to-edge inside the bubble's circular crop — no
   // white margin. Emoji fallback covers ISO codes country-flag-icons doesn't
   // ship; escapeAttr wraps the glyph since it's spliced into an HTML string.
-  const flagMarkup =
-    flagSvg(iso) ??
-    `<span style="font-size:12px;line-height:1;">${escapeAttr(flagFromCC(iso))}</span>`;
+  const flagMarkup = iso
+    ? (flagSvg(iso) ??
+       `<span style="font-size:12px;line-height:1;">${escapeAttr(flagFromCC(iso))}</span>`)
+    : "";
   // state === "passed" → entire marker (photo/gradient circle + flag bubble +
   // any future overlays) recedes via grayscale + half-opacity. Applied
   // to the same relative wrapper so it cascades to all children.
   const passedFilter =
     state === "passed" ? "filter:grayscale(100%);opacity:0.5;" : "";
   const badge = badgeHtml(state);
-  const icon = L.divIcon({
-    className: "ahavah-map-avatar", // disable Leaflet's default leaflet-div-icon border/bg
-    iconSize: [44, 44],
-    iconAnchor: [22, 22],
-    html:
-      `<div role="img" aria-label="${safeAria}" style="position:relative;width:44px;height:44px;cursor:pointer;${passedFilter}">` +
-      discInnerHtml +
-      `<div aria-hidden="true" style="` +
-      `position:absolute;bottom:-2px;right:-2px;` +
-      `width:18px;height:18px;border-radius:9999px;background:#fff;` +
-      `display:flex;align-items:center;justify-content:center;` +
-      `overflow:hidden;` +
-      `box-shadow:0 1px 3px rgba(0,0,0,0.4);` +
-      `pointer-events:none;` +
-      `">${flagMarkup}</div>` +
-      badge +
-      `</div>`,
-  });
+  // Memoize the L.divIcon so async props like `compatScore` (which only
+  // affect the hover popup body) don't rebuild the icon. Without this,
+  // every re-render handed react-leaflet a fresh icon object, which
+  // forced the Marker to swap its icon and CLOSED any open Popup --
+  // perceived as the hover-card "freaking out" on desktop.
+  const icon = useMemo(
+    () =>
+      L.divIcon({
+        className: "ahavah-map-avatar",
+        iconSize: [44, 44],
+        iconAnchor: [22, 22],
+        html:
+          `<div role="img" aria-label="${safeAria}" style="position:relative;width:44px;height:44px;cursor:pointer;${passedFilter}">` +
+          discInnerHtml +
+          `<div aria-hidden="true" style="` +
+          `position:absolute;bottom:-2px;right:-2px;` +
+          `width:18px;height:18px;border-radius:9999px;background:#fff;` +
+          `display:flex;align-items:center;justify-content:center;` +
+          `overflow:hidden;` +
+          `box-shadow:0 1px 3px rgba(0,0,0,0.4);` +
+          `pointer-events:none;` +
+          `">${flagMarkup}</div>` +
+          badge +
+          `</div>`,
+      }),
+    [safeAria, passedFilter, discInnerHtml, flagMarkup, badge],
+  );
+
+  // Deferred early returns (moved from the top so the useMemo above isn't
+  // skipped on null-iso renders, which would violate rules-of-hooks).
+  if (!iso || !centroid) return null;
 
   const popupLocation =
     candidate.city && countryLabel
