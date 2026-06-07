@@ -626,7 +626,7 @@ function SearchChoice({
   const [q, setQ] = useState("");
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    return (needle ? options.filter((o) => o.label.toLowerCase().includes(needle)) : options).slice(0, 80);
+    return needle ? options.filter((o) => o.label.toLowerCase().includes(needle)) : options;
   }, [q, options]);
 
   return (
