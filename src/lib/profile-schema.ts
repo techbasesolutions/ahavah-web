@@ -234,6 +234,22 @@ export function isMaritalStatus(value: unknown): value is MaritalStatus {
   return typeof value === "string" && MARITAL_STATUSES.some((opt) => opt.value === value);
 }
 
+// Wants-children: paired with the integer `children` count on the
+// /onboarding/children step. "Open" covers the common "I'd say yes if
+// the right person wants them" case so the user doesn't have to
+// commit either way.
+export type WantsChildren = "yes" | "no" | "open";
+
+export const WANTS_CHILDREN: ReadonlyArray<{ value: WantsChildren; label: string }> = [
+  { value: "yes",  label: "Yes" },
+  { value: "no",   label: "No" },
+  { value: "open", label: "Open to it" },
+];
+
+export function isWantsChildren(value: unknown): value is WantsChildren {
+  return typeof value === "string" && WANTS_CHILDREN.some((opt) => opt.value === value);
+}
+
 // Doctrine cluster --------------------------------------------------------
 
 export type Polygyny = "supports" | "open" | "monogamy-only" | "undecided";
@@ -407,7 +423,7 @@ export const NATIONALITIES: ReadonlyArray<{ value: Nationality; label: string }>
   { value: "algerian",                      label: "Algerian" },
   { value: "andorran",                      label: "Andorran" },
   { value: "angolan",                       label: "Angolan" },
-  { value: "antiguan",                      label: "Antiguan" },
+  { value: "antiguan",                      label: "Antiguan and Barbudan" },
   { value: "argentine",                     label: "Argentine" },
   { value: "armenian",                      label: "Armenian" },
   { value: "australian",                    label: "Australian" },
@@ -841,6 +857,7 @@ export type Profile = {
   // undefined/null check, not a truthy check.
   maritalStatus?: MaritalStatus;
   children?: number;
+  wantsChildren?: WantsChildren;
   country?: string;        // 2-letter ISO from src/lib/countries.ts
   /**
    * Resolved "City, State, Country" string from /search-locations. The

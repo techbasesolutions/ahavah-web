@@ -78,7 +78,7 @@ function fieldComplete(profile: Profile, key: keyof Profile): boolean {
 // TypeScript can't iterate type keys at runtime.)
 const ALL_FIELDS: ReadonlyArray<keyof Profile> = [
   "firstName", "displayName", "age", "sex",
-  "maritalStatus", "children",
+  "maritalStatus", "children", "wantsChildren",
   "country", "stateOrProvince", "city",
   "nationality", "ethnicities", "languages",
   "occupation", "education", "bio",

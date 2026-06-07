@@ -133,6 +133,15 @@ const TRANSFORMS: Record<string, FieldTransform> = {
     };
   },
 
+  // Wants-children: paired with `children` count on the same step.
+  // Backend has no first-class column for this preference, so it
+  // lives entirely in ahavah_extra and renders on /profile alongside
+  // the children count.
+  wantsChildren: (v) => {
+    if (typeof v !== "string") return null;
+    return { ahavah_extra: { wantsChildren: v } };
+  },
+
   // Looking-for / intent — same dual-write pattern as children.
   // Backend's `looking_for` enum has only "Marriage" / "Long-term
   // dating" (loses Ahavah's 12-value Intent enum: first-wife,
