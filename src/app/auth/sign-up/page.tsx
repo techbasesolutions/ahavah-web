@@ -75,6 +75,7 @@ function SignUpForm({
       >
         <Checkbox
           id={`${idPrefix}-terms`}
+          tone="elevated"
           checked={accepted}
           onCheckedChange={(v) => setAccepted(v === true)}
           className="mt-0.5 size-5"
