@@ -234,16 +234,14 @@ export function isMaritalStatus(value: unknown): value is MaritalStatus {
   return typeof value === "string" && MARITAL_STATUSES.some((opt) => opt.value === value);
 }
 
-// Wants-children: paired with the integer `children` count on the
-// /onboarding/children step. "Open" covers the common "I'd say yes if
-// the right person wants them" case so the user doesn't have to
-// commit either way.
-export type WantsChildren = "yes" | "no" | "open";
+// Wants-children: binary. The /onboarding/children step asks ONLY this.
+// We don't collect a count and we don't ask "do you have kids" — what
+// matters for matching is what the user wants going forward.
+export type WantsChildren = "yes" | "no";
 
 export const WANTS_CHILDREN: ReadonlyArray<{ value: WantsChildren; label: string }> = [
-  { value: "yes",  label: "Yes" },
-  { value: "no",   label: "No" },
-  { value: "open", label: "Open to it" },
+  { value: "yes", label: "Wants children" },
+  { value: "no",  label: "Does not want children" },
 ];
 
 export function isWantsChildren(value: unknown): value is WantsChildren {
@@ -977,7 +975,7 @@ export const MINIMUM_COMPLETE_FIELDS: ReadonlyArray<keyof Profile> = [
   "age",
   "sex",
   "maritalStatus",
-  "children",
+  "wantsChildren",
   "country",
   "intent",
   "assembly",

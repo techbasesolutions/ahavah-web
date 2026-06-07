@@ -27,7 +27,10 @@ export type CompletenessResult = {
  * forever.
  */
 const ZERO_ALLOWED_FIELDS: ReadonlySet<keyof Profile> = new Set<keyof Profile>([
-  "children",
+  // No fields currently need numeric-zero treatment. Children went
+  // away as a count when /onboarding/children switched to a binary
+  // wants/does-not-want question; the Profile.children field is kept
+  // only for legacy round-trip and is not part of completeness.
 ]);
 
 /**
@@ -78,7 +81,7 @@ function fieldComplete(profile: Profile, key: keyof Profile): boolean {
 // TypeScript can't iterate type keys at runtime.)
 const ALL_FIELDS: ReadonlyArray<keyof Profile> = [
   "firstName", "displayName", "age", "sex",
-  "maritalStatus", "children", "wantsChildren",
+  "maritalStatus", "wantsChildren",
   "country", "stateOrProvince", "city",
   "nationality", "ethnicities", "languages",
   "occupation", "education", "bio",
