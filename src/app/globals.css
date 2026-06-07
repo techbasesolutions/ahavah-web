@@ -792,19 +792,33 @@
 
 /* Map marker hover popup (MapProfilePopup) — strip Leaflet's default white
    wrapper / padding / tip so our kit Card surface shows edge-to-edge.
-   Scoped to `.ahavah-map-popup` set on the react-leaflet <Popup>. */
+   Scoped to `.ahavah-map-popup` set on the react-leaflet <Popup>.
+   `!important` is required: leaflet/dist/leaflet.css is dynamically
+   imported by world-map.tsx and lands in the document AFTER globals.css,
+   and Leaflet's `.leaflet-popup .leaflet-popup-content-wrapper`
+   selector matches at the same specificity as ours -- so on plain
+   rules, Leaflet's later-loaded white background wins. Without the
+   !important the dark Card surface gets framed by a white rectangle
+   from the popup-content-wrapper plus the wrapper's drop shadow. */
 .ahavah-map-popup .leaflet-popup-content-wrapper {
-  background: transparent;
-  box-shadow: none;
-  padding: 0;
-  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
 }
 .ahavah-map-popup .leaflet-popup-content {
-  margin: 0;
+  margin: 0 !important;
   width: auto !important;
 }
 .ahavah-map-popup .leaflet-popup-tip-container {
-  display: none;
+  display: none !important;
+}
+/* The outer `.leaflet-popup` element itself can carry a background +
+   shadow in some Leaflet builds; nuke both so only the kit Card's own
+   shadow shows. */
+.ahavah-map-popup.leaflet-popup {
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 /* /match celebration halo — slow ambient pulse on the lime backdrop
