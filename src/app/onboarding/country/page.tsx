@@ -195,16 +195,17 @@ export default function CountryStep() {
         )}
       </motion.div>
 
-      {/* Scrollable list — `min-h-0 flex-1 overflow-y-auto` is the load-bearing
-          combination so the list scrolls *within* the shell instead of pushing
-          the CTA off-screen. With ~250 rows we deliberately do NOT wrap each
-          row in a motion.div (would be 250 motion contexts on first paint).
-          Container fade-in is enough — per-row motion only matters with
-          smaller lists. */}
+      {/* Country list. NO inner overflow-y-auto here — OnboardingShell's
+          mobile body is already the scroll container, and nesting a second
+          scroll region traps touch scroll on iOS/Android (user reported
+          the list "ended at F" because the inner scroll swallowed gestures
+          past the first viewport of rows). With ~250 rows we deliberately
+          do NOT wrap each row in a motion.div (would be 250 motion
+          contexts on first paint). Container fade-in is enough. */}
       <motion.div
         {...fadeUp}
         transition={{ duration: 0.4, delay: 0.1 }}
-        className="mt-3 flex min-h-0 flex-1 flex-col"
+        className="mt-3 flex flex-col"
         aria-busy={false}
       >
         {showEmpty ? (
@@ -219,7 +220,7 @@ export default function CountryStep() {
             value={effectiveSelected}
             onValueChange={(v) => void handlePickCountry(v as string)}
             aria-label="Select your country"
-            className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto pb-2"
+            className="flex flex-col gap-1 pb-2"
           >
             {isSearching ? (
               <CountryRows countries={searchResults} selected={effectiveSelected} />
