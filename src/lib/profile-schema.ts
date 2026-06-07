@@ -736,7 +736,7 @@ export const RELOCATIONS: ReadonlyArray<{ value: Relocation; label: string }> = 
   { value: "will-relocate",         label: "Will relocate" },
   { value: "wants-partner-willing", label: "Wants partner willing to relocate" },
   { value: "local-only",            label: "Local only" },
-  { value: "international-open",    label: "International open" },
+  { value: "international-open",    label: "Open to international" },
 ];
 
 export function isRelocation(value: unknown): value is Relocation {
