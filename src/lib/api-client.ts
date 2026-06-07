@@ -47,6 +47,21 @@ export function getSessionToken(): string | null {
   } catch {
     _sessionToken = null;
   }
+  // Backfill the ahavah.authed cookie for users who signed in before
+  // the cookie existed (localStorage token present, cookie missing).
+  // Without this, returning users hit /waitlist until they sign in
+  // again.
+  if (_sessionToken && typeof document !== "undefined") {
+    try {
+      if (!/(?:^|; )ahavah\.authed=1/.test(document.cookie)) {
+        const hostname = window.location.hostname;
+        const onAhavah = hostname === "ahavah.app" || hostname.endsWith(".ahavah.app");
+        const domainAttr = onAhavah ? "; Domain=.ahavah.app" : "";
+        const secureAttr = window.location.protocol === "https:" ? "; Secure" : "";
+        document.cookie = `ahavah.authed=1; Path=/; Max-Age=2592000; SameSite=Lax${secureAttr}${domainAttr}`;
+      }
+    } catch { /* */ }
+  }
   return _sessionToken;
 }
 
@@ -70,6 +85,26 @@ export function setSessionToken(token: string | null | undefined): void {
   } catch {
     // localStorage full / disabled — in-memory _sessionToken still works
     // for this tab's session.
+  }
+  // Mirror a non-PII "is authed" flag into a cookie so the edge proxy
+  // can let authed users past the pre-launch /waitlist gate. The real
+  // auth check is still Authorization: Bearer on every API call — this
+  // cookie only controls the obscurity redirect. Domain=.ahavah.app so
+  // a session created on signup.ahavah.app is visible to ahavah.app
+  // when the user later opens the installed PWA there.
+  try {
+    const hostname = window.location.hostname;
+    const onAhavah = hostname === "ahavah.app" || hostname.endsWith(".ahavah.app");
+    const domainAttr = onAhavah ? "; Domain=.ahavah.app" : "";
+    const secureAttr = window.location.protocol === "https:" ? "; Secure" : "";
+    if (token) {
+      // 30-day cookie matches the rough lifespan of the bearer session.
+      document.cookie = `ahavah.authed=1; Path=/; Max-Age=2592000; SameSite=Lax${secureAttr}${domainAttr}`;
+    } else {
+      document.cookie = `ahavah.authed=; Path=/; Max-Age=0; SameSite=Lax${secureAttr}${domainAttr}`;
+    }
+  } catch {
+    // document unavailable in some environments — ignore.
   }
 }
 

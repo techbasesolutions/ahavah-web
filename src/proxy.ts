@@ -14,6 +14,13 @@ const PRELAUNCH = process.env.NEXT_PUBLIC_PRELAUNCH !== "false";
 
 export function proxy(request: NextRequest) {
   if (!PRELAUNCH) return NextResponse.next();
+  // Authed users (signed up via signup.ahavah.app or any other path) are
+  // exempt from the obscurity redirect. The cookie is set by setSessionToken
+  // alongside the localStorage bearer token; absence here means "not signed
+  // in on this device", which is the case the gate exists to catch.
+  if (request.cookies.get("ahavah.authed")?.value === "1") {
+    return NextResponse.next();
+  }
   return NextResponse.redirect(new URL("/waitlist", request.url));
 }
 
