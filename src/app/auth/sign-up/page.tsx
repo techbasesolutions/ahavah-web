@@ -15,59 +15,38 @@ import { Logo } from "@/components/brand/logo";
 import { PageShell } from "@/components/app/page-shell";
 import { AuthIllustration } from "@/components/app/auth-illustration";
 import { ApiError } from "@/lib/api-client";
-import { requestEmailOtp } from "@/lib/auth-otp";
+import { checkAccountExists, requestEmailOtp } from "@/lib/auth-otp";
 import { AntibotFields, type AntibotHandle } from "@/components/app/antibot-fields";
 import { useRef } from "react";
 import { PENDING_EMAIL_KEY } from "@/lib/storage-keys";
 import { useRedirectIfSignedIn } from "@/lib/use-redirect-if-signed-in";
-
-const MIN_PASSWORD = 8;
 
 const fadeUp = {
   initial: { opacity: 0, y: 12 },
   animate: { opacity: 1, y: 0 },
 };
 
-function passwordStrength(pw: string): { level: 0 | 1 | 2 | 3 | 4; label: string } {
-  if (pw.length === 0) return { level: 0, label: "" };
-  if (pw.length < MIN_PASSWORD) return { level: 1, label: "Too short" };
-  let score = 1;
-  if (/[a-z]/.test(pw) && /[A-Z]/.test(pw)) score++;
-  if (/\d/.test(pw)) score++;
-  if (/[^A-Za-z0-9]/.test(pw)) score++;
-  if (pw.length >= 12) score = Math.min(4, score + 1);
-  const label =
-    score <= 1 ? "Weak" : score === 2 ? "Fair" : score === 3 ? "Good" : "Strong";
-  return { level: score as 1 | 2 | 3 | 4, label };
-}
-
 type FormProps = {
   email: string;
   setEmail: (v: string) => void;
-  password: string;
-  setPassword: (v: string) => void;
   accepted: boolean;
   setAccepted: (v: boolean) => void;
   submitting: boolean;
   error: string | null;
   isComplete: boolean;
   onSubmit: (e: React.FormEvent) => void;
-  strength: { level: 0 | 1 | 2 | 3 | 4; label: string };
   variant: "mobile" | "desktop";
 };
 
 function SignUpForm({
   email,
   setEmail,
-  password,
-  setPassword,
   accepted,
   setAccepted,
   submitting,
   error,
   isComplete,
   onSubmit,
-  strength,
   variant,
 }: FormProps) {
   const isDesktop = variant === "desktop";
@@ -88,59 +67,6 @@ function SignUpForm({
           placeholder="you@example.com"
           className="bg-(--app)"
         />
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <Label htmlFor={`${idPrefix}-password`} className="text-caption text-(--ink-2)">
-          Password
-        </Label>
-        <Input
-          id={`${idPrefix}-password`}
-          type="password"
-          autoComplete="new-password"
-          size="lg"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder={`At least ${MIN_PASSWORD} characters`}
-          aria-describedby={`${idPrefix}-password-help`}
-          className="bg-(--app)"
-        />
-        {password.length > 0 && (
-          <div className="flex items-center gap-2">
-            <div aria-hidden className="flex flex-1 gap-1">
-              {[1, 2, 3, 4].map((seg) => (
-                <span
-                  key={seg}
-                  className={
-                    seg <= strength.level
-                      ? strength.level >= 3
-                        ? "h-1.5 flex-1 rounded-full bg-(--color-lime)"
-                        : strength.level === 2
-                        ? "h-1.5 flex-1 rounded-full bg-(--color-lavender)"
-                        : "h-1.5 flex-1 rounded-full bg-(--color-pink)"
-                      : "h-1.5 flex-1 rounded-full bg-(--hairline)"
-                  }
-                />
-              ))}
-            </div>
-            <span
-              aria-live="polite"
-              aria-label={`Password strength: ${strength.label}`}
-              className={
-                strength.level >= 3
-                  ? "text-caption font-semibold text-(--color-lime)"
-                  : strength.level === 2
-                  ? "text-caption font-semibold text-(--color-lavender)"
-                  : "text-caption font-semibold text-(--color-pink)"
-              }
-            >
-              {strength.label}
-            </span>
-          </div>
-        )}
-        <p id={`${idPrefix}-password-help`} className="text-caption text-(--ink-3)">
-          8+ characters. We&apos;ll prompt you for 2FA after sign-up.
-        </p>
       </div>
 
       <Label
@@ -226,14 +152,11 @@ export default function SignUpPage() {
     if (prefill) setEmail(prefill);
   }, []);
 
-  const [password, setPassword] = useState("");
   const [accepted, setAccepted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const strength = passwordStrength(password);
-  const isComplete =
-    email.includes("@") && password.length >= MIN_PASSWORD && accepted;
+  const isComplete = email.includes("@") && accepted;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -241,6 +164,14 @@ export default function SignUpPage() {
     setError(null);
     setSubmitting(true);
     try {
+      // Short-circuit returning users before sending a meaningless OTP
+      // through the sign-up flow. Stash the email so /auth/sign-in
+      // prefills it from PENDING_EMAIL_KEY (existing behavior).
+      if (await checkAccountExists(email)) {
+        sessionStorage.setItem(PENDING_EMAIL_KEY, email);
+        router.push("/auth/sign-in?existing=1");
+        return;
+      }
       await requestEmailOtp(email, antibotRef.current?.payload() ?? {});
       antibotRef.current?.reset();
       sessionStorage.setItem(PENDING_EMAIL_KEY, email);
@@ -278,15 +209,12 @@ export default function SignUpPage() {
   const formProps = {
     email,
     setEmail,
-    password,
-    setPassword,
     accepted,
     setAccepted,
     submitting,
     error,
     isComplete,
     onSubmit: handleSubmit,
-    strength,
   };
 
   return (

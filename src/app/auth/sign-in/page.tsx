@@ -122,6 +122,11 @@ function SignInPageContent() {
     }
   }, [searchParams]);
 
+  // Banner shown when the user landed here from /auth/sign-up after the
+  // /account-check probe found an existing person row. Single source of
+  // truth for the copy across desktop + mobile layouts.
+  const accountExistsBanner = searchParams.get("existing") === "1";
+
   const isComplete = email.includes("@");
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -193,6 +198,14 @@ function SignInPageContent() {
                 Enter your email and we&apos;ll send a sign-in code.
               </p>
             </div>
+            {accountExistsBanner && (
+              <div
+                role="status"
+                className="rounded-2xl border border-(--color-lavender)/30 bg-(--color-lavender)/10 px-4 py-3 text-meta text-(--ink)"
+              >
+                You already have an account. Sign in below to continue.
+              </div>
+            )}
             <SignInForm {...formProps} variant="desktop" />
             <div className="flex items-center justify-start gap-2 text-meta text-(--ink-2)">
               <span>New here?</span>
@@ -231,6 +244,17 @@ function SignInPageContent() {
             Enter your email and we&apos;ll send a sign-in code.
           </p>
         </motion.div>
+
+        {accountExistsBanner && (
+          <motion.div
+            {...fadeUp}
+            transition={{ duration: 0.25, delay: 0.1 }}
+            role="status"
+            className="mt-6 rounded-2xl border border-(--color-lavender)/30 bg-(--color-lavender)/10 px-4 py-3 text-center text-meta text-(--ink)"
+          >
+            You already have an account. Sign in below to continue.
+          </motion.div>
+        )}
 
         <motion.div
           {...fadeUp}

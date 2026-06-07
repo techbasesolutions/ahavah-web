@@ -76,3 +76,14 @@ export async function checkPhoneOtp(
 ): Promise<CheckOtpResult> {
   return apiClient.post<CheckOtpResult>("/check-otp", { phone, otp });
 }
+
+/**
+ * Existence probe used by /auth/sign-up BEFORE requestEmailOtp, so a
+ * returning user with a person row gets short-circuited to /auth/sign-in
+ * instead of walking through the sign-up form + receiving a meaningless
+ * OTP. Returns true when the email already maps to a person row.
+ */
+export async function checkAccountExists(email: string): Promise<boolean> {
+  const res = await apiClient.post<{ exists: boolean }>("/account-check", { email });
+  return res.exists;
+}
