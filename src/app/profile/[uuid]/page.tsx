@@ -11,8 +11,6 @@ import {
   MapPin,
   MessageCircle,
   MoreHorizontal,
-  Pause,
-  Play,
   ShieldCheck,
   X,
 } from "lucide-react";
@@ -373,19 +371,6 @@ export default function ProfileDetailPage({ params }: Props) {
   const prevPhoto = () =>
     setPhotoIndex((i) => (i - 1 + photoSources.length) % photoSources.length);
   const currentPhotoSource = photoSources[photoIndex];
-  // Pause/Play toggle mirrors the discover card. When on, auto-cycle
-  // through the photo slots every PHOTO_CYCLE_MS; wraps at the end so
-  // viewing a profile feels continuous instead of jumping back.
-  const [cyclePhotos, setCyclePhotos] = useState(false);
-  const PHOTO_CYCLE_MS = 3_500;
-  useEffect(() => {
-    if (!cyclePhotos) return;
-    const id = setInterval(
-      () => setPhotoIndex((i) => (i + 1) % photoSources.length),
-      PHOTO_CYCLE_MS,
-    );
-    return () => clearInterval(id);
-  }, [cyclePhotos, photoSources.length]);
 
   // Match-gated chat: viewer can only see the Message button on this
   // profile when there's a confirmed mutual match with the prospect.
@@ -549,31 +534,14 @@ export default function ProfileDetailPage({ params }: Props) {
         >
           <ChevronLeft className="text-(--ink)" />
         </Link>
-        <div className="flex items-center gap-2">
-          {photoSources.length > 1 ? (
-            <Button
-              size="circle-lg"
-              tone="overlay"
-              aria-label={cyclePhotos ? "Pause photo slideshow" : "Play photo slideshow"}
-              aria-pressed={cyclePhotos}
-              onClick={() => setCyclePhotos((on) => !on)}
-            >
-              {cyclePhotos ? (
-                <Pause className="text-(--ink)" fill="currentColor" />
-              ) : (
-                <Play className="text-(--ink)" fill="currentColor" />
-              )}
-            </Button>
-          ) : null}
-          <Button
-            size="circle-lg"
-            tone="overlay"
-            aria-label="More options"
-            onClick={() => setReportOpen(true)}
-          >
-            <MoreHorizontal className="text-(--ink)" />
-          </Button>
-        </div>
+        <Button
+          size="circle-lg"
+          tone="overlay"
+          aria-label="More options"
+          onClick={() => setReportOpen(true)}
+        >
+          <MoreHorizontal className="text-(--ink)" />
+        </Button>
       </div>
 
       <ProgressDots

@@ -1,12 +1,15 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { MapPin } from "lucide-react";
+import { MapPin, Pause, Play } from "lucide-react";
 
 import { PhotoCaption } from "@/components/app/photo-caption";
 import { CompatPill } from "@/components/app/compat-pill";
 import type { DiscoverCandidate } from "@/lib/api-types";
 import { photoOrGradient } from "@/lib/photo-or-gradient";
+
+const PHOTO_CYCLE_MS = 3_500;
 
 /**
  * DiscoverCardFace — the visual contents of a single SwipeCard in the
@@ -39,7 +42,31 @@ export function DiscoverCardFace({
   candidate,
   compatScore,
 }: DiscoverCardFaceProps) {
-  const photoSource = photoOrGradient(candidate, 0);
+  const photoCount = candidate.photos?.length ?? 0;
+  const hasMultiplePhotos = photoCount > 1;
+  const [photoIndex, setPhotoIndex] = useState(0);
+  // Subtle slideshow toggle — only meaningful for multi-photo candidates.
+  // Default OFF; user opts in via the small overlay button.
+  const [cyclePhotos, setCyclePhotos] = useState(false);
+
+  // Reset cycling state when the candidate changes (deck advance) so a
+  // single-photo follow-up doesn't show a stale Pause icon.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPhotoIndex(0);
+    setCyclePhotos(false);
+  }, [candidate.id]);
+
+  useEffect(() => {
+    if (!cyclePhotos || !hasMultiplePhotos) return;
+    const id = setInterval(
+      () => setPhotoIndex((i) => (i + 1) % photoCount),
+      PHOTO_CYCLE_MS,
+    );
+    return () => clearInterval(id);
+  }, [cyclePhotos, hasMultiplePhotos, photoCount]);
+
+  const photoSource = photoOrGradient(candidate, photoIndex);
 
   return (
     <div
@@ -62,6 +89,47 @@ export function DiscoverCardFace({
           className="absolute inset-0 z-0 size-full object-cover"
         />
       )}
+
+      {hasMultiplePhotos ? (
+        <>
+          {/* Photo position dots — top of the card, mirrors the
+              Tinder/Hinge multi-photo affordance. */}
+          <div className="pointer-events-none absolute top-3 right-3 left-3 z-20 flex gap-1">
+            {Array.from({ length: photoCount }).map((_, i) => (
+              <span
+                key={i}
+                className={
+                  i === photoIndex
+                    ? "h-1 flex-1 rounded-full bg-white"
+                    : "h-1 flex-1 rounded-full bg-white/35"
+                }
+              />
+            ))}
+          </div>
+          {/* Subtle play/pause toggle for the slideshow — bottom-right
+              corner, glass overlay so it doesn't compete with the name
+              caption or fight the swipe-pan gesture. Stops pointer-events
+              propagation so a tap on the button doesn't get interpreted
+              by the SwipeCard as the start of a horizontal drag. */}
+          <button
+            type="button"
+            aria-label={cyclePhotos ? "Pause photo slideshow" : "Play photo slideshow"}
+            aria-pressed={cyclePhotos}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              setCyclePhotos((on) => !on);
+            }}
+            className="absolute right-3 bottom-24 z-20 inline-flex size-9 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-sm transition-colors hover:bg-black/50 focus-visible:outline-2 focus-visible:outline-white"
+          >
+            {cyclePhotos ? (
+              <Pause className="size-4" fill="currentColor" />
+            ) : (
+              <Play className="size-4" fill="currentColor" />
+            )}
+          </button>
+        </>
+      ) : null}
 
       <PhotoCaption className="px-6 pb-6">
         {/* Name + location wrap into a single Link so the entire caption
