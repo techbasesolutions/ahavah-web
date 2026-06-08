@@ -143,6 +143,15 @@ function isFeatureGate503(url: string): boolean {
   return FEATURE_GATE_503_PATHS.some((p) => url.includes(p));
 }
 
+// Paths that legitimately 401 without meaning "session expired" — e.g.
+// the auth check that runs on the public waitlist to detect existing
+// accounts. Hitting these endpoints unauthenticated is normal flow.
+const AUTH_CHECK_401_PATHS = ["/check-account-exists", "/request-otp", "/check-otp"];
+
+function isAuthCheck401(url: string): boolean {
+  return AUTH_CHECK_401_PATHS.some((p) => url.includes(p));
+}
+
 function maybeRedirectForEdgeStatus(status: number, url: string): void {
   if (typeof window === "undefined") return;
   // Don't redirect when already on the edge page itself (avoids loops).
@@ -151,6 +160,21 @@ function maybeRedirectForEdgeStatus(status: number, url: string): void {
     window.location.assign("/maintenance");
   } else if (status === 426 && path !== "/update-required") {
     window.location.assign("/update-required");
+  } else if (
+    status === 401 &&
+    !isAuthCheck401(url) &&
+    getSessionToken() &&
+    !path.startsWith("/auth/") &&
+    path !== "/waitlist" &&
+    path !== "/"
+  ) {
+    // Session expired or invalidated server-side. The token in
+    // localStorage is dead — clear it, drop the gate cookie, and
+    // bounce to sign-in so the user can re-auth rather than stare
+    // at a perpetual loading skeleton (e.g. /inbox depending on
+    // /me to learn myUuid).
+    try { setSessionToken(null); } catch { /* */ }
+    window.location.assign("/auth/sign-in?expired=1");
   }
 }
 
