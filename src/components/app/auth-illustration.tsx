@@ -7,35 +7,35 @@ import { LogoMark } from "@/components/brand/logo-mark";
 
 // Local optimized portraits from public/marketing (Ahavah Stock). 6 cards
 // scattered for an organic "snapshots tossed on a wall" composition.
-// Adina removed per feedback (previous 3-3-1 grid layout felt too
-// regimented); remaining 6 now sit on staggered diagonals instead of
-// clean rows. Names are Hebrew/biblical to match the brand's target
-// cohort; ethnicities/presentations deliberately varied.
+// Adina removed in v3; v4 addresses feedback that (a) Yael+Daniel were
+// too close to the edges, (b) the lower-right next to the brand text
+// was blank, (c) cards didn't grow on 27" screens.
 
 /**
- * Scattered profile cards. Positions chosen so every pair satisfies
- *   (|ΔL| × panel_width ≥ card_width) OR
- *   (|ΔT| × panel_height ≥ card_height)
- * at the tightest worst-case viewport (2xl: 933×900 panel, 130×156
- * card = 14% wide, 17.3% tall). All 15 pairs checked to have either
- * ≥14% horizontal separation or ≥18% vertical separation -- no
- * overlap at any viewport from md (450px) through 2xl (933px).
+ * Scattered profile cards, v4.
  *
- * Visual intent (frontend-design notes):
- *  - Break the perceived grid: positions deliberately NOT on 5%/37%/
- *    69% horizontals or 4%/32%/56% verticals.
- *  - Two cards in the top stripe (Yael, Daniel), one card straddling
- *    rows 1-2 (Tamar), two in the mid stripe (Eitan low-left, Esther
- *    high-right), and one anchor (Sarah) low-center.
- *  - Rotations expanded from ±6° to ±11° for a more "tossed on a
- *    wall" feel without sacrificing label readability.
- *  - Sign of rotation alternates around the composition's diagonals
- *    so adjacent cards lean toward each other rather than parallel
- *    (parallel rotations read as a grid).
+ * Layout intent (frontend-design notes):
+ *  - Cards pulled inward from edges: Yael L=3%→10%, Daniel L=70%→64%.
+ *    Rotation extends the bounding box ~3% per side at ±9°, so 10%
+ *    interior margin leaves ~6% visual clearance.
+ *  - Sarah moved to the lower-right (L=70%, T=70%) so she sits BESIDE
+ *    the "Real people. Verified profiles." brand block (which lives
+ *    in the lower-left via max-w-105 + justify-end) rather than above
+ *    it. The previous v3 left the entire lower-right quadrant blank
+ *    next to the heading.
+ *  - Rotations stay in ±10° range, sign alternating around the
+ *    composition diagonal so adjacent cards lean toward each other
+ *    rather than parallel.
  *
- * Sarah's bottom edge lands ~68-71% panel height; brand block starts
- * ~76% via flex justify-end + p-10/lg:p-16 padding. ≥5% breathing
- * room above the heading at every breakpoint.
+ * Card sizing: clamp(95px, 13vw, 240px) — max-cap raised from 130px so
+ * cards actually grow on big screens (24" 1920 → 195px; 27" 2560 →
+ * 240px cap). Aspect 5:6 → 114-288px tall.
+ *
+ * Pairwise no-overlap math verified at the worst-case viewport
+ * (1440 wide × 800 tall → panel 840×800, card 187×224 = 22.3% wide,
+ * 28% tall; needs ΔL ≥23% OR ΔT ≥28% between every pair). All 15
+ * pairs satisfy at least one bound; the tightest is Esther↔Sarah
+ * (ΔL=8%, ΔT=32%) which clears vertically by 4%.
  */
 const CARDS: ReadonlyArray<{
   name: string;
@@ -44,12 +44,12 @@ const CARDS: ReadonlyArray<{
   top: string;
   rot: number;
 }> = [
-  { name: "Yael",   src: "/marketing/woman-1.webp",  left: "3%",  top: "4%",  rot: -10 },
-  { name: "Daniel", src: "/marketing/avatar-2.webp", left: "70%", top: "2%",  rot: 9 },
-  { name: "Tamar",  src: "/marketing/avatar-5.webp", left: "34%", top: "18%", rot: -7 },
-  { name: "Eitan",  src: "/marketing/avatar-4.webp", left: "8%",  top: "33%", rot: 11 },
-  { name: "Esther", src: "/marketing/avatar-3.webp", left: "58%", top: "38%", rot: -8 },
-  { name: "Sarah",  src: "/marketing/avatar-6.webp", left: "30%", top: "50%", rot: 6 },
+  { name: "Yael",   src: "/marketing/woman-1.webp",  left: "10%", top: "8%",  rot: -9 },
+  { name: "Daniel", src: "/marketing/avatar-2.webp", left: "64%", top: "5%",  rot: 8 },
+  { name: "Tamar",  src: "/marketing/avatar-5.webp", left: "38%", top: "24%", rot: -6 },
+  { name: "Eitan",  src: "/marketing/avatar-4.webp", left: "8%",  top: "46%", rot: 10 },
+  { name: "Esther", src: "/marketing/avatar-3.webp", left: "62%", top: "38%", rot: -7 },
+  { name: "Sarah",  src: "/marketing/avatar-6.webp", left: "70%", top: "70%", rot: 6 },
 ];
 
 /**
@@ -76,16 +76,18 @@ export function AuthIllustration() {
             style={{
               left: c.left,
               top: c.top,
-              // Tightened twice: original 16vw → 14vw (v1) → 11vw (v2,
-              // after v1 overlap report). At 11vw the card height as
-              // % of panel height is small enough that the 28% vertical
-              // gap between bands 1+2 and the 24% gap between bands 2+3
-              // are always larger than the card height, regardless of
-              // viewport aspect ratio. Verified by checking the
-              // worst-case combo (1280×800 → tallest cards relative to
-              // panel) which still leaves a ~6% gap between adjacent
-              // band cards.
-              width: "clamp(85px, 11vw, 130px)",
+              // v4 sizing: max-cap raised from 130px → 240px so cards
+              // actually grow on big screens (was a flat 130px cap from
+              // ~1100px viewport upward, leaving 27" displays looking
+              // sparse). 13vw scales linearly across the working range:
+              //   md  (768px):  100px → clamped to 95min
+              //   xl (1440px):  187px
+              //   2xl(1920px):  240px (cap reached)
+              //   27"(2560px):  240px (cap)
+              // Aspect 5:6 gives card heights 114-288px. Worst-case
+              // % of panel height (1440x800 panel) is 28%, accounted
+              // for in the pairwise overlap math in CARDS comment.
+              width: "clamp(95px, 13vw, 240px)",
               aspectRatio: "5 / 6",
               backgroundImage: `url(${c.src})`,
               backgroundSize: "cover",
