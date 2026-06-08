@@ -26,15 +26,16 @@ const checkboxVariants = cva(
         // theme-aware hairline + card tokens.
         //
         // 2026-06-07: --hairline is rgba(255,255,255,0.08) which fails
-        // WCAG 1.4.11 3:1 UI contrast against the dark --app surface
-        // (visual: the Terms checkbox on sign-up was nearly invisible
-        // until checked). Bumping the unchecked border to a 0.30 white
-        // and adding a 1.5px stroke makes the affordance obvious in
-        // dark mode without disturbing the checked state, which still
-        // uses the `data-checked:` lavender. The bg stays --card so
-        // the box reads as a distinct surface from the page canvas.
+        // WCAG 1.4.11 3:1 UI contrast against the dark --app surface.
+        // 2026-06-08: previous fix used `border-white/35` in BOTH modes
+        // which made the box invisible in LIGHT mode (white border on
+        // white canvas). Sign-up is rendered light-themed; same checkbox
+        // had to disappear on /auth/sign-up while staying visible on
+        // dark surfaces. Theme-aware borders fix both:
+        //   light mode: zinc-800/40 = dark-ish on cream → visible
+        //   dark mode:  white/35    = light on dark indigo → visible
         elevated:
-          "border-[1.5px] border-white/35 dark:border-white/35 bg-(--card) hover:border-white/55 dark:hover:border-white/55",
+          "border-[1.5px] border-zinc-800/40 dark:border-white/35 bg-(--card) hover:border-zinc-800/60 dark:hover:border-white/55",
       },
     },
     defaultVariants: {
