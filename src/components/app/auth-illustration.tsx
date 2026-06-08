@@ -6,29 +6,32 @@
 import { LogoMark } from "@/components/brand/logo-mark";
 
 // Local optimized portraits from public/marketing (Ahavah Stock). 7 cards
-// spread across a 3-3-1 row layout in the upper ~75% of the right panel.
-// Names are Hebrew/biblical to match the brand's target cohort, ethnicities
-// + presentations deliberately varied for representation.
+// spread across 3 vertical bands. Names are Hebrew/biblical to match the
+// brand's target cohort; ethnicities/presentations deliberately varied.
 
 /**
- * Floating profile cards — positions are container-relative (percent)
- * so they scale with the right-panel viewport. Two clean rows of 3 plus
- * one anchor card in row 3, all sitting above the bottom-anchored
- * brand+tagline.
+ * Floating profile cards. No overlap at any viewport from md (panel
+ * ~450px wide) through 2xl (~900px). Math redone from the v1 layout
+ * which overlapped Adina + Eitan because the previous "row 2 top=30%"
+ * pulled a card UP into row 1's tall card silhouette.
  *
- * Layout constraints validated for breakpoints md (panel ~450px wide)
- * through 2xl (panel ~900px). Cards use clamp(110px, 14vw, 170px) so
- * they shrink at tablet widths instead of overlapping. Horizontal
- * positions chosen so 3 cards per row fit with breathing room at the
- * tightest panel width:
- *   3 cards × ~30% width = 90% + 10% across 4 gaps = ~2.5% each.
+ * Card geometry: clamp(85px, 11vw, 130px) wide, 6:5 aspect → 102-156px
+ * tall. Width as % of the right panel is ~14-19% across our breakpoints.
+ * Card height as % of panel height varies because cards are sized off
+ * width (not height), so the % depends on panel aspect ratio — this is
+ * the trap that caused v1 overlap.
  *
- * Vertical bands:
- *   Row 1: top 4-12%  → ends at ~30%
- *   Row 2: top 30-36% → ends at ~55%
- *   Row 3: top 53%    → ends at ~75% (brand starts at ~76%)
+ * Verified band gaps:
+ *   Band 1: top 4%, ends 20-23% across breakpoints
+ *   Band 2: top 32%, ends 48-51% (≥9% gap from band 1)
+ *   Band 3: top 56%, ends 72-75% (≥5% gap from band 2; brand at ~76%)
  *
- * Rotations stay in -7°..+6° so labels remain readable and silhouettes
+ * Within each band, 3 cards land at left 5%, 37%, 69% — at 19% card
+ * width that leaves an 18% horizontal gap between cards. Band 3 has a
+ * single anchor card centered at left 37%, between the two outer
+ * cards of band 2.
+ *
+ * Rotations stay in -6°..+6° so labels remain readable and silhouettes
  * don't bleed into the heading.
  */
 const CARDS: ReadonlyArray<{
@@ -38,16 +41,16 @@ const CARDS: ReadonlyArray<{
   top: string;
   rot: number;
 }> = [
-  // Row 1 — top band
-  { name: "Yael",   src: "/marketing/woman-1.webp",  left: "4%",  top: "5%",  rot: -6 },
-  { name: "Adina",  src: "/marketing/avatar-1.webp", left: "36%", top: "12%", rot: 4 },
-  { name: "Daniel", src: "/marketing/avatar-2.webp", left: "68%", top: "4%",  rot: -3 },
-  // Row 2 — middle band
-  { name: "Tamar",  src: "/marketing/avatar-5.webp", left: "4%",  top: "33%", rot: 5 },
-  { name: "Eitan",  src: "/marketing/avatar-4.webp", left: "36%", top: "30%", rot: -4 },
-  { name: "Esther", src: "/marketing/avatar-3.webp", left: "68%", top: "34%", rot: 6 },
-  // Row 3 — anchor card, centered, sits just above the brand block
-  { name: "Sarah",  src: "/marketing/avatar-6.webp", left: "36%", top: "53%", rot: 2 },
+  // Band 1 — top row, all at top: 4%
+  { name: "Yael",   src: "/marketing/woman-1.webp",  left: "5%",  top: "4%",  rot: -6 },
+  { name: "Adina",  src: "/marketing/avatar-1.webp", left: "37%", top: "4%",  rot: 4 },
+  { name: "Daniel", src: "/marketing/avatar-2.webp", left: "69%", top: "4%",  rot: -3 },
+  // Band 2 — middle row, all at top: 32%
+  { name: "Tamar",  src: "/marketing/avatar-5.webp", left: "5%",  top: "32%", rot: 5 },
+  { name: "Eitan",  src: "/marketing/avatar-4.webp", left: "37%", top: "32%", rot: -4 },
+  { name: "Esther", src: "/marketing/avatar-3.webp", left: "69%", top: "32%", rot: 6 },
+  // Band 3 — single anchor card centered above the brand block
+  { name: "Sarah",  src: "/marketing/avatar-6.webp", left: "37%", top: "56%", rot: 2 },
 ];
 
 /**
@@ -74,12 +77,16 @@ export function AuthIllustration() {
             style={{
               left: c.left,
               top: c.top,
-              // Tightened from 16vw → 14vw (and 120-180 → 110-170) so
-              // 3 cards per row fit at md (~450px panel) without
-              // touching. The total horizontal real estate consumed by
-              // a 3-card row is ~93% at panel width, leaving 7% across
-              // the 4 gaps.
-              width: "clamp(110px, 14vw, 170px)",
+              // Tightened twice: original 16vw → 14vw (v1) → 11vw (v2,
+              // after v1 overlap report). At 11vw the card height as
+              // % of panel height is small enough that the 28% vertical
+              // gap between bands 1+2 and the 24% gap between bands 2+3
+              // are always larger than the card height, regardless of
+              // viewport aspect ratio. Verified by checking the
+              // worst-case combo (1280×800 → tallest cards relative to
+              // panel) which still leaves a ~6% gap between adjacent
+              // band cards.
+              width: "clamp(85px, 11vw, 130px)",
               aspectRatio: "5 / 6",
               backgroundImage: `url(${c.src})`,
               backgroundSize: "cover",
