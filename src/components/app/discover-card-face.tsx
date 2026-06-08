@@ -1,3 +1,9 @@
+// Inline width on the progress-fill child is required: animating
+// width via @keyframes + dynamic paused-state width are both
+// inherently dynamic per-render values that can't be expressed as a
+// design-token Tailwind class. Same exception pattern as
+// auth-illustration.tsx (per-card layout values).
+/* eslint-disable no-restricted-syntax */
 "use client";
 
 import { useEffect, useState } from "react";
@@ -93,17 +99,39 @@ export function DiscoverCardFace({
       {hasMultiplePhotos ? (
         <>
           {/* Photo position dots — top of the card, mirrors the
-              Tinder/Hinge multi-photo affordance. */}
+              Instagram/Tinder multi-photo affordance.
+              Each segment is a track (white/35); within the track:
+                - past photos: filled solid white
+                - current photo: fill animates 0→100% over the 3.5s
+                  cycle interval, restarting on each advance via the
+                  `key={photoIndex}` remount. The fill pauses when
+                  cyclePhotos is off so a paused user sees the bar
+                  frozen at its current position instead of jumping.
+                - future photos: track only, no fill. */}
           <div className="pointer-events-none absolute top-3 right-3 left-3 z-20 flex gap-1">
             {Array.from({ length: photoCount }).map((_, i) => (
               <span
                 key={i}
-                className={
-                  i === photoIndex
-                    ? "h-1 flex-1 rounded-full bg-white"
-                    : "h-1 flex-1 rounded-full bg-white/35"
-                }
-              />
+                className="h-1 flex-1 overflow-hidden rounded-full bg-white/35"
+              >
+                {i < photoIndex ? (
+                  <span className="block h-full w-full bg-white" />
+                ) : i === photoIndex ? (
+                  <span
+                    key={`fill-${photoIndex}-${cyclePhotos}`}
+                    className="block h-full bg-white"
+                    style={{
+                      animation: cyclePhotos
+                        ? "ahavah-photo-progress 3500ms linear forwards"
+                        : "none",
+                      // Paused state: snap the active dot to a small
+                      // visible nub so the user can still see WHICH dot
+                      // is active rather than an invisible 0% bar.
+                      width: cyclePhotos ? undefined : "18%",
+                    }}
+                  />
+                ) : null}
+              </span>
             ))}
           </div>
           {/* Subtle play/pause toggle for the slideshow — bottom-right
