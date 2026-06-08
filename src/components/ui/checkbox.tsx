@@ -25,17 +25,21 @@ const checkboxVariants = cva(
         // (dark-only — invisible white border on white in light mode) to
         // theme-aware hairline + card tokens.
         //
-        // 2026-06-07: --hairline is rgba(255,255,255,0.08) which fails
-        // WCAG 1.4.11 3:1 UI contrast against the dark --app surface.
-        // 2026-06-08: previous fix used `border-white/35` in BOTH modes
-        // which made the box invisible in LIGHT mode (white border on
-        // white canvas). Sign-up is rendered light-themed; same checkbox
-        // had to disappear on /auth/sign-up while staying visible on
-        // dark surfaces. Theme-aware borders fix both:
-        //   light mode: zinc-800/40 = dark-ish on cream → visible
-        //   dark mode:  white/35    = light on dark indigo → visible
+        // 2026-06-07: --hairline failed contrast on dark canvas.
+        // 2026-06-08: arbitrary-width `border-[1.5px]` wasn't compiling
+        // in the Tailwind v4 JIT for this surface -- computed border
+        // width came back as 0px in production, the checkbox rendered
+        // as a 20x20 invisible square. Switched to the plain utility
+        // `border-2` (guaranteed to compile + ship) and bumped opacity
+        // so the box reads at small sizes:
+        //   light mode: zinc-700/60 (dark gray) on white --card
+        //   dark mode:  white/50 on dark --card
+        // Background also pinned to white in light + --card in dark so
+        // the affordance is a distinct surface from the page canvas
+        // (was invisibly tied to --card alone, which is white in
+        // light mode anyway -- belt-and-braces).
         elevated:
-          "border-[1.5px] border-zinc-800/40 dark:border-white/35 bg-(--card) hover:border-zinc-800/60 dark:hover:border-white/55",
+          "border-2 border-zinc-700/60 dark:border-white/50 bg-white dark:bg-(--card) hover:border-zinc-700/80 dark:hover:border-white/70",
       },
     },
     defaultVariants: {
