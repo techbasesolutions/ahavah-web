@@ -140,6 +140,12 @@ export function useDiscoverDeck(
   // it in a ref (not state) avoids re-render churn and races with React's
   // batched updates when SwipeDeck calls onNeedMore() during a transition.
   const inFlight = useRef(false);
+  // Monotonic request counter. Each fetch captures its own seq; a stale
+  // in-flight response (filter changed while the call was in flight)
+  // checks the ref after every await and bails before overwriting the
+  // fresher response's state. Without this a slow pagination call from
+  // an old filter set would clobber the new filter set's results.
+  const requestSeq = useRef(0);
   // We track the cursor in a ref alongside the state mirror because the
   // loadMore callback closes over state at render time; in the (rare) case
   // a caller calls loadMore() twice synchronously, both calls would otherwise
@@ -152,9 +158,16 @@ export function useDiscoverDeck(
   // here because the filter shape is plain primitives + arrays.
   const filtersKey = JSON.stringify(filters);
 
-  const loadMore = useCallback(async () => {
-    if (inFlight.current) return;
+  // Internal fetch — used by both the public `loadMore` (pagination,
+  // honours the inFlight guard so SwipeDeck's onNeedMore can't queue
+  // redundant page requests) and the filter-change effect (force=true,
+  // bypasses the guard so a viewport change during an in-flight
+  // pagination call doesn't get silently dropped). Stale responses are
+  // discarded via the requestSeq check.
+  const runFetch = useCallback(async (force: boolean) => {
+    if (!force && inFlight.current) return;
     if (!hasMoreRef.current) return;
+    const seq = ++requestSeq.current;
     inFlight.current = true;
     setIsLoading(true);
     // Capture "is this the first page after a filter change" BEFORE the
@@ -173,6 +186,11 @@ export function useDiscoverDeck(
       // backend's n/o query-string args (not implemented yet on the
       // frontend), so we treat the response as a single page for now.
       const res = await apiClient.get<unknown>(path);
+      // Stale-response check: if a fresher fetch superseded us while we
+      // were awaiting, drop our result and let the newer call own the
+      // state. Without this guard the old filter set's response could
+      // overwrite items the user has since panned away from.
+      if (seq !== requestSeq.current) return;
       const rawResults: ReadonlyArray<Record<string, unknown>> = Array.isArray(res)
         ? (res as Record<string, unknown>[])
         : ((res as { results?: Record<string, unknown>[] }).results ?? []);
@@ -257,6 +275,8 @@ export function useDiscoverDeck(
       setHasMore(nextCursor !== null);
       setError(null);
     } catch (e) {
+      // Stale-response check: see comment above on the success path.
+      if (seq !== requestSeq.current) return;
       // Preserve last good items + cursor; surface the error for retry UI.
       // Non-ApiError throws (network, parse) get rewrapped so consumers
       // always see the same shape.
@@ -266,17 +286,27 @@ export function useDiscoverDeck(
         setError(new ApiError(0, null, e instanceof Error ? e.message : "Network error"));
       }
     } finally {
-      inFlight.current = false;
-      setIsLoading(false);
+      // Only clear flags if we're still the latest call — a superseded
+      // older call must leave them alone so the fresher call can own
+      // them on its own completion.
+      if (seq === requestSeq.current) {
+        inFlight.current = false;
+        setIsLoading(false);
+      }
     }
     // We intentionally exclude `filters` from the deps and use the closure-
     // captured value. Each new filter snapshot triggers the effect below
-    // which resets state and calls loadMore — that's the only path that
+    // which resets state and calls runFetch — that's the only path that
     // changes the filters used here. Including filters as a dep would
-    // re-create loadMore on every render of the parent because filters is
+    // re-create runFetch on every render of the parent because filters is
     // a fresh object literal.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtersKey]);
+
+  // Public pagination handle — preserves the (() => Promise<void>) shape
+  // of UseDiscoverDeckResult.loadMore so SwipeDeck's onNeedMore caller
+  // doesn't need to know about the force flag.
+  const loadMore = useCallback(() => runFetch(false), [runFetch]);
 
   useEffect(() => {
     // Filter change — reset pagination + error state, then refetch from
@@ -294,10 +324,10 @@ export function useDiscoverDeck(
     hasMoreRef.current = true;
     setHasMore(true);
     setError(null);
-    void loadMore();
-    // loadMore is keyed off filtersKey already; depending on it directly is
-    // equivalent and lets the linter verify the dep chain.
-  }, [filtersKey, loadMore]);
+    // force=true so a pan during an in-flight pagination call still
+    // triggers a fresh fetch instead of being dropped by the guard.
+    void runFetch(true);
+  }, [filtersKey, runFetch]);
 
   // Suppress unused-var warning for the state mirror — useful for downstream
   // consumers but not read inside this hook.
