@@ -64,6 +64,7 @@ import {
 import { useRedirectIfSignedIn } from "@/lib/use-redirect-if-signed-in";
 import { PENDING_EMAIL_KEY } from "@/lib/storage-keys";
 import { postWaitlist } from "@/lib/waitlist";
+import { checkAccountExists } from "@/lib/auth-otp";
 import { AntibotFields, type AntibotHandle } from "@/components/app/antibot-fields";
 
 const WAITLIST_STORAGE_KEY = "ahavah.waitlist.email";
@@ -125,6 +126,23 @@ export default function LandingPage() {
       sessionStorage.setItem(PENDING_EMAIL_KEY, trimmed);
     } catch {
       /* storage unavailable */
+    }
+    // Existing-account short-circuit: if this email already has a person
+    // record, skip the early-capture write entirely and route to sign-in.
+    // Without this gate the hero fires a "joined waitlist" email + creates
+    // a waitlist_signup row for users who are already members, and the
+    // /waitlist page only catches them AFTER the row + notification fired.
+    // Fail-open: if the check errors, fall through to the original flow.
+    let hasAccount = false;
+    try {
+      hasAccount = await checkAccountExists(trimmed);
+    } catch {
+      /* account-check unavailable — fall through to capture */
+    }
+    if (hasAccount) {
+      setSubmitting(false);
+      router.push("/auth/sign-in?existing=1");
+      return;
     }
     // Best-effort early capture; route to the full form regardless of result
     // (the form's own submit creates/updates the row).
