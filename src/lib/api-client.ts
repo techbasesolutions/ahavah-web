@@ -165,6 +165,7 @@ function maybeRedirectForEdgeStatus(status: number, url: string): void {
     !isAuthCheck401(url) &&
     getSessionToken() &&
     !path.startsWith("/auth/") &&
+    !path.startsWith("/onboarding/") &&
     path !== "/waitlist" &&
     path !== "/"
   ) {
@@ -173,6 +174,17 @@ function maybeRedirectForEdgeStatus(status: number, url: string): void {
     // bounce to sign-in so the user can re-auth rather than stare
     // at a perpetual loading skeleton (e.g. /inbox depending on
     // /me to learn myUuid).
+    //
+    // Skipping /onboarding/* is important: a fresh sign-up POSTs
+    // /request-otp then router.pushes to /onboarding/verify-email
+    // BEFORE the new session token exists. If the user still had a
+    // stale token from a prior session in localStorage, useProfile's
+    // /me probe on verify-email mount would 401 and bounce them away
+    // to /auth/sign-in mid-onboarding — user-visible as "the page
+    // went right back to the same screen." The OTP submit step
+    // (/check-otp, which is whitelisted) replaces the stale token
+    // with a fresh one on success, so leaving the redirect off on
+    // /onboarding/* is safe.
     try { setSessionToken(null); } catch { /* */ }
     window.location.assign("/auth/sign-in?expired=1");
   }
