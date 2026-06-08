@@ -38,12 +38,51 @@ export type UseInboxResult = {
 
 const INBOX_QUERY_TIMEOUT_MS = 10_000;
 
+// Per-session cache key for the inbox threads list. We rehydrate from
+// sessionStorage on mount so /inbox paints with the last-known threads
+// instantly instead of sitting on a skeleton for the duration of the
+// XMPP WebSocket connect + auth bind + inbox query (which can be
+// several seconds on a cold load). The cached list is replaced once
+// the live query lands. Per-session (not localStorage) so a tab-close
+// flushes any stale state.
+const INBOX_CACHE_KEY = "ahavah:inbox-threads";
+
+function readCachedThreads(): ChatThread[] | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(INBOX_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return null;
+    return parsed as ChatThread[];
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedThreads(threads: ChatThread[]): void {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem(INBOX_CACHE_KEY, JSON.stringify(threads));
+  } catch {
+    /* quota exceeded -- swallow; cache is opportunistic */
+  }
+}
+
 export function useInbox(myUuid: string): UseInboxResult {
-  const [threads, setThreads] = useState<ChatThread[]>([]);
-  // Start in loading only when we actually have a uuid to query with.
-  // Without it the chat client can't bind, so sitting in "loading" forever
-  // is a bug — surface as empty so the right CTA renders.
-  const [state, setState] = useState<InboxState>(myUuid ? "loading" : "empty");
+  const [threads, setThreads] = useState<ChatThread[]>(
+    () => readCachedThreads() ?? [],
+  );
+  // Start in "happy" when we have cached threads to paint -- avoids the
+  // skeleton flash on every navigation back to /inbox within a session.
+  // The live query still fires in the background and replaces threads
+  // atomically when it lands. Cold-cache callers fall back to the
+  // original behavior: loading if we have a uuid, empty otherwise.
+  const [state, setState] = useState<InboxState>(() => {
+    const cached = readCachedThreads();
+    if (cached && cached.length > 0) return "happy";
+    return myUuid ? "loading" : "empty";
+  });
   const pendingQueryIdRef = useRef<string | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -193,6 +232,14 @@ export function useInbox(myUuid: string): UseInboxResult {
       }
     };
   }, [myUuid, refresh]);
+
+  // Mirror the threads list into sessionStorage on every change so a
+  // subsequent /inbox mount within the same session paints instantly
+  // from cache before the live XMPP query finishes. Cheap O(N) per
+  // change; N is bounded by the user's actual thread count.
+  useEffect(() => {
+    writeCachedThreads(threads);
+  }, [threads]);
 
   // Derive empty state from threads + state — when we successfully fetched
   // and got zero rows, surface empty (handled in the inbox-result timeout
