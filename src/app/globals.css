@@ -866,12 +866,3 @@
     color-mix(in oklch, var(--color-lavender) 20%, var(--app)) 100%
   );
 }
-
-/* Discover card photo-progress fill — drives the Instagram-style
-   countdown bar on the active photo position dot. Restarts on each
-   advance via a React `key` change; pauses when cyclePhotos is off
-   via inline animation-play-state. */
-@keyframes ahavah-photo-progress {
-  from { width: 0%; }
-  to { width: 100%; }
-}
