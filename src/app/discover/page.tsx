@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiClient } from "@/lib/api-client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -68,12 +68,22 @@ export default function DiscoverPage() {
   // Photo carousel state -- index into the current candidate's `photos`
   // array. Reset to 0 whenever the candidate changes (effect below).
   const [photoIndex, setPhotoIndex] = useState(0);
-  const [cyclePhotos, setCyclePhotos] = useState(false);
-  // Story-style progression fill for the active bar atop the card. While
-  // auto-cycling, the active bar sweeps 0→100% over PHOTO_CYCLE_MS via the
-  // Progress indicator's CSS transition; when paused it sits full to mark
-  // the current photo. Driven below by a layout effect keyed on photoIndex.
-  const [photoFill, setPhotoFill] = useState(100);
+  // Autoplay default — Instagram model. Card mounts already cycling so
+  // the user sees the active bar fill from 0% on photo 0 without
+  // tapping play.
+  const [cyclePhotos, setCyclePhotos] = useState(true);
+  // Story-style progression fill for the active bar atop the card.
+  // Driven directly by a requestAnimationFrame loop (see effect below)
+  // so the bar advances every frame from 0 → 100 over PHOTO_CYCLE_MS.
+  // No CSS transition involved (Progress indicator transition is forced
+  // off via duration-0 in render) — the previous design relied on a
+  // CSS transition from value=0 → value=100 over 3500ms, but the
+  // useLayoutEffect that did setPhotoFill(0)+rAF(setPhotoFill(100))
+  // raced the same 3500ms transition starting from value=100 (paused
+  // state), which never visibly left 100% because the snap-to-0 took
+  // 3500ms itself. Now: rAF ticks every ~16ms, setPhotoFill runs ~60
+  // times/sec, the bar advances smoothly per state, no transition.
+  const [photoFill, setPhotoFill] = useState(0);
   const [resettingDecisions, setResettingDecisions] = useState(false);
   // FiltersSheet is hoisted to /discover so the empty-state CTA can open
   // it. The header trigger uses the same sheet via a render prop.
@@ -357,6 +367,14 @@ export default function DiscoverPage() {
   useEffect(() => {
     photoCountRef.current = photoCount;
   }, [photoCount]);
+  // Single rAF loop drives BOTH the active-bar sweep and the photo
+  // advance. Each tick computes elapsed since the photo started,
+  // updates photoFill (0-100), and at PHOTO_CYCLE_MS advances
+  // photoIndex (effect re-runs with fresh startedAt for the new
+  // photo). Replaces a setInterval (advance) + useLayoutEffect
+  // (sweep via CSS transition) pair where the snap-to-0 itself was
+  // delayed by the 3500ms Progress transition, leaving the first
+  // bar visually pinned at 100% — the bug the user reported.
   useEffect(() => {
     if (!cyclePhotos) return;
     if (!candidate) {
@@ -364,26 +382,24 @@ export default function DiscoverPage() {
       setCyclePhotos(false);
       return;
     }
-    const id = setInterval(() => {
-      setPhotoIndex((i) => (i + 1) % photoCountRef.current);
-    }, PHOTO_CYCLE_MS);
-    return () => clearInterval(id);
-  }, [cyclePhotos, candidate]);
-
-  // Drive the active progress bar's sweep. useLayoutEffect snaps the fill
-  // to 0 BEFORE paint when the photo changes (no full-width flash), then a
-  // rAF flips it to 100 so the indicator's CSS transition animates the
-  // sweep. When not cycling the bar sits full to mark the current photo.
-  useLayoutEffect(() => {
-    if (!cyclePhotos) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setPhotoFill(100);
-      return;
-    }
-    setPhotoFill(0);
-    const id = requestAnimationFrame(() => setPhotoFill(100));
-    return () => cancelAnimationFrame(id);
-  }, [photoIndex, cyclePhotos]);
+    let raf = 0;
+    let startedAt = 0;
+    const tick = (now: DOMHighResTimeStamp) => {
+      if (!startedAt) startedAt = now;
+      const elapsed = now - startedAt;
+      if (elapsed >= PHOTO_CYCLE_MS) {
+        setPhotoFill(0);
+        setPhotoIndex((i) => (i + 1) % photoCountRef.current);
+        // Don't loop further — effect cleanup will cancel; effect
+        // re-runs because photoIndex changed.
+        return;
+      }
+      setPhotoFill((elapsed / PHOTO_CYCLE_MS) * 100);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [photoIndex, cyclePhotos, candidate]);
 
   // Loading / redirect guard.
   if (!loaded || (loaded && !readOnboarded() && !isDiscoverEligible(userProfile))) {
@@ -503,12 +519,11 @@ export default function DiscoverPage() {
                   value={value}
                   className={cn(
                     "flex-1",
-                    // The active bar sweeps over the cycle interval (3500ms,
-                    // matches PHOTO_CYCLE_MS) when playing; everything else
-                    // snaps quickly so past bars fill without a slow drag.
-                    isActive && cyclePhotos
-                      ? "[&_[data-slot=progress-indicator]]:duration-[3500ms] [&_[data-slot=progress-indicator]]:ease-linear"
-                      : "[&_[data-slot=progress-indicator]]:duration-300",
+                    // No CSS transition — the value prop is driven 60x/sec
+                    // by the rAF loop above, so the bar advances smoothly
+                    // per state. A transition here would lag behind the
+                    // state updates and visibly stutter.
+                    "[&_[data-slot=progress-indicator]]:duration-0",
                   )}
                 />
               );
