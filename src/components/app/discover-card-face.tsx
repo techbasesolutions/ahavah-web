@@ -51,30 +51,57 @@ export function DiscoverCardFace({
   const photoCount = candidate.photos?.length ?? 0;
   const hasMultiplePhotos = photoCount > 1;
   const [photoIndex, setPhotoIndex] = useState(0);
-  // Slideshow toggle — multi-photo candidates auto-play by default so
-  // the progress bar fills from the moment the card mounts (the user
-  // reported "the progress bar doesn't show on the first image, only
-  // the second" — root cause was the bar being paused at a static nub
-  // on photo 0 until the user tapped play). User can tap pause.
+  // Slideshow autoplay default — Instagram-style: the card starts
+  // playing the moment it mounts so the user sees the active progress
+  // bar fill from 0% on photo 0 without having to tap play first.
   const [cyclePhotos, setCyclePhotos] = useState(true);
+  // 0-100 progress driving the inline width of the active dot's fill.
+  // Updated each animation frame by the rAF loop below. NOT a CSS
+  // animation: the previous @keyframes implementation suffered from
+  // first-paint timing edge cases where the element painted at
+  // computed-auto width (= 100%) before the keyframes engine took
+  // over, so the user saw the bar as already-full on photo 0.
+  // Direct React-state-driven width is bulletproof: width=0 on mount,
+  // climbs every frame, advances photoIndex at 100.
+  const [progress, setProgress] = useState(0);
 
-  // Reset cycling state when the candidate changes (deck advance) so a
-  // single-photo follow-up doesn't carry over a paused state and a fresh
-  // multi-photo follow-up starts from photo 0 + playing.
+  // Reset state on candidate change (deck advance) so a fresh card
+  // always starts on photo 0, autoplay, 0% progress.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPhotoIndex(0);
     setCyclePhotos(true);
+    setProgress(0);
   }, [candidate.id]);
 
+  // Single effect drives BOTH the active dot's progress and the photo
+  // advance. requestAnimationFrame ticks every ~16ms; once elapsed
+  // crosses PHOTO_CYCLE_MS the photoIndex advances (effect re-runs with
+  // a fresh startedAt and the next photo's dot starts filling).
+  // When paused (cyclePhotos=false), the effect is a no-op — progress
+  // freezes at whatever value it last had, so the user sees the bar
+  // visibly stopped where the slideshow was at the moment they tapped
+  // pause (matches Instagram behaviour).
   useEffect(() => {
     if (!cyclePhotos || !hasMultiplePhotos) return;
-    const id = setInterval(
-      () => setPhotoIndex((i) => (i + 1) % photoCount),
-      PHOTO_CYCLE_MS,
-    );
-    return () => clearInterval(id);
-  }, [cyclePhotos, hasMultiplePhotos, photoCount]);
+    let raf = 0;
+    let startedAt = 0;
+    const tick = (now: DOMHighResTimeStamp) => {
+      if (!startedAt) startedAt = now;
+      const elapsed = now - startedAt;
+      if (elapsed >= PHOTO_CYCLE_MS) {
+        // Advance — effect re-runs with the new photoIndex and a
+        // fresh startedAt; don't loop further here.
+        setProgress(0);
+        setPhotoIndex((i) => (i + 1) % photoCount);
+        return;
+      }
+      setProgress((elapsed / PHOTO_CYCLE_MS) * 100);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [photoIndex, cyclePhotos, hasMultiplePhotos, photoCount]);
 
   const photoSource = photoOrGradient(candidate, photoIndex);
 
@@ -102,16 +129,11 @@ export function DiscoverCardFace({
 
       {hasMultiplePhotos ? (
         <>
-          {/* Photo position dots — top of the card, mirrors the
-              Instagram/Tinder multi-photo affordance.
-              Each segment is a track (white/35); within the track:
-                - past photos: filled solid white
-                - current photo: fill animates 0→100% over the 3.5s
-                  cycle interval, restarting on each advance via the
-                  `key={photoIndex}` remount. The fill pauses when
-                  cyclePhotos is off so a paused user sees the bar
-                  frozen at its current position instead of jumping.
-                - future photos: track only, no fill. */}
+          {/* Photo position dots — Instagram-style: thin track per
+              photo; past=full, current=growing fill, future=empty.
+              Width is driven by React state (progress), not CSS
+              animation, so the first paint is guaranteed to start at
+              0% and grow visibly. */}
           <div className="pointer-events-none absolute top-3 right-3 left-3 z-20 flex gap-1">
             {Array.from({ length: photoCount }).map((_, i) => (
               <span
@@ -122,17 +144,8 @@ export function DiscoverCardFace({
                   <span className="block h-full w-full bg-white" />
                 ) : i === photoIndex ? (
                   <span
-                    key={`fill-${photoIndex}-${cyclePhotos}`}
                     className="block h-full bg-white"
-                    style={{
-                      animation: cyclePhotos
-                        ? "ahavah-photo-progress 3500ms linear forwards"
-                        : "none",
-                      // Paused state: snap the active dot to a small
-                      // visible nub so the user can still see WHICH dot
-                      // is active rather than an invisible 0% bar.
-                      width: cyclePhotos ? undefined : "18%",
-                    }}
+                    style={{ width: `${progress}%` }}
                   />
                 ) : null}
               </span>
