@@ -39,7 +39,13 @@ const checkboxVariants = cva(
         // (was invisibly tied to --card alone, which is white in
         // light mode anyway -- belt-and-braces).
         elevated:
-          "border-2 border-zinc-700/60 dark:border-white/50 bg-white dark:bg-(--card) hover:border-zinc-700/80 dark:hover:border-white/70",
+          // `border-solid` is REQUIRED with `border-2` in Tailwind v4:
+          // the .border-2 rule sets `border-style: var(--tw-border-style)`
+          // which falls back to `none` if --tw-border-style isn't
+          // initialized for the element. Without border-solid the box
+          // has width 2px but invisible border-style:none -> renders
+          // as nothing. Diagnosed by curl'ing the deployed CSS bundle.
+          "border-2 border-solid border-zinc-700/60 dark:border-white/50 bg-white dark:bg-(--card) hover:border-zinc-700/80 dark:hover:border-white/70",
       },
     },
     defaultVariants: {
