@@ -198,14 +198,21 @@ type FiltersSheetProps = {
   /** Controlled state setter. Required when `open` is set. */
   onOpenChange?: (next: boolean) => void;
   /**
-   * Viewer's sex. Drives which Intent options render — a viewer should
-   * see only the intents that match their own search (first-wife /
-   * additional-wife for men, unmarried-man / married-man for women).
-   * Optional for legacy callers; falls back to showing the universal
-   * modifiers (courtship / marriage-only / etc.) only.
+   * Viewer's sex. Filter Intent options must match what the CANDIDATES
+   * (opposite sex) have stored as their intent — a man filters women
+   * by what women chose, so he sees FEMALE_INTENT_LABELS; a woman
+   * filters men by what men chose, so she sees MALE_INTENT_LABELS.
+   * Showing the viewer's own-sex labels was wrong: those are role-
+   * specific values nobody on the opposite side can ever have (a
+   * woman's stored intent is never "first-wife"; a man's is never
+   * "married-man"), so the filter would never match anyone.
+   * Optional for legacy callers; falls back to universal modifiers
+   * only (courtship / marriage-only / local-only).
    */
   viewerSex?: Sex;
 };
+
+const OPPOSITE_SEX: Record<Sex, Sex> = { male: "female", female: "male" };
 
 export function FiltersSheet({
   trigger,
@@ -216,11 +223,10 @@ export function FiltersSheet({
   viewerSex,
 }: FiltersSheetProps) {
   const intentFilterOptions = viewerSex
-    ? intentOptionsForSex(viewerSex)
+    ? intentOptionsForSex(OPPOSITE_SEX[viewerSex])
     : // No viewer sex yet — render only the universally-shared modifiers
-      // (courtship / marriage-only / local-only) so we never leak the
-      // wrong sex's labels. These four appear in both MALE and FEMALE
-      // option lists in profile-schema.ts.
+      // so we never leak the wrong sex's labels. These three appear in
+      // both MALE and FEMALE option lists in profile-schema.ts.
       ([
         { value: "courtship",     label: "Courtship" },
         { value: "marriage-only", label: "Marriage only" },
