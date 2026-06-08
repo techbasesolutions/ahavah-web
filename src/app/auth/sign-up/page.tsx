@@ -111,22 +111,22 @@ function SignUpForm({
         {submitting ? (
           <>
             <Loader2 className="animate-spin" />
-            Sending code…
+            Continuing…
           </>
         ) : (
-          "Send me a code"
+          "Create my account"
         )}
       </Button>
 
       {/* Without this hint the disabled CTA looks unresponsive — caught
-          when a new user reported "I clicked but never got a code" and
+          when a new user reported "I clicked but nothing happened" and
           had simply skipped the Terms checkbox. */}
       {email.includes("@") && !accepted && !submitting && (
         <p
           aria-live="polite"
           className="text-center text-caption text-(--ink-2)"
         >
-          Tick the box above to enable &ldquo;Send me a code&rdquo;.
+          Tick the box above to enable &ldquo;Create my account&rdquo;.
         </p>
       )}
 
