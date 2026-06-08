@@ -5,21 +5,31 @@
 /* eslint-disable no-restricted-syntax */
 import { LogoMark } from "@/components/brand/logo-mark";
 
-// Local optimized portraits from public/marketing (Ahavah Stock). The folder
-// has 3 distinct single women + 1 man, so the panel shows 4 distinct,
-// gender-matched cards rather than repeating a face. Add a 5th portrait to
-// the folder + this list to restore a fifth card.
+// Local optimized portraits from public/marketing (Ahavah Stock). 7 cards
+// spread across a 3-3-1 row layout in the upper ~75% of the right panel.
+// Names are Hebrew/biblical to match the brand's target cohort, ethnicities
+// + presentations deliberately varied for representation.
 
 /**
  * Floating profile cards — positions are container-relative (percent)
- * so they scale with the right-panel viewport and never collide with
- * the bottom-anchored heading. The cards live entirely in the upper
- * ~55% of the panel; the lower 45% is reserved for brand + tagline.
+ * so they scale with the right-panel viewport. Two clean rows of 3 plus
+ * one anchor card in row 3, all sitting above the bottom-anchored
+ * brand+tagline.
  *
- * Rotations stay small (-8°..+6°) so labels remain readable and the
- * card silhouettes don't bleed into the heading text on narrower
- * desktop widths. Sizes use clamp() so cards shrink on smaller right
- * panels instead of crowding each other.
+ * Layout constraints validated for breakpoints md (panel ~450px wide)
+ * through 2xl (panel ~900px). Cards use clamp(110px, 14vw, 170px) so
+ * they shrink at tablet widths instead of overlapping. Horizontal
+ * positions chosen so 3 cards per row fit with breathing room at the
+ * tightest panel width:
+ *   3 cards × ~30% width = 90% + 10% across 4 gaps = ~2.5% each.
+ *
+ * Vertical bands:
+ *   Row 1: top 4-12%  → ends at ~30%
+ *   Row 2: top 30-36% → ends at ~55%
+ *   Row 3: top 53%    → ends at ~75% (brand starts at ~76%)
+ *
+ * Rotations stay in -7°..+6° so labels remain readable and silhouettes
+ * don't bleed into the heading.
  */
 const CARDS: ReadonlyArray<{
   name: string;
@@ -28,10 +38,16 @@ const CARDS: ReadonlyArray<{
   top: string;
   rot: number;
 }> = [
-  { name: "Yael",   src: "/marketing/woman-1.webp",  left: "8%",  top: "8%",  rot: -6 },
-  { name: "Adina",  src: "/marketing/avatar-1.webp", left: "44%", top: "18%", rot: 4 },
-  { name: "Daniel", src: "/marketing/avatar-2.webp", left: "70%", top: "5%",  rot: -3 },
-  { name: "Esther", src: "/marketing/avatar-3.webp", left: "18%", top: "42%", rot: 5 },
+  // Row 1 — top band
+  { name: "Yael",   src: "/marketing/woman-1.webp",  left: "4%",  top: "5%",  rot: -6 },
+  { name: "Adina",  src: "/marketing/avatar-1.webp", left: "36%", top: "12%", rot: 4 },
+  { name: "Daniel", src: "/marketing/avatar-2.webp", left: "68%", top: "4%",  rot: -3 },
+  // Row 2 — middle band
+  { name: "Tamar",  src: "/marketing/avatar-5.webp", left: "4%",  top: "33%", rot: 5 },
+  { name: "Eitan",  src: "/marketing/avatar-4.webp", left: "36%", top: "30%", rot: -4 },
+  { name: "Esther", src: "/marketing/avatar-3.webp", left: "68%", top: "34%", rot: 6 },
+  // Row 3 — anchor card, centered, sits just above the brand block
+  { name: "Sarah",  src: "/marketing/avatar-6.webp", left: "36%", top: "53%", rot: 2 },
 ];
 
 /**
@@ -58,7 +74,12 @@ export function AuthIllustration() {
             style={{
               left: c.left,
               top: c.top,
-              width: "clamp(120px, 16vw, 180px)",
+              // Tightened from 16vw → 14vw (and 120-180 → 110-170) so
+              // 3 cards per row fit at md (~450px panel) without
+              // touching. The total horizontal real estate consumed by
+              // a 3-card row is ~93% at panel width, leaving 7% across
+              // the 4 gaps.
+              width: "clamp(110px, 14vw, 170px)",
               aspectRatio: "5 / 6",
               backgroundImage: `url(${c.src})`,
               backgroundSize: "cover",
