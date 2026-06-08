@@ -51,16 +51,20 @@ export function DiscoverCardFace({
   const photoCount = candidate.photos?.length ?? 0;
   const hasMultiplePhotos = photoCount > 1;
   const [photoIndex, setPhotoIndex] = useState(0);
-  // Subtle slideshow toggle — only meaningful for multi-photo candidates.
-  // Default OFF; user opts in via the small overlay button.
-  const [cyclePhotos, setCyclePhotos] = useState(false);
+  // Slideshow toggle — multi-photo candidates auto-play by default so
+  // the progress bar fills from the moment the card mounts (the user
+  // reported "the progress bar doesn't show on the first image, only
+  // the second" — root cause was the bar being paused at a static nub
+  // on photo 0 until the user tapped play). User can tap pause.
+  const [cyclePhotos, setCyclePhotos] = useState(true);
 
   // Reset cycling state when the candidate changes (deck advance) so a
-  // single-photo follow-up doesn't show a stale Pause icon.
+  // single-photo follow-up doesn't carry over a paused state and a fresh
+  // multi-photo follow-up starts from photo 0 + playing.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPhotoIndex(0);
-    setCyclePhotos(false);
+    setCyclePhotos(true);
   }, [candidate.id]);
 
   useEffect(() => {
