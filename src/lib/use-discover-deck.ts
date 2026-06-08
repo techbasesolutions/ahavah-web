@@ -217,7 +217,19 @@ export function useDiscoverDeck(
         }));
         return {
           ...(r as Partial<DiscoverCandidate>),
-          id: (r.prospect_uuid as string | undefined) ?? (r.id as string | undefined) ?? String(r.prospect_person_id ?? ""),
+          // `id` MUST be the prospect's UUID (string), not their integer
+          // person.id. /decisions and /tokens/super-like both pass this
+          // value as `profile_uuid` to the backend, where Q_RECORD_LIKE
+          // does `uuid_or_null(%(prospect_uuid)s)` — passing an integer
+          // resolves to NULL and the INSERT silently inserts nothing.
+          // Symptom: likes never persist; the candidate keeps reappearing
+          // on every deck refresh (search excludes via `liked.liker_id =
+          // me AND liked_id = p.id`, which can never match an empty row).
+          // Field names differ between Q_UNCACHED_SEARCH (returns `uuid`
+          // and integer `id`) and Q_CACHED_SEARCH (returns `prospect_uuid`
+          // and `prospect_person_id`); fall back through the UUID-bearing
+          // names only, never the integer ones.
+          id: (r.prospect_uuid as string | undefined) ?? (r.uuid as string | undefined) ?? "",
           firstName: (r.name as string | undefined) ?? (r.firstName as string | undefined),
           age: r.age as number | undefined,
           city: city || undefined,

@@ -549,14 +549,31 @@ export default function ProfileDetailPage({ params }: Props) {
         >
           <ChevronLeft className="text-(--ink)" />
         </Link>
-        <Button
-          size="circle-lg"
-          tone="overlay"
-          aria-label="More options"
-          onClick={() => setReportOpen(true)}
-        >
-          <MoreHorizontal className="text-(--ink)" />
-        </Button>
+        <div className="flex items-center gap-2">
+          {photoSources.length > 1 ? (
+            <Button
+              size="circle-lg"
+              tone="overlay"
+              aria-label={cyclePhotos ? "Pause photo slideshow" : "Play photo slideshow"}
+              aria-pressed={cyclePhotos}
+              onClick={() => setCyclePhotos((on) => !on)}
+            >
+              {cyclePhotos ? (
+                <Pause className="text-(--ink)" fill="currentColor" />
+              ) : (
+                <Play className="text-(--ink)" fill="currentColor" />
+              )}
+            </Button>
+          ) : null}
+          <Button
+            size="circle-lg"
+            tone="overlay"
+            aria-label="More options"
+            onClick={() => setReportOpen(true)}
+          >
+            <MoreHorizontal className="text-(--ink)" />
+          </Button>
+        </div>
       </div>
 
       <ProgressDots
@@ -965,20 +982,6 @@ export default function ProfileDetailPage({ params }: Props) {
             }}
           >
             <X className="text-black" />
-          </Button>
-          <Button
-            size="circle-xl"
-            tone="cta"
-            lift="float"
-            aria-label={cyclePhotos ? "Pause photo slideshow" : "Play photo slideshow"}
-            aria-pressed={cyclePhotos}
-            onClick={() => setCyclePhotos((on) => !on)}
-          >
-            {cyclePhotos ? (
-              <Pause className="text-black" fill="currentColor" />
-            ) : (
-              <Play className="text-black" fill="currentColor" />
-            )}
           </Button>
           <Button
             size="circle-lg"
@@ -1442,10 +1445,7 @@ export default function ProfileDetailPage({ params }: Props) {
                 <AlertTriangle className="size-3.5" />
                 Report or block
               </button>
-              <div className="text-sm text-(--ink-3)">
-                Profile · UUID {uuid.slice(0, 8)}
               </div>
-            </div>
           </div>
         </motion.div>
       </div>
