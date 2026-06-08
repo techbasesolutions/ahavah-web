@@ -55,7 +55,7 @@
  * defaults to home again. See the useEffect for full reasoning.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -204,16 +204,33 @@ export default function MapPage() {
   // engine treats `undefined` as "no filter," whereas `[]` is ambiguous
   // (could read as "zero countries match"). Use undefined for the
   // unambiguous "no filter" signal.
+  // Debounce bounds-change so a quick double-pan doesn't fire two
+  // /search requests back-to-back. Leaflet's moveend already fires
+  // per pan-and-stop, but useDiscoverDeck's inFlight guard silently
+  // drops any filter change while a previous request is still
+  // in flight — so the new viewport's markers never get fetched.
+  // User-visible symptom: "scroll then load after". 250ms covers
+  // the common rapid-pan case while staying imperceptible for a
+  // user who pans once and waits.
+  const boundsDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleBoundsChange = useCallback(
     (bbox: { north: number; south: number; east: number; west: number }) => {
-      const countriesVisible = countriesInBounds(bbox);
-      setFilters((prev) => ({
-        ...prev,
-        country: countriesVisible.length > 0 ? countriesVisible : undefined,
-      }));
+      if (boundsDebounceRef.current) clearTimeout(boundsDebounceRef.current);
+      boundsDebounceRef.current = setTimeout(() => {
+        const countriesVisible = countriesInBounds(bbox);
+        setFilters((prev) => ({
+          ...prev,
+          country: countriesVisible.length > 0 ? countriesVisible : undefined,
+        }));
+      }, 250);
     },
     [setFilters],
   );
+  useEffect(() => {
+    return () => {
+      if (boundsDebounceRef.current) clearTimeout(boundsDebounceRef.current);
+    };
+  }, []);
 
   // Marker pool — real candidates from GET /search via useDiscoverDeck.
   // Same filter shape /discover uses (age + countries + languages), so
