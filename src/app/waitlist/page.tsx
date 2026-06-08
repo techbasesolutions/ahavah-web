@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
 import { ArrowLeft } from "lucide-react";
 
@@ -20,6 +20,7 @@ import { BetaTesterCard } from "@/components/app/beta-tester-card";
 import { AntibotFields, type AntibotHandle } from "@/components/app/antibot-fields";
 import { LogoMark } from "@/components/brand/logo-mark";
 import { PENDING_EMAIL_KEY } from "@/lib/storage-keys";
+import { checkAccountExists } from "@/lib/auth-otp";
 import {
   ASSEMBLIES,
   intentOptionsForSex,
@@ -74,6 +75,7 @@ export default function WaitlistPage() {
 
 function WaitlistFlow() {
   const params = useSearchParams();
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [a, setA] = useState<WaitlistAnswers>({});
   const [step, setStep] = useState(1);
@@ -280,13 +282,33 @@ function WaitlistFlow() {
     if (!current.valid) return;
 
     // Email step: short-circuit a returning registrant before they re-walk the
-    // wizard. Read-only check; fail open so a check error never blocks signup.
+    // wizard. Read-only checks; fail open so a check error never blocks signup.
     if (step === 1) {
       setChecking(true);
+      let hasAccount = false;
+      let completed = false;
+      try {
+        // EXISTING PERSON first. A user who already finished onboarding
+        // and has a person row should never see the waitlist demographic
+        // questions again -- they're a member, not a prospect. Send them
+        // straight to sign-in. Reported: harrigan filled the waitlist
+        // form via ahavah.app's PRELAUNCH redirect even though his
+        // person record + admin role had been live for days.
+        hasAccount = await checkAccountExists(email.trim());
+      } catch {
+        /* account-check unavailable — fall through to waitlist check */
+      }
+      if (hasAccount) {
+        try {
+          sessionStorage.setItem(PENDING_EMAIL_KEY, email.trim());
+        } catch { /* */ }
+        setChecking(false);
+        router.push("/auth/sign-in?existing=1");
+        return;
+      }
       // Short-circuit ONLY a *completed* signup. An email-only early-capture row
       // (created by the landing hero before redirecting here) has no answers, so
       // it must still walk the demographic steps rather than hit "already in".
-      let completed = false;
       try {
         const res = await checkWaitlist(email.trim());
         completed = res.exists && res.complete === true;

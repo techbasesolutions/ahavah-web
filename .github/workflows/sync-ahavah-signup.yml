@@ -1,0 +1,59 @@
+name: Mirror master to ahavah-signup
+
+# Every push to master automatically deploys the same source to the
+# dedicated `ahavah-signup` Vercel project, which serves the
+# signup.ahavah.app bypass host. The ahavah-web Vercel project
+# auto-deploys from its own GitHub integration; this workflow mirrors
+# the same source into the second project so signup.ahavah.app and
+# ahavah.app are never out of sync.
+#
+# Why a second project at all: the bypass host requires
+# NEXT_PUBLIC_PRELAUNCH=false on its Production env, while ahavah-web's
+# Production env is pinned to NEXT_PUBLIC_PRELAUNCH=true for the public
+# launch gate. Vercel can't fork envs by domain inside a single project,
+# so each prelaunch flavour is a separate project.
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: vercel --prod
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      VERCEL_ORG_ID: team_0K5YNhstBMw45Ef5f7PGB0jL
+      VERCEL_PROJECT_ID: prj_xo31xEKtZ6JStd3UIEFFZ1L3rvcl
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel project metadata
+        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      - name: Build
+        run: vercel build --prod --token="$VERCEL_TOKEN"
+
+      - name: Deploy prebuilt artifact + re-alias signup.ahavah.app
+        run: |
+          DEPLOY_URL=$(vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN")
+          echo "Deployed to $DEPLOY_URL"
+          # Vercel auto-aliases ahavah-signup.vercel.app on every prod
+          # deploy of this project, but signup.ahavah.app needs explicit
+          # re-aliasing to the fresh deploy. (Without this the alias
+          # stays on whatever previous deploy held it.)
+          DEPLOY_HOST="${DEPLOY_URL#https://}"
+          curl -sf -X POST \
+            "https://api.vercel.com/v2/deployments/${DEPLOY_HOST}/aliases?teamId=${VERCEL_ORG_ID}" \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"alias":"signup.ahavah.app"}'
