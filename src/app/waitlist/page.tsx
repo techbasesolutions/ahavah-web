@@ -21,6 +21,7 @@ import { AntibotFields, type AntibotHandle } from "@/components/app/antibot-fiel
 import { LogoMark } from "@/components/brand/logo-mark";
 import { PENDING_EMAIL_KEY } from "@/lib/storage-keys";
 import { checkAccountExists } from "@/lib/auth-otp";
+import { getSessionToken } from "@/lib/api-client";
 import {
   ASSEMBLIES,
   intentOptionsForSex,
@@ -99,6 +100,14 @@ function WaitlistFlow() {
     if (m && /^[0-9A-HJKM-NP-TV-Z]{7}$/.test(m[1])) {
       try { window.localStorage.setItem("ahavah.ref", m[1]); } catch {}
     }
+    // Existing-user cookie backfill: if a session token exists in
+    // localStorage but the ahavah.authed cookie is missing on this
+    // host (typically because the user signed in on signup.ahavah.app
+    // before the cookie was added to setSessionToken), getSessionToken()
+    // plants it on Domain=.ahavah.app. Without this, returning users
+    // hit /auth/sign-in -> proxy redirect -> /waitlist -> click sign-in
+    // -> loop, because the gate cookie never gets set on a public page.
+    getSessionToken();
   }, []);
 
   useEffect(() => {

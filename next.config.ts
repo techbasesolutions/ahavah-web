@@ -57,7 +57,7 @@ const nextConfig: NextConfig = {
         // as a blank grey rectangle.
         "img-src 'self' data: blob: https://user-images.ahavah.app https://email-assets.ahavah.app https://*.digitaloceanspaces.com https://*.tile.openstreetmap.org",
           "font-src 'self' data:",
-          "connect-src 'self' https://api.ahavah.app wss://chat.ahavah.app:5443 wss://chat.ahavah.app:5442",
+          "connect-src 'self' https://api.ahavah.app wss://chat.ahavah.app wss://chat.ahavah.app:5443 wss://chat.ahavah.app:5442",
           "frame-ancestors 'none'",
           "form-action 'self'",
           "base-uri 'self'",
