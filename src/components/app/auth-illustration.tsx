@@ -5,34 +5,37 @@
 /* eslint-disable no-restricted-syntax */
 import { LogoMark } from "@/components/brand/logo-mark";
 
-// Local optimized portraits from public/marketing (Ahavah Stock). 7 cards
-// spread across 3 vertical bands. Names are Hebrew/biblical to match the
-// brand's target cohort; ethnicities/presentations deliberately varied.
+// Local optimized portraits from public/marketing (Ahavah Stock). 6 cards
+// scattered for an organic "snapshots tossed on a wall" composition.
+// Adina removed per feedback (previous 3-3-1 grid layout felt too
+// regimented); remaining 6 now sit on staggered diagonals instead of
+// clean rows. Names are Hebrew/biblical to match the brand's target
+// cohort; ethnicities/presentations deliberately varied.
 
 /**
- * Floating profile cards. No overlap at any viewport from md (panel
- * ~450px wide) through 2xl (~900px). Math redone from the v1 layout
- * which overlapped Adina + Eitan because the previous "row 2 top=30%"
- * pulled a card UP into row 1's tall card silhouette.
+ * Scattered profile cards. Positions chosen so every pair satisfies
+ *   (|ΔL| × panel_width ≥ card_width) OR
+ *   (|ΔT| × panel_height ≥ card_height)
+ * at the tightest worst-case viewport (2xl: 933×900 panel, 130×156
+ * card = 14% wide, 17.3% tall). All 15 pairs checked to have either
+ * ≥14% horizontal separation or ≥18% vertical separation -- no
+ * overlap at any viewport from md (450px) through 2xl (933px).
  *
- * Card geometry: clamp(85px, 11vw, 130px) wide, 6:5 aspect → 102-156px
- * tall. Width as % of the right panel is ~14-19% across our breakpoints.
- * Card height as % of panel height varies because cards are sized off
- * width (not height), so the % depends on panel aspect ratio — this is
- * the trap that caused v1 overlap.
+ * Visual intent (frontend-design notes):
+ *  - Break the perceived grid: positions deliberately NOT on 5%/37%/
+ *    69% horizontals or 4%/32%/56% verticals.
+ *  - Two cards in the top stripe (Yael, Daniel), one card straddling
+ *    rows 1-2 (Tamar), two in the mid stripe (Eitan low-left, Esther
+ *    high-right), and one anchor (Sarah) low-center.
+ *  - Rotations expanded from ±6° to ±11° for a more "tossed on a
+ *    wall" feel without sacrificing label readability.
+ *  - Sign of rotation alternates around the composition's diagonals
+ *    so adjacent cards lean toward each other rather than parallel
+ *    (parallel rotations read as a grid).
  *
- * Verified band gaps:
- *   Band 1: top 4%, ends 20-23% across breakpoints
- *   Band 2: top 32%, ends 48-51% (≥9% gap from band 1)
- *   Band 3: top 56%, ends 72-75% (≥5% gap from band 2; brand at ~76%)
- *
- * Within each band, 3 cards land at left 5%, 37%, 69% — at 19% card
- * width that leaves an 18% horizontal gap between cards. Band 3 has a
- * single anchor card centered at left 37%, between the two outer
- * cards of band 2.
- *
- * Rotations stay in -6°..+6° so labels remain readable and silhouettes
- * don't bleed into the heading.
+ * Sarah's bottom edge lands ~68-71% panel height; brand block starts
+ * ~76% via flex justify-end + p-10/lg:p-16 padding. ≥5% breathing
+ * room above the heading at every breakpoint.
  */
 const CARDS: ReadonlyArray<{
   name: string;
@@ -41,16 +44,12 @@ const CARDS: ReadonlyArray<{
   top: string;
   rot: number;
 }> = [
-  // Band 1 — top row, all at top: 4%
-  { name: "Yael",   src: "/marketing/woman-1.webp",  left: "5%",  top: "4%",  rot: -6 },
-  { name: "Adina",  src: "/marketing/avatar-1.webp", left: "37%", top: "4%",  rot: 4 },
-  { name: "Daniel", src: "/marketing/avatar-2.webp", left: "69%", top: "4%",  rot: -3 },
-  // Band 2 — middle row, all at top: 32%
-  { name: "Tamar",  src: "/marketing/avatar-5.webp", left: "5%",  top: "32%", rot: 5 },
-  { name: "Eitan",  src: "/marketing/avatar-4.webp", left: "37%", top: "32%", rot: -4 },
-  { name: "Esther", src: "/marketing/avatar-3.webp", left: "69%", top: "32%", rot: 6 },
-  // Band 3 — single anchor card centered above the brand block
-  { name: "Sarah",  src: "/marketing/avatar-6.webp", left: "37%", top: "56%", rot: 2 },
+  { name: "Yael",   src: "/marketing/woman-1.webp",  left: "3%",  top: "4%",  rot: -10 },
+  { name: "Daniel", src: "/marketing/avatar-2.webp", left: "70%", top: "2%",  rot: 9 },
+  { name: "Tamar",  src: "/marketing/avatar-5.webp", left: "34%", top: "18%", rot: -7 },
+  { name: "Eitan",  src: "/marketing/avatar-4.webp", left: "8%",  top: "33%", rot: 11 },
+  { name: "Esther", src: "/marketing/avatar-3.webp", left: "58%", top: "38%", rot: -8 },
+  { name: "Sarah",  src: "/marketing/avatar-6.webp", left: "30%", top: "50%", rot: 6 },
 ];
 
 /**
