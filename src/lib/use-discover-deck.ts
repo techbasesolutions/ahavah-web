@@ -157,6 +157,14 @@ export function useDiscoverDeck(
     if (!hasMoreRef.current) return;
     inFlight.current = true;
     setIsLoading(true);
+    // Capture "is this the first page after a filter change" BEFORE the
+    // network call. The filter-change effect resets cursorRef to null,
+    // so the very next loadMore() starts with cursorRef.current === null
+    // and needs to REPLACE items wholesale; subsequent pagination calls
+    // start with a real cursor and need to APPEND. Without this split
+    // pagination doubled up the deck (was solved with setItems([]) in
+    // the effect, but that caused the map to blank out every pan).
+    const isFirstPage = cursorRef.current === null;
     try {
       const path = buildSearchPath(cursorRef.current, filters);
       // The backend's /search returns a bare array, not {results, next_cursor}.
@@ -230,7 +238,7 @@ export function useDiscoverDeck(
             typeof r.show_on_map === "boolean" ? r.show_on_map : undefined,
         } as DiscoverCandidate;
       });
-      setItems((prev) => [...prev, ...results]);
+      setItems((prev) => (isFirstPage ? results : [...prev, ...results]));
       cursorRef.current = nextCursor;
       setCursor(nextCursor);
       hasMoreRef.current = nextCursor !== null;
@@ -259,12 +267,16 @@ export function useDiscoverDeck(
   }, [filtersKey]);
 
   useEffect(() => {
-    // Filter change — reset everything and refetch from the head. The
-    // setState-in-effect rule warns generically here, but a filter change
-    // is the only path that resets the deck, so doing it in the effect is
-    // exactly correct (mirrors the use-profile pattern).
+    // Filter change — reset pagination + error state, then refetch from
+    // the head. We deliberately do NOT setItems([]) here: keeping the
+    // last-known deck visible while the new fetch is in flight prevents
+    // the /map markers from blanking out for ~200-500ms on every pan
+    // (every pan changes the country filter via countriesInBounds).
+    // loadMore() swaps items atomically when the new first page lands
+    // (see `isFirstPage` branch in loadMore). The setState-in-effect
+    // rule warns generically here, but a filter change is the only path
+    // that triggers pagination reset.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setItems([]);
     setCursor(null);
     cursorRef.current = null;
     hasMoreRef.current = true;
