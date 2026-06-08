@@ -42,10 +42,21 @@ const checkboxVariants = cva(
           // `border-solid` is REQUIRED with `border-2` in Tailwind v4:
           // the .border-2 rule sets `border-style: var(--tw-border-style)`
           // which falls back to `none` if --tw-border-style isn't
-          // initialized for the element. Without border-solid the box
-          // has width 2px but invisible border-style:none -> renders
-          // as nothing. Diagnosed by curl'ing the deployed CSS bundle.
-          "border-2 border-solid border-zinc-700/60 dark:border-white/50 bg-white dark:bg-(--card) hover:border-zinc-700/80 dark:hover:border-white/70",
+          // initialized. Without border-solid the box renders as
+          // border-style:none -> invisible.
+          //
+          // Theme trap: layout.tsx hardcodes the `dark` class on <html>
+          // so Tailwind's `dark:` variant ALWAYS wins -- but the CSS
+          // variable `--card` independently flips with system
+          // prefers-color-scheme. Result: user in light mode gets
+          // bg-(--card)=white AND dark:border-white/50 simultaneously
+          // -> white border on white box. Invisible.
+          //
+          // Fix: use a single mid-gray border color that contrasts
+          // against BOTH the cream/white left-column surface in light
+          // mode AND the dark indigo --card surface in dark mode. No
+          // `dark:` border variant.
+          "border-2 border-solid border-zinc-500 bg-white dark:bg-(--card) hover:border-zinc-600",
       },
     },
     defaultVariants: {
