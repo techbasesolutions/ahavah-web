@@ -753,6 +753,7 @@ export default function DiscoverPage() {
               }
               open={filtersOpen}
               onOpenChange={setFiltersOpen}
+              viewerSex={userProfile.sex}
               onApply={(f) => setFilters(f)}
             />
             <Button
@@ -862,6 +863,7 @@ export default function DiscoverPage() {
             trigger={<span className="hidden" aria-hidden />}
             open={filtersOpen}
             onOpenChange={setFiltersOpen}
+            viewerSex={userProfile.sex}
             onApply={(f) => setFilters(f)}
           />
         </aside>

@@ -33,6 +33,8 @@ import {
   type Intent,
   type MaritalStatus,
   type Polygyny,
+  type Sex,
+  intentOptionsForSex,
   type TorahLevel,
 } from "@/lib/profile-schema";
 
@@ -53,17 +55,14 @@ import {
  *   on a long filter list.
  */
 
-const INTENT_FILTER_OPTIONS: ReadonlyArray<{ value: Intent; label: string }> = [
-  { value: "first-wife",              label: "First wife" },
-  { value: "additional-wife",         label: "Additional wife" },
-  { value: "unmarried-man",           label: "Unmarried man" },
-  { value: "married-man",             label: "Married man" },
-  { value: "courtship",               label: "Courtship" },
-  { value: "marriage-only",           label: "Marriage only" },
-  { value: "long-distance-courtship", label: "Long-distance courtship" },
-  { value: "open-to-relocation",      label: "Open to relocation" },
-  { value: "local-only",              label: "Local only" },
-];
+// Intent labels are sex-scoped to the VIEWER. A man choosing intents for
+// his own search picks from MALE_INTENT_LABELS ('first wife', 'additional
+// wife', …) — those describe what he's seeking. A woman picks from
+// FEMALE_INTENT_LABELS ('unmarried man', 'married man', …) — what she's
+// seeking. Showing the cross-sex list (the prior hardcoded union of all 9
+// values) confused viewers into thinking the filter described candidates
+// of the same sex as themselves. Resolved by deferring to
+// intentOptionsForSex(viewerSex) below.
 
 const HAS_CHILDREN_OPTIONS: ReadonlyArray<{ value: "has" | "none"; label: string }> = [
   { value: "has",  label: "Has children" },
@@ -198,6 +197,14 @@ type FiltersSheetProps = {
   open?: boolean;
   /** Controlled state setter. Required when `open` is set. */
   onOpenChange?: (next: boolean) => void;
+  /**
+   * Viewer's sex. Drives which Intent options render — a viewer should
+   * see only the intents that match their own search (first-wife /
+   * additional-wife for men, unmarried-man / married-man for women).
+   * Optional for legacy callers; falls back to showing the universal
+   * modifiers (courtship / marriage-only / etc.) only.
+   */
+  viewerSex?: Sex;
 };
 
 export function FiltersSheet({
@@ -206,7 +213,19 @@ export function FiltersSheet({
   onApply,
   open: openProp,
   onOpenChange,
+  viewerSex,
 }: FiltersSheetProps) {
+  const intentFilterOptions = viewerSex
+    ? intentOptionsForSex(viewerSex)
+    : // No viewer sex yet — render only the universally-shared modifiers
+      // (courtship / marriage-only / local-only) so we never leak the
+      // wrong sex's labels. These four appear in both MALE and FEMALE
+      // option lists in profile-schema.ts.
+      ([
+        { value: "courtship",     label: "Courtship" },
+        { value: "marriage-only", label: "Marriage only" },
+        { value: "local-only",    label: "Local only" },
+      ] as ReadonlyArray<{ value: Intent; label: string }>);
   const [internalOpen, setInternalOpen] = useState(false);
   const isDesktop = useIsDesktop();
   // Controlled when both `open` and `onOpenChange` are provided; otherwise
@@ -337,7 +356,7 @@ export function FiltersSheet({
           >
             <PillGrid
               ariaLabel="Filter by intent"
-              options={INTENT_FILTER_OPTIONS}
+              options={intentFilterOptions}
               value={filters.intents ?? []}
               onValueChange={(v) =>
                 update("intents", v.length > 0 ? (v as Intent[]) : undefined)

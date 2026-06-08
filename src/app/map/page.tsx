@@ -381,6 +381,7 @@ export default function MapPage() {
       open={filtersOpen}
       onOpenChange={setFiltersOpen}
       initialFilters={filters}
+      viewerSex={viewer.sex}
       trigger={
         <Button
           size="circle-lg"
