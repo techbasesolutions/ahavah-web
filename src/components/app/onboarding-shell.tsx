@@ -50,13 +50,19 @@ type Props = {
 
 // 7-phase grouping per canonical screens/03-onboarding.md §RIGHT.
 // Step ranges (1-indexed inclusive) map step numbers to phase groups.
+// Sorted by firstStep so the right-rail checklist reads in actual wizard
+// sequence rather than categorical groups. Scribe tester reported the
+// non-sequential check pattern twice ("the completion sequence feels out
+// of order since 1 and 5 are the ones checked and they are not checked
+// sequentially as expected"). phaseStatus() was correct; the display
+// order wasn't. No category logic moved — just the array order.
 const PHASES: ReadonlyArray<{ label: string; firstStep: number; lastStep: number }> = [
   { label: "Name & basics",     firstStep: 1,  lastStep: 4  }, // name/dob/gender/country
+  { label: "Lifestyle",         firstStep: 5,  lastStep: 8  }, // languages/marital/children/bio
+  { label: "Faith & doctrine",  firstStep: 9,  lastStep: 10 }, // assembly/polygyny
+  { label: "Looking for",       firstStep: 11, lastStep: 12 }, // relocation/looking-for
   { label: "Photos",            firstStep: 13, lastStep: 13 }, // photos
   { label: "Identity",          firstStep: 14, lastStep: 15 }, // verify-email/phone
-  { label: "Faith & doctrine",  firstStep: 9,  lastStep: 10 }, // assembly/polygyny
-  { label: "Lifestyle",         firstStep: 5,  lastStep: 8  }, // languages/marital/children/bio
-  { label: "Looking for",       firstStep: 11, lastStep: 12 }, // relocation/looking-for
   { label: "Verification",      firstStep: 16, lastStep: 16 }, // complete
 ];
 
