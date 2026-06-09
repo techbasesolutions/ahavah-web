@@ -55,7 +55,7 @@
  * defaults to home again. See the useEffect for full reasoning.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -76,7 +76,7 @@ import { computeCompatibility } from "@/lib/scoring/compute-compatibility";
 
 
 import { apiClient } from "@/lib/api-client";
-import { centroidOf, countriesInBounds } from "@/lib/country-centroids";
+import { centroidOf } from "@/lib/country-centroids";
 import type { DiscoverCandidate } from "@/lib/discover-engine";
 import { resolveMarkerState } from "@/lib/map-avatar-state";
 import {
@@ -197,40 +197,21 @@ export default function MapPage() {
   //
   // Functional setState avoids closing over `filters` so the callback
   // identity stays stable; useCallback's empty deps + the stable
-  // `setFilters` reference together mean the WorldMap useEffect that
-  // binds the moveend listener never re-runs. No re-render loop risk.
+  // 2026-06-09 — map no longer writes to filters.country from pan
+  // events. Previously every pan computed countriesInBounds(bbox)
+  // and updated the shared filter store, which triggered a fresh
+  // /search per pan-and-stop. /search takes 400-900ms; chained
+  // pans felt like "loads on scroll, chunk by chunk."
   //
-  // `undefined` (not `[]`) when zero centroids fit — the discover
-  // engine treats `undefined` as "no filter," whereas `[]` is ambiguous
-  // (could read as "zero countries match"). Use undefined for the
-  // unambiguous "no filter" signal.
-  // Debounce bounds-change so a quick double-pan doesn't fire two
-  // /search requests back-to-back. Leaflet's moveend already fires
-  // per pan-and-stop, but useDiscoverDeck's inFlight guard silently
-  // drops any filter change while a previous request is still
-  // in flight — so the new viewport's markers never get fetched.
-  // User-visible symptom: "scroll then load after". 250ms covers
-  // the common rapid-pan case while staying imperceptible for a
-  // user who pans once and waits.
-  const boundsDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const handleBoundsChange = useCallback(
-    (bbox: { north: number; south: number; east: number; west: number }) => {
-      if (boundsDebounceRef.current) clearTimeout(boundsDebounceRef.current);
-      boundsDebounceRef.current = setTimeout(() => {
-        const countriesVisible = countriesInBounds(bbox);
-        setFilters((prev) => ({
-          ...prev,
-          country: countriesVisible.length > 0 ? countriesVisible : undefined,
-        }));
-      }, 250);
-    },
-    [setFilters],
-  );
-  useEffect(() => {
-    return () => {
-      if (boundsDebounceRef.current) clearTimeout(boundsDebounceRef.current);
-    };
-  }, []);
+  // New model: one /search on mount with whatever filters are set,
+  // markers are positioned by their stored lat/lng, panning just
+  // translates the viewport. The filter sheet can still set country
+  // explicitly (the value still flows into httpFilters below) — only
+  // the bbox-driven write is gone.
+  //
+  // Breaks when total active users exceed /search's 1000-row cap;
+  // until then this is the right shape. Layer a per-country client-
+  // side cache on top if/when that becomes a real problem.
 
   // Marker pool — real candidates from GET /search via useDiscoverDeck.
   // Same filter shape /discover uses (age + countries + languages), so
@@ -278,13 +259,13 @@ export default function MapPage() {
 
   // Phase W cutover (2026-05-15) — count active filters for the badge
   // on the top-bar filter button. Age range counts only when narrowed
-  // from the full 18-80 default. country is excluded because it's
-  // driven by the map viewport itself (panning sets it) — surfacing
-  // a "country filter active" badge on the map is confusing since the
-  // user IS the one moving the map.
+  // from the full 18-80 default. As of 2026-06-09, country is now a
+  // manually-set filter (no longer auto-written by map pans), so it
+  // counts toward the badge like any other.
   const activeFilterCount = useMemo(() => {
     let n = 0;
     if ((filters.ageMin ?? 18) > 18 || (filters.ageMax ?? 80) < 80) n += 1;
+    if (filters.country?.length) n += 1;
     if (filters.languages?.length) n += 1;
     if (filters.verifiedOnly) n += 1;
     if (filters.intents?.length) n += 1;
@@ -438,7 +419,6 @@ export default function MapPage() {
       <div className="md:hidden absolute inset-0">
         <WorldMap
           className="size-full"
-          onBoundsChange={handleBoundsChange}
           bbox={initialBbox}
         >
           {mapMarkers}
@@ -470,7 +450,6 @@ export default function MapPage() {
         <div className="relative overflow-hidden rounded-2xl border border-(--hairline) min-h-0">
           <WorldMap
             className="size-full"
-            onBoundsChange={handleBoundsChange}
             bbox={initialBbox}
           >
             {mapMarkers}
