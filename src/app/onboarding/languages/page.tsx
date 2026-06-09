@@ -120,8 +120,19 @@ export default function LanguagesStep() {
     const collidesWithCustom = customLanguages.some(
       (l) => l.toLowerCase() === lower,
     );
-    if (collidesWithBuiltIn || collidesWithCustom) {
-      setFeedback(`"${trimmed}" is already in your list.`);
+    // Scribe tester reported genuine confusion when they tried to add
+    // "Hausa" and got "Hausa is already in your list" — Hausa was a
+    // built-in language they hadn't yet picked, so the message read
+    // as nonsense. Differentiate the two collision sources so the
+    // hint tells them WHERE to look.
+    if (collidesWithBuiltIn) {
+      setFeedback(
+        `"${trimmed}" is in the language list above — pick it from there.`,
+      );
+      return;
+    }
+    if (collidesWithCustom) {
+      setFeedback(`"${trimmed}" is already in your additions.`);
       return;
     }
     const value = `${CUSTOM_LANGUAGE_PREFIX}${trimmed}`;
