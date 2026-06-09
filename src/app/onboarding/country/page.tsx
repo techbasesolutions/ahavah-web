@@ -284,7 +284,20 @@ function CountryRows({
                   : "hover:bg-(--card)/80 hover:ring-1 hover:ring-inset hover:ring-border",
               )}
             >
-              <span className="text-h2" aria-hidden>
+              {/* On platforms with no country-flag emoji glyph (Windows,
+                  most Android), this renders as the 2-letter regional
+                  indicator text ("NG", "IE", ...). The Scribe tester
+                  reported it as faint because the span had no explicit
+                  text color and inherited a muted card token. Pin it
+                  to the same high-contrast token the country name uses
+                  so the fallback text is legible everywhere. */}
+              <span
+                className={cn(
+                  "text-h2",
+                  active ? "text-black" : "text-(--ink)",
+                )}
+                aria-hidden
+              >
                 {c.flag}
               </span>
               <span
