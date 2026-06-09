@@ -82,6 +82,15 @@ export default function PhotosStep() {
     void refreshFromBackend();
   }, [refreshFromBackend]);
 
+  // Mirror local records into profile.photos for onboardees so
+  // usePhotoQuota's counter ("N of 6 added.") reflects the optimistic
+  // uploads. For onboarded users refreshFromBackend already calls
+  // update({photos}); this effect no-ops there.
+  useEffect(() => {
+    if (readOnboarded()) return;
+    update({ photos: records.filter(Boolean) });
+  }, [records, update]);
+
   // When any slot enters "moderating", advance it. For PERSON users, fetch
   // the resolved PhotoRecord from the backend. For ONBOARDEES (no GET
   // endpoint), synthesize an optimistic PhotoRecord — the cron will
@@ -92,6 +101,14 @@ export default function PhotosStep() {
     slotHooks.forEach((hook, idx) => {
       if (hook.state.kind !== "moderating") return;
       const position = idx + 1;
+      // Capture the local blob preview URL BEFORE the async closure.
+      // The moderating-state discriminant doesn't survive across an
+      // await, and we need this URL as the slot's thumbnail until
+      // /finish-onboarding converts the synthetic record into a real
+      // CDN-backed one. Without it the slot rendered as "filled" with
+      // src=undefined → empty tile (the Scribe tester's "thumbnails
+      // aren't rendered when the picture is uploaded" complaint).
+      const previewUrl = hook.state.previewUrl;
       void (async () => {
         if (readOnboarded()) {
           await refreshFromBackend();
@@ -104,7 +121,7 @@ export default function PhotosStep() {
         // Onboardee path: synthesize the record + push it locally.
         const synthetic: PhotoRecord = {
           uuid: `pending-${position}`,
-          cdn_url: "",
+          cdn_url: previewUrl,
           position,
           moderation_state: "pending-review",
           nsfw_score: null,
