@@ -107,10 +107,18 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${plusJakartaSans.variable} ${ultra.variable} dark h-full antialiased`}
+      className={`${plusJakartaSans.variable} ${ultra.variable} dark antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col" suppressHydrationWarning>
+      {/* Reported 2026-06-10: some mobile browsers scrolled ~1200px past the
+          marketing footer. The previous chain — html h-full + body min-h-full
+          flex flex-col — combines lvh-anchored ancestors with dvh-anchored
+          descendants (.ahavah-app uses min-h-dvh). On some Safari/Chromium
+          variants the flex column math overshoots when those units diverge.
+          Body now anchors directly to dvh; .ahavah-app keeps its own
+          min-h-dvh so PWA shell pages still fill the viewport without
+          relying on body being a flex container. */}
+      <body className="min-h-dvh" suppressHydrationWarning>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: safeJsonLd(siteJsonLd) }}
