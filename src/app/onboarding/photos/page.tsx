@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { Shirt } from "lucide-react";
+import { toast } from "sonner";
 
 import { OnboardingShell } from "@/components/app/onboarding-shell";
 import { PhotoSlot } from "@/components/app/photo-slot";
@@ -154,7 +155,7 @@ export default function PhotosStep() {
       await refreshFromBackend();
       slotHooks[slotIndex].reset();
     } catch {
-      // Surface via slot — currently no toast layer.
+      toast.error("Couldn't remove that photo — please try again.");
     }
   };
 

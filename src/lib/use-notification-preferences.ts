@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 
 import { apiClient, ApiError } from "@/lib/api-client";
 
@@ -96,15 +97,13 @@ export function useNotificationPreferences(): {
         setState((curr) =>
           curr.kind === "happy" ? { ...curr, savingKey: null } : curr,
         );
-      } catch (err) {
+      } catch {
         // Rollback optimistic state.
         setState((curr) => {
           if (curr.kind !== "happy" || snapshot == null) return curr;
           return { kind: "happy", prefs: snapshot, savingKey: null };
         });
-        // Surface the failure to the user via a transient log; the
-        // page can re-render an error banner if needed.
-        console.warn("useNotificationPreferences.setOne failed", err);
+        toast.error("Couldn't save that preference — please try again.");
       }
     },
     [],

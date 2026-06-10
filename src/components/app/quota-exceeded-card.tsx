@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Sparkles } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -71,6 +72,8 @@ export function QuotaExceededCard({
         // Insufficient balance — leave the Sheet open; the
         // TokenSpendSheet branch already renders a Get-tokens fallback
         // when currentBalance < cost.
+      } else {
+        toast.error("Couldn't activate your day-pass — please try again.");
       }
     } finally {
       setBusy(false);
