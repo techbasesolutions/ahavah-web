@@ -28,17 +28,42 @@ export function LandingStickyCta({ targetId = "waitlist" }: { targetId?: string 
     if (!target) return;
     observed.current = true;
 
-    const io = new IntersectionObserver(
+    // Hide the bar when the footer reaches the viewport — otherwise the
+    // fixed bottom-0 bar overlays the footer's Legal column + copyright
+    // row, swallowing taps on mobile.
+    const footer = document.querySelector("footer");
+    let heroVisible = true;
+    let footerInView = false;
+    const apply = () => setVisible(!heroVisible && !footerInView);
+
+    const heroIo = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          setVisible(!entry.isIntersecting);
+          heroVisible = entry.isIntersecting;
         });
+        apply();
       },
       { rootMargin: "-40% 0px 0px 0px", threshold: 0 },
     );
-    io.observe(target);
+    heroIo.observe(target);
 
-    return () => io.disconnect();
+    const footerIo = footer
+      ? new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              footerInView = entry.isIntersecting;
+            });
+            apply();
+          },
+          { threshold: 0 },
+        )
+      : null;
+    footerIo?.observe(footer!);
+
+    return () => {
+      heroIo.disconnect();
+      footerIo?.disconnect();
+    };
   }, [targetId]);
 
   return (
