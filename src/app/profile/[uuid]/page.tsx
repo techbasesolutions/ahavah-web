@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { use, useEffect, useMemo, useState } from "react";
+import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
   AlertTriangle,
@@ -31,6 +31,10 @@ import { useDecisions } from "@/lib/use-decisions";
 import { computeCompatibility } from "@/lib/scoring/compute-compatibility";
 import { photoOrGradient } from "@/lib/photo-or-gradient";
 import { cdnUrlFor } from "@/lib/photo-storage";
+import { TokenActionIcon } from "@/lib/icon-map";
+import { useTokenBalance } from "@/lib/use-token-balance";
+import { TokenSpendSheet } from "@/components/app/token-spend-sheet";
+import { toast } from "sonner";
 
 import {
   ASSEMBLIES,
@@ -301,6 +305,54 @@ export default function ProfileDetailPage({ params }: Props) {
         : from === "likes"
           ? "Back to Liked you"
           : "Back to discover";
+
+  // Super-like spend path — mirrors /discover's handleSuperLike, adapted to
+  // act on this profile's uuid and return to the launching surface on success.
+  const [superSheetOpen, setSuperSheetOpen] = useState(false);
+  const [superBusy, setSuperBusy] = useState(false);
+  const {
+    state: tokenBalanceState,
+    balance: tokenBalance,
+    refresh: refreshTokens,
+  } = useTokenBalance();
+  const tokenBalanceForSheet =
+    tokenBalanceState === "happy" ? tokenBalance : null;
+
+  const handleSuperLike = useCallback(async () => {
+    setSuperBusy(true);
+    try {
+      const res = await apiClient.post<{
+        super_liked: boolean;
+        match_id: string | null;
+      }>("/tokens/super-like", { person_id: uuid });
+      await refreshTokens();
+      setSuperSheetOpen(false);
+      if (res.match_id) {
+        router.push(`/match?matchId=${encodeURIComponent(res.match_id)}`);
+        return;
+      }
+      router.push(backHref);
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 402) {
+        await refreshTokens();
+        toast.error("Not enough tokens for Super Like.");
+      } else {
+        setSuperSheetOpen(false);
+        const status = e instanceof ApiError ? e.status : null;
+        const msg =
+          status === 404
+            ? "Super Like isn't available yet."
+            : status === 401
+              ? "Sign in to send a Super Like."
+              : status === 503
+                ? "Super Like is temporarily unavailable."
+                : "Couldn't send Super Like. Try again.";
+        toast.error(msg);
+      }
+    } finally {
+      setSuperBusy(false);
+    }
+  }, [uuid, refreshTokens, router, backHref]);
 
   // Swipe-down-to-dismiss — pairs with /discover's swipe-up-to-open
   // for gestural symmetry. Only active when ?from=discover so it
@@ -934,11 +986,15 @@ export default function ProfileDetailPage({ params }: Props) {
         </Button>
       ) : (
         <>
+          {/* Same action language as /discover (Pass=cta lime, Like=action
+              pink, Super=brand lavender), arranged symmetrically with the
+              smaller Super-like accent centred between the primary pair.
+              Rewind is deck-only and intentionally omitted here. */}
           <Button
-            size="circle-lg"
-            tone="brand"
+            size="circle-2xl"
+            tone="cta"
             lift="float"
-            aria-label="Skip"
+            aria-label="Pass"
             disabled={!profileLoaded}
             onClick={async () => {
               try {
@@ -949,10 +1005,23 @@ export default function ProfileDetailPage({ params }: Props) {
               router.push(backHref);
             }}
           >
-            <X className="text-black" />
+            <X className="size-7 text-black" strokeWidth={2.4} />
           </Button>
           <Button
-            size="circle-lg"
+            size="circle-xl"
+            tone="brand"
+            lift="float"
+            aria-label="Super like, costs 2 tokens"
+            disabled={!profileLoaded}
+            onClick={() => setSuperSheetOpen(true)}
+          >
+            <TokenActionIcon.SuperLike
+              className="size-6 text-black"
+              fill="currentColor"
+            />
+          </Button>
+          <Button
+            size="circle-2xl"
             tone="action"
             lift="float"
             aria-label="Like"
@@ -972,7 +1041,10 @@ export default function ProfileDetailPage({ params }: Props) {
               router.push(backHref);
             }}
           >
-            <Heart className="text-(--ink)" fill="currentColor" />
+            <TokenActionIcon.Like
+              className="size-7 text-black"
+              fill="currentColor"
+            />
           </Button>
         </>
       )}
@@ -1417,6 +1489,17 @@ export default function ProfileDetailPage({ params }: Props) {
           </div>
         </motion.div>
       </div>
+
+      <TokenSpendSheet
+        open={superSheetOpen}
+        onOpenChange={setSuperSheetOpen}
+        title={`Super-like ${profile.firstName ?? "this person"}?`}
+        description="They'll see your like at the top of their deck with a lime ring."
+        cost={2}
+        currentBalance={tokenBalanceForSheet}
+        onConfirm={handleSuperLike}
+        busy={superBusy}
+      />
 
       <BlockReportSheet
         open={reportOpen}
