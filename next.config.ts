@@ -49,15 +49,21 @@ const nextConfig: NextConfig = {
         key: "Content-Security-Policy",
         value: [
           "default-src 'self'",
-          "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+          // connect.facebook.net serves fbevents.js (Meta Pixel base script,
+          // loaded from app/layout.tsx). Event delivery goes to
+          // www.facebook.com/tr — as an <img> beacon (img-src) and via
+          // fetch/sendBeacon (connect-src). All three entries verified
+          // against actual pixel network traffic; this CSP is port-strict
+          // and has silently eaten third-party calls before.
+          "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://connect.facebook.net",
           "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
           // OpenStreetMap tile servers (a.tile., b.tile., c.tile.) feed the
         // /map page via react-leaflet's TileLayer; without explicit
         // whitelist the CSP blocks the tile images and the map renders
         // as a blank grey rectangle.
-        "img-src 'self' data: blob: https://user-images.ahavah.app https://email-assets.ahavah.app https://*.digitaloceanspaces.com https://*.tile.openstreetmap.org",
+        "img-src 'self' data: blob: https://user-images.ahavah.app https://email-assets.ahavah.app https://*.digitaloceanspaces.com https://*.tile.openstreetmap.org https://www.facebook.com",
           "font-src 'self' data: https://fonts.gstatic.com",
-          "connect-src 'self' https://api.ahavah.app wss://chat.ahavah.app wss://chat.ahavah.app:5443 wss://chat.ahavah.app:5442",
+          "connect-src 'self' https://api.ahavah.app wss://chat.ahavah.app wss://chat.ahavah.app:5443 wss://chat.ahavah.app:5442 https://www.facebook.com",
           "frame-ancestors 'none'",
           "form-action 'self'",
           "base-uri 'self'",

@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { IconBadge } from "@/components/ui/icon-badge";
 
 import { PageShell } from "@/components/app/page-shell";
+import { pixelCompleteRegistration } from "@/lib/meta-pixel";
+import { readOnboarded } from "@/lib/onboarded-storage";
 import { useProfile } from "@/lib/use-profile";
 
 /**
@@ -46,8 +48,15 @@ export default function OnboardingCompletePage() {
   // continue routing to /onboardee-info and /discover (which needs
   // person_id) would 401.
   useEffect(() => {
+    // Captured BEFORE finishOnboarding flips the flag: distinguishes a fresh
+    // graduation (fire the ad-conversion event) from a revisit of this page
+    // (finishOnboarding short-circuits on readOnboarded and must not re-fire).
+    const wasOnboarded = readOnboarded();
     void finishOnboarding()
-      .then(() => setGraduated(true))
+      .then(() => {
+        setGraduated(true);
+        if (!wasOnboarded) pixelCompleteRegistration(crypto.randomUUID());
+      })
       .catch(() => {
         setError("We couldn't finalise your profile. Refresh and try again.");
       });
