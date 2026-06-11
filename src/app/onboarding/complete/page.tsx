@@ -11,7 +11,6 @@ import { IconBadge } from "@/components/ui/icon-badge";
 
 import { PageShell } from "@/components/app/page-shell";
 import { pixelCompleteRegistration } from "@/lib/meta-pixel";
-import { readOnboarded } from "@/lib/onboarded-storage";
 import { useProfile } from "@/lib/use-profile";
 
 /**
@@ -48,14 +47,14 @@ export default function OnboardingCompletePage() {
   // continue routing to /onboardee-info and /discover (which needs
   // person_id) would 401.
   useEffect(() => {
-    // Captured BEFORE finishOnboarding flips the flag: distinguishes a fresh
-    // graduation (fire the ad-conversion event) from a revisit of this page
-    // (finishOnboarding short-circuits on readOnboarded and must not re-fire).
-    const wasOnboarded = readOnboarded();
+    // finishOnboarding resolves to the person_uuid only on a FRESH
+    // graduation (null on revisits). Event id `reg-<person_uuid>` is shared
+    // with the backend's Conversions API copy of this event, so Meta
+    // dedupes the browser/server pair — and repeat sends of the same id.
     void finishOnboarding()
-      .then(() => {
+      .then((personUuid) => {
         setGraduated(true);
-        if (!wasOnboarded) pixelCompleteRegistration(crypto.randomUUID());
+        if (personUuid) pixelCompleteRegistration(`reg-${personUuid}`);
       })
       .catch(() => {
         setError("We couldn't finalise your profile. Refresh and try again.");

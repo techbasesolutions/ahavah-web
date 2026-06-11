@@ -567,8 +567,12 @@ export type UseProfileResult = {
    * /finish-onboarding, flipping the local ONBOARDED flag so subsequent
    * PATCHes route to /profile-info, and refreshing /me. Idempotent —
    * safe to call from /onboarding/complete on mount.
+   *
+   * Resolves to the new person_uuid on a FRESH graduation, null when the
+   * local flag says we already graduated (idempotent revisit). Callers
+   * use the uuid for the once-only ad-conversion event id.
    */
-  finishOnboarding: () => Promise<void>;
+  finishOnboarding: () => Promise<string | null>;
 };
 
 export function useProfile(): UseProfileResult {
@@ -855,9 +859,12 @@ export function useProfile(): UseProfileResult {
     // fields already landed on the person row) and just refresh /me.
     if (readOnboarded()) {
       await refreshProfile();
-      return;
+      return null;
     }
-    await apiClient.post("/finish-onboarding", {});
+    const graduated = await apiClient.post<{ person_uuid?: string }>(
+      "/finish-onboarding",
+      {},
+    );
     writeOnboarded(true);
     // Post-graduation sync: PATCH the fields the onboardee schema didn't
     // accept (relationship_status, has_kids, looking_for, about, ...) so
@@ -874,6 +881,7 @@ export function useProfile(): UseProfileResult {
       }
     }
     await refreshProfile();
+    return graduated.person_uuid ?? null;
   }, [refreshProfile]);
 
   return {
