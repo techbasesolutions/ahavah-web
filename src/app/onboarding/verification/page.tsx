@@ -1,8 +1,9 @@
 "use client";
 
-import Link from "next/link";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
-import { IdCard, Scan, Smartphone } from "lucide-react";
+import { IdCard, Loader2, Scan, Smartphone } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -11,6 +12,8 @@ import { IconBadge } from "@/components/ui/icon-badge";
 import { cn } from "@/lib/utils";
 
 import { OnboardingShell } from "@/components/app/onboarding-shell";
+import { useProfile } from "@/lib/use-profile";
+import { pixelCompleteRegistration } from "@/lib/meta-pixel";
 
 const fadeUp = {
   initial: { opacity: 0, y: 12 },
@@ -50,6 +53,34 @@ const TIERS = [
 ];
 
 export default function VerificationStep() {
+  const router = useRouter();
+  const { finishOnboarding } = useProfile();
+  const [busyTier, setBusyTier] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // The verify endpoints (/verification-selfie, /verify) and the
+  // verification_job row all require a real person_id, so verification
+  // cannot run while the user is still an onboardee. Finalize the
+  // onboardee into a person here BEFORE launching the tier flow.
+  // finishOnboarding() is idempotent (returns the uuid only on a fresh
+  // graduation), so the "Skip for now" -> /onboarding/complete path that
+  // also calls it stays correct. We fire the same CompleteRegistration
+  // pixel /onboarding/complete would, so the conversion event isn't lost
+  // when graduation happens here instead of there.
+  const startVerification = async (tierKey: string) => {
+    if (busyTier) return;
+    setError(null);
+    setBusyTier(tierKey);
+    try {
+      const personUuid = await finishOnboarding();
+      if (personUuid) pixelCompleteRegistration(`reg-${personUuid}`);
+      router.push(`/verify/${tierKey}`);
+    } catch {
+      setBusyTier(null);
+      setError("Finish the rest of your profile first, then verify.");
+    }
+  };
+
   return (
     <OnboardingShell
       href="/onboarding/verification"
@@ -101,21 +132,39 @@ export default function VerificationStep() {
                 <p className="text-body leading-relaxed text-(--ink)/85">
                   {tier.body}
                 </p>
-                <Link
-                  href={`/verify/${tier.key}`}
-                  prefetch={false}
+                <button
+                  type="button"
+                  onClick={() => startVerification(tier.key)}
+                  disabled={busyTier !== null}
                   className={cn(
                     buttonVariants({ variant: "outlineTier", size: "lg" }),
                     "mt-4 w-full rounded-full",
                   )}
                 >
-                  Start {tier.label} verification →
-                </Link>
+                  {busyTier === tier.key ? (
+                    <>
+                      <Loader2 className="animate-spin" />
+                      Starting...
+                    </>
+                  ) : (
+                    `Start ${tier.label} verification →`
+                  )}
+                </button>
               </CardContent>
             </Card>
           </motion.div>
         ))}
       </div>
+
+      {error ? (
+        <p
+          role="alert"
+          aria-live="polite"
+          className="mt-4 text-center text-caption font-semibold text-pink"
+        >
+          {error}
+        </p>
+      ) : null}
     </OnboardingShell>
   );
 }
