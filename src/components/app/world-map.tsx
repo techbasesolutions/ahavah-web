@@ -28,13 +28,14 @@
  * import this primitive MUST wrap the import in `next/dynamic` with
  * `ssr: false` (see /map/page.tsx).
  *
- * Tile provider (2026-06-14): CARTO Voyager raster basemap, served from
- * its global CDN over four subdomains ({a,b,c,d}), no API key. Swapped
- * off raw OpenStreetMap tiles because osm.org's servers are rate-limited
- * and not CDN-backed, so panning loaded tiles "in stages". Voyager keeps
- * the same light, colorful look (the dark cluster bubbles were designed
- * to pop on a light map) while loading far faster. Attribution credits
- * both OSM (the data) and CARTO (the rendering).
+ * Tile provider (2026-06-14): CARTO raster basemaps, served from its
+ * global CDN over four subdomains ({a,b,c,d}), no API key. Swapped off
+ * raw OpenStreetMap tiles because osm.org's servers are rate-limited and
+ * not CDN-backed, so panning loaded tiles "in stages". CARTO loads far
+ * faster. Theme-aware: Voyager (light) in the light theme, Dark Matter
+ * (dark_all) in the dark theme, resolved via the app's useTheme() so the
+ * map matches the surrounding UI instead of being a bright rectangle in a
+ * dark app. Attribution credits both OSM (data) and CARTO (rendering).
  *
  * Pan is bounded (maxBounds + maxBoundsViscosity=1) so the map can't be
  * dragged off the world into the grey void vertically; `noWrap` keeps a
@@ -51,6 +52,7 @@ import MarkerClusterGroup from "react-leaflet-cluster";
 
 import { cn } from "@/lib/utils";
 import type { BBox } from "@/lib/continent-bbox";
+import { useTheme, resolveTheme } from "@/lib/theme";
 
 /**
  * Cluster icon factory — replaces the library default red/blue circles
@@ -85,16 +87,36 @@ function clusterIcon(cluster: { getChildCount: () => number }): L.DivIcon {
 
 export type Bbox = BBox;
 
+/** Persisted viewport — map center + zoom, restored on next visit. */
+export interface MapView {
+  lat: number;
+  lng: number;
+  zoom: number;
+}
+
 export interface WorldMapProps {
   /**
    * Fires with the current viewport bbox after every pan/zoom settle.
    */
   onBoundsChange?: (bbox: Bbox) => void;
   /**
+   * Fires with the map center + zoom after every pan/zoom settle. Used by
+   * /map to persist the user's last position to localStorage.
+   */
+  onViewChange?: (view: MapView) => void;
+  /**
    * Programmatic viewport — pass a bbox and Leaflet will `fitBounds`
    * (with animation, unless prefers-reduced-motion).
    */
   bbox?: Bbox;
+  /**
+   * Construction-time center [lat, lng]. Set this from a restored last
+   * position so the map STARTS there (no flash + fly-in). Defaults to a
+   * world view.
+   */
+  initialCenter?: [number, number];
+  /** Construction-time zoom. Defaults to the most-zoomed-out level. */
+  initialZoom?: number;
   /** Overlay children — markers etc. Render inside MapContainer. */
   children?: ReactNode;
   /** Class overrides for the root MapContainer. */
@@ -108,9 +130,11 @@ export interface WorldMapProps {
  */
 function MapEventHandler({
   onBoundsChange,
+  onViewChange,
   bbox,
 }: {
   onBoundsChange?: (b: Bbox) => void;
+  onViewChange?: (v: MapView) => void;
   bbox?: Bbox;
 }) {
   const map = useMap();
@@ -138,14 +162,19 @@ function MapEventHandler({
   // movement into a single end event.
   useMapEvents({
     moveend: () => {
-      if (!onBoundsChange) return;
-      const b = map.getBounds();
-      onBoundsChange({
-        north: b.getNorth(),
-        south: b.getSouth(),
-        east: b.getEast(),
-        west: b.getWest(),
-      });
+      if (onBoundsChange) {
+        const b = map.getBounds();
+        onBoundsChange({
+          north: b.getNorth(),
+          south: b.getSouth(),
+          east: b.getEast(),
+          west: b.getWest(),
+        });
+      }
+      if (onViewChange) {
+        const c = map.getCenter();
+        onViewChange({ lat: c.lat, lng: c.lng, zoom: map.getZoom() });
+      }
     },
   });
 
@@ -154,15 +183,23 @@ function MapEventHandler({
 
 export function WorldMap({
   onBoundsChange,
+  onViewChange,
   bbox,
+  initialCenter,
+  initialZoom,
   children,
   className,
 }: WorldMapProps) {
+  // Theme-aware basemap — Dark Matter in the dark theme, Voyager in light,
+  // resolved via the app's own theme store so it tracks live toggles.
+  const { mode } = useTheme();
+  const tileStyle = resolveTheme(mode) === "dark" ? "dark_all" : "voyager";
+
   return (
     <MapContainer
-      center={[20, 0]}
-      zoom={2}
-      minZoom={2}
+      center={initialCenter ?? [20, 0]}
+      zoom={initialZoom ?? 1}
+      minZoom={1}
       maxZoom={10}
       // Hard pan limit: you can't drag the map off the world. Latitude is
       // clamped to Web Mercator's usable range (±85), longitude to one
@@ -176,12 +213,18 @@ export function WorldMap({
       attributionControl
       className={cn("size-full bg-(--card)", className)}
       // z-index 0 so the absolute-positioned top bar overlay (z-20 in
-      // /map page) stays above Leaflet's tile + control layers.
-      style={{ zIndex: 0 }}
+      // /map page) stays above Leaflet's tile + control layers. The inline
+      // background overrides Leaflet's default grey .leaflet-container fill
+      // so the letterbox bands at the zoomed-all-the-way-out world view
+      // match the theme instead of showing grey.
+      style={{ zIndex: 0, background: "var(--card)" }}
     >
       <TileLayer
+        // key forces a clean tile-layer remount when the theme flips, so
+        // the basemap swaps light<->dark instead of blending stale tiles.
+        key={tileStyle}
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
+        url={`https://{s}.basemaps.cartocdn.com/rastertiles/${tileStyle}/{z}/{x}/{y}.png`}
         subdomains="abcd"
         // Single world copy (pairs with maxBounds).
         noWrap
@@ -192,7 +235,11 @@ export function WorldMap({
         updateWhenIdle={false}
         updateWhenZooming={false}
       />
-      <MapEventHandler onBoundsChange={onBoundsChange} bbox={bbox} />
+      <MapEventHandler
+        onBoundsChange={onBoundsChange}
+        onViewChange={onViewChange}
+        bbox={bbox}
+      />
       {/* MarkerClusterGroup collapses overlapping markers into a single
           numeric bubble. Without this, every additional candidate at a
           country centroid pinned on top of the previous one. Click on a

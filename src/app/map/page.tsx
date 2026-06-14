@@ -46,22 +46,21 @@
  * page renders a minimal scaffold to avoid map flash for incomplete
  * profiles.
  *
- * Home-default on session start (SP17.5, 2026-05-12): on the first
- * /map mount per PWA session, the viewport flies to a ±15° bbox
- * around the user's home-country centroid. A one-shot sessionStorage
- * flag suppresses re-fly on subsequent /map mounts within the same
- * session (preserves user's pan position when bouncing through
- * BottomNav). App close → sessionStorage clears → next launch
- * defaults to home again. See the useEffect for full reasoning.
+ * Initial viewport (2026-06-14): the map restores the user's last
+ * position (center + zoom) from localStorage, persisted on every
+ * pan/zoom settle. The first ever visit (no saved position) opens
+ * zoomed all the way out on the whole world. The render is gated on the
+ * resolved viewport so the map mounts directly there — no flash + fly.
+ * See the mount useEffect + persistView for the full reasoning.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ChevronRight, MapPin, MessageCircle, SlidersHorizontal } from "lucide-react";
 
-import type { BBox } from "@/lib/continent-bbox";
+import type { MapView } from "@/components/app/world-map";
 
 import { BottomNav } from "@/components/app/bottom-nav";
 import { FiltersSheet } from "@/components/app/filters-sheet";
@@ -76,7 +75,6 @@ import { computeCompatibility } from "@/lib/scoring/compute-compatibility";
 
 
 import { apiClient } from "@/lib/api-client";
-import { centroidOf } from "@/lib/country-centroids";
 import type { DiscoverCandidate } from "@/lib/discover-engine";
 import { resolveMarkerState } from "@/lib/map-avatar-state";
 import {
@@ -110,14 +108,13 @@ const MapAvatar = dynamic(
   { ssr: false },
 );
 
-// SP17.5: session-scoped flag keyed in sessionStorage. The flag is a
-// boolean marker, not the filter itself — useFilters() keeps its own
-// localStorage store for everything else (age, intent, etc.). Only this
-// one-shot "have we auto-flown yet this session?" bit lives in
-// sessionStorage so it clears on PWA close → next launch defaults to
-// home country again.
-const SESSION_FLAG = "ahavah.map.session_initialized";
-const INITIAL_PADDING_DEG = 15;
+// 2026-06-14: persist the user's last map position (center + zoom) to
+// localStorage so re-opening /map restores where they left off — and on
+// the first ever visit, open zoomed all the way out on the whole world.
+// Replaces the old SP17.5 sessionStorage "fly to home country" behavior.
+const VIEWPORT_KEY = "ahavah.map.viewport";
+// First-ever visit: whole world, most-zoomed-out (minZoom is 1).
+const WORLD_VIEW: MapView = { lat: 20, lng: 0, zoom: 1 };
 
 export default function MapPage() {
   const router = useRouter();
@@ -125,7 +122,10 @@ export default function MapPage() {
   const { decisions } = useDecisions();
   const { filters, setFilters } = useFilters();
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [initialBbox, setInitialBbox] = useState<BBox | undefined>(undefined);
+  // null until the mount effect resolves it from localStorage. The map is
+  // gated on this so it mounts directly at the remembered position (no
+  // flash of the world view then fly-in).
+  const [initialView, setInitialView] = useState<MapView | null>(null);
 
   // Soft-completeness gate — trust the backend onboarded flag so users
   // with a wiped localStorage cache aren't bounced back to the wizard
@@ -142,52 +142,47 @@ export default function MapPage() {
   }, [loaded, viewer, router]);
 
   /**
-   * SP17.5: default the map viewport to the user's home country on the
-   * FIRST /map mount per PWA session. The signal is sessionStorage
-   * (clears on app/tab close, persists across backgrounding) plus a
-   * one-shot flag so subsequent /map mounts within the same session
-   * preserve whatever pan position is already there — switching tabs
-   * via BottomNav and coming back shouldn't yank the user's view.
-   *
-   * Why sessionStorage: PWAs close → sessionStorage clears → next cold
-   * launch is a fresh session, and the user lands back on their home
-   * region. Backgrounding the app (iOS Home button, Android task
-   * switcher) does NOT clear sessionStorage, so a quick return won't
-   * trigger an unwanted re-fly.
-   *
-   * Why a one-shot flag: subsequent /map mounts within the same session
-   * shouldn't auto-fly. If the user pans to Africa, navigates to
-   * /discover, then comes back to /map, they expect Africa — not a
-   * snap back to home.
-   *
-   * Why 15° padding: rough continent-scale view. Wide enough to show
-   * neighboring countries (so the user sees nearby candidates without
-   * having to zoom out first), narrow enough to keep their home region
-   * the obvious focus. Clamped to [-85, 85] / [-180, 180] so polar /
-   * antimeridian edges don't break fitBounds.
-   *
-   * Bbox flow: setInitialBbox(...) → passed as WorldMap.bbox →
-   * fitBounds → moveend → existing handleBoundsChange writes
-   * filter.country naturally. No bespoke filter write here.
+   * Resolve the initial viewport once, on mount: the user's last saved
+   * position from localStorage, or a whole-world view on the first ever
+   * visit. The map render is gated on this (see below) so it mounts
+   * STARTING at the remembered position rather than flashing the world
+   * view and flying in. localStorage (not sessionStorage) so the position
+   * survives a PWA close — "remember where I left off" across launches.
    */
   useEffect(() => {
-    if (!loaded || !viewer?.country) return;
     if (typeof window === "undefined") return;
-    if (sessionStorage.getItem(SESSION_FLAG)) return;
-    const centroid = centroidOf(viewer.country);
-    if (!centroid) return;
-    // Bridging external state (sessionStorage flag + profile-load
-    // timing) into React state on first qualifying render. Canonical
-    // pattern in this codebase — see use-profile.ts mount-hydration.
+    let saved: MapView | null = null;
+    try {
+      const raw = window.localStorage.getItem(VIEWPORT_KEY);
+      if (raw) {
+        const v = JSON.parse(raw) as Partial<MapView>;
+        if (
+          typeof v?.lat === "number" &&
+          typeof v?.lng === "number" &&
+          typeof v?.zoom === "number"
+        ) {
+          saved = { lat: v.lat, lng: v.lng, zoom: v.zoom };
+        }
+      }
+    } catch {
+      saved = null;
+    }
+    // Bridging external state (localStorage) into React state on mount —
+    // canonical pattern in this codebase (see use-profile.ts hydration).
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setInitialBbox({
-      north: Math.min(85, centroid.lat + INITIAL_PADDING_DEG),
-      south: Math.max(-85, centroid.lat - INITIAL_PADDING_DEG),
-      east: Math.min(180, centroid.lng + INITIAL_PADDING_DEG),
-      west: Math.max(-180, centroid.lng - INITIAL_PADDING_DEG),
-    });
-    sessionStorage.setItem(SESSION_FLAG, "1");
-  }, [loaded, viewer]);
+    setInitialView(saved ?? WORLD_VIEW);
+  }, []);
+
+  // Persist the map position after every pan/zoom settle so the next
+  // visit restores it. Cheap (fires only on moveend, already debounced by
+  // Leaflet) and resilient to storage being full/disabled.
+  const persistView = useCallback((v: MapView) => {
+    try {
+      window.localStorage.setItem(VIEWPORT_KEY, JSON.stringify(v));
+    } catch {
+      /* storage unavailable — non-fatal, position just won't persist */
+    }
+  }, []);
 
   // SP17 T2: map-driven country filter. Every Leaflet pan/zoom-settle
   // fires moveend → onBoundsChange(bbox); we convert the visible bbox
@@ -417,12 +412,16 @@ export default function MapPage() {
     >
       {/* ── Mobile layout (hidden at md+) ──────────────────────────────── */}
       <div className="md:hidden absolute inset-0">
-        <WorldMap
-          className="size-full"
-          bbox={initialBbox}
-        >
-          {mapMarkers}
-        </WorldMap>
+        {initialView ? (
+          <WorldMap
+            className="size-full"
+            initialCenter={[initialView.lat, initialView.lng]}
+            initialZoom={initialView.zoom}
+            onViewChange={persistView}
+          >
+            {mapMarkers}
+          </WorldMap>
+        ) : null}
       </div>
 
       {/* Mobile top-bar overlay */}
@@ -448,12 +447,16 @@ export default function MapPage() {
       <div className="hidden md:grid md:grid-cols-[1fr_360px] md:gap-6 md:h-[calc(100dvh-3.5rem)] md:-m-8 md:p-8">
         {/* Left — Leaflet map, full height, rounded frame with hairline */}
         <div className="relative overflow-hidden rounded-2xl border border-(--hairline) min-h-0">
-          <WorldMap
-            className="size-full"
-            bbox={initialBbox}
-          >
-            {mapMarkers}
-          </WorldMap>
+          {initialView ? (
+            <WorldMap
+              className="size-full"
+              initialCenter={[initialView.lat, initialView.lng]}
+              initialZoom={initialView.zoom}
+              onViewChange={persistView}
+            >
+              {mapMarkers}
+            </WorldMap>
+          ) : null}
         </div>
 
         {/* Right — candidate rail */}
