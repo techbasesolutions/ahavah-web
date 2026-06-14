@@ -28,10 +28,18 @@
  * import this primitive MUST wrap the import in `next/dynamic` with
  * `ssr: false` (see /map/page.tsx).
  *
- * Tile provider: OpenStreetMap, no API key. Production can swap the
- * TileLayer `url` to Mapbox / Carto / Stadia / MapTiler with a paid
- * token if OSM's fair-use policy gets exceeded. Attribution is rendered
- * via Leaflet's built-in attribution control.
+ * Tile provider (2026-06-14): CARTO Voyager raster basemap, served from
+ * its global CDN over four subdomains ({a,b,c,d}), no API key. Swapped
+ * off raw OpenStreetMap tiles because osm.org's servers are rate-limited
+ * and not CDN-backed, so panning loaded tiles "in stages". Voyager keeps
+ * the same light, colorful look (the dark cluster bubbles were designed
+ * to pop on a light map) while loading far faster. Attribution credits
+ * both OSM (the data) and CARTO (the rendering).
+ *
+ * Pan is bounded (maxBounds + maxBoundsViscosity=1) so the map can't be
+ * dragged off the world into the grey void vertically; `noWrap` keeps a
+ * single world copy (replaced the old worldCopyJump infinite horizontal
+ * wrap, which fights a hard maxBounds).
  */
 
 import "leaflet/dist/leaflet.css";
@@ -156,7 +164,15 @@ export function WorldMap({
       zoom={2}
       minZoom={2}
       maxZoom={10}
-      worldCopyJump
+      // Hard pan limit: you can't drag the map off the world. Latitude is
+      // clamped to Web Mercator's usable range (±85), longitude to one
+      // world copy. Viscosity 1.0 makes the edge solid (no rubber-band
+      // past it) — fixes "scroll past the vertical limit into grey void".
+      maxBounds={[
+        [-85, -180],
+        [85, 180],
+      ]}
+      maxBoundsViscosity={1.0}
       attributionControl
       className={cn("size-full bg-(--card)", className)}
       // z-index 0 so the absolute-positioned top bar overlay (z-20 in
@@ -164,8 +180,17 @@ export function WorldMap({
       style={{ zIndex: 0 }}
     >
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
+        subdomains="abcd"
+        // Single world copy (pairs with maxBounds).
+        noWrap
+        // Smoother panning: preload more off-screen tiles (default 2) and
+        // fetch during the pan gesture rather than only after it settles,
+        // so tiles are already there instead of loading "in stages".
+        keepBuffer={4}
+        updateWhenIdle={false}
+        updateWhenZooming={false}
       />
       <MapEventHandler onBoundsChange={onBoundsChange} bbox={bbox} />
       {/* MarkerClusterGroup collapses overlapping markers into a single
