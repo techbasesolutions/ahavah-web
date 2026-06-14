@@ -114,3 +114,11 @@ export function computeCompleteness(profile: Profile): CompletenessResult {
 export function isDiscoverEligible(profile: Profile): boolean {
   return computeCompleteness(profile).discoverEligible;
 }
+
+/** The required fields (in order) that are still empty. Drives the
+ *  /profile/edit suggestion that names + jumps to the missing field. */
+export function missingRequiredFields(
+  profile: Profile,
+): ReadonlyArray<keyof Profile> {
+  return MINIMUM_COMPLETE_FIELDS.filter((k) => !fieldComplete(profile, k));
+}

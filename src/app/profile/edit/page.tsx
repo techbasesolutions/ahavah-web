@@ -40,7 +40,11 @@ import {
 } from "@/components/app/page-shell";
 
 import { useProfile } from "@/lib/use-profile";
-import { computeCompleteness } from "@/lib/profile-completeness";
+import {
+  computeCompleteness,
+  missingRequiredFields,
+} from "@/lib/profile-completeness";
+import type { Profile } from "@/lib/profile-schema";
 
 import { PhotoEditSection } from "@/components/profile-edit/section-photos";
 import IdentitySection from "@/components/profile-edit/section-identity";
@@ -89,27 +93,45 @@ const SECTIONS: ReadonlyArray<{
  * All form state stays inside the existing section components (they all
  * read + write through `useProfile`). Autosave is unchanged.
  */
-type Suggestion = { text: string; lift: string };
+type Suggestion = { text: string; lift: string; target?: string };
+
+// Required field -> human label + the /profile/edit section anchor to
+// scroll to (each section renders id="section-<id>"). Keys match
+// MINIMUM_COMPLETE_FIELDS so every missing required field is nameable.
+const REQUIRED_FIELD_META: Partial<
+  Record<keyof Profile, { label: string; section: string }>
+> = {
+  firstName: { label: "First name", section: "identity" },
+  age: { label: "Age", section: "identity" },
+  sex: { label: "Gender", section: "identity" },
+  maritalStatus: { label: "Marital status", section: "identity" },
+  wantsChildren: { label: "Children preference", section: "identity" },
+  country: { label: "Country", section: "identity" },
+  intent: { label: "Intent", section: "practical" },
+  assembly: { label: "Assembly", section: "faith" },
+  relocation: { label: "Relocation openness", section: "practical" },
+};
 
 /**
- * Suggestions derived from real completeness state. No `/profile/
- * suggestions` endpoint yet, so the lifts (`+5%` etc.) are
- * coarse estimates rather than per-field measurements. When the
- * backend ships analytics-backed lifts, swap this function for a fetch.
+ * Suggestions derived from real completeness state. Required-field
+ * suggestions NAME the missing field and carry the section anchor to jump
+ * to it. Optional suggestions use non-numeric labels — the old "+12%"
+ * style lifts were hardcoded guesses (not measured), so they're gone until
+ * there's real analytics behind them.
  */
 function buildSuggestions(
-  requiredMissing: number,
+  missing: ReadonlyArray<keyof Profile>,
   percent: number,
 ): ReadonlyArray<Suggestion> {
-  if (requiredMissing > 0) {
-    return [
-      {
-        text: `Fill the ${requiredMissing} required field${
-          requiredMissing === 1 ? "" : "s"
-        } below to start matching.`,
+  if (missing.length > 0) {
+    return missing.slice(0, 3).map((k) => {
+      const meta = REQUIRED_FIELD_META[k];
+      return {
+        text: `Add your ${meta?.label ?? "missing detail"} to start matching.`,
         lift: "Required",
-      },
-    ];
+        target: meta?.section,
+      };
+    });
   }
   if (percent >= 100) {
     return [
@@ -119,20 +141,23 @@ function buildSuggestions(
       },
     ];
   }
-  // Required filled, but optional fields remaining. Surface 2–3 high-
-  // signal additions that genuinely lift match quality.
+  // Required filled, optional fields remaining. Genuine nudges, no
+  // invented percentages.
   return [
     {
-      text: "Write a bio. Profiles with a bio get 3× more matches.",
-      lift: "+12%",
+      text: "Write a short bio — it's one of the first things people read.",
+      lift: "Recommended",
+      target: "identity",
     },
     {
-      text: "Add a 6th photo to your gallery.",
-      lift: "+4%",
+      text: "Add more photos to your gallery.",
+      lift: "Suggested",
+      target: "photos",
     },
     {
-      text: "Set your relocation openness.",
-      lift: "+5%",
+      text: "Add a few interests.",
+      lift: "Suggested",
+      target: "interests",
     },
   ];
 }
@@ -140,11 +165,11 @@ function buildSuggestions(
 export default function EditProfilePage() {
   const { profile } = useProfile();
   const completeness = computeCompleteness(profile);
-  const requiredMissing =
-    completeness.requiredTotal - completeness.requiredFilled;
+  const missing = useMemo(() => missingRequiredFields(profile), [profile]);
+  const requiredMissing = missing.length;
   const suggestions = useMemo(
-    () => buildSuggestions(requiredMissing, completeness.percent),
-    [requiredMissing, completeness.percent],
+    () => buildSuggestions(missing, completeness.percent),
+    [missing, completeness.percent],
   );
 
   return (
@@ -372,7 +397,23 @@ export default function EditProfilePage() {
               </p>
               <ItemGroup className="gap-3">
                 {suggestions.map((s, i) => (
-                  <Item key={i} variant="muted" size="sm">
+                  <Item
+                    key={i}
+                    variant="muted"
+                    size="sm"
+                    onClick={
+                      s.target
+                        ? () =>
+                            document
+                              .getElementById(`section-${s.target}`)
+                              ?.scrollIntoView({
+                                behavior: "smooth",
+                                block: "start",
+                              })
+                        : undefined
+                    }
+                    className={s.target ? "cursor-pointer" : undefined}
+                  >
                     <ItemMedia variant="icon">
                       <span className="text-overline font-extrabold text-(--ink-2)">
                         {i + 1}
