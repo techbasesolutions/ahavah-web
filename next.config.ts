@@ -57,11 +57,11 @@ const nextConfig: NextConfig = {
           // and has silently eaten third-party calls before.
           "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://connect.facebook.net",
           "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-          // OpenStreetMap tile servers (a.tile., b.tile., c.tile.) feed the
-        // /map page via react-leaflet's TileLayer; without explicit
-        // whitelist the CSP blocks the tile images and the map renders
-        // as a blank grey rectangle.
-        "img-src 'self' data: blob: https://user-images.ahavah.app https://email-assets.ahavah.app https://*.digitaloceanspaces.com https://*.tile.openstreetmap.org https://www.facebook.com",
+          // CARTO basemap CDN (a-d.basemaps.cartocdn.com) feeds the /map
+        // page via react-leaflet's TileLayer; without explicit whitelist
+        // the CSP blocks the tile images and the map renders as a blank
+        // rectangle.
+        "img-src 'self' data: blob: https://user-images.ahavah.app https://email-assets.ahavah.app https://*.digitaloceanspaces.com https://*.basemaps.cartocdn.com https://www.facebook.com",
           "font-src 'self' data: https://fonts.gstatic.com",
           "connect-src 'self' https://api.ahavah.app wss://chat.ahavah.app wss://chat.ahavah.app:5443 wss://chat.ahavah.app:5442 https://www.facebook.com",
           "frame-ancestors 'none'",
