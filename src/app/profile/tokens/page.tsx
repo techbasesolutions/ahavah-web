@@ -132,6 +132,11 @@ export default function TokensPage() {
           variant="outline"
           size="sm"
           className="hidden md:inline-flex"
+          onClick={() =>
+            document
+              .getElementById("how-tokens-work")
+              ?.scrollIntoView({ behavior: "smooth", block: "start" })
+          }
         >
           <HelpCircle className="size-3.5" />
           How tokens work
@@ -315,7 +320,8 @@ export default function TokensPage() {
                     </div>
                     <Button
                       size="tap"
-                      tone={s.featured ? "cta" : "elevated"}
+                      variant={s.featured ? "default" : "outline"}
+                      tone={s.featured ? "cta" : undefined}
                       onClick={() => buy(s.key)}
                       disabled={busy}
                       className="w-full"
@@ -342,7 +348,7 @@ export default function TokensPage() {
           </div>
 
           {/* How tokens work */}
-          <Card tone="default">
+          <Card tone="default" id="how-tokens-work" className="scroll-mt-20">
             <CardContent className="p-5.5">
               <p className="text-overline text-(--ink-2) mb-3.5 m-0">
                 How tokens work
