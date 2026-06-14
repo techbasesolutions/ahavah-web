@@ -35,8 +35,22 @@ const fadeUp = {
  * is preserved).
  */
 async function resolveLongFriendly(
+  cc: string,
   countryName: string,
 ): Promise<string | null> {
+  // ISO-anchored first: the server resolves a representative in-country
+  // location (exact country match), so we never land on a same-named city
+  // in another country ("St. Lucia, Malta" for Caribbean Saint Lucia).
+  try {
+    const exact = await apiClient.get<string[]>(
+      `/country-location?cc=${encodeURIComponent(cc)}`,
+    );
+    if (exact[0]) return exact[0];
+  } catch {
+    // fall through to the autocomplete resolver
+  }
+  // Fallback: trigram autocomplete (covers countries pycountry/the DB
+  // don't map cleanly). Preserves pre-fix behavior so no country is worse off.
   try {
     const res = await apiClient.get<string[]>(
       `/search-locations?q=${encodeURIComponent(countryName)}`,
@@ -74,7 +88,7 @@ export default function CountryStep() {
     void update({ country: cc });
     const country = ALL_COUNTRIES.find((c) => c.cc === cc);
     if (!country) return;
-    const longFriendly = await resolveLongFriendly(country.name);
+    const longFriendly = await resolveLongFriendly(cc, country.name);
     if (longFriendly) void update({ location: longFriendly });
   };
 
