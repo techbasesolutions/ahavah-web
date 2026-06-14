@@ -181,6 +181,38 @@ function MapEventHandler({
   return null;
 }
 
+/**
+ * Keeps the tile grid filling the container at every container size by
+ * raising minZoom to the smallest zoom whose (square) world still covers
+ * the longest container dimension. Without this, a fixed low minZoom lets
+ * a large container (desktop) show the small world map letterboxed in
+ * grey/themed margins. Recomputes on container resize.
+ */
+function FillController() {
+  const map = useMap();
+
+  useEffect(() => {
+    const applyFill = () => {
+      const el = map.getContainer();
+      const longest = Math.max(el.clientWidth, el.clientHeight);
+      if (!longest) return;
+      // World tile grid is 256·2^zoom px square (EPSG:3857, 256px tiles).
+      // coverZoom = smallest zoom where that square ≥ the longest side, so
+      // the map can never zoom out far enough to expose a margin.
+      const coverZoom = Math.max(0, Math.ceil(Math.log2(longest / 256)));
+      if (map.getMinZoom() !== coverZoom) map.setMinZoom(coverZoom);
+      if (map.getZoom() < coverZoom) map.setZoom(coverZoom, { animate: false });
+    };
+    applyFill();
+    map.on("resize", applyFill);
+    return () => {
+      map.off("resize", applyFill);
+    };
+  }, [map]);
+
+  return null;
+}
+
 export function WorldMap({
   onBoundsChange,
   onViewChange,
@@ -240,6 +272,7 @@ export function WorldMap({
         onViewChange={onViewChange}
         bbox={bbox}
       />
+      <FillController />
       {/* MarkerClusterGroup collapses overlapping markers into a single
           numeric bubble. Without this, every additional candidate at a
           country centroid pinned on top of the previous one. Click on a
