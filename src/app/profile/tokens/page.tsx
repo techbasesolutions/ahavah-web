@@ -7,7 +7,6 @@ import {
   ChevronRight,
   Coins,
   CreditCard,
-  FileText,
   HelpCircle,
 } from "lucide-react";
 
@@ -36,6 +35,7 @@ import { Pill } from "@/components/kibo-ui/pill";
 import { apiClient, ApiError } from "@/lib/api-client";
 import { useTokenBalance } from "@/lib/use-token-balance";
 import { BackButton } from "@/components/app/back-button";
+import { TokenHistory } from "@/components/app/token-history";
 import { BottomNav } from "@/components/app/bottom-nav";
 import { LogoMark } from "@/components/brand/logo-mark";
 import {
@@ -61,24 +61,6 @@ const SKUS = [
   { key: "plus",    label: "Plus",     price: "$9.99",  tokens: 22, per: "$0.45 / token", badge: "POPULAR",   featured: true },
   { key: "pro",     label: "Pro",      price: "$19.99", tokens: 50, per: "$0.40 / token", badge: "BEST",      featured: true },
 ] as const;
-
-/**
- * Placeholder transaction history — until the backend ships a
- * /tokens/history endpoint. Mirrors canonical seed data so the rail
- * has visual weight.
- */
-const PLACEHOLDER_HISTORY: ReadonlyArray<{
-  date: string;
-  title: string;
-  delta: number;
-}> = [
-  { date: "Today",       title: "Boost used on Discover",        delta: -1 },
-  { date: "Today",       title: "Super Like sent to Yael",       delta: -1 },
-  { date: "2 days ago",  title: "Bought Starter pack",           delta: +10 },
-  { date: "5 days ago",  title: "Boost used on Map",             delta: -1 },
-  { date: "1 week ago",  title: "Super Like sent to Adina",      delta: -1 },
-  { date: "2 weeks ago", title: "Welcome bonus",                 delta: +3  },
-];
 
 const HOW_IT_WORKS: ReadonlyArray<{
   Icon: typeof TokenActionIcon.Boost;
@@ -254,6 +236,10 @@ export default function TokensPage() {
             </p>
           ) : null}
         </motion.div>
+
+        <motion.div {...fadeUp} transition={{ duration: 0.3, delay: 0.16 }}>
+          <TokenHistory variant="mobile" />
+        </motion.div>
       </div>
 
       {/* ── Desktop 2-col body ─────────────────────────────────────── */}
@@ -421,48 +407,7 @@ export default function TokensPage() {
 
         {/* RIGHT — history + payment methods rail */}
         <div className="flex flex-col gap-4 min-h-0">
-          <Card tone="default" className="flex-1 min-h-0">
-            <CardContent className="flex flex-col gap-3.5 p-5 h-full">
-              <div className="flex items-center justify-between">
-                <p className="text-overline text-(--ink-2) m-0">History</p>
-                <FileText className="size-3.5 text-(--ink-3)" aria-hidden />
-              </div>
-              <div className="flex flex-col gap-1 overflow-y-auto min-h-0">
-                {PLACEHOLDER_HISTORY.map((h, i) => {
-                  const isCredit = h.delta > 0;
-                  return (
-                    <div
-                      key={i}
-                      className={
-                        i === PLACEHOLDER_HISTORY.length - 1
-                          ? "flex items-center gap-3 py-2.5"
-                          : "flex items-center gap-3 py-2.5 border-b border-(--hairline)"
-                      }
-                    >
-                      <span
-                        aria-hidden
-                        className={
-                          isCredit
-                            ? "flex size-8 shrink-0 items-center justify-center rounded-lg bg-lime/20 text-(--color-success) text-sm font-extrabold tabular-nums"
-                            : "flex size-8 shrink-0 items-center justify-center rounded-lg bg-lavender/20 text-lavender text-sm font-extrabold tabular-nums"
-                        }
-                      >
-                        {isCredit ? `+${h.delta}` : h.delta}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-meta text-(--ink) m-0 truncate">
-                          {h.title}
-                        </p>
-                        <p className="text-caption text-(--ink-3) m-0">
-                          {h.date}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
+          <TokenHistory variant="desktop" />
 
           <Card tone="default">
             <CardContent className="flex items-center gap-3 p-5">
