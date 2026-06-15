@@ -16,6 +16,14 @@ import { TokenActionIcon } from "@/lib/icon-map";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
   Choicebox,
   ChoiceboxIndicator,
   ChoiceboxItem,
@@ -128,19 +136,47 @@ export default function TokensPage() {
       desktopShell="sidebar"
       topBarTitle="Tokens"
       topBarActions={
-        <Button
-          variant="outline"
-          size="sm"
-          className="hidden md:inline-flex"
-          onClick={() =>
-            document
-              .getElementById("how-tokens-work")
-              ?.scrollIntoView({ behavior: "smooth", block: "start" })
-          }
-        >
-          <HelpCircle className="size-3.5" />
-          How tokens work
-        </Button>
+        <Dialog>
+          <DialogTrigger
+            render={
+              <Button
+                variant="outline"
+                size="sm"
+                className="hidden md:inline-flex"
+              >
+                <HelpCircle className="size-3.5" />
+                How tokens work
+              </Button>
+            }
+          />
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>How tokens work</DialogTitle>
+              <DialogDescription>
+                Spend tokens on actions that get you seen. 1 token = 1 Boost or
+                1 Super Like.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-4">
+              {HOW_IT_WORKS.map(({ Icon, title, body }) => (
+                <div key={title} className="flex items-start gap-3">
+                  <span
+                    aria-hidden
+                    className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-lavender/20 text-lavender"
+                  >
+                    <Icon className="size-4.5" />
+                  </span>
+                  <div>
+                    <p className="text-meta font-bold text-(--ink) m-0">
+                      {title}
+                    </p>
+                    <p className="text-caption text-(--ink-2) m-0">{body}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
       }
     >
       {/* ── Mobile header ───────────────────────────────────────────── */}
@@ -320,8 +356,7 @@ export default function TokensPage() {
                     </div>
                     <Button
                       size="tap"
-                      variant={s.featured ? "default" : "outline"}
-                      tone={s.featured ? "cta" : undefined}
+                      tone={s.featured ? "cta" : "brand"}
                       onClick={() => buy(s.key)}
                       disabled={busy}
                       className="w-full"
@@ -348,7 +383,7 @@ export default function TokensPage() {
           </div>
 
           {/* How tokens work */}
-          <Card tone="default" id="how-tokens-work" className="scroll-mt-20">
+          <Card tone="default">
             <CardContent className="p-5.5">
               <p className="text-overline text-(--ink-2) mb-3.5 m-0">
                 How tokens work
