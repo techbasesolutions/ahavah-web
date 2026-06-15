@@ -10,12 +10,27 @@ export type NotificationPreferences = {
   push_messages: boolean;
   push_likes: boolean;
   push_weekly_digest: boolean;
+  // Phase 2 (mig 0029): per-event x per-channel matrix.
+  email_matches: boolean;
+  email_messages: boolean;
+  email_likes: boolean;
+  push_verification: boolean;
+  email_verification: boolean;
+  push_profile_views: boolean;
+  email_profile_views: boolean;
 };
 
 const DEFAULTS: NotificationPreferences = {
   push_matches: true,
+  email_matches: true,
   push_messages: true,
+  email_messages: true,
   push_likes: false,
+  email_likes: false,
+  push_verification: true,
+  email_verification: true,
+  push_profile_views: false,
+  email_profile_views: false,
   push_weekly_digest: false,
 };
 
