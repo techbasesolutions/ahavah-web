@@ -69,7 +69,7 @@ export function LandingStickyCta({ targetId = "waitlist" }: { targetId?: string 
   return (
     <aside
       role="region"
-      aria-label="Join Ahavah waitlist"
+      aria-label="Sign up for Ahavah"
       data-visible={visible ? "true" : "false"}
       className={[
         "fixed inset-x-0 bottom-0 z-[60] md:hidden",
@@ -84,19 +84,19 @@ export function LandingStickyCta({ targetId = "waitlist" }: { targetId?: string 
     >
       <div className="flex-1 min-w-0 leading-tight">
         <div className="text-sm font-bold tracking-tight text-(--ink)">
-          Join the waitlist
+          Ahavah is live
         </div>
         <div className="text-[11px] text-(--ink-2) mt-0.5">
-          Founding members welcome · Summer 2026
+          Create your profile and start meeting believers
         </div>
       </div>
       <Button
-        render={<a href={`#${targetId}`} aria-label="Join the waitlist" />}
+        render={<a href="/auth/sign-up" aria-label="Sign up for Ahavah" />}
         tone="elevated"
         size="tap"
         className="shrink-0 rounded-xl"
       >
-        Join
+        Sign up
       </Button>
     </aside>
   );

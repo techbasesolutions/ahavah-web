@@ -38,10 +38,10 @@ export function LandingHero({
         <Button
           tone="elevated"
           size="tap"
-          render={<Link href="/waitlist" prefetch={false} />}
+          render={<Link href="/auth/sign-up" prefetch={false} />}
           className="rounded-xl"
         >
-          Join the waitlist
+          Sign up
         </Button>
       </div>
     </header>
@@ -89,10 +89,10 @@ export function LandingCta({
       <Button
         tone="elevated"
         size="tap"
-        render={<Link href="/waitlist" prefetch={false} />}
+        render={<Link href="/auth/sign-up" prefetch={false} />}
         className="rounded-xl"
       >
-        Join the waitlist
+        Sign up
       </Button>
       {secondary ? (
         <Link href={secondary.href} className="text-sm font-semibold text-(--color-lavender) hover:underline">

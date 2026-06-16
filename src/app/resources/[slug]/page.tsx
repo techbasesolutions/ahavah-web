@@ -76,13 +76,13 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
         <aside className="mt-6 rounded-3xl border border-lavender/30 bg-lavender/10 p-6 flex flex-col gap-3 items-start">
           <p className="m-0 text-base font-bold text-(--ink)">Ready to start?</p>
           <p className="m-0 text-sm leading-[1.6] text-(--ink-2)">
-            Read more about <Link href={cluster.landing} className="font-semibold text-(--color-lavender) hover:underline">{cluster.label.toLowerCase()}</Link>, or join the waitlist.
+            Read more about <Link href={cluster.landing} className="font-semibold text-(--color-lavender) hover:underline">{cluster.label.toLowerCase()}</Link>, or sign up.
           </p>
           <Link
-            href="/waitlist"
+            href="/auth/sign-up"
             className="rounded-xl bg-(--color-lime) px-5 py-2.5 text-sm font-bold text-black hover:opacity-90 transition-opacity"
           >
-            Join the waitlist
+            Sign up
           </Link>
         </aside>
       </main>

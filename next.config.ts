@@ -19,6 +19,19 @@ const nextConfig: NextConfig = {
     ];
   },
 
+  // Post-launch: the waitlist is retired. Any /waitlist hit (old email links,
+  // shares, bookmarks) goes straight into signup. Temporary (307) so it can
+  // be reverted if needed; the incoming query string (e.g. ?email=) forwards.
+  async redirects() {
+    return [
+      {
+        source: "/waitlist",
+        destination: "/auth/sign-up",
+        permanent: false,
+      },
+    ];
+  },
+
   // Force /sw.js to bypass Vercel's edge cache. Without this, the CDN
   // cached sw.js for ~3 minutes between deploys — returning users got
   // the stale sw.js, never noticed the new build's per-deploy CACHE

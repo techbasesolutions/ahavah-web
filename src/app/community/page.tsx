@@ -68,10 +68,10 @@ export default function CommunityPage() {
           <Button
             tone="elevated"
             size="tap"
-            render={<Link href="/" prefetch={false} />}
+            render={<Link href="/auth/sign-up" prefetch={false} />}
             className="rounded-xl"
           >
-            Join the waitlist
+            Sign up
           </Button>
         }
       />

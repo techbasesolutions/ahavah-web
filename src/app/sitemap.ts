@@ -14,7 +14,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/help", priority: 0.6, changeFrequency: "monthly" },
     { path: "/legal/community-guidelines", priority: 0.5, changeFrequency: "monthly" },
     { path: "/feedback", priority: 0.4, changeFrequency: "monthly" },
-    { path: "/waitlist", priority: 0.8, changeFrequency: "weekly" },
     { path: "/messianic-matchmaking", priority: 0.7, changeFrequency: "monthly" },
     { path: "/biblical-polygyny", priority: 0.7, changeFrequency: "monthly" },
     { path: "/faith-marriage-abroad", priority: 0.7, changeFrequency: "monthly" },

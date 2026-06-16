@@ -48,7 +48,7 @@ export default function UpdatesPage() {
           </ArticleList>
         ) : (
           <div className="rounded-2xl border border-(--hairline) bg-(--card) p-8 text-(--ink-2)">
-            No updates yet. Check back soon, or <a href="/waitlist" className="font-semibold text-(--color-lavender) hover:underline">join the waitlist</a> for news.
+            No updates yet. Check back soon, or <a href="/auth/sign-up" className="font-semibold text-(--color-lavender) hover:underline">sign up</a> for news.
           </div>
         )}
       </main>

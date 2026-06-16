@@ -54,7 +54,6 @@ import {
   type CarouselApi,
 } from "@/components/ui/carousel";
 import { ProgressDots } from "@/components/app/progress-dots";
-import { useWaitlistCount, aboveFloor } from "@/components/app/waitlist-count";
 import {
   Pill,
   PillAvatar,
@@ -63,9 +62,7 @@ import {
 } from "@/components/kibo-ui/pill";
 import { useRedirectIfSignedIn } from "@/lib/use-redirect-if-signed-in";
 import { PENDING_EMAIL_KEY } from "@/lib/storage-keys";
-import { postWaitlist } from "@/lib/waitlist";
 import { checkAccountExists } from "@/lib/auth-otp";
-import { AntibotFields, type AntibotHandle } from "@/components/app/antibot-fields";
 
 const WAITLIST_STORAGE_KEY = "ahavah.waitlist.email";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -98,8 +95,6 @@ export default function LandingPage() {
   const [submitting, setSubmitting] = useState(false);
   const [msg, setMsg] = useState<{ kind: "success" | "error"; text: string } | null>(null);
   const formInputRef = useRef<HTMLInputElement>(null);
-  const antibotRef = useRef<AntibotHandle>(null);
-  const waitlistCount = useWaitlistCount();
 
   useEffect(() => {
     try {
@@ -127,33 +122,21 @@ export default function LandingPage() {
     } catch {
       /* storage unavailable */
     }
-    // Existing-account short-circuit: if this email already has a person
-    // record, skip the early-capture write entirely and route to sign-in.
-    // Without this gate the hero fires a "joined waitlist" email + creates
-    // a waitlist_signup row for users who are already members, and the
-    // /waitlist page only catches them AFTER the row + notification fired.
-    // Fail-open: if the check errors, fall through to the original flow.
+    // If this email already has an account, route to sign-in; otherwise send
+    // them straight into signup with the email prefilled. Fail-open to signup
+    // if the account check is unavailable.
     let hasAccount = false;
     try {
       hasAccount = await checkAccountExists(trimmed);
     } catch {
-      /* account-check unavailable — fall through to capture */
-    }
-    if (hasAccount) {
-      setSubmitting(false);
-      router.push("/auth/sign-in?existing=1");
-      return;
-    }
-    // Best-effort early capture; route to the full form regardless of result
-    // (the form's own submit creates/updates the row).
-    try {
-      await postWaitlist(trimmed, {}, antibotRef.current?.payload() ?? {});
-      antibotRef.current?.reset();
-    } catch {
-      /* the /waitlist form will create the row */
+      /* account-check unavailable — fall through to sign-up */
     }
     setSubmitting(false);
-    router.push(`/waitlist?email=${encodeURIComponent(trimmed)}`);
+    router.push(
+      hasAccount
+        ? "/auth/sign-in?existing=1"
+        : `/auth/sign-up?email=${encodeURIComponent(trimmed)}`,
+    );
   };
 
   const scrollToForm = () => {
@@ -165,7 +148,6 @@ export default function LandingPage() {
 
   return (
     <div data-landing className="min-h-dvh overflow-x-hidden font-sans text-(--ink)">
-      <AntibotFields ref={antibotRef} />
       {/* ════════════════════════════════ NAV ═════════════════════════════════ */}
       <MarketingHeader
         primaryNav={
@@ -178,7 +160,7 @@ export default function LandingPage() {
         }
         cta={
           <Button tone="elevated" size="tap" onClick={scrollToForm} className="rounded-xl">
-            Join waitlist
+            Sign up
           </Button>
         }
       />
@@ -195,9 +177,9 @@ export default function LandingPage() {
               {/* Left — copy + form + stats */}
               <div>
                 <div className="flex flex-wrap items-center gap-2 mb-6">
-                  <Pill variant="lavender">Pre-launch</Pill>
+                  <Pill variant="lavender">Now live</Pill>
                   <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-(--ink-2)">
-                    Summer 2026
+                    Free to join
                   </span>
                 </div>
 
@@ -262,7 +244,7 @@ export default function LandingPage() {
                       {...(submitting ? { "aria-busy": "true" as const } : {})}
                       className="shrink-0 sm:w-auto sm:px-6 h-14"
                     >
-                      {submitting ? "Saving…" : "Get early access"}
+                      {submitting ? "One moment…" : "Sign up"}
                       {!submitting && <ArrowRight size={18} strokeWidth={2.4} />}
                     </Button>
                   </div>
@@ -272,7 +254,7 @@ export default function LandingPage() {
                     className="flex items-center gap-1.5 mt-3 text-[13px] text-(--ink-3)"
                   >
                     <ShieldCheck size={14} />
-                    No spam. We email when launch is close. Unsubscribe anytime.
+                    Free to join. Verified profiles only. No spam.
                   </p>
 
                   {msg && (
@@ -292,11 +274,9 @@ export default function LandingPage() {
                 </form>
 
                 {/* ── Stats ────────────────────────────────────────────────── */}
-                <div className="mt-14 flex flex-wrap items-start gap-x-9 gap-y-6 max-w-[520px]" aria-label="Pre-launch interest">
+                <div className="mt-14 flex flex-wrap items-start gap-x-9 gap-y-6 max-w-[520px]" aria-label="At a glance">
                   {[
-                    aboveFloor(waitlistCount)
-                      ? { num: waitlistCount.toLocaleString(), suffix: "", lbl: "on the waitlist" }
-                      : { num: "Founding", suffix: "", lbl: "members welcome" },
+                    { num: "Verified", suffix: "", lbl: "profiles only" },
                     { num: "Worldwide", suffix: "",  lbl: "diaspora reach" },
                     { num: "100",       suffix: "+", lbl: "languages"      },
                   ].map(({ num, suffix, lbl }) => (
@@ -593,7 +573,7 @@ export default function LandingPage() {
               />
 
               <span className="block mb-3 text-[11px] font-bold uppercase tracking-[0.16em] text-white/75 relative z-1">
-                Limited founding-member spots
+                Now live
               </span>
               <h2
                 className="m-0 relative z-1"
@@ -608,8 +588,8 @@ export default function LandingPage() {
                 Built across borders. Built for you.
               </h2>
               <p className="relative z-1 mt-4 mb-8 mx-auto max-w-[540px] text-[15px] lg:text-[17px] leading-[1.55] text-white/85">
-                Join the Torah-observant believers waiting for launch.
-                Founding members get six months of Premium free.
+                Join Torah-observant believers from across the diaspora.
+                Create your profile and start meeting people today.
               </p>
               <Button
                 tone="cta"
@@ -617,7 +597,7 @@ export default function LandingPage() {
                 onClick={scrollToForm}
                 className="relative z-1 inline-flex w-auto px-7"
               >
-                Reserve my spot
+                Sign up
               </Button>
             </div>
           </div>

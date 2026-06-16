@@ -22,7 +22,7 @@ const PRODUCT_LINKS = [
   { href: "/#features", label: "Features" },
   { href: "/#how",      label: "How it works" },
   { href: "/#verified", label: "Verification" },
-  { href: "/#waitlist", label: "Join waitlist" },
+  { href: "/auth/sign-up", label: "Sign up" },
 ];
 
 const AUDIENCE_LINKS = [

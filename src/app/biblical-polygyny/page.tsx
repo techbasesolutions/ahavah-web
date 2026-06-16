@@ -52,7 +52,7 @@ const FAQS = [
   },
   {
     q: "When can I join?",
-    a: "Founding members are invited in summer 2026. Join the waitlist for a one-tap sign-in link when invites open.",
+    a: "Ahavah is live. Create your profile and start meeting verified believers today.",
   },
 ];
 
@@ -72,7 +72,7 @@ export default function BiblicalPolygynyPage() {
         <LandingFaq heading="Common questions" faqs={FAQS} />
         <LandingCta
           heading="A place for what you believe."
-          body="The waitlist is free. Be open about what you are seeking from the start."
+          body="Ahavah is free to join. Be open about what you are seeking from the start."
           secondary={{ href: "/resources/biblical-plural-marriage-online", label: "Read: What a platform should get right" }}
         />
       </main>

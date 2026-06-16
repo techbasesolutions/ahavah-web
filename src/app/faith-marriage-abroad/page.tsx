@@ -50,8 +50,8 @@ const FAQS = [
     a: "Every member passes identity verification, with three tiers of trust signals. You see how verified someone is before you engage.",
   },
   {
-    q: "When does it launch?",
-    a: "Founding members are invited in summer 2026. Join the waitlist for a one-tap sign-in link when invites open.",
+    q: "Is Ahavah available now?",
+    a: "Yes. Ahavah is live. Create your profile and start meeting verified believers today.",
   },
 ];
 
@@ -71,7 +71,7 @@ export default function FaithMarriageAbroadPage() {
         <LandingFaq heading="Common questions" faqs={FAQS} />
         <LandingCta
           heading="The right person might live abroad."
-          body="The waitlist is free. Meet verified believers across the diaspora."
+          body="Ahavah is free to join. Meet verified believers across the diaspora."
           secondary={{ href: "/resources/marrying-across-borders-safely", label: "Read: Marrying across borders safely" }}
         />
       </main>

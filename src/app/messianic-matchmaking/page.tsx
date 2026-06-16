@@ -48,11 +48,11 @@ const FAQS = [
   },
   {
     q: "Is it free to join?",
-    a: "The waitlist is free. At launch the core experience is free, with optional Premium and per-action tokens.",
+    a: "Ahavah is free to join. The core experience is free, with optional Premium and per-action tokens.",
   },
   {
-    q: "When does it launch?",
-    a: "Founding members are invited in summer 2026. Join the waitlist for a one-tap sign-in link when invites open.",
+    q: "Is Ahavah available now?",
+    a: "Yes. Ahavah is live. Create your profile and start meeting verified believers today.",
   },
 ];
 
@@ -72,7 +72,7 @@ export default function MessianicMatchmakingPage() {
         <LandingFaq heading="Common questions" faqs={FAQS} />
         <LandingCta
           heading="Find someone who shares your walk."
-          body="The waitlist is free and takes a minute. Founding members are invited first."
+          body="Ahavah is free to join and takes a minute. Create your profile and start meeting verified believers today."
           secondary={{ href: "/resources/how-to-find-a-torah-observant-spouse", label: "Read: How to find a Torah-observant spouse" }}
         />
       </main>

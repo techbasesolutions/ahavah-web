@@ -36,7 +36,7 @@ export const metadata: Metadata = {
     template: "%s · Ahavah",
   },
   description:
-    "Verified profiles, 100+ languages, real connections. The matchmaking platform for Messianic Torah-observant believers seeking a spouse. Join the waitlist.",
+    "Verified profiles, 100+ languages, real connections. The matchmaking platform for Messianic Torah-observant believers seeking a spouse. Sign up and create your profile.",
   alternates: { canonical: "/" },
   manifest: "/manifest.json",
   appleWebApp: {
@@ -56,7 +56,7 @@ export const metadata: Metadata = {
     siteName: "Ahavah",
     title: "Ahavah · Find a spouse across borders",
     description:
-      "Verified profiles, 100+ languages, real connections. For Messianic Torah-observant believers seeking a spouse. Join the waitlist.",
+      "Verified profiles, 100+ languages, real connections. For Messianic Torah-observant believers seeking a spouse. Sign up and create your profile.",
     url: "https://ahavah.app",
     images: [{ url: "/og.png", width: 1200, height: 630, alt: "Ahavah — Torah-observant matchmaking" }],
   },

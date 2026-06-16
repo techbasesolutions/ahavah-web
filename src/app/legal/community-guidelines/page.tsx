@@ -54,10 +54,10 @@ export default function CommunityGuidelinesPage() {
           <Button
             tone="elevated"
             size="tap"
-            render={<Link href="/" prefetch={false} />}
+            render={<Link href="/auth/sign-up" prefetch={false} />}
             className="rounded-xl"
           >
-            Join the waitlist
+            Sign up
           </Button>
         }
       />
@@ -79,7 +79,7 @@ export default function CommunityGuidelinesPage() {
             Community guidelines<span className="text-(--color-lime)">.</span>
           </h1>
           <p className="text-base lg:text-lg leading-[1.6] text-(--ink-2)">
-            Ahavah is a small, intentional community for believers seriously seeking marriage. The short version, with the full guidelines published before launch.
+            Ahavah is a small, intentional community for believers seriously seeking marriage. The short version, with the full guidelines below.
           </p>
         </header>
 

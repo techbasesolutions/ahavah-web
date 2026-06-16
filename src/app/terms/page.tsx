@@ -16,7 +16,7 @@ const SECTIONS: ReadonlyArray<{ slug: string; heading: string; body: string }> =
   {
     slug: "acceptance",
     heading: "Acceptance of terms",
-    body: "By creating an account or joining the waitlist you agree to these terms. If you don't agree, please don't use Ahavah.",
+    body: "By creating an account you agree to these terms. If you don't agree, please don't use Ahavah.",
   },
   {
     slug: "eligibility",
@@ -68,10 +68,10 @@ export default function TermsPage() {
           <Button
             tone="elevated"
             size="tap"
-            render={<Link href="/" prefetch={false} />}
+            render={<Link href="/auth/sign-up" prefetch={false} />}
             className="rounded-xl"
           >
-            Join the waitlist
+            Sign up
           </Button>
         }
       />

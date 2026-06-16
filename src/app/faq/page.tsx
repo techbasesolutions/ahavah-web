@@ -38,15 +38,15 @@ const FAQ_GROUPS: ReadonlyArray<{ theme: string; items: ReadonlyArray<{ q: strin
       },
       {
         q: "Is it free?",
-        a: "The waitlist is free. At launch, the core experience is free; Premium and per-action tokens are optional.",
+        a: "Ahavah is free to join. The core experience is free; Premium and per-action tokens are optional.",
       },
       {
         q: "Will it work on my phone?",
         a: "Ahavah is a Progressive Web App. Add to Home Screen on iOS and Android. There is no separate app store binary at launch.",
       },
       {
-        q: "When does it launch?",
-        a: "Summer 2026 for founding members. The waitlist will receive an email with a one-tap sign-in link as soon as invites open.",
+        q: "Is Ahavah available now?",
+        a: "Yes. Ahavah is live. Sign up and create your profile in minutes.",
       },
     ],
   },
@@ -136,10 +136,10 @@ export default function FaqPage() {
           <Button
             tone="elevated"
             size="tap"
-            render={<Link href="/" prefetch={false} />}
+            render={<Link href="/auth/sign-up" prefetch={false} />}
             className="rounded-xl"
           >
-            Join the waitlist
+            Sign up
           </Button>
         }
       />
