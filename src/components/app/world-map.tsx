@@ -85,6 +85,44 @@ function clusterIcon(cluster: { getChildCount: () => number }): L.DivIcon {
   });
 }
 
+// Web Mercator's usable world rectangle. Shared by maxBounds (pan limit)
+// and FillController (min-zoom floor) so both reference one source.
+const WORLD_BOUNDS = L.latLngBounds([
+  [-85, -180],
+  [85, 180],
+]);
+
+/**
+ * FillController — raises the map's minZoom so the world always COVERS the
+ * viewport, eliminating the grey/card-coloured letterbox bands that appear
+ * when zoomed out far enough that the (square) world is shorter than a tall
+ * phone viewport. `getBoundsZoom(bounds, true)` returns the smallest zoom at
+ * which the view fits INSIDE the world — i.e. the world fills the screen.
+ *
+ * Idempotent + loop-safe (a prior version regressed into an unresponsive
+ * resize→setZoom loop): it only writes when the value actually changes, only
+ * clamps the zoom UP when below the floor, binds solely to Leaflet's own
+ * throttled `resize` event (which setMinZoom/setZoom never re-fire), and
+ * never calls invalidateSize or React setState. It therefore converges in a
+ * single pass and cannot loop.
+ */
+function FillController() {
+  const map = useMap();
+  useEffect(() => {
+    const apply = () => {
+      const fill = map.getBoundsZoom(WORLD_BOUNDS, true);
+      if (map.getMinZoom() !== fill) map.setMinZoom(fill);
+      if (map.getZoom() < fill) map.setZoom(fill, { animate: false });
+    };
+    apply();
+    map.on("resize", apply);
+    return () => {
+      map.off("resize", apply);
+    };
+  }, [map]);
+  return null;
+}
+
 export type Bbox = BBox;
 
 /** Persisted viewport — map center + zoom, restored on next visit. */
@@ -205,10 +243,7 @@ export function WorldMap({
       // clamped to Web Mercator's usable range (±85), longitude to one
       // world copy. Viscosity 1.0 makes the edge solid (no rubber-band
       // past it) — fixes "scroll past the vertical limit into grey void".
-      maxBounds={[
-        [-85, -180],
-        [85, 180],
-      ]}
+      maxBounds={WORLD_BOUNDS}
       maxBoundsViscosity={1.0}
       attributionControl
       className={cn("size-full bg-(--card)", className)}
@@ -235,6 +270,7 @@ export function WorldMap({
         updateWhenIdle={false}
         updateWhenZooming={false}
       />
+      <FillController />
       <MapEventHandler
         onBoundsChange={onBoundsChange}
         onViewChange={onViewChange}
