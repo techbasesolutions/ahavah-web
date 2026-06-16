@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Lock } from "lucide-react";
 
 import {
   Item,
@@ -10,6 +12,8 @@ import {
   ItemTitle,
 } from "@/components/ui/item";
 import { Switch } from "@/components/ui/switch";
+import { Pill } from "@/components/kibo-ui/pill";
+import { Button } from "@/components/ui/button";
 
 import { SettingsShell } from "@/components/app/settings-shell";
 import { apiClient } from "@/lib/api-client";
@@ -39,6 +43,18 @@ const SERVER_FIELD: Record<BackedKey, string> = {
   requireVerifiedMatches: "verification_required",
 };
 
+// showAge / showLocation / hideFromStrangers are Gold-only on the backend:
+// PATCH /profile-info returns 403 "Requires gold" for non-gold users. Rather
+// than let the optimistic toggle snap back (and read as broken), these rows
+// render LOCKED with a "Gold" pill + a path to /verify/gold until the user
+// has Gold. requireVerifiedMatches is NOT gated and stays a live toggle.
+const GOLD_GATED: Record<BackedKey, boolean> = {
+  showAge: true,
+  showLocation: true,
+  hideFromStrangers: true,
+  requireVerifiedMatches: false,
+};
+
 function yesNoToBool(v: unknown): boolean {
   return typeof v === "string" && v.toLowerCase() === "yes";
 }
@@ -51,6 +67,10 @@ export default function PrivacySettingsPage() {
     hideFromStrangers: false,
     requireVerifiedMatches: false,
   });
+  // Gold status drives whether the gated rows render as live toggles or as
+  // locked "Gold" rows. Default false until /profile-info resolves so the
+  // honest (locked) state shows first and never flickers a dead toggle.
+  const [isGold, setIsGold] = useState(false);
   const [savingKey, setSavingKey] = useState<BackedKey | null>(null);
   const { value: showOnMap, setValue: setShowOnMapLocal } = useShowOnMap();
   const { update: updateProfile } = useProfile();
@@ -69,6 +89,11 @@ export default function PrivacySettingsPage() {
       .get<Record<string, unknown>>("/profile-info")
       .then((p) => {
         if (cancelled) return;
+        // Read gold both ways defensively: `has_gold` (Duolicious boolean tied
+        // to the verification ladder) OR `ahavah_verification_tier === "gold"`.
+        setIsGold(
+          p.has_gold === true || p.ahavah_verification_tier === "gold",
+        );
         setToggles({
           showAge: yesNoToBool(p["show my age"] ?? p.show_my_age),
           // Default TRUE matches the backend column default (init-api.sql:311).
@@ -110,6 +135,75 @@ export default function PrivacySettingsPage() {
     }
   };
 
+  // One row renderer for both the live and Gold-locked states so the three
+  // gated rows stay consistent without copy-paste. When `gated && !isGold`
+  // the Switch is disabled (read-only current value, no snap-back), a "Gold"
+  // pill marks the lock, and the row links to /verify/gold to upgrade.
+  // A plain render helper (called, not used as <JSX/>) so it reads the live
+  // `isGold` / `toggles` / `savingKey` closure without being a nested
+  // component (react-hooks/static-components).
+  const renderPrivacyToggle = ({
+    settingKey,
+    title,
+    description,
+  }: {
+    settingKey: BackedKey;
+    title: string;
+    description: string;
+  }) => {
+    const locked = GOLD_GATED[settingKey] && !isGold;
+    if (locked) {
+      return (
+        <Item variant="muted">
+          <ItemContent>
+            <ItemTitle className="text-meta text-(--ink)">
+              {title}
+              <Pill variant="lavender" size="sm">
+                <Lock aria-hidden />
+                Gold
+              </Pill>
+            </ItemTitle>
+            <ItemDescription className="text-caption text-(--ink-3)">
+              {description}{" "}
+              <Link href="/verify/gold" prefetch={false}>
+                Gold members only.
+              </Link>
+            </ItemDescription>
+            <Button
+              variant="outlineSubtle"
+              size="sm"
+              render={<Link href="/verify/gold" prefetch={false} />}
+              className="mt-2 self-start"
+            >
+              Get Gold
+            </Button>
+          </ItemContent>
+          <Switch
+            checked={toggles[settingKey]}
+            disabled
+            aria-label={`${title} (Gold members only)`}
+          />
+        </Item>
+      );
+    }
+    return (
+      <Item variant="muted">
+        <ItemContent>
+          <ItemTitle className="text-meta text-(--ink)">{title}</ItemTitle>
+          <ItemDescription className="text-caption text-(--ink-3)">
+            {description}
+          </ItemDescription>
+        </ItemContent>
+        <Switch
+          checked={toggles[settingKey]}
+          disabled={savingKey === settingKey}
+          onCheckedChange={(checked) => void setBacked(settingKey, checked)}
+          aria-label={title}
+        />
+      </Item>
+    );
+  };
+
   return (
     <SettingsShell title="Privacy">
       <div className="flex flex-col gap-6 px-3 pt-4 md:px-0 md:pt-0">
@@ -118,23 +212,12 @@ export default function PrivacySettingsPage() {
             Profile visibility
           </h2>
           <ItemGroup className="gap-1">
-            <Item variant="muted">
-              <ItemContent>
-                <ItemTitle className="text-meta text-(--ink)">
-                  Show my age
-                </ItemTitle>
-                <ItemDescription className="text-caption text-(--ink-3)">
-                  Display age next to your name on your profile and the
-                  swipe deck.
-                </ItemDescription>
-              </ItemContent>
-              <Switch
-                checked={toggles.showAge}
-                disabled={savingKey === "showAge"}
-                onCheckedChange={(checked) => void setBacked("showAge", checked)}
-                aria-label="Show my age"
-              />
-            </Item>
+            {renderPrivacyToggle({
+              settingKey: "showAge",
+              title: "Show my age",
+              description:
+                "Display age next to your name on your profile and the swipe deck.",
+            })}
 
             <Item variant="muted">
               <ItemContent>
@@ -153,45 +236,19 @@ export default function PrivacySettingsPage() {
               />
             </Item>
 
-            <Item variant="muted">
-              <ItemContent>
-                <ItemTitle className="text-meta text-(--ink)">
-                  Show my location
-                </ItemTitle>
-                <ItemDescription className="text-caption text-(--ink-3)">
-                  Display your city and country on your profile. Turn off
-                  to hide both. Peers see only your name and age.
-                </ItemDescription>
-              </ItemContent>
-              <Switch
-                checked={toggles.showLocation}
-                disabled={savingKey === "showLocation"}
-                onCheckedChange={(checked) =>
-                  void setBacked("showLocation", checked)
-                }
-                aria-label="Show my location"
-              />
-            </Item>
+            {renderPrivacyToggle({
+              settingKey: "showLocation",
+              title: "Show my location",
+              description:
+                "Display your city and country on your profile. Turn off to hide both. Peers see only your name and age.",
+            })}
 
-            <Item variant="muted">
-              <ItemContent>
-                <ItemTitle className="text-meta text-(--ink)">
-                  Hide me from strangers
-                </ItemTitle>
-                <ItemDescription className="text-caption text-(--ink-3)">
-                  Only people you&apos;ve liked or messaged can see your
-                  full profile. Others see a limited view.
-                </ItemDescription>
-              </ItemContent>
-              <Switch
-                checked={toggles.hideFromStrangers}
-                disabled={savingKey === "hideFromStrangers"}
-                onCheckedChange={(checked) =>
-                  void setBacked("hideFromStrangers", checked)
-                }
-                aria-label="Hide me from strangers"
-              />
-            </Item>
+            {renderPrivacyToggle({
+              settingKey: "hideFromStrangers",
+              title: "Hide me from strangers",
+              description:
+                "Only people you've liked or messaged can see your full profile. Others see a limited view.",
+            })}
 
             <Item variant="muted">
               <ItemContent>
@@ -215,7 +272,6 @@ export default function PrivacySettingsPage() {
           </ItemGroup>
         </section>
       </div>
-
     </SettingsShell>
   );
 }
