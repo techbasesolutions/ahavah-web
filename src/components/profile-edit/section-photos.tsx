@@ -5,6 +5,7 @@ import { ArrowDown, ArrowUp, Trash2 } from "lucide-react";
 
 import { ProfileSection } from "@/components/app/profile-field";
 import { PhotoSlot } from "@/components/app/photo-slot";
+import { PhotoCropper } from "@/components/app/photo-cropper";
 import { Button } from "@/components/ui/button";
 import {
   deletePhoto,
@@ -34,6 +35,12 @@ type SlotIndex = 0 | 1 | 2 | 3 | 4 | 5;
 export function PhotoEditSection() {
   const { update } = useProfile();
   const [records, setRecords] = useState<PhotoRecord[]>([]);
+  // Picked-but-not-yet-cropped file; opens the cropper before upload.
+  const [pending, setPending] = useState<{
+    file: File;
+    slotIndex: SlotIndex;
+    opts: StartOptions;
+  } | null>(null);
 
   const slot0 = usePhotoUpload();
   const slot1 = usePhotoUpload();
@@ -81,7 +88,8 @@ export function PhotoEditSection() {
 
   const handlePick = (slotIndex: SlotIndex, file: File) => {
     const opts: StartOptions = { position: slotIndex + 1 };
-    void slotHooks[slotIndex].start(file, opts);
+    // Frame the crop first; the actual upload starts on confirm.
+    setPending({ file, slotIndex, opts });
   };
 
   const handleRemove = async (slotIndex: SlotIndex) => {
@@ -165,6 +173,18 @@ export function PhotoEditSection() {
       title="Photos"
       description="Your first photo is your main. It shows up on Discover and Map."
     >
+      {pending && (
+        <PhotoCropper
+          file={pending.file}
+          open
+          onCancel={() => setPending(null)}
+          onConfirm={(blob) => {
+            const cropped = new File([blob], "crop.jpg", { type: "image/jpeg" });
+            void slotHooks[pending.slotIndex].start(cropped, pending.opts);
+            setPending(null);
+          }}
+        />
+      )}
       <div className="grid grid-cols-3 gap-3">
         {Array.from({ length: SLOT_COUNT }).map((_, i) => {
           const idx = i as SlotIndex;

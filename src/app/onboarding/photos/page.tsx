@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { OnboardingShell } from "@/components/app/onboarding-shell";
 import { PhotoSlot } from "@/components/app/photo-slot";
+import { PhotoCropper } from "@/components/app/photo-cropper";
 import { Card } from "@/components/ui/card";
 import { IconBadge } from "@/components/ui/icon-badge";
 import { listPhotos } from "@/lib/photo-storage";
@@ -45,6 +46,13 @@ export default function PhotosStep() {
   const { update } = useProfile();
   const { quota } = usePhotoQuota();
   const [records, setRecords] = useState<PhotoRecord[]>([]);
+  // A picked-but-not-yet-cropped file. Opening the cropper instead of starting
+  // the upload immediately lets the user frame the square (see PhotoCropper).
+  const [pending, setPending] = useState<{
+    file: File;
+    slotIndex: SlotIndex;
+    opts: StartOptions;
+  } | null>(null);
 
   // Per-slot upload hooks. SLOT_COUNT is small + fixed so we instantiate
   // each up front (Rules of Hooks).
@@ -143,7 +151,8 @@ export default function PhotosStep() {
 
   const handlePick = (slotIndex: SlotIndex, file: File) => {
     const opts: StartOptions = { position: slotIndex + 1 };
-    void slotHooks[slotIndex].start(file, opts);
+    // Frame the crop first; the actual upload starts on confirm.
+    setPending({ file, slotIndex, opts });
   };
 
   const handleRemove = async (slotIndex: SlotIndex) => {
@@ -253,6 +262,18 @@ export default function PhotosStep() {
 
   return (
     <OnboardingShell href="/onboarding/photos" ctaDisabled={!isComplete}>
+      {pending && (
+        <PhotoCropper
+          file={pending.file}
+          open
+          onCancel={() => setPending(null)}
+          onConfirm={(blob) => {
+            const cropped = new File([blob], "crop.jpg", { type: "image/jpeg" });
+            void slotHooks[pending.slotIndex].start(cropped, pending.opts);
+            setPending(null);
+          }}
+        />
+      )}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
