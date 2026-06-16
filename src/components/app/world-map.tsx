@@ -283,13 +283,15 @@ export function WorldMap({
           keeps the UI responsive when there are 100+ markers. */}
       <MarkerClusterGroup
         chunkedLoading
-        // Clustering only while zoomed out: maxClusterRadius groups nearby
-        // pins into a numeric bubble at low zoom. Past disableClusteringAtZoom
-        // clustering stops entirely, so every distinct location shows as its
-        // own marker instead of staying merged into a bubble. Only pins at the
-        // exact same coordinate overlap past that zoom.
+        // Distinct locations separate as you zoom in (their pixel gap grows
+        // past maxClusterRadius). Profiles at the EXACT same coordinate -- e.g.
+        // two people who only set their country, or one household -- can never
+        // separate by zoom, so they collapse into one numeric bubble you TAP to
+        // fan the pins apart (spiderfy) and open each profile.
+        // (disableClusteringAtZoom is intentionally NOT set: it hid that bubble
+        // and disabled spiderfy, leaving same-coord profiles permanently stacked
+        // with no way to tell them apart.)
         maxClusterRadius={28}
-        disableClusteringAtZoom={7}
         showCoverageOnHover={false}
         spiderfyOnMaxZoom
         zoomToBoundsOnClick
