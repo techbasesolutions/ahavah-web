@@ -164,7 +164,7 @@ const colors = {
   lavender:     oklchToSrgb(0.71, 0.16, 295),
   pink:         oklchToSrgb(0.65, 0.24, 17),
   textSecondary: oklchToSrgb(0.75, 0.04, 280),
-  textMuted:    oklchToSrgb(0.66, 0.05, 280),   // post-bump value live in globals.css
+  textMuted:    oklchToSrgb(0.72, 0.05, 280),   // bumped 0.66->0.72 (2026-06-16) for legibility; live in globals.css
   success:      oklchToSrgb(0.85, 0.21, 138),
   gold:         hexToSrgb("#FFD700"),
   silver:       hexToSrgb("#C0C0C0"),

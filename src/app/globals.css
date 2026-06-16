@@ -81,11 +81,14 @@
   --color-bg-indigo:     oklch(0.18 0.11 280);
   --color-bg-elevated:   oklch(0.13 0.06 280);
   --color-text-secondary: oklch(0.75 0.04 280);
-  /* Bumped from 0.53 → 0.66 (SP20 L3 prep) to clear WCAG AA 4.5:1 on
-     bg-indigo / bg-elevated for body-min (12px caption) text. Re-verified
-     by the sub-plan 25 contrast sweep: 6.13 on indigo, 6.45 on elevated,
-     6.69 on canvas. Script: scripts/audit-contrast.mjs. */
-  --color-text-muted:    oklch(0.66 0.05 280);
+  /* 0.53 -> 0.66 (SP20 L3) cleared WCAG AA 4.5:1, but 0.66 still read as
+     "barely visible" for small grey-purple captions on the purple-dark bg
+     (passes the math, fails perception). Bumped 0.66 -> 0.72 (2026-06-16):
+     7.69 on indigo, 8.09 on elevated, 8.40 on canvas -- still below
+     --text-secondary (0.75) so the muted tier stays muted. This token is the
+     root for ALL muted captions (text-muted + --ink-3 + --fg-subtle).
+     Script: scripts/audit-contrast.mjs. */
+  --color-text-muted:    oklch(0.72 0.05 280);
 
   /* Semantic state colors */
   --color-success:       oklch(0.85 0.21 138);  /* #9FE870 — online dot */
@@ -246,7 +249,7 @@
   --bg-elevated:          oklch(0.13 0.06 280);
   --text-primary:         #FFFFFF;
   --text-secondary:       oklch(0.75 0.04 280);
-  --text-muted:           oklch(0.66 0.05 280);
+  --text-muted:           oklch(0.72 0.05 280);
 
   /* Brand aliases without --color- prefix (so kit-side and handoff-side
      CSS-var references both resolve). The Tailwind --color-* names are
