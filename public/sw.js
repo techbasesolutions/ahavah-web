@@ -22,7 +22,10 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE).then((cache) => cache.addAll(APP_SHELL).catch(() => {}))
   );
-  self.skipWaiting();
+  // No skipWaiting() here: the new SW installs and WAITS so the app
+  // (useAppUpdate) controls WHEN to apply -- auto on reopen, prompt during
+  // active use. The app posts {type:"SKIP_WAITING"} when it's ready (handler
+  // below), which activates this SW -> controllerchange -> the app reloads.
 });
 
 self.addEventListener("activate", (event) => {
@@ -32,6 +35,12 @@ self.addEventListener("activate", (event) => {
       .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
   );
   self.clients.claim();
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener("fetch", (event) => {

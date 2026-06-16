@@ -6,7 +6,7 @@ import { Analytics } from "@vercel/analytics/next";
 
 import { META_PIXEL_ID } from "@/lib/meta-pixel";
 
-import { ServiceWorkerRegister } from "@/components/sw-register";
+import { UpdateBar } from "@/components/update-bar";
 import { ThemeProvider } from "@/components/system/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { safeJsonLd } from "@/lib/json-ld";
@@ -148,7 +148,7 @@ export default function RootLayout({
           <main id="ahavah-main" tabIndex={-1} className="ahavah-app focus-visible:outline-none">
             {children}
           </main>
-          <ServiceWorkerRegister />
+          <UpdateBar />
           {/* Toast portal — every page can `import { toast } from "sonner"`
               and surface user-visible error/success messages. Previously
               installed but never mounted, so silent-error patterns in token
