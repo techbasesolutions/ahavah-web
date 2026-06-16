@@ -19,7 +19,7 @@ export function isSex(value: unknown): value is Sex {
 
 // Relationship Intent ------------------------------------------------------
 // Gender-conditional intent: men and women see different options. We store
-// both unions in the same field `Profile.intent` as a discriminated whole;
+// both unions in the same field `Profile.intent` (a MULTI-SELECT array);
 // the UI uses `intentOptionsForSex(sex)` to render the correct picker.
 
 export type MaleIntent =
@@ -882,8 +882,12 @@ export type Profile = {
   // discover, profile-detail) render record.cdn_url directly; the photo
   // pipeline lives in `photo-storage.ts`.
   photos?: PhotoRecord[];
-  // Relationship intent (gender-conditional)
-  intent?: Intent;
+  // Relationship intent (gender-conditional). MULTI-SELECT as of 2026-06-16
+  // (a user picks a relationship type plus a partner-status dimension, e.g.
+  // ["courtship","unmarried-man"]). Stored inside the ahavah_extra JSONB
+  // blob; pre-existing single-string values are normalised to a one-element
+  // array on read (see use-profile.ts translateInbound). Mirrors `assembly`.
+  intent?: Intent[];
   // Faith cluster. assembly is MULTI-SELECT as of 2026-05-19 (a believer
   // self-identifies as several terms). Stored inside the ahavah_extra
   // JSONB blob; pre-existing single-string values are normalised to a

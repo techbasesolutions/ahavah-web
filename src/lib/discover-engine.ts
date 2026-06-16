@@ -118,9 +118,15 @@ function passesAllFilters(candidate: DiscoverCandidate, filters: DiscoverFilters
     }
   }
 
-  // Intents
+  // Intents — candidate.intent is multi-select (2026-06-16). Pass if ANY
+  // of the candidate's intents intersects the filter set (mirrors the
+  // assembly overlap test above).
   if (filters.intents && filters.intents.length > 0) {
-    if (!candidate.intent || !filters.intents.includes(candidate.intent)) {
+    const candidateIntents = candidate.intent ?? [];
+    const hasOverlap = candidateIntents.some((i) =>
+      filters.intents!.includes(i),
+    );
+    if (!hasOverlap) {
       return false;
     }
   }

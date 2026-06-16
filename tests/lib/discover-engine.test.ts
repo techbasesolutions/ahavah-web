@@ -184,9 +184,9 @@ describe("discover-engine", () => {
     it("requires candidate intent in the list", () => {
       const viewer: Profile = { firstName: "Sarah" };
       const candidates: DiscoverCandidate[] = [
-        makeCandidate({ firstName: "Daniel", sex: "male", intent: "courtship" }),
-        makeCandidate({ firstName: "Yosef", sex: "male", intent: "additional-wife" }),
-        makeCandidate({ firstName: "David", sex: "male", intent: "marriage-only" }),
+        makeCandidate({ firstName: "Daniel", sex: "male", intent: ["courtship"] }),
+        makeCandidate({ firstName: "Yosef", sex: "male", intent: ["additional-wife"] }),
+        makeCandidate({ firstName: "David", sex: "male", intent: ["marriage-only"] }),
       ];
       const filters: DiscoverFilters = {
         intents: ["courtship", "marriage-only"] as readonly Intent[],
@@ -200,7 +200,7 @@ describe("discover-engine", () => {
       const viewer: Profile = { firstName: "Sarah" };
       const candidates: DiscoverCandidate[] = [
         makeCandidate({ firstName: "NoIntent" }),
-        makeCandidate({ firstName: "David", sex: "male", intent: "courtship" }),
+        makeCandidate({ firstName: "David", sex: "male", intent: ["courtship"] }),
       ];
       const filters: DiscoverFilters = {
         intents: ["courtship"] as readonly Intent[],

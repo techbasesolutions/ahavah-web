@@ -6,7 +6,7 @@ import { motion } from "motion/react";
 
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
 
 import { cn } from "@/lib/utils";
 
@@ -42,10 +42,20 @@ export default function LookingForStep() {
   }
 
   const options = intentOptionsForSex(profile.sex);
-  const selected = profile.intent ?? "";
+  const selected = profile.intent ?? [];
+
+  const toggle = (value: Intent) => {
+    const next = selected.includes(value)
+      ? selected.filter((v) => v !== value)
+      : [...selected, value];
+    update({ intent: next });
+  };
 
   return (
-    <OnboardingShell href="/onboarding/looking-for" ctaDisabled={!selected}>
+    <OnboardingShell
+      href="/onboarding/looking-for"
+      ctaDisabled={selected.length === 0}
+    >
       <motion.div
         {...fadeUp}
         transition={{ duration: 0.4 }}
@@ -55,7 +65,8 @@ export default function LookingForStep() {
           What are you looking for<span className="text-lime">?</span>
         </h1>
         <p className="text-body text-(--ink-2)">
-          You can change this anytime from your profile.
+          Pick every option that fits. You can change this anytime from your
+          profile.
         </p>
       </motion.div>
 
@@ -63,15 +74,12 @@ export default function LookingForStep() {
         {...fadeUp}
         transition={{ duration: 0.3, delay: 0.08 }}
         className="mt-8"
+        role="group"
+        aria-label="What you're looking for (select all that apply)"
       >
-        <RadioGroup
-          value={selected}
-          onValueChange={(v) => update({ intent: v as Intent })}
-          aria-label="What you're looking for"
-          className="grid gap-3"
-        >
+        <div className="grid gap-3">
           {options.map((opt, i) => {
-            const active = opt.value === selected;
+            const active = selected.includes(opt.value);
             return (
               <motion.div
                 key={opt.value}
@@ -99,13 +107,14 @@ export default function LookingForStep() {
                     >
                       {opt.label}
                     </span>
-                    <RadioGroupItem
+                    <Checkbox
                       id={`looking-${opt.value}`}
-                      value={opt.value}
-                      variant="brand"
+                      checked={active}
+                      onCheckedChange={() => toggle(opt.value)}
+                      aria-label={opt.label}
                       className={
                         active
-                          ? "border-black data-checked:bg-black data-checked:border-black"
+                          ? "border-black data-checked:bg-black data-checked:border-black data-checked:text-lime"
                           : undefined
                       }
                     />
@@ -114,7 +123,7 @@ export default function LookingForStep() {
               </motion.div>
             );
           })}
-        </RadioGroup>
+        </div>
       </motion.div>
     </OnboardingShell>
   );

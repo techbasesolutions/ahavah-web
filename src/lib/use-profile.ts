@@ -142,20 +142,25 @@ const TRANSFORMS: Record<string, FieldTransform> = {
     return { ahavah_extra: { wantsChildren: v } };
   },
 
-  // Looking-for / intent — same dual-write pattern as children.
-  // Backend's `looking_for` enum has only "Marriage" / "Long-term
-  // dating" (loses Ahavah's 12-value Intent enum: first-wife,
+  // Looking-for / intent — MULTI-SELECT as of 2026-06-16, same dual-write
+  // pattern as children. Backend's `looking_for` enum has only "Marriage" /
+  // "Long-term dating" (loses Ahavah's Intent enum: first-wife,
   // additional-wife, unmarried-man, married-man, courtship, etc.).
   // Write the coarse value for any backend feature that filters on
-  // looking_for, plus the precise enum in ahavah_extra so /profile
-  // can render the exact phrasing the user picked.
+  // looking_for (Marriage if ANY selected intent is a marriage-type),
+  // plus the precise array in ahavah_extra so /profile can render the
+  // exact phrasing the user picked. Empty array clears the key via
+  // bundleExtra (null), leaving looking_for untouched.
   intent: (v) => {
-    if (typeof v !== "string") return null;
+    if (!Array.isArray(v)) return null;
+    const extra = bundleExtra("intent", v);
+    if (v.length === 0) return extra;
+    const wantsMarriage = v.some(
+      (i) => typeof i === "string" && INTENT_TO_LOOKING_FOR_MARRIAGE.has(i),
+    );
     return {
-      looking_for: INTENT_TO_LOOKING_FOR_MARRIAGE.has(v)
-        ? "Marriage"
-        : "Long-term dating",
-      ahavah_extra: { intent: v },
+      looking_for: wantsMarriage ? "Marriage" : "Long-term dating",
+      ...extra,
     };
   },
 
@@ -468,6 +473,14 @@ function translateInbound(server: Partial<Profile> | Record<string, unknown>): P
   // cleanly. New profiles already write an array.
   if (typeof out.assembly === "string") {
     out.assembly = [out.assembly];
+  }
+
+  // intent went multi-select 2026-06-16 (same migration shape as assembly).
+  // Pre-existing profiles stored a single string in ahavah_extra.intent;
+  // normalise to a one-element array so the new Intent[] type + the
+  // multi-select UI read it cleanly. New profiles already write an array.
+  if (typeof out.intent === "string") {
+    out.intent = [out.intent];
   }
 
   return out as Partial<Profile>;

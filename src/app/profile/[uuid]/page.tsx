@@ -162,6 +162,13 @@ function adaptProspect(raw: Record<string, unknown>): Profile & { country?: stri
   if (typeof extras.assembly === "string") {
     extras.assembly = [extras.assembly];
   }
+  // intent went multi-select 2026-06-16 (Intent[]). Pre-existing profiles
+  // stored a single string in ahavah_extra.intent; formatIntent is already
+  // defensive, but normalise string -> one-element array here so the spread
+  // value matches the Intent[] type, mirroring assembly above.
+  if (typeof extras.intent === "string") {
+    extras.intent = [extras.intent];
+  }
   // Derive verificationTags from real backend signals — was previously
   // mock-only via profile-sample data, so live peers always rendered an
   // empty Verified cluster regardless of their tier. Maps real signals
@@ -195,13 +202,16 @@ function adaptProspect(raw: Record<string, unknown>): Profile & { country?: stri
     education,
     healthTags: healthTags.length ? healthTags : undefined,
     photos,
-    // Pass-through looking_for raw value — the page's labelOf returns
-    // undefined for the backend's strings ("Long-term dating",
-    // "Marriage") which aren't in the Torah-observant Intent enum, but
-    // the rendering falls back to the raw value when labelOf misses.
-    intent: typeof raw.looking_for === "string"
-      ? (raw.looking_for as Profile["intent"])
-      : undefined,
+    // Pass-through looking_for raw value as a one-element array (intent is
+    // multi-select / Intent[] as of 2026-06-16). formatIntent falls back to
+    // the raw value when labelOf misses the backend's strings ("Long-term
+    // dating", "Marriage"), which aren't in the Torah-observant Intent enum.
+    // This coarse value is overridden by ahavah_extra.intent (the precise
+    // array) when present — it's spread LAST below.
+    intent:
+      typeof raw.looking_for === "string"
+        ? ([raw.looking_for] as Profile["intent"])
+        : undefined,
     // Languages — server ships `languages_spoken: TEXT[]` (migration
     // 0001). Filter to strings to satisfy ReadonlyArray<string>.
     languages: Array.isArray(raw.languages_spoken)

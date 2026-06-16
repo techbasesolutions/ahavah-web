@@ -40,14 +40,14 @@ export default function PracticalSection() {
       title="Practical compatibility"
       description="The logistics that make a relationship work day-to-day."
     >
-      {/* 1. intent (gender-conditional) */}
+      {/* 1. intent (gender-conditional, multi-select) */}
       {intentOpts ? (
-        <SingleSelectField
-          id="intent"
+        <MultiSelectField
           label="What you're looking for"
+          description="Pick every option that fits"
           options={intentOpts}
-          value={profile.intent}
-          onValueChange={(v: Intent) => update({ intent: v })}
+          value={profile.intent ?? []}
+          onValueChange={(v: Intent[]) => update({ intent: v })}
         />
       ) : (
         <Card tone="default" className="rounded-xl px-4 py-3">

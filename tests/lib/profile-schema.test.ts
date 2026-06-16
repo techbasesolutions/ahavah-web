@@ -640,16 +640,16 @@ describe("Profile aggregate", () => {
       firstName: "Daniel",
       age: 32,
       sex: "male",
-      intent: "first-wife",
+      intent: ["first-wife"],
     };
     const female: Profile = {
       firstName: "Esther",
       age: 28,
       sex: "female",
-      intent: "unmarried-man",
+      intent: ["unmarried-man"],
     };
-    expect(male.intent).toBe("first-wife");
-    expect(female.intent).toBe("unmarried-man");
+    expect(male.intent).toEqual(["first-wife"]);
+    expect(female.intent).toEqual(["unmarried-man"]);
   });
 });
 

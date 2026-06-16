@@ -96,7 +96,7 @@ describe("wizard-flow", () => {
       maritalStatus: "never-married",
       children: 0,
       country: "BB",
-      intent: "first-wife",
+      intent: ["first-wife"],
       assembly: ["torah-observant"],
       relocation: "local-only",
       verificationTags: ["government-id"],
@@ -121,7 +121,7 @@ describe("wizard-flow", () => {
       maritalStatus: "never-married",
       children: 0,
       country: "BB",
-      intent: "marriage-only",
+      intent: ["marriage-only"],
       assembly: ["messianic"],
       relocation: "international-open",
       // verificationTags omitted
