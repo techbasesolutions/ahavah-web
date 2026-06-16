@@ -132,7 +132,12 @@ export function usePhotoUpload(): UsePhotoUploadResult {
         if (prev.kind !== "moderating") return prev;
         switch (updated.moderation_state) {
           case "approved":
-            revokePreview();
+            // A blob: cdn_url means the caller (the onboardee photo path,
+            // which has no real photo UUID from the body-less PATCH) is
+            // reusing the local preview blob as the displayed image.
+            // Revoking it here would break that <img>. Only revoke when a
+            // real (CDN) URL has replaced the preview.
+            if (!updated.cdn_url.startsWith("blob:")) revokePreview();
             return { kind: "ready", photo: updated };
           case "rejected":
             return {
