@@ -13,7 +13,11 @@ import { IconBadge } from "@/components/ui/icon-badge";
 import { listPhotos } from "@/lib/photo-storage";
 import { readOnboarded } from "@/lib/onboarded-storage";
 import { usePhotoQuota } from "@/lib/use-photo-quota";
-import { usePhotoUpload, type StartOptions } from "@/lib/use-photo-upload";
+import {
+  usePhotoUpload,
+  resetSettledPhotoHooks,
+  type StartOptions,
+} from "@/lib/use-photo-upload";
 import { useProfile } from "@/lib/use-profile";
 import type { PhotoRecord } from "@/lib/photo-types";
 
@@ -162,7 +166,9 @@ export default function PhotosStep() {
       const { deletePhoto } = await import("@/lib/photo-storage");
       await deletePhoto(rec.position);
       await refreshFromBackend();
-      slotHooks[slotIndex].reset();
+      // A delete renumbers positions; reset stale per-slot hooks so they don't
+      // shadow the refreshed records (see resetSettledPhotoHooks).
+      resetSettledPhotoHooks(slotHooks);
     } catch {
       toast.error("Couldn't remove that photo — please try again.");
     }

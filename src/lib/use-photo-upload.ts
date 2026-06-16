@@ -158,6 +158,24 @@ export function usePhotoUpload(): UsePhotoUploadResult {
   return { state, start, confirmModeration, reset };
 }
 
+/**
+ * After a backend op that renumbers photo positions (delete or reorder), every
+ * slot's optimistic "ready" hook is stale and would shadow the refreshed,
+ * position-sorted records -- e.g. a moved-up photo shows in its new slot AND
+ * its old slot's stale hook (a duplicate). Reset all SETTLED hooks so each slot
+ * reflects records; leave in-flight uploads (compressing/uploading/moderating)
+ * running.
+ */
+export function resetSettledPhotoHooks(
+  hooks: readonly UsePhotoUploadResult[],
+): void {
+  for (const h of hooks) {
+    const k = h.state.kind;
+    if (k === "compressing" || k === "uploading" || k === "moderating") continue;
+    h.reset();
+  }
+}
+
 /** Decode a `data:image/jpeg;base64,...` URL into a Blob. Used to bridge
  *  compressImage's dataUrl output and uploadPhoto's Blob input. */
 function dataUrlToBlob(dataUrl: string): Blob {

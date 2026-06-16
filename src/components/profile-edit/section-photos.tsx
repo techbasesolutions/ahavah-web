@@ -12,7 +12,11 @@ import {
   listPhotos,
   reorderPhotos,
 } from "@/lib/photo-storage";
-import { usePhotoUpload, type StartOptions } from "@/lib/use-photo-upload";
+import {
+  usePhotoUpload,
+  resetSettledPhotoHooks,
+  type StartOptions,
+} from "@/lib/use-photo-upload";
 import { useProfile } from "@/lib/use-profile";
 import type { PhotoRecord } from "@/lib/photo-types";
 
@@ -98,7 +102,9 @@ export function PhotoEditSection() {
     try {
       await deletePhoto(rec.position);
       await refreshFromBackend();
-      slotHooks[slotIndex].reset();
+      // A delete renumbers positions; reset stale per-slot hooks so they don't
+      // shadow the refreshed records (see resetSettledPhotoHooks).
+      resetSettledPhotoHooks(slotHooks);
     } catch {
       // Best-effort.
     }
@@ -120,6 +126,9 @@ export function PhotoEditSection() {
         [b.position]: a.position,
       });
       await refreshFromBackend();
+      // A reorder renumbers positions; reset stale per-slot hooks so the swap
+      // reflects the refreshed records (see resetSettledPhotoHooks).
+      resetSettledPhotoHooks(slotHooks);
     } catch {
       // Best-effort.
     }
