@@ -87,6 +87,14 @@ export type DiscoverCandidate = Profile & {
    * Undefined when the prospect has never been signed in.
    */
   seconds_since_last_online?: number;
+  /**
+   * Precise (city-level) map position from the prospect's stored
+   * coordinate (search ships `latitude`/`longitude` from person.coordinates).
+   * The /map marker uses these when present; null/undefined falls back to
+   * the country centroid. See map-avatar.tsx.
+   */
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
 /** Peer-profile fields surfaced inside MatchRecord.with_profile and

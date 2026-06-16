@@ -2,7 +2,8 @@
 
 /**
  * <MapAvatar> — Leaflet marker rendered as a gradient stamp at a
- * candidate's country centroid.
+ * candidate's precise (city-level) coordinate when search provides one,
+ * else their country centroid.
  *
  * Renderer swap (2026-05-12): the previous SVG <foreignObject> stamp
  * was tied to d3-geo's projection inside <WorldMap>'s zoomable <g>.
@@ -47,7 +48,13 @@ import type { MarkerState } from "@/lib/map-avatar-state";
 import type { Profile } from "@/lib/profile-schema";
 
 export interface MapAvatarProps {
-  candidate: Profile & { id?: string };
+  candidate: Profile & {
+    id?: string;
+    /** Precise (city-level) position from search; falls back to the country
+     *  centroid when absent. */
+    latitude?: number | null;
+    longitude?: number | null;
+  };
   /**
    * Optional marker state from `resolveMarkerState`. Drives an 18×18 top-
    * right badge (match / active-chat / liked) and/or a grayscale+opacity
@@ -286,7 +293,19 @@ export function MapAvatar({
 
   // Deferred early returns (moved from the top so the useMemo above isn't
   // skipped on null-iso renders, which would violate rules-of-hooks).
-  if (!iso || !centroid) return null;
+  //
+  // Position: prefer the prospect's precise (city-level) coordinate when the
+  // search response carried one, so distinct cities/states separate on the
+  // map. Fall back to the country centroid otherwise (legacy + coords-less
+  // accounts). iso is still required for the flag bubble.
+  const position: [number, number] | null =
+    typeof candidate.latitude === "number" &&
+    typeof candidate.longitude === "number"
+      ? [candidate.latitude, candidate.longitude]
+      : centroid
+        ? [centroid.lat, centroid.lng]
+        : null;
+  if (!iso || !position) return null;
 
   const popupLocation =
     candidate.city && countryLabel
@@ -296,7 +315,7 @@ export function MapAvatar({
   return (
     <Marker
       ref={markerRef}
-      position={[centroid.lat, centroid.lng]}
+      position={position}
       icon={icon}
       eventHandlers={{
         click: () => router.push(href),
