@@ -238,6 +238,25 @@ function labelOf<T extends string>(
   return options.find((opt) => opt.value === value)?.label;
 }
 
+// Intent is multi-value in the data (e.g. ["courtship","unmarried-man"] — a
+// relationship type plus a partner-status dimension), even though the type
+// models a single value. Normalise to an array and label each, so it renders
+// "Courtship, Unmarried man" instead of the joined raw "courtshipunmarried-man".
+function formatIntent(
+  intent: unknown,
+  sex: Profile["sex"],
+): string | undefined {
+  if (intent == null) return undefined;
+  const options = sex ? intentOptionsForSex(sex) : [];
+  const values = (Array.isArray(intent) ? intent : [intent]).filter(
+    (v): v is string => typeof v === "string" && v.length > 0,
+  );
+  if (!values.length) return undefined;
+  return values
+    .map((v) => options.find((o) => o.value === v)?.label ?? v)
+    .join(", ");
+}
+
 export default function ProfileDetailPage({ params }: Props) {
   const { uuid } = use(params);
   // Try backend first; fall back to sampleByName for legacy/test URLs
@@ -741,9 +760,7 @@ export default function ProfileDetailPage({ params }: Props) {
               <div className="flex gap-2">
                 <dt className="text-meta text-(--ink-2)">Intent:</dt>
                 <dd className="text-meta text-(--ink)">
-                  {(profile.sex
-                    ? labelOf(profile.intent, intentOptionsForSex(profile.sex))
-                    : null) ?? profile.intent}
+                  {formatIntent(profile.intent, profile.sex)}
                 </dd>
               </div>
             )}
@@ -1224,12 +1241,7 @@ export default function ProfileDetailPage({ params }: Props) {
                   )}
                   {profile.intent && (
                     <Pill variant="lavender" size="sm">
-                      {(profile.sex
-                        ? labelOf(
-                            profile.intent,
-                            intentOptionsForSex(profile.sex),
-                          )
-                        : null) ?? profile.intent}
+                      {formatIntent(profile.intent, profile.sex)}
                     </Pill>
                   )}
                 </div>
