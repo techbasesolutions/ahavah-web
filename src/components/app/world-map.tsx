@@ -283,9 +283,14 @@ export function WorldMap({
           keeps the UI responsive when there are 100+ markers. */}
       <MarkerClusterGroup
         chunkedLoading
-        maxClusterRadius={45}
+        // Tighter radius so clusters break apart sooner as you zoom in
+        // (smoother spread) — distinct real locations now separate early,
+        // and only genuinely-coincident pins (same country-centroid) stay
+        // grouped. spiderfyOnMaxZoom fans those out on tap at full zoom.
+        maxClusterRadius={28}
         showCoverageOnHover={false}
         spiderfyOnMaxZoom
+        zoomToBoundsOnClick
         iconCreateFunction={clusterIcon}
       >
         {children}
