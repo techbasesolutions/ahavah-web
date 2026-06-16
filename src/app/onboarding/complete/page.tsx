@@ -160,7 +160,7 @@ export default function OnboardingCompletePage() {
           <p
             role="alert"
             aria-live="polite"
-            className="text-center text-caption font-semibold text-pink"
+            className="text-center text-caption font-semibold text-(--text-danger)"
           >
             {error}
           </p>

@@ -166,6 +166,10 @@ const colors = {
   textSecondary: oklchToSrgb(0.75, 0.04, 280),
   textMuted:    oklchToSrgb(0.72, 0.05, 280),   // bumped 0.66->0.72 (2026-06-16) for legibility; live in globals.css
   success:      oklchToSrgb(0.85, 0.21, 138),
+  // Status TEXT tokens, light-mode values (--text-success/--text-danger). The
+  // dark-mode values are the lime/pink above; these darken for AA on white.
+  textSuccessLight: oklchToSrgb(0.53, 0.15, 145),
+  textDangerLight:  oklchToSrgb(0.52, 0.20, 25),
   gold:         hexToSrgb("#FFD700"),
   silver:       hexToSrgb("#C0C0C0"),
   bronze:       hexToSrgb("#CD7F32"),
@@ -197,6 +201,11 @@ const PAIRS = [
   { label: "text-muted    on canvas",         fg: colors.textMuted, bg: colors.canvas,   min: 4.5, used: "small captions on /map" },
   { label: "text-muted    on indigo",         fg: colors.textMuted, bg: colors.indigo,   min: 4.5, used: "small captions inside .ahavah-app" },
   { label: "text-muted    on elevated",       fg: colors.textMuted, bg: colors.elevated, min: 4.5, used: "small captions inside Cards" },
+
+  // Status TEXT on the white card (light mode) -- lime/pink as TEXT fail here
+  // (1.9 / 3.7), so --text-success/--text-danger darken for AA on white.
+  { label: "text-success(lt) on white",      fg: colors.textSuccessLight, bg: colors.white, min: 4.5, used: "completion 'All required filled' on light card" },
+  { label: "text-danger(lt)  on white",      fg: colors.textDangerLight,  bg: colors.white, min: 4.5, used: "completion/validation danger text on light card" },
 
   // Alpha-mixed text-white over indigo / elevated ---------------------------
   { label: "white/85      on indigo",         fg: compositeOver(colors.white, 0.85, colors.indigo),   bg: colors.indigo,   min: 4.5, used: "tier-card body copy (verify page)" },

@@ -223,8 +223,8 @@ export default function EditProfilePage() {
                 <span
                   className={
                     requiredMissing > 0
-                      ? "text-meta text-pink"
-                      : "text-meta text-lime"
+                      ? "text-meta text-(--text-danger)"
+                      : "text-meta text-(--text-success)"
                   }
                 >
                   {requiredMissing > 0

@@ -110,7 +110,7 @@ function cap(s?: string | null): string {
 function ErrorBanner({ error }: { error: string | null }) {
   if (!error) return null;
   return (
-    <p role="alert" aria-live="polite" className="text-meta font-semibold text-pink">
+    <p role="alert" aria-live="polite" className="text-meta font-semibold text-(--text-danger)">
       {error}
     </p>
   );
@@ -144,7 +144,7 @@ function PlanBlock({ sub }: { sub: Subscription }) {
       </div>
 
       {sub.cancel_at_period_end ? (
-        <p className="m-0 mt-4 text-caption font-semibold text-pink">
+        <p className="m-0 mt-4 text-caption font-semibold text-(--text-danger)">
           Your subscription is set to cancel on {fmtDate(sub.current_period_end)}.
         </p>
       ) : null}

@@ -260,6 +260,12 @@
   --pink:                 oklch(0.65 0.24 17);
   --success:              oklch(0.85 0.21 138);
 
+  /* Status TEXT colors (distinct from the lime/pink FILLS used by progress
+     bars + pills): bright here for the dark card; the light override darkens
+     them for the white card, where lime/pink AS TEXT fail AA (1.91 / 3.66). */
+  --text-success:         oklch(0.95 0.18 119);  /* = lime, legible on dark */
+  --text-danger:          oklch(0.65 0.24 17);   /* = pink, legible on dark */
+
   /* Semantic chrome (canonical tokens.css lines 26–47) */
   --app:                  var(--bg-indigo);
   --canvas:               var(--bg-canvas);
@@ -316,6 +322,12 @@
      either form resolve to the cream-safe value. */
   --color-lime:          oklch(0.78 0.22 119);
   --lime:                oklch(0.78 0.22 119);
+
+  /* Status TEXT darkened for legibility on the white card -- lime/pink AS TEXT
+     are only ~1.9 / 3.7 here; these pass AA. (The lime/pink FILLS above stay
+     bright; this only affects text-(--text-success/--text-danger).) */
+  --text-success:        oklch(0.53 0.15 145);  /* 4.95 on white */
+  --text-danger:         oklch(0.52 0.20 25);   /* 6.12 on white */
 
   /* Surface overrides — Tailwind token aliases */
   --color-bg-canvas:     #FBF9F4;

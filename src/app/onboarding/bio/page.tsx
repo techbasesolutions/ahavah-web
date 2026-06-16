@@ -32,11 +32,11 @@ export default function BioStep() {
     value.length === 0
       ? "text-(--ink-3)"
       : value.length >= ALERT_AT
-        ? "text-pink"
+        ? "text-(--text-danger)"
         : value.length >= WARN_AT
           ? "text-lavender"
           : value.length >= SOFT_MIN
-            ? "text-lime"
+            ? "text-(--text-success)"
             : "text-(--ink-2)";
 
   return (

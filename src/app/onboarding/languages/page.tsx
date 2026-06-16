@@ -183,7 +183,7 @@ export default function LanguagesStep() {
         ? `Primary: ${primaryLabel}. Chats default to this. Tap a selected language again to change.`
         : "Pick a language to set as your primary.";
   const helperTone =
-    selected.length === 0 ? "text-pink" : "text-(--ink-2)";
+    selected.length === 0 ? "text-(--text-danger)" : "text-(--ink-2)";
 
   return (
     <OnboardingShell href="/onboarding/languages" ctaDisabled={!isComplete}>

@@ -169,7 +169,7 @@ export default function DOBStep() {
         role={isUnderage ? "alert" : undefined}
         className={
           isUnderage
-            ? "mt-6 text-caption font-medium text-pink"
+            ? "mt-6 text-caption font-medium text-(--text-danger)"
             : "mt-6 text-caption text-(--ink-3)"
         }
       >
