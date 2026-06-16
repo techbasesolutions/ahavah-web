@@ -47,7 +47,7 @@ import "leaflet/dist/leaflet.css";
 
 import { useEffect, type ReactNode } from "react";
 import L from "leaflet";
-import { MapContainer, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 
 import { cn } from "@/lib/utils";
@@ -55,13 +55,14 @@ import type { BBox } from "@/lib/continent-bbox";
 import { useTheme, resolveTheme } from "@/lib/theme";
 
 /**
- * Cluster icon factory — replaces the library default red/blue circles
- * with a lavender-on-bg-elevated bubble matching the rest of the app.
- * Cluster bubble size scales mildly with count so a 20-marker cluster
- * looks bigger than a 2-marker one without becoming a sprawling blob.
+ * Count-bubble divIcon — a lavender-on-bg-elevated bubble matching the
+ * rest of the app. Bubble size scales mildly with count so a 20-marker
+ * cluster looks bigger than a 2-marker one without becoming a sprawling
+ * blob. Shared by the library `MarkerClusterGroup` (client-clustered
+ * fallback) and the server-clustered `ClusterMarker` so both render an
+ * identical bubble.
  */
-function clusterIcon(cluster: { getChildCount: () => number }): L.DivIcon {
-  const n = cluster.getChildCount();
+function clusterBubbleIcon(n: number): L.DivIcon {
   const sz = n < 10 ? 36 : n < 100 ? 44 : 52;
   const html = `
     <div style="
@@ -83,6 +84,45 @@ function clusterIcon(cluster: { getChildCount: () => number }): L.DivIcon {
     iconSize: [sz, sz],
     iconAnchor: [sz / 2, sz / 2],
   });
+}
+
+/**
+ * Cluster icon factory for react-leaflet-cluster's `iconCreateFunction`.
+ * Delegates to {@link clusterBubbleIcon} so the client-clustered bubble
+ * matches the server-clustered one.
+ */
+function clusterIcon(cluster: { getChildCount: () => number }): L.DivIcon {
+  return clusterBubbleIcon(cluster.getChildCount());
+}
+
+/**
+ * ClusterMarker — a single server-clustered count bubble at (lat, lng).
+ *
+ * The server now pre-clusters markers (GET /map/markers returns cells with
+ * a `count`), so a cell with count > 1 renders as one of these bubbles
+ * instead of stacked avatars. Tapping it flies the map in two zoom levels
+ * (clamped to maxZoom 10) so the cluster resolves toward its members —
+ * the server returns finer cells at the higher zoom.
+ */
+export function ClusterMarker({
+  lat,
+  lng,
+  count,
+}: {
+  lat: number;
+  lng: number;
+  count: number;
+}) {
+  const map = useMap();
+  return (
+    <Marker
+      position={[lat, lng]}
+      icon={clusterBubbleIcon(count)}
+      eventHandlers={{
+        click: () => map.flyTo([lat, lng], Math.min(map.getZoom() + 2, 10)),
+      }}
+    />
+  );
 }
 
 // Web Mercator's usable world rectangle. Shared by maxBounds (pan limit)
@@ -159,6 +199,13 @@ export interface WorldMapProps {
   children?: ReactNode;
   /** Class overrides for the root MapContainer. */
   className?: string;
+  /**
+   * Wrap children in the client-side `MarkerClusterGroup` (default true).
+   * Set false when the markers are ALREADY server-clustered (e.g. the
+   * /map/markers viewport API) so the client doesn't double-cluster
+   * count bubbles into a bubble-of-bubbles.
+   */
+  cluster?: boolean;
 }
 
 /**
@@ -227,6 +274,7 @@ export function WorldMap({
   initialZoom,
   children,
   className,
+  cluster = true,
 }: WorldMapProps) {
   // Theme-aware basemap — Dark Matter in the dark theme, Voyager in light,
   // resolved via the app's own theme store so it tracks live toggles.
@@ -276,29 +324,36 @@ export function WorldMap({
         onViewChange={onViewChange}
         bbox={bbox}
       />
-      {/* MarkerClusterGroup collapses overlapping markers into a single
-          numeric bubble. Without this, every additional candidate at a
-          country centroid pinned on top of the previous one. Click on a
-          cluster zooms in until the children spread out. chunkedLoading
-          keeps the UI responsive when there are 100+ markers. */}
-      <MarkerClusterGroup
-        chunkedLoading
-        // Distinct locations separate as you zoom in (their pixel gap grows
-        // past maxClusterRadius). Profiles at the EXACT same coordinate -- e.g.
-        // two people who only set their country, or one household -- can never
-        // separate by zoom, so they collapse into one numeric bubble you TAP to
-        // fan the pins apart (spiderfy) and open each profile.
-        // (disableClusteringAtZoom is intentionally NOT set: it hid that bubble
-        // and disabled spiderfy, leaving same-coord profiles permanently stacked
-        // with no way to tell them apart.)
-        maxClusterRadius={28}
-        showCoverageOnHover={false}
-        spiderfyOnMaxZoom
-        zoomToBoundsOnClick
-        iconCreateFunction={clusterIcon}
-      >
-        {children}
-      </MarkerClusterGroup>
+      {/* When the markers are server-clustered (cluster=false), render them
+          directly — the client-side MarkerClusterGroup would otherwise
+          re-cluster the server's count bubbles into a bubble-of-bubbles. */}
+      {cluster ? (
+        /* MarkerClusterGroup collapses overlapping markers into a single
+           numeric bubble. Without this, every additional candidate at a
+           country centroid pinned on top of the previous one. Click on a
+           cluster zooms in until the children spread out. chunkedLoading
+           keeps the UI responsive when there are 100+ markers. */
+        <MarkerClusterGroup
+          chunkedLoading
+          // Distinct locations separate as you zoom in (their pixel gap grows
+          // past maxClusterRadius). Profiles at the EXACT same coordinate -- e.g.
+          // two people who only set their country, or one household -- can never
+          // separate by zoom, so they collapse into one numeric bubble you TAP to
+          // fan the pins apart (spiderfy) and open each profile.
+          // (disableClusteringAtZoom is intentionally NOT set: it hid that bubble
+          // and disabled spiderfy, leaving same-coord profiles permanently stacked
+          // with no way to tell them apart.)
+          maxClusterRadius={28}
+          showCoverageOnHover={false}
+          spiderfyOnMaxZoom
+          zoomToBoundsOnClick
+          iconCreateFunction={clusterIcon}
+        >
+          {children}
+        </MarkerClusterGroup>
+      ) : (
+        children
+      )}
     </MapContainer>
   );
 }
