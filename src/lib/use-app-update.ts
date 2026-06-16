@@ -22,10 +22,16 @@ export function useAppUpdate(): {
   const [updateReady, setUpdateReady] = useState(false);
   const regRef = useRef<ServiceWorkerRegistration | null>(null);
   const reloadedRef = useRef(false);
+  // Set right before we post SKIP_WAITING, so the controllerchange listener
+  // reloads ONLY for an update we applied -- never for the first-install
+  // clients.claim() (which also fires controllerchange).
+  const applyingRef = useRef(false);
 
   const applyUpdate = useCallback(() => {
-    // controllerchange (wired in the effect) triggers the one reload.
-    regRef.current?.waiting?.postMessage({ type: "SKIP_WAITING" });
+    const waiting = regRef.current?.waiting;
+    if (!waiting) return;
+    applyingRef.current = true; // controllerchange -> the one reload (effect).
+    waiting.postMessage({ type: "SKIP_WAITING" });
   }, []);
 
   useEffect(() => {
@@ -52,7 +58,7 @@ export function useAppUpdate(): {
     let applyOnReady = false;
 
     const reloadOnce = () => {
-      if (reloadedRef.current) return;
+      if (!applyingRef.current || reloadedRef.current) return;
       reloadedRef.current = true;
       window.location.reload();
     };
@@ -62,6 +68,7 @@ export function useAppUpdate(): {
       if (cancelled) return;
       if (applyOnReady) {
         applyOnReady = false;
+        applyingRef.current = true;
         regRef.current?.waiting?.postMessage({ type: "SKIP_WAITING" });
       } else {
         setUpdateReady(true);
@@ -89,10 +96,14 @@ export function useAppUpdate(): {
         // A waiting SW may already exist from before this page loaded.
         if (reg.waiting && navigator.serviceWorker.controller) setUpdateReady(true);
         reg.addEventListener("updatefound", () => watch(reg.installing));
+        // An install already in progress when register() resolved would have
+        // fired updatefound before the listener above attached -- watch it too.
+        if (reg.installing) watch(reg.installing);
 
         const poll = (fromFocus: boolean) => {
           // Update already waiting when the user returns -> apply right away.
           if (fromFocus && reg.waiting && navigator.serviceWorker.controller) {
+            applyingRef.current = true;
             reg.waiting.postMessage({ type: "SKIP_WAITING" });
             return;
           }
