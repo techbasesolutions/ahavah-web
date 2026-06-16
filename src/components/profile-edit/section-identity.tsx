@@ -24,6 +24,7 @@ import {
   SingleSelectField,
   TextField,
 } from "@/components/app/profile-field";
+import { LocationField } from "@/components/app/location-field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -164,6 +165,21 @@ export default function IdentitySection() {
         }))}
         value={profile.country}
         onValueChange={(v: string) => update({ country: v })}
+      />
+
+      {/* 5b. precise location — debounced /search-locations typeahead.
+          Picking a result PATCHes `location` (long_friendly), the same
+          mechanism the country + city onboarding steps use, so the backend
+          re-resolves coordinates to the chosen city. Distinct from the
+          free-text City / State rows below (those persist to ahavah_extra
+          for display only and don't move the map pin). */}
+      <LocationField
+        id="precise-location"
+        label="Precise location"
+        placeholder="Type your city or town"
+        description="Pick your city to place yourself exactly on the map."
+        value={profile.location}
+        onSelect={(longFriendly) => update({ location: longFriendly })}
       />
 
       {/* 6. stateOrProvince */}

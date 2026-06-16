@@ -29,6 +29,10 @@ export const WIZARD_STEPS: ReadonlyArray<WizardStep> = [
   { href: "/onboarding/looking-for",    label: "Looking for",    requiredField: "intent" },
   { href: "/onboarding/photos",         label: "Photos" },
   { href: "/onboarding/country",        label: "Country",        requiredField: "country" },
+  // City is OPTIONAL — no requiredField, so the /discover gate never
+  // redirects here and onboarding is never blocked on it. It refines the
+  // country-centroid coordinates to a precise city via /search-locations.
+  { href: "/onboarding/city",           label: "City" },
   { href: "/onboarding/languages",      label: "Languages" },
   { href: "/onboarding/bio",            label: "Bio" },
   { href: "/onboarding/polygyny",       label: "Polygyny" },
