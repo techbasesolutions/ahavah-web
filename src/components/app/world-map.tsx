@@ -283,11 +283,13 @@ export function WorldMap({
           keeps the UI responsive when there are 100+ markers. */}
       <MarkerClusterGroup
         chunkedLoading
-        // Tighter radius so clusters break apart sooner as you zoom in
-        // (smoother spread) — distinct real locations now separate early,
-        // and only genuinely-coincident pins (same country-centroid) stay
-        // grouped. spiderfyOnMaxZoom fans those out on tap at full zoom.
+        // Clustering only while zoomed out: maxClusterRadius groups nearby
+        // pins into a numeric bubble at low zoom. Past disableClusteringAtZoom
+        // clustering stops entirely, so every distinct location shows as its
+        // own marker instead of staying merged into a bubble. Only pins at the
+        // exact same coordinate overlap past that zoom.
         maxClusterRadius={28}
+        disableClusteringAtZoom={7}
         showCoverageOnHover={false}
         spiderfyOnMaxZoom
         zoomToBoundsOnClick
