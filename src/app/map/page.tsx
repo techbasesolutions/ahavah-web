@@ -58,7 +58,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronRight, MapPin, MessageCircle, SlidersHorizontal } from "lucide-react";
+import { ChevronRight, MapPin, MessageCircle, SlidersHorizontal, Users } from "lucide-react";
 
 import type { MapView } from "@/components/app/world-map";
 
@@ -86,6 +86,8 @@ import { useDiscoverDeck } from "@/lib/use-discover-deck";
 import { useFilters } from "@/lib/use-filters";
 import { useProfile } from "@/lib/use-profile";
 import { readOnboarded } from "@/lib/onboarded-storage";
+import { isAdminOrMod } from "@/lib/profile-schema";
+import { useAdminMapUsers } from "@/lib/use-admin-map";
 
 // Leaflet uses `window` at module scope (it shims SVG/canvas APIs at
 // import time). Next.js SSR breaks if we don't dynamic-import with
@@ -252,6 +254,15 @@ export default function MapPage() {
   );
   const { items: realCandidates } = useDiscoverDeck(httpFilters);
 
+  // Admin "Show everyone" — operators bypass the discover filters entirely
+  // (verified-only, gender, age, pill filters) and plot every activated
+  // user, including map opt-outs. Sourced from GET /admin/map. Off (and the
+  // endpoint is never hit) for non-admins.
+  const isAdmin = isAdminOrMod(viewer);
+  const [showEveryone, setShowEveryone] = useState(false);
+  const everyoneMode = isAdmin && showEveryone;
+  const adminCandidates = useAdminMapUsers(everyoneMode);
+
   // Phase W cutover (2026-05-15) — count active filters for the badge
   // on the top-bar filter button. Age range counts only when narrowed
   // from the full 18-80 default. As of 2026-06-09, country is now a
@@ -281,11 +292,16 @@ export default function MapPage() {
   // on this so opted-out users still appear in the swipe deck — the
   // toggle is map-specific.
   const visibleCandidates = useMemo<readonly DiscoverCandidate[]>(
-    () =>
-      realCandidates.filter(
-        (c) => Boolean(c.country) && c.showOnMap !== false,
-      ),
-    [realCandidates],
+    () => {
+      // Admin "everyone" view bypasses the discover filters AND the showOnMap
+      // opt-out (operators see opt-outs too); a candidate still needs a
+      // country to be positionable on the map.
+      const source = everyoneMode ? adminCandidates : realCandidates;
+      return source.filter(
+        (c) => Boolean(c.country) && (everyoneMode || c.showOnMap !== false),
+      );
+    },
+    [everyoneMode, adminCandidates, realCandidates],
   );
 
   // Real matched-uuid set from GET /matches. Drives the 'match' marker
@@ -401,12 +417,37 @@ export default function MapPage() {
     />
   );
 
+  // Admin-only toggle: flip the map between the normal filtered/dating view
+  // and the unfiltered "everyone" oversight view. Highlighted when active.
+  const everyoneButton = isAdmin ? (
+    <Button
+      size="circle-lg"
+      tone={showEveryone ? "brand" : "elevated"}
+      aria-pressed={showEveryone}
+      aria-label={
+        showEveryone
+          ? "Showing everyone — tap to return to the filtered view"
+          : "Show everyone (admin)"
+      }
+      onClick={() => setShowEveryone((v) => !v)}
+    >
+      <Users className={showEveryone ? "text-black" : "text-(--ink)"} />
+    </Button>
+  ) : null;
+
+  const headerActions = (
+    <div className="flex items-center gap-2">
+      {everyoneButton}
+      {filterButton}
+    </div>
+  );
+
   return (
     <PageShell
       desktopShell="sidebar"
       topBarTitle="Map"
       topBarBack={false}
-      topBarActions={filterButton}
+      topBarActions={headerActions}
       bottomPad="none"
       className="relative overflow-hidden"
     >
@@ -427,7 +468,10 @@ export default function MapPage() {
       {/* Mobile top-bar overlay */}
       <div className="md:hidden absolute inset-x-0 top-0 z-20 flex items-center justify-between gap-3 bg-(--canvas)/80 px-4 py-3 supports-backdrop-filter:bg-(--canvas)/60 supports-backdrop-filter:backdrop-blur-md">
         <Logo variant="horizontal" size="sm" />
-        {filterButton}
+        <div className="flex items-center gap-2">
+          {everyoneButton}
+          {filterButton}
+        </div>
       </div>
 
       <div className="md:hidden">
