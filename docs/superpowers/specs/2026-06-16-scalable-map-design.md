@@ -1,5 +1,7 @@
 # Scalable Map — Design
 
+> **REVISED 2026-06-16 (post-launch feedback).** The server-side grid clustering this doc describes was built and shipped, then **reverted** after live testing. At this scale it regressed UX: same-coordinate users (e.g. two profiles in Abbeville) collapsed into a count bubble that no zoom or spiderfy could fan apart; it refetched over the network on every pan (slow); and it showed no pins until the first pan set a viewport. **Shipped instead:** the endpoints (`/map/markers`, `/admin/map`) return **individual points** — the viewer's full match set (up to 1000), or all activated users for admin — and the frontend clusters + **spiderfies** them with Leaflet's `MarkerClusterGroup`, fetched **once** per filter set (not per pan). This restores same-coord fan-out, instant panning, and pins on first load, and still removes the top-10 cap. Server-grid is deferred until the client approach actually strains (tens of thousands of markers); the rest of this doc is the design for that future.
+
 **Problem:** `/map` consumed the discover deck (`/search`, `n` capped at 10) and rendered only the first page, so every user past the top 10 of the `verification_level DESC, last_online DESC` sort silently vanished. At launch this hid 4 of 14 users (Anthony, the lone Australia pin, was the visible symptom). It does not scale.
 
 **Approved decisions (brainstorming 2026-06-16):**

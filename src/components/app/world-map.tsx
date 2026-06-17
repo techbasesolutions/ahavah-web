@@ -47,7 +47,7 @@ import "leaflet/dist/leaflet.css";
 
 import { useEffect, type ReactNode } from "react";
 import L from "leaflet";
-import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 
 import { cn } from "@/lib/utils";
@@ -58,9 +58,7 @@ import { useTheme, resolveTheme } from "@/lib/theme";
  * Count-bubble divIcon — a lavender-on-bg-elevated bubble matching the
  * rest of the app. Bubble size scales mildly with count so a 20-marker
  * cluster looks bigger than a 2-marker one without becoming a sprawling
- * blob. Shared by the library `MarkerClusterGroup` (client-clustered
- * fallback) and the server-clustered `ClusterMarker` so both render an
- * identical bubble.
+ * blob. Used by `MarkerClusterGroup`'s iconCreateFunction.
  */
 function clusterBubbleIcon(n: number): L.DivIcon {
   const sz = n < 10 ? 36 : n < 100 ? 44 : 52;
@@ -95,35 +93,8 @@ function clusterIcon(cluster: { getChildCount: () => number }): L.DivIcon {
   return clusterBubbleIcon(cluster.getChildCount());
 }
 
-/**
- * ClusterMarker — a single server-clustered count bubble at (lat, lng).
- *
- * The server now pre-clusters markers (GET /map/markers returns cells with
- * a `count`), so a cell with count > 1 renders as one of these bubbles
- * instead of stacked avatars. Tapping it flies the map in two zoom levels
- * (clamped to maxZoom 10) so the cluster resolves toward its members —
- * the server returns finer cells at the higher zoom.
- */
-export function ClusterMarker({
-  lat,
-  lng,
-  count,
-}: {
-  lat: number;
-  lng: number;
-  count: number;
-}) {
-  const map = useMap();
-  return (
-    <Marker
-      position={[lat, lng]}
-      icon={clusterBubbleIcon(count)}
-      eventHandlers={{
-        click: () => map.flyTo([lat, lng], Math.min(map.getZoom() + 2, 10)),
-      }}
-    />
-  );
-}
+// (A server-clustered ClusterMarker briefly lived here; the map reverted to
+// client-side MarkerClusterGroup + spiderfy, so it was removed.)
 
 // Web Mercator's usable world rectangle. Shared by maxBounds (pan limit)
 // and FillController (min-zoom floor) so both reference one source.

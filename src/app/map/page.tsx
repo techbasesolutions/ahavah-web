@@ -60,7 +60,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ChevronRight, MapPin, MessageCircle, SlidersHorizontal, Users } from "lucide-react";
 
-import type { Bbox, MapView } from "@/components/app/world-map";
+import type { MapView } from "@/components/app/world-map";
 
 import { BottomNav } from "@/components/app/bottom-nav";
 import { FiltersSheet } from "@/components/app/filters-sheet";
@@ -112,14 +112,6 @@ const MapAvatar = dynamic(
   { ssr: false },
 );
 
-// Server-clustered count bubble (count > 1). Lives in world-map.tsx, which
-// touches Leaflet's `window`-dependent APIs at import time, so it must be
-// dynamic-imported with ssr:false like WorldMap + MapAvatar above.
-const ClusterMarker = dynamic(
-  () => import("@/components/app/world-map").then((m) => m.ClusterMarker),
-  { ssr: false },
-);
-
 // 2026-06-14: persist the user's last map position (center + zoom) to
 // localStorage so re-opening /map restores where they left off — and on
 // the first ever visit, open zoomed all the way out on the whole world.
@@ -138,13 +130,6 @@ export default function MapPage() {
   // gated on this so it mounts directly at the remembered position (no
   // flash of the world view then fly-in).
   const [initialView, setInitialView] = useState<MapView | null>(null);
-
-  // Live viewport — bbox + zoom emitted by WorldMap on every pan/zoom
-  // settle. These drive useMapMarkers (viewport-clustered markers). A
-  // fresh bbox object is set only when the bounds actually change, so the
-  // hook's debounce + stale-guard see a stable dep across re-renders.
-  const [bbox, setBbox] = useState<Bbox | null>(null);
-  const [zoom, setZoom] = useState<number>(WORLD_VIEW.zoom);
 
   // Soft-completeness gate — trust the backend onboarded flag so users
   // with a wiped localStorage cache aren't bounced back to the wizard
@@ -190,41 +175,17 @@ export default function MapPage() {
     // canonical pattern in this codebase (see use-profile.ts hydration).
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setInitialView(saved ?? WORLD_VIEW);
-    // Seed the live zoom from the restored viewport so the first marker
-    // fetch uses the right cell size before the map emits its first
-    // moveend. bbox stays null until WorldMap reports real bounds. (The
-    // disable directive above covers this setState too.)
-    setZoom((saved ?? WORLD_VIEW).zoom);
   }, []);
 
-  // Persist the map position after every pan/zoom settle so the next
-  // visit restores it. Cheap (fires only on moveend, already debounced by
-  // Leaflet) and resilient to storage being full/disabled. Also mirrors
-  // the live zoom into state so useMapMarkers re-fetches with the right
-  // cell size when the user zooms.
+  // Persist the map position after every pan/zoom settle so the next visit
+  // restores it. Cheap (fires only on moveend) and resilient to storage
+  // being full/disabled.
   const persistView = useCallback((v: MapView) => {
-    setZoom(v.zoom);
     try {
       window.localStorage.setItem(VIEWPORT_KEY, JSON.stringify(v));
     } catch {
       /* storage unavailable — non-fatal, position just won't persist */
     }
-  }, []);
-
-  // Viewport bbox emitted on every pan/zoom settle. We only set a fresh
-  // bbox object when the bounds actually changed (a pure zoom-in-place can
-  // emit identical bounds), so useMapMarkers's bbox dep stays referentially
-  // stable across re-renders and its debounce/stale-guard don't churn.
-  const handleBoundsChange = useCallback((b: Bbox) => {
-    setBbox((prev) =>
-      prev &&
-      prev.south === b.south &&
-      prev.west === b.west &&
-      prev.north === b.north &&
-      prev.east === b.east
-        ? prev
-        : b,
-    );
   }, []);
 
   // SP17 T2: map-driven country filter. Every Leaflet pan/zoom-settle
@@ -314,9 +275,9 @@ export default function MapPage() {
 
   // Viewport-clustered map markers. Normal mode reads the viewer's cache
   // (gated on the deck having loaded); admin mode reads all activated
-  // users (always enabled once toggled). count > 1 → cluster bubble;
-  // count === 1 → a real avatar pin.
-  const markers = useMapMarkers(bbox, zoom, {
+  // users (always enabled once toggled). Each marker is an individual point;
+  // Leaflet's MarkerClusterGroup clusters + spiderfies them client-side.
+  const markers = useMapMarkers({
     admin: everyoneMode,
     enabled: everyoneMode || deckLoaded,
     // Re-read the cache when the deck re-runs /search (filter change rebuilds
@@ -454,19 +415,9 @@ export default function MapPage() {
   };
 
   // Shared marker renderer — used by both mobile and desktop map columns.
-  // Markers come from useMapMarkers (server-clustered): count === 1 renders
-  // a real avatar pin; count > 1 renders a count bubble that zooms in on tap.
+  // Each marker is an individual avatar pin; WorldMap's MarkerClusterGroup
+  // groups overlapping pins into a numeric bubble and spiderfies on tap.
   const mapMarkers = markers.map((m) => {
-    if (m.count > 1) {
-      return (
-        <ClusterMarker
-          key={`c-${m.lat}-${m.lng}`}
-          lat={m.lat}
-          lng={m.lng}
-          count={m.count}
-        />
-      );
-    }
     const candidate = adaptMarker(m);
     const id = candidate.id;
     const matched = matchedUuids.has(id);
@@ -564,8 +515,6 @@ export default function MapPage() {
             initialCenter={[initialView.lat, initialView.lng]}
             initialZoom={initialView.zoom}
             onViewChange={persistView}
-            onBoundsChange={handleBoundsChange}
-            cluster={false}
           >
             {mapMarkers}
           </WorldMap>
@@ -604,8 +553,6 @@ export default function MapPage() {
               initialCenter={[initialView.lat, initialView.lng]}
               initialZoom={initialView.zoom}
               onViewChange={persistView}
-              onBoundsChange={handleBoundsChange}
-              cluster={false}
             >
               {mapMarkers}
             </WorldMap>
