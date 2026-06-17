@@ -67,8 +67,18 @@ export function usePushNudge(): {
         show = count > 0 && count % NUDGE_EVERY === 0;
       }
     }
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setShouldShow(show);
+    if (!show) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setShouldShow(false);
+      return;
+    }
+    // Defer the show: usePushSubscription resolves "subscribed"/"granted" a
+    // tick after mount (via serviceWorker.ready), so showing synchronously
+    // would flash the modal at an already-subscribed user before their state
+    // settles. If state changes within the delay, this effect re-runs and the
+    // cleanup cancels the pending show.
+    const t = setTimeout(() => setShouldShow(true), 800);
+    return () => clearTimeout(t);
   }, [state]);
 
   const markShown = () => {
