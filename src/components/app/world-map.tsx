@@ -282,10 +282,11 @@ export function WorldMap({
         subdomains="abcd"
         // Single world copy (pairs with maxBounds).
         noWrap
-        // Smoother panning: preload more off-screen tiles (default 2) and
-        // fetch during the pan gesture rather than only after it settles,
-        // so tiles are already there instead of loading "in stages".
-        keepBuffer={4}
+        // Smoother panning: preload a wide ring of off-screen tiles (default 2)
+        // and fetch during the pan gesture rather than only after it settles,
+        // so panning reveals already-loaded tiles instead of loading "in
+        // stages". 6 rings keeps the next few drags pre-warmed.
+        keepBuffer={6}
         updateWhenIdle={false}
         updateWhenZooming={false}
       />
@@ -306,6 +307,11 @@ export function WorldMap({
            keeps the UI responsive when there are 100+ markers. */
         <MarkerClusterGroup
           chunkedLoading
+          // Snap clusters instead of animating them on every zoom. The
+          // split/merge animation re-lays-out + repaints all markers each
+          // zoom step, which is the main source of scroll/zoom jank; without
+          // it clusters update instantly.
+          animate={false}
           // Distinct locations separate as you zoom in (their pixel gap grows
           // past maxClusterRadius). Profiles at the EXACT same coordinate -- e.g.
           // two people who only set their country, or one household -- can never
