@@ -857,6 +857,10 @@ export type Profile = {
   children?: number;
   wantsChildren?: WantsChildren;
   country?: string;        // 2-letter ISO from src/lib/countries.ts
+  /** True once the user picks a real city (not just the country-centroid
+   *  default). Set on the onboarding city pick + the "set your city" nudge;
+   *  drives the nudge banner's visibility. */
+  citySet?: boolean;
   /**
    * Resolved "City, State, Country" string from /search-locations. The
    * backend's onboardee.coordinates lookup requires an exact match

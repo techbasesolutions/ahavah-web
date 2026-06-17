@@ -101,6 +101,11 @@ const TRANSFORMS: Record<string, FieldTransform> = {
   location: (v) =>
     typeof v === "string" && v.length > 0 ? { location: v } : null,
 
+  // Bundled into ahavah_extra. Set true only on a real city pick (the
+  // required onboarding city step). Carried onto person at /finish-onboarding.
+  citySet: (v) =>
+    typeof v === "boolean" ? { ahavah_extra: { citySet: v } } : null,
+
   // Relationship status --------------------------------------------------
   // Two-step write: coarse upstream `relationship_status` (Single /
   // Married / Divorced / Widowed — the only values its enum table
@@ -509,6 +514,7 @@ const ONBOARDEE_ALLOWED_KEYS: ReadonlySet<string> = new Set([
   "relocation", "communicationPrefs",
   "verificationTags", "boundaryTags",
   "nationality",
+  "citySet",        // -> ahavah_extra.citySet (real city picked)
 ]);
 
 function translateOutbound(

@@ -4,6 +4,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 import { DesktopSidebar } from "@/components/app/desktop-sidebar";
 import { DesktopTopBar } from "@/components/app/desktop-topbar";
+import { PushNudgeModal } from "@/components/app/push-nudge-modal";
 
 /**
  * PageShell — the outer column layout used by every top-level route.
@@ -119,6 +120,11 @@ export function PageShell({
             floating top-corner toggle was visually disruptive on mobile.
             Theme switching on mobile is now accessed via /settings →
             Theme row. Desktop keeps the icon in DesktopTopBar. */}
+
+        {/* Push opt-in nudge — every 3rd app-open until enabled. Mounted
+            here (sidebar branch = authed tab pages) so it never fires on
+            full-bleed auth / onboarding / match / paywall routes. */}
+        <PushNudgeModal />
 
         {/* Sidebar: chrome only — hidden md:flex inside the component itself */}
         <DesktopSidebar />

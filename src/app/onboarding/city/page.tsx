@@ -28,12 +28,17 @@ const fadeUp = {
  * re-resolves person.coordinates + location_short_friendly +
  * location_long_friendly + country from the picked city.
  *
- * This step is OPTIONAL. Continue is always enabled: a user with no city
- * pick simply keeps the country-centroid coordinates and proceeds. The
- * city is NOT a discover-eligibility gate (no requiredField in wizard-flow).
+ * This step is REQUIRED (2026-06-17): Continue stays disabled until the user
+ * picks a real city. Picking sets citySet=true (carried onto person at
+ * /finish-onboarding) so the "set your city" nudge never fires for new users.
  */
 export default function CityStep() {
   const { profile, update } = useProfile();
+
+  // Required gate: the country step pre-fills profile.location with the
+  // country-centroid default, so "has a location" can't tell a real city
+  // pick apart from the default. Track an explicit pick in this step.
+  const [cityPicked, setCityPicked] = useState(false);
 
   // Hydration guard: profile.location / profile.country come from
   // localStorage on mount, so the server renders without them and the
@@ -56,11 +61,12 @@ export default function CityStep() {
     : undefined;
 
   const handlePickCity = (longFriendly: string) => {
-    void update({ location: longFriendly });
+    void update({ location: longFriendly, citySet: true });
+    setCityPicked(true);
   };
 
   return (
-    <OnboardingShell href="/onboarding/city">
+    <OnboardingShell href="/onboarding/city" ctaDisabled={!cityPicked}>
       <motion.div
         {...fadeUp}
         transition={{ duration: 0.4 }}
@@ -79,8 +85,7 @@ export default function CityStep() {
           )}
         </h1>
         <p className="text-body text-(--ink-2)">
-          Pick your city so we place you precisely on the map. You can skip
-          this and stay placed near your country.
+          Pick your city so people near you can find your profile.
         </p>
       </motion.div>
 
@@ -88,7 +93,7 @@ export default function CityStep() {
           can confirm the resolved place. Mirrors the country step's
           selected-summary card. Gated on `mounted` to avoid an SSR/CSR
           hydration mismatch (cache isn't readable during SSR). */}
-      {mounted && selectedLocation ? (
+      {mounted && cityPicked ? (
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -107,7 +112,10 @@ export default function CityStep() {
             size="circle-lg"
             tone="overlay"
             aria-label={`Clear ${selectedLocation}`}
-            onClick={() => update({ location: undefined })}
+            onClick={() => {
+              void update({ location: undefined });
+              setCityPicked(false);
+            }}
           >
             <X className="size-4" />
           </Button>
@@ -127,7 +135,7 @@ export default function CityStep() {
           label="Your city"
           placeholder="Type your city or town"
           description="Start typing to search. Pick the closest match."
-          value={selectedLocation || undefined}
+          value={cityPicked ? selectedLocation : undefined}
           onSelect={handlePickCity}
         />
       </motion.div>

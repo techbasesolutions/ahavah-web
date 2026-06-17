@@ -30,6 +30,7 @@ import {
 import { PhotoTile } from "@/components/app/photo-tile";
 import { PushOptInBanner } from "@/components/app/push-opt-in-banner";
 import { InstallPromptBanner } from "@/components/app/install-prompt-banner";
+import { CityNudgeBanner } from "@/components/app/city-nudge-banner";
 import { TokenSpendSheet } from "@/components/app/token-spend-sheet";
 import { apiClient, ApiError } from "@/lib/api-client";
 import { useTokenBalance } from "@/lib/use-token-balance";
@@ -300,6 +301,7 @@ function MatchesPageContent() {
         <div className="flex flex-col gap-2 pt-3">
           <InstallPromptBanner />
           <PushOptInBanner />
+          <CityNudgeBanner />
         </div>
 
         {contentBody}

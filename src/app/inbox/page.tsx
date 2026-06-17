@@ -42,6 +42,7 @@ import { ChatThreadView } from "@/components/app/chat-thread-view";
 import { EmptyState, ErrorState } from "@/components/app/empty-state";
 import { InstallPromptBanner } from "@/components/app/install-prompt-banner";
 import { PushOptInBanner } from "@/components/app/push-opt-in-banner";
+import { CityNudgeBanner } from "@/components/app/city-nudge-banner";
 import {
   PageHeader,
   PageHeaderTitle,
@@ -305,6 +306,7 @@ export function InboxContent({
         <div className="flex flex-col gap-2 pt-2">
           <InstallPromptBanner />
           <PushOptInBanner />
+          <CityNudgeBanner />
         </div>
 
         {body}
