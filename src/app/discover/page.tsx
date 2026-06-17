@@ -963,38 +963,47 @@ export default function DiscoverPage() {
             is non-premium." Premium gating wiring is pre-existing (or TBD);
             keeping the card always visible for now per current behaviour. */}
         <aside className="flex flex-col gap-3.5">
-          <p className="text-overline text-(--ink-2)">New likes</p>
+          {/* Only render the "New likes" upsell when there are REAL incoming
+              likes (GET /likes/incoming). It previously showed a hardcoded
+              "3 likes this week" + paywall even when nobody had liked the
+              user -- a fabricated upsell. */}
+          {incomingLikesCount > 0 && (
+            <>
+              <p className="text-overline text-(--ink-2)">New likes</p>
 
-          {/* Gradient Card — canonical desktop.jsx:L515-L539:
-              padding 18, radius 18, indigo→lavender gradient, white text. */}
-          <Card tone="gradient" className="p-4.5 gap-3 rounded-[18px]">
-            <CardHeader className="p-0 gap-1.5">
-              <p className="text-overline opacity-85 text-(--ink)">
-                {incomingLikesCount > 0 ? incomingLikesCount : 3}{" "}
-                {incomingLikesCount === 1 ? "like" : "likes"} this week
-              </p>
-              <p className="text-h3 text-(--ink) mt-1.5">See who liked you</p>
-            </CardHeader>
-            <CardContent className="p-0 flex flex-col gap-3">
-              {/* 3 frosted silhouettes (canonical L525-L533). aria-hidden —
-                  the heading "See who liked you" carries the meaning. */}
-              <AvatarGroup
-                aria-hidden
-                className="-space-x-3 *:data-[slot=avatar]:ring-2 *:data-[slot=avatar]:ring-white"
-              >
-                {[0, 1, 2].map((i) => (
-                  <BlurredAvatar key={i} size="md" aria-hidden />
-                ))}
-              </AvatarGroup>
-              <Button
-                size="tap"
-                tone="cta"
-                className="w-full h-9 rounded-[10px] font-bold text-meta"
-              >
-                Unlock with Premium
-              </Button>
-            </CardContent>
-          </Card>
+              {/* Gradient Card — canonical desktop.jsx:L515-L539:
+                  padding 18, radius 18, indigo→lavender gradient, white text. */}
+              <Card tone="gradient" className="p-4.5 gap-3 rounded-[18px]">
+                <CardHeader className="p-0 gap-1.5">
+                  <p className="text-overline opacity-85 text-(--ink)">
+                    {incomingLikesCount}{" "}
+                    {incomingLikesCount === 1 ? "like" : "likes"} this week
+                  </p>
+                  <p className="text-h3 text-(--ink) mt-1.5">See who liked you</p>
+                </CardHeader>
+                <CardContent className="p-0 flex flex-col gap-3">
+                  {/* Frosted silhouettes — decorative teaser (aria-hidden);
+                      the real number is in the heading above. */}
+                  <AvatarGroup
+                    aria-hidden
+                    className="-space-x-3 *:data-[slot=avatar]:ring-2 *:data-[slot=avatar]:ring-white"
+                  >
+                    {[0, 1, 2].map((i) => (
+                      <BlurredAvatar key={i} size="md" aria-hidden />
+                    ))}
+                  </AvatarGroup>
+                  <Button
+                    size="tap"
+                    tone="cta"
+                    className="w-full h-9 rounded-[10px] font-bold text-meta"
+                    onClick={() => router.push("/paywall")}
+                  >
+                    Unlock with Premium
+                  </Button>
+                </CardContent>
+              </Card>
+            </>
+          )}
 
           {/* "Recently seen" — canonical desktop.jsx:L541-L572:
               overline label + row cards (44px brand-fallback avatar with
