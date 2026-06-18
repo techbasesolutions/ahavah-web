@@ -1136,6 +1136,18 @@ export default function ProfileDetailPage({ params }: Props) {
             </Button>
           </div>
         </div>
+        <BlockReportSheet
+          open={reportOpen}
+          onOpenChange={setReportOpen}
+          subjectName={profile.firstName ?? "this person"}
+          onSubmit={async (payload) => {
+            const reason = payload.details
+              ? `${payload.category}: ${payload.details}`
+              : payload.category;
+            await apiClient.post(`/skip/by-uuid/${uuid}`, { report_reason: reason });
+            router.push("/discover");
+          }}
+        />
       </PageShell>
     );
   }
