@@ -309,6 +309,8 @@ export default function DiscoverPage() {
     } catch (e) {
       if (e instanceof ApiError && e.status === 402) {
         toast.error("Not enough tokens to see passes again.");
+      } else if (e instanceof ApiError && e.status === 409) {
+        toast.error("No passed profiles to bring back yet.");
       } else {
         toast.error("Couldn't bring back passed profiles. Try again.");
       }
