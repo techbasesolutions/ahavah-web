@@ -84,6 +84,7 @@ export default function DiscoverPage() {
   // 3500ms itself. Now: rAF ticks every ~16ms, setPhotoFill runs ~60
   // times/sec, the bar advances smoothly per state, no transition.
   const [photoFill, setPhotoFill] = useState(0);
+  const [seePassesBusy, setSeePassesBusy] = useState(false);
   // FiltersSheet is hoisted to /discover so the empty-state CTA can open
   // it. The header trigger uses the same sheet via a render prop.
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -296,6 +297,26 @@ export default function DiscoverPage() {
   }, [candidate, hasMore, visibleItems.length, loadMore, refreshTokens, router]);
 
   // Discover Rewind: spend a token to undo the last pass. On success,
+  // Token "see passes again": bulk-clear my passes so all passed profiles
+  // re-enter the deck. Self-only + pass-only on the backend. 402 -> toast.
+  const handleSeePasses = useCallback(async () => {
+    setSeePassesBusy(true);
+    try {
+      await apiClient.post("/tokens/see-passes", {});
+      await refreshTokens();
+      setDecidedIds(new Set());
+      setFilters({ ...filters });
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 402) {
+        toast.error("Not enough tokens to see passes again.");
+      } else {
+        toast.error("Couldn't bring back passed profiles. Try again.");
+      }
+    } finally {
+      setSeePassesBusy(false);
+    }
+  }, [refreshTokens, filters, setFilters]);
+
   // drop the profile from decidedIds and re-fetch the deck (by re-setting
   // filters) so it re-enters the candidate list near the front. 402 keeps
   // the sheet open in its insufficient state; other errors toast + close.
@@ -612,6 +633,15 @@ export default function DiscoverPage() {
             }}
             className="mx-0 mt-0 rounded-2xl border border-border bg-(--card)"
           />
+          <Button
+            variant="link"
+            size="tap"
+            className="self-center text-(--ink-3) underline"
+            onClick={() => void handleSeePasses()}
+            disabled={seePassesBusy}
+          >
+            {seePassesBusy ? "Bringing them back..." : "See passes again · 3 tokens"}
+          </Button>
         </motion.div>
       )}
     </AnimatePresence>
