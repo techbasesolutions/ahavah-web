@@ -1424,7 +1424,7 @@ export default function ProfileDetailPage({ params }: Props) {
                   className="bg-card p-5 rounded-2xl gap-3"
                 >
                   <div className="text-overline text-(--ink-2)">
-                    Compatibility · {Math.round(compatResult.score * 100)}%
+                    Compatibility · {compatResult.score}%
                   </div>
                   <div className="flex flex-col gap-3">
                     {Object.entries(compatResult.breakdown)
