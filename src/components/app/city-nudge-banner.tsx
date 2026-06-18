@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MapPin } from "lucide-react";
+import { LocateFixed, MapPin } from "lucide-react";
 
 import { apiClient } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,8 @@ export function CityNudgeBanner() {
   const [citySet, setCitySet] = useState<boolean | null>(null);
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [locating, setLocating] = useState(false);
+  const [geoError, setGeoError] = useState<string | null>(null);
   const isDesktop = useIsDesktop();
 
   useEffect(() => {
@@ -55,6 +57,41 @@ export function CityNudgeBanner() {
     } finally {
       setSaving(false);
     }
+  };
+
+  // GPS path: browser geolocation -> nearest gazetteer city -> same handlePick.
+  // Snapping to the nearest city keeps it at city-level (never exact address).
+  const useMyLocation = () => {
+    if (!("geolocation" in navigator)) {
+      setGeoError("Location isn't available here. Type your city instead.");
+      return;
+    }
+    setLocating(true);
+    setGeoError(null);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const { latitude, longitude } = pos.coords;
+          const res = await apiClient.get<string[]>(
+            `/nearest-location?lat=${latitude}&lng=${longitude}`,
+          );
+          if (!res[0]) {
+            setGeoError("Couldn't find a city near you. Type it instead.");
+            return;
+          }
+          await handlePick(res[0]);
+        } catch {
+          setGeoError("Something went wrong. Type your city instead.");
+        } finally {
+          setLocating(false);
+        }
+      },
+      () => {
+        setGeoError("Couldn't get your location. Type your city instead.");
+        setLocating(false);
+      },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 },
+    );
   };
 
   return (
@@ -103,6 +140,21 @@ export function CityNudgeBanner() {
             </SheetDescription>
           </SheetHeader>
           <div className="px-5 pb-6">
+            <Button
+              variant="default"
+              size="tap"
+              disabled={locating || saving}
+              onClick={useMyLocation}
+              className="w-full rounded-full"
+            >
+              <LocateFixed className="size-4" />
+              {locating ? "Locating…" : "Use my current location"}
+            </Button>
+            <div className="my-3 flex items-center gap-3 text-caption text-(--ink-2)">
+              <span className="h-px flex-1 bg-(--hairline)" />
+              or
+              <span className="h-px flex-1 bg-(--hairline)" />
+            </div>
             <LocationField
               id="city-nudge-search"
               label="Your city"
@@ -112,6 +164,9 @@ export function CityNudgeBanner() {
             />
             {saving ? (
               <p className="mt-2 text-caption text-(--ink-2)">Saving…</p>
+            ) : null}
+            {geoError ? (
+              <p className="mt-2 text-caption text-(--ink-2)">{geoError}</p>
             ) : null}
           </div>
         </SheetContent>
