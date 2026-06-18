@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from "motion/react";
 import {
   AlertTriangle,
   ChevronLeft,
+  EyeOff,
   Heart,
   MapPin,
   MessageCircle,
@@ -227,6 +228,8 @@ function adaptProspect(raw: Record<string, unknown>): Profile & { country?: stri
     // + verified_age/gender/ethnicity. Empty list means the user hasn't
     // completed any verification step.
     verificationTags: verifiedTags.length > 0 ? verifiedTags : undefined,
+    // Truncated profile: backend returns `limited: true` for a hidden member.
+    limited: raw.limited === true,
     // Spread Torah-observant fields LAST so they overwrite the
     // narrower mappings above (e.g. ahavah_extra.healthTags from
     // onboarding should win over the smoking/drinking-derived list).
@@ -1060,6 +1063,82 @@ export default function ProfileDetailPage({ params }: Props) {
       )}
     </motion.div>
   );
+
+  // Truncated view for a hidden member (backend `limited: true`). A real,
+  // sparse profile -- primary photo + name/age + verified + "looking for" +
+  // Like -- NOT the dead-end "unavailable" state. Reuses the photo carousel
+  // (single photo, no compat pill) and the same like -> match flow.
+  if (profile.limited) {
+    return (
+      <PageShell bottomPad="default" desktopShell="sidebar">
+        <div className="mx-auto flex w-full max-w-md flex-col">
+          {renderPhotoCarousel("none")}
+          <div className="flex flex-col gap-5 px-5 py-6">
+            <div className="flex flex-col gap-3">
+              <h1 className="text-h1 text-(--ink)">
+                {profile.firstName}
+                {profile.age ? `, ${profile.age}` : ""}
+              </h1>
+              {profile.verificationTags?.length ? (
+                <div className="flex flex-wrap gap-2">
+                  {profile.verificationTags.map((tag) => (
+                    <Pill key={tag} variant="lime" size="sm">
+                      {labelOf(tag, VERIFICATION_TAGS)}
+                    </Pill>
+                  ))}
+                </div>
+              ) : null}
+              {profile.intent ? (
+                <p className="text-meta text-(--ink-2)">
+                  Looking for{" "}
+                  <span className="font-semibold text-(--ink)">
+                    {formatIntent(profile.intent, profile.sex)}
+                  </span>
+                </p>
+              ) : null}
+            </div>
+
+            <Card className="rounded-2xl">
+              <CardContent className="flex items-start gap-3 px-4 py-4">
+                <EyeOff className="size-5 shrink-0 text-lavender" />
+                <p className="min-w-0 text-meta text-(--ink-2)">
+                  This member keeps a private profile. Full details unlock when
+                  you match.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Button
+              tone="action"
+              size="lg"
+              className="w-full gap-2"
+              disabled={!profileLoaded}
+              onClick={async () => {
+                try {
+                  const result = await decide(uuid, "like");
+                  if (result.kind === "ok" && result.matchId) {
+                    router.push(
+                      `/match?matchId=${encodeURIComponent(result.matchId)}`,
+                    );
+                    return;
+                  }
+                } catch {
+                  // surfaced via useDecisions().error
+                }
+                router.push(backHref);
+              }}
+            >
+              <TokenActionIcon.Like
+                className="size-5 text-black"
+                fill="currentColor"
+              />
+              Like {profile.firstName}
+            </Button>
+          </div>
+        </div>
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell bottomPad="none" desktopShell="sidebar">

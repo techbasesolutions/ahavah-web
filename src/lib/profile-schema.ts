@@ -918,6 +918,10 @@ export type Profile = {
   // Verification + boundaries
   verificationTags?: VerificationTag[];
   boundaryTags?: BoundaryTag[];
+  // Truncated-profile flag — backend sets `limited: true` for a hidden member
+  // (hide_me_from_strangers) so the detail page renders the truncated view
+  // (primary photo + name/age + verified + "looking for") instead of 404.
+  limited?: boolean;
   // Voice intro + prompt cards (placeholders — sub-plans 3 + 6)
   voiceIntroUrl?: string;
   promptCards?: Array<{ promptId: string; answer: string }>;
