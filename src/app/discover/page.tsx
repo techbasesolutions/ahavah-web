@@ -138,7 +138,7 @@ export default function DiscoverPage() {
     ],
   );
 
-  const { items, loadMore, hasMore } = useDiscoverDeck(httpFilters);
+  const { items, loadMore, hasMore, reload } = useDiscoverDeck(httpFilters);
 
   // Count active filters for the badge on the top-bar filter button.
   const activeFilterCount = useMemo(() => {
@@ -305,7 +305,7 @@ export default function DiscoverPage() {
       await apiClient.post("/tokens/see-passes", {});
       await refreshTokens();
       setDecidedIds(new Set());
-      setFilters({ ...filters });
+      await reload();
     } catch (e) {
       if (e instanceof ApiError && e.status === 402) {
         toast.error("Not enough tokens to see passes again.");
@@ -317,7 +317,7 @@ export default function DiscoverPage() {
     } finally {
       setSeePassesBusy(false);
     }
-  }, [refreshTokens, filters, setFilters]);
+  }, [refreshTokens, reload]);
 
   // drop the profile from decidedIds and re-fetch the deck (by re-setting
   // filters) so it re-enters the candidate list near the front. 402 keeps

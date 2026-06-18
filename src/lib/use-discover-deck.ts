@@ -51,6 +51,10 @@ export type UseDiscoverDeckResult = {
   isLoading: boolean;
   error: ApiError | null;
   hasMore: boolean;
+  /** Reset pagination + refetch from the head, in place. Use after a
+   *  server-side change (e.g. /tokens/see-passes) where the filters are
+   *  unchanged but the deck must refill without a remount. */
+  reload: () => Promise<void>;
 };
 
 /**
@@ -333,5 +337,18 @@ export function useDiscoverDeck(
   // consumers but not read inside this hook.
   void cursor;
 
-  return { items, loadMore, isLoading, error, hasMore };
+  // Public reload — reset pagination + refetch from the head, bypassing the
+  // filtersKey memo. Used after a server-side change (e.g. /tokens/see-passes
+  // clears the user's passes) where the filters are unchanged but the deck
+  // must refill in place rather than waiting for a remount.
+  const reload = useCallback(() => {
+    setCursor(null);
+    cursorRef.current = null;
+    hasMoreRef.current = true;
+    setHasMore(true);
+    setError(null);
+    return runFetch(true);
+  }, [runFetch]);
+
+  return { items, loadMore, isLoading, error, hasMore, reload };
 }
