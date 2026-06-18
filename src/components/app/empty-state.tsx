@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
+  EyeOff,
   Heart,
   MessageCircle,
   Search,
@@ -43,7 +44,8 @@ type Variant =
   | "no-search-results"
   | "filter-too-narrow"
   | "you-blocked-everyone"
-  | "no-internet";
+  | "no-internet"
+  | "profile-unavailable";
 
 type Preset = {
   title: string;
@@ -95,6 +97,13 @@ const PRESETS: Record<Variant, Preset> = {
     description: "Check your connection. We'll try again automatically.",
     Icon: WifiOff,
     iconColor: "text-(--ink-2)",
+  },
+  "profile-unavailable": {
+    title: "This profile isn't available",
+    description:
+      "It might be private, or no longer active. Head back to discover to meet more people.",
+    Icon: EyeOff,
+    iconColor: "text-lavender",
   },
 };
 

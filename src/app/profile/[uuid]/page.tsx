@@ -22,6 +22,8 @@ import { Pill } from "@/components/kibo-ui/pill";
 import { cn } from "@/lib/utils";
 
 import { PageShell } from "@/components/app/page-shell";
+import { EdgeStateShell } from "@/components/app/edge-state-shell";
+import { EmptyState } from "@/components/app/empty-state";
 import { PhotoTile } from "@/components/app/photo-tile";
 import { ProgressDots } from "@/components/app/progress-dots";
 import { CompatPill } from "@/components/app/compat-pill";
@@ -517,31 +519,12 @@ export default function ProfileDetailPage({ params }: Props) {
 
   if (!profile) {
     return (
-      <PageShell bottomPad="none">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.4 }}
-        >
-          <Card
-            tone="overlap"
-            className="relative z-20 rounded-2xl px-5 py-8 text-center"
-          >
-            <CardContent className="flex flex-col gap-4 px-0">
-              <h2 className="text-h2 text-(--ink)">Profile not found</h2>
-              <p className="text-body text-(--ink-2)">
-                The profile you&apos;re looking for doesn&apos;t exist or has been removed.
-              </p>
-              <Link
-                href="/discover"
-                className={cn(buttonVariants({ tone: "action" }))}
-              >
-                Back to discover
-              </Link>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </PageShell>
+      <EdgeStateShell srTitle="Profile unavailable">
+        <EmptyState
+          variant="profile-unavailable"
+          action={{ label: "Back to discover", href: "/discover" }}
+        />
+      </EdgeStateShell>
     );
   }
 
