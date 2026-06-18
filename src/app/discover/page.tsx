@@ -84,24 +84,9 @@ export default function DiscoverPage() {
   // 3500ms itself. Now: rAF ticks every ~16ms, setPhotoFill runs ~60
   // times/sec, the bar advances smoothly per state, no transition.
   const [photoFill, setPhotoFill] = useState(0);
-  const [resettingDecisions, setResettingDecisions] = useState(false);
   // FiltersSheet is hoisted to /discover so the empty-state CTA can open
   // it. The header trigger uses the same sheet via a render prop.
   const [filtersOpen, setFiltersOpen] = useState(false);
-
-  const resetDecisions = async () => {
-    if (resettingDecisions) return;
-    setResettingDecisions(true);
-    try {
-      await apiClient.post("/decisions/reset", {});
-      setDecidedIds(new Set());
-      setFilters({ ...filters });
-    } catch {
-      // Quiet fail -- testing affordance only.
-    } finally {
-      setResettingDecisions(false);
-    }
-  };
 
   // Soft-completeness gate.
   useEffect(() => {
@@ -620,22 +605,13 @@ export default function DiscoverPage() {
           <EmptyState
             variant="filter-too-narrow"
             title="You're all caught up"
-            description="No more matches nearby -- try widening your filters or reset to re-see everyone."
+            description="No more matches nearby -- try widening your filters to see more people."
             action={{
               label: "Adjust filters",
               onClick: () => setFiltersOpen(true),
             }}
             className="mx-0 mt-0 rounded-2xl border border-border bg-(--card)"
           />
-          <Button
-            variant="link"
-            size="tap"
-            className="self-center text-(--ink-3) underline"
-            onClick={() => void resetDecisions()}
-            disabled={resettingDecisions}
-          >
-            {resettingDecisions ? "Resetting..." : "Reset my swipes (testing)"}
-          </Button>
         </motion.div>
       )}
     </AnimatePresence>
