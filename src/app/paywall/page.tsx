@@ -251,10 +251,10 @@ export default function PaywallPage() {
             name hash). aria-hidden — the modal card carries the meaning. */}
         {(
           [
-            { n: "Yael",   left: "60px",   top: "60px",  rot: -8 },
-            { n: "Adina",  right: "60px",  top: "80px",  rot: 6 },
-            { n: "Daniel", left: "80px",   bottom: "60px", rot: 5 },
-            { n: "Esther", right: "60px",  bottom: "80px", rot: -6 },
+            { n: "Yael",   img: "/marketing/avatar-1.webp", left: "60px",  top: "60px",    rot: -8 },
+            { n: "Adina",  img: "/marketing/avatar-3.webp", right: "60px", top: "80px",    rot: 6 },
+            { n: "Daniel", img: "/marketing/avatar-2.webp", left: "80px",  bottom: "60px", rot: 5 },
+            { n: "Esther", img: "/marketing/avatar-5.webp", right: "60px", bottom: "80px", rot: -6 },
           ] as const
         ).map((c) => (
           <div
@@ -272,10 +272,17 @@ export default function PaywallPage() {
               background: nameGradient(c.n),
             }}
           >
-            {/* Large faded initial — 96px / 800w / 20% white per canonical. */}
-            <div className="absolute inset-0 flex items-center justify-center text-8xl font-extrabold text-white/20 leading-none">
-              {c.n[0]}
-            </div>
+            {/* Real portrait fills the card (decorative; parent is
+                aria-hidden). The name gradient stays as a fallback behind it.
+                Plain <img> matches the marketing FloatCard convention. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={c.img}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
           </div>
         ))}
 
