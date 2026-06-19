@@ -28,6 +28,9 @@ import { cn } from "@/lib/utils";
  */
 type Props = {
   name: string;
+  /** Primary photo CDN url — the locked hero shows the member's face. Falls
+   *  back to a brand gradient + initial glyph when absent. */
+  photoUrl?: string;
   /** Formatted "looking for" label (e.g. "Marriage"). */
   lookingFor?: string;
   /** Formatted verification labels (e.g. ["Video selfie", "Government ID"]). */
@@ -50,6 +53,7 @@ const REDACTED_ROWS: Array<{ k: string; widths: string[] }> = [
 
 export function LockedProfile({
   name,
+  photoUrl,
   lookingFor,
   verifications,
   backHref,
@@ -68,25 +72,35 @@ export function LockedProfile({
       <div className="mx-auto flex w-full flex-1 flex-col md:max-w-md">
         {/* ── Locked hero: gradient + initial, never a photo ── */}
         <div className="relative h-90 w-full shrink-0 overflow-hidden bg-[linear-gradient(150deg,#1A1340_0%,#5524F5_58%,#7B52F0_100%)]">
-          {/* Initial as SVG so the oversized glyph carries no Tailwind font-size. */}
-          <svg
-            aria-hidden
-            viewBox="0 0 100 100"
-            preserveAspectRatio="xMidYMid meet"
-            className="pointer-events-none absolute inset-0 size-full select-none"
-          >
-            <text
-              x="50"
-              y="50"
-              textAnchor="middle"
-              dominantBaseline="central"
-              fontSize="68"
-              fontWeight="800"
-              fill="rgba(255,255,255,0.15)"
+          {photoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={photoUrl}
+              alt={name}
+              className="absolute inset-0 size-full object-cover"
+            />
+          ) : (
+            // No photo — brand gradient + initial glyph (SVG so the oversized
+            // letter carries no Tailwind font-size).
+            <svg
+              aria-hidden
+              viewBox="0 0 100 100"
+              preserveAspectRatio="xMidYMid meet"
+              className="pointer-events-none absolute inset-0 size-full select-none"
             >
-              {initial}
-            </text>
-          </svg>
+              <text
+                x="50"
+                y="50"
+                textAnchor="middle"
+                dominantBaseline="central"
+                fontSize="68"
+                fontWeight="800"
+                fill="rgba(255,255,255,0.15)"
+              >
+                {initial}
+              </text>
+            </svg>
+          )}
           <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(15,11,31,0.34)_0%,transparent_26%,transparent_58%,rgba(15,11,31,0.55)_100%)]" />
 
           <div className="absolute top-5 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1.5">
@@ -192,8 +206,7 @@ export function LockedProfile({
                   The rest unlocks when you match
                 </div>
                 <div className="mt-0.5 text-meta text-(--ink-2)">
-                  {name} keeps photos and details private until there&apos;s
-                  mutual interest. Like to start that conversation.
+                  {`${name} keeps photos and details private until there's mutual interest. Like to start that conversation.`}
                 </div>
               </div>
             </div>

@@ -1072,6 +1072,7 @@ export default function ProfileDetailPage({ params }: Props) {
     return (
       <LockedProfile
         name={profile.firstName ?? "This member"}
+        photoUrl={profile.photos?.[0]?.cdn_url}
         lookingFor={
           profile.intent ? formatIntent(profile.intent, profile.sex) : undefined
         }
