@@ -7,7 +7,6 @@ import { AnimatePresence, motion } from "motion/react";
 import {
   AlertTriangle,
   ChevronLeft,
-  EyeOff,
   Heart,
   MapPin,
   MessageCircle,
@@ -25,6 +24,7 @@ import { cn } from "@/lib/utils";
 import { PageShell } from "@/components/app/page-shell";
 import { EdgeStateShell } from "@/components/app/edge-state-shell";
 import { EmptyState } from "@/components/app/empty-state";
+import { LockedProfile } from "@/components/app/locked-profile";
 import { PhotoTile } from "@/components/app/photo-tile";
 import { ProgressDots } from "@/components/app/progress-dots";
 import { CompatPill } from "@/components/app/compat-pill";
@@ -1064,91 +1064,48 @@ export default function ProfileDetailPage({ params }: Props) {
     </motion.div>
   );
 
-  // Truncated view for a hidden member (backend `limited: true`). A real,
-  // sparse profile -- primary photo + name/age + verified + "looking for" +
-  // Like -- NOT the dead-end "unavailable" state. Reuses the photo carousel
-  // (single photo, no compat pill) and the same like -> match flow.
+  // Truncated view for a hidden member (backend `limited: true`): a locked,
+  // sparse profile -- gradient hero (no photo), name, "looking for", a
+  // verification trust card, and a redacted teaser. Like / Pass / report are
+  // live; the same like -> match flow unlocks the full profile.
   if (profile.limited) {
     return (
-      <PageShell bottomPad="default" desktopShell="sidebar">
-        <div className="mx-auto flex w-full max-w-md flex-col">
-          {renderPhotoCarousel("none")}
-          <div className="flex flex-col gap-5 px-5 py-6">
-            <div className="flex flex-col gap-3">
-              <h1 className="text-h1 text-(--ink)">
-                {profile.firstName}
-                {profile.age ? `, ${profile.age}` : ""}
-              </h1>
-              {profile.verificationTags?.length ? (
-                <div className="flex flex-wrap gap-2">
-                  {profile.verificationTags.map((tag) => (
-                    <Pill key={tag} variant="lime" size="sm">
-                      {labelOf(tag, VERIFICATION_TAGS)}
-                    </Pill>
-                  ))}
-                </div>
-              ) : null}
-              {profile.intent ? (
-                <p className="text-meta text-(--ink-2)">
-                  Looking for{" "}
-                  <span className="font-semibold text-(--ink)">
-                    {formatIntent(profile.intent, profile.sex)}
-                  </span>
-                </p>
-              ) : null}
-            </div>
-
-            <Card className="rounded-2xl">
-              <CardContent className="flex items-start gap-3 px-4 py-4">
-                <EyeOff className="size-5 shrink-0 text-lavender" />
-                <p className="min-w-0 text-meta text-(--ink-2)">
-                  This member keeps a private profile. Full details unlock when
-                  you match.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Button
-              tone="action"
-              size="lg"
-              className="w-full gap-2"
-              disabled={!profileLoaded}
-              onClick={async () => {
-                try {
-                  const result = await decide(uuid, "like");
-                  if (result.kind === "ok" && result.matchId) {
-                    router.push(
-                      `/match?matchId=${encodeURIComponent(result.matchId)}`,
-                    );
-                    return;
-                  }
-                } catch {
-                  // surfaced via useDecisions().error
-                }
-                router.push(backHref);
-              }}
-            >
-              <TokenActionIcon.Like
-                className="size-5 text-black"
-                fill="currentColor"
-              />
-              Like {profile.firstName}
-            </Button>
-          </div>
-        </div>
-        <BlockReportSheet
-          open={reportOpen}
-          onOpenChange={setReportOpen}
-          subjectName={profile.firstName ?? "this person"}
-          onSubmit={async (payload) => {
-            const reason = payload.details
-              ? `${payload.category}: ${payload.details}`
-              : payload.category;
-            await apiClient.post(`/skip/by-uuid/${uuid}`, { report_reason: reason });
-            router.push("/discover");
-          }}
-        />
-      </PageShell>
+      <LockedProfile
+        name={profile.firstName ?? "This member"}
+        lookingFor={
+          profile.intent ? formatIntent(profile.intent, profile.sex) : undefined
+        }
+        verifications={profile.verificationTags
+          ?.map((t) => labelOf(t, VERIFICATION_TAGS))
+          .filter((v): v is string => Boolean(v))}
+        backHref={backHref}
+        backLabel={backLabel}
+        likeDisabled={!profileLoaded}
+        onLike={async () => {
+          try {
+            const result = await decide(uuid, "like");
+            if (result.kind === "ok" && result.matchId) {
+              router.push(`/match?matchId=${encodeURIComponent(result.matchId)}`);
+              return;
+            }
+          } catch {
+            // surfaced via useDecisions().error
+          }
+          router.push(backHref);
+        }}
+        onPass={async () => {
+          try {
+            await decide(uuid, "nope");
+          } catch {
+            // surfaced via useDecisions().error
+          }
+          router.push(backHref);
+        }}
+        onReportSubmit={async (reason) => {
+          await apiClient.post(`/skip/by-uuid/${uuid}`, { report_reason: reason });
+          router.push("/discover");
+        }}
+      />
     );
   }
 
