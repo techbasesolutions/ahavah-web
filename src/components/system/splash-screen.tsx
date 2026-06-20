@@ -52,10 +52,11 @@ export function SplashScreen() {
       <div className="ahavah-splash-ring" />
       <div className="ahavah-splash-lockup">
         <div className="ahavah-splash-mark">
-          {/* Dark-tile mark matching the PWA launch icon (public/icon-512.svg).
-              Extra corner radius approximates the OS rounded-app-icon mask so
-              this splash and the native launch screen read as one tile. */}
-          <LogoMark size={132} radius={60} decorative />
+          {/* Dark-tile mark matching the PWA launch icon (public/icon-512.svg),
+              with corner radius approximating the OS rounded-app-icon mask so
+              the splash and native launch tile read as one. radius is in the
+              145-unit viewBox: 55/145 = 38% rounding. */}
+          <LogoMark size={132} radius={55} decorative />
         </div>
         <div className="ahavah-splash-word">
           {/* "Ahavah" wordmark, inlined from the handoff (currentColor). */}
