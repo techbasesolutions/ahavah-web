@@ -55,7 +55,7 @@ export function SplashScreen() {
           {/* Dark-tile mark matching the PWA launch icon (public/icon-512.svg).
               Extra corner radius approximates the OS rounded-app-icon mask so
               this splash and the native launch screen read as one tile. */}
-          <LogoMark size={132} radius={44} decorative />
+          <LogoMark size={132} radius={60} decorative />
         </div>
         <div className="ahavah-splash-word">
           {/* "Ahavah" wordmark, inlined from the handoff (currentColor). */}
