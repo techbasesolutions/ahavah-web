@@ -9,6 +9,7 @@ import { META_PIXEL_ID } from "@/lib/meta-pixel";
 import { UpdateBar } from "@/components/update-bar";
 import { ThemeProvider } from "@/components/system/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { SplashScreen } from "@/components/system/splash-screen";
 import { safeJsonLd } from "@/lib/json-ld";
 
 import "./globals.css";
@@ -156,6 +157,8 @@ export default function RootLayout({
               like) couldn't actually surface a user-visible message even
               when handlers called toast.error(). */}
           <Toaster position="top-center" richColors closeButton />
+          {/* PWA launch splash — branded boot overlay, once per session. */}
+          <SplashScreen />
         </ThemeProvider>
         {/* Vercel Web Analytics — privacy-friendly page-view + visitor metrics.
             Activated in the Vercel dashboard; this mounts the collector. */}
