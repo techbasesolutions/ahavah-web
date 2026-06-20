@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
 import { apiClient, ApiError, setSessionToken } from "@/lib/api-client";
-import { SplashScreen } from "@/components/system/splash-screen";
+import { SplashScreen, SPLASH_MIN_MS } from "@/components/system/splash-screen";
 
 /**
  * /claim/[token] — launch magic-link landing.
@@ -34,10 +34,6 @@ import { SplashScreen } from "@/components/system/splash-screen";
  */
 
 const ONBOARDING_ENTRY = "/onboarding/name";
-
-// Minimum time the welcome splash stays up so its entrance animation plays
-// fully, even when the token exchange resolves in a few hundred ms.
-const SPLASH_MIN_MS = 1800;
 
 type ClaimResponse = {
   session_token: string;

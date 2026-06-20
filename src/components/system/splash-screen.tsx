@@ -3,6 +3,13 @@
 import { LogoMark } from "@/components/brand/logo-mark";
 
 /**
+ * Minimum time the splash should stay mounted so its entrance animation plays
+ * in full, even when the auth step it covers resolves in a few hundred ms.
+ * The login transitions hold for this long before redirecting.
+ */
+export const SPLASH_MIN_MS = 1800;
+
+/**
  * Animated Ahavah splash — a branded full-screen overlay: deep-indigo gradient,
  * breathing lime aura, orbital ring, the dark-tile logo mark + "Ahavah"
  * wordmark, and a sliding lime load bar (styles in globals.css `.ahavah-splash`;

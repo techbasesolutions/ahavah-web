@@ -18,6 +18,7 @@ import { useRef } from "react";
 import { writeChatSession } from "@/lib/chat-session";
 import { useProfile, writeOnboarded } from "@/lib/use-profile";
 import { AUTH_NEXT_URL_KEY, PENDING_EMAIL_KEY } from "@/lib/storage-keys";
+import { SplashScreen, SPLASH_MIN_MS } from "@/components/system/splash-screen";
 
 /**
  * Verify-email step. Receives the email via `sessionStorage[PENDING_EMAIL_KEY]`
@@ -51,6 +52,7 @@ export default function VerifyEmailStep() {
   const [verifying, setVerifying] = useState(false);
   const [resendSeconds, setResendSeconds] = useState(RESEND_SECONDS);
   const [error, setError] = useState<string | null>(null);
+  const [entering, setEntering] = useState(false);
   const antibotRef = useRef<AntibotHandle>(null);
 
   const isComplete = code.length === 6;
@@ -111,19 +113,28 @@ export default function VerifyEmailStep() {
       // users were fine (gate let them in), new users hit a brief
       // /discover flash before the gate kicked them to /onboarding.
       // Branching on onboarded eliminates the flash.
+      // Play the welcome splash on the way into Ahavah, then route. The OTP is
+      // already verified here, so the hold just lets the animation finish.
+      const enterWithSplash = async (path: string) => {
+        setEntering(true);
+        await new Promise((resolve) => setTimeout(resolve, SPLASH_MIN_MS));
+        router.push(path);
+      };
       if (!result.onboarded) {
-        router.push("/onboarding/name");
+        await enterWithSplash("/onboarding/name");
       } else {
         // If sign-in was initiated from a behind-auth route (/help, /legal/*)
         // via useRequireSession's `?next=`, return the user there instead of
         // the default /discover. The next URL was stashed by /auth/sign-in.
         // Same-origin guard applied at the storage write; double-check here.
+        // No splash here — they're returning to a specific route, not entering
+        // Ahavah fresh.
         const stashedNext = sessionStorage.getItem(AUTH_NEXT_URL_KEY);
         sessionStorage.removeItem(AUTH_NEXT_URL_KEY);
         if (stashedNext && stashedNext.startsWith("/") && !stashedNext.startsWith("//")) {
           router.push(stashedNext);
         } else {
-          router.push("/discover");
+          await enterWithSplash("/discover");
         }
       }
     } catch (err) {
@@ -140,6 +151,7 @@ export default function VerifyEmailStep() {
 
   return (
     <>
+    {entering ? <SplashScreen /> : null}
     <AntibotFields ref={antibotRef} />
     <OnboardingShell
       href="/onboarding/verify-email"
