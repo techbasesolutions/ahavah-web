@@ -894,12 +894,6 @@
   z-index: 200;
   overflow: hidden;
   background: radial-gradient(120% 80% at 50% 20%, #2a1c66 0%, #1a1340 46%, #0e0930 100%);
-  opacity: 1;
-  transition: opacity 0.45s ease;
-}
-.ahavah-splash[data-exit] {
-  opacity: 0;
-  pointer-events: none;
 }
 
 .ahavah-splash-aura {

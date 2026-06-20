@@ -1,61 +1,27 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
 import { LogoMark } from "@/components/brand/logo-mark";
 
 /**
- * PWA launch splash — the full-screen branded boot overlay from the
- * "Ahavah PWA Splash" handoff: deep-indigo gradient, breathing lime aura,
- * orbital ring, the lime-filled logo mark + "Ahavah" wordmark, and a
- * sliding lime load bar (styles live in globals.css `.ahavah-splash`).
+ * Animated Ahavah splash — a branded full-screen overlay: deep-indigo gradient,
+ * breathing lime aura, orbital ring, the dark-tile logo mark + "Ahavah"
+ * wordmark, and a sliding lime load bar (styles in globals.css `.ahavah-splash`;
+ * entrance animations respect prefers-reduced-motion).
  *
- * Rendered server-side so it paints over the app on the very first frame of
- * a cold start (no flash of the app underneath), then JS fades it out.
- * Shows once per browser session (sessionStorage) so a quick refresh — and
- * in-app navigation, which never remounts this — doesn't replay it.
+ * Presentational: it renders for as long as its consumer mounts it. Used as the
+ * post-login transition on /claim/[token] — shown while the magic-link session
+ * is exchanged, then the page redirects into the app.
  */
-const SESSION_KEY = "ahavah-splash-shown";
-const VISIBLE_MS = 1800;
-const FADE_MS = 450;
-
 export function SplashScreen() {
-  // "show" on first render so the overlay is in the SSR HTML; the client
-  // immediately downgrades to "gone" if it already played this session.
-  const [phase, setPhase] = useState<"show" | "exit" | "gone">("show");
-
-  useEffect(() => {
-    if (sessionStorage.getItem(SESSION_KEY)) {
-      // Already shown this session — drop the SSR-painted overlay on the
-      // next tick (async, so we never setState synchronously in the effect).
-      const skip = setTimeout(() => setPhase("gone"), 0);
-      return () => clearTimeout(skip);
-    }
-    sessionStorage.setItem(SESSION_KEY, "1");
-    const fade = setTimeout(() => setPhase("exit"), VISIBLE_MS);
-    const done = setTimeout(() => setPhase("gone"), VISIBLE_MS + FADE_MS);
-    return () => {
-      clearTimeout(fade);
-      clearTimeout(done);
-    };
-  }, []);
-
-  if (phase === "gone") return null;
-
   return (
-    <div
-      className="ahavah-splash"
-      aria-hidden
-      {...(phase === "exit" ? { "data-exit": "" } : {})}
-    >
+    <div className="ahavah-splash" aria-hidden>
       <div className="ahavah-splash-aura" />
       <div className="ahavah-splash-ring" />
       <div className="ahavah-splash-lockup">
         <div className="ahavah-splash-mark">
           {/* Dark-tile mark matching the PWA launch icon (public/icon-512.svg),
-              with corner radius approximating the OS rounded-app-icon mask so
-              the splash and native launch tile read as one. radius is in the
-              145-unit viewBox: 55/145 = 38% rounding. */}
+              with corner radius approximating the OS rounded-app-icon mask.
+              radius is in the 145-unit viewBox: 55/145 = 38% rounding. */}
           <LogoMark size={132} radius={55} decorative />
         </div>
         <div className="ahavah-splash-word">

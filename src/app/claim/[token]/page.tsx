@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
 import { apiClient, ApiError, setSessionToken } from "@/lib/api-client";
+import { SplashScreen } from "@/components/system/splash-screen";
 
 /**
  * /claim/[token] — launch magic-link landing.
@@ -34,6 +35,10 @@ import { apiClient, ApiError, setSessionToken } from "@/lib/api-client";
 
 const ONBOARDING_ENTRY = "/onboarding/name";
 
+// Minimum time the welcome splash stays up so its entrance animation plays
+// fully, even when the token exchange resolves in a few hundred ms.
+const SPLASH_MIN_MS = 1800;
+
 type ClaimResponse = {
   session_token: string;
   onboarded: boolean;
@@ -60,6 +65,7 @@ export default function ClaimPage({
     let cancelled = false;
 
     void (async () => {
+      const startedAt = Date.now();
       try {
         const result = await apiClient.post<ClaimResponse>("/claim", { token });
         if (cancelled) return;
@@ -67,6 +73,12 @@ export default function ClaimPage({
         // setSessionToken mirrors it into localStorage AND drops the
         // `ahavah.authed` cookie that lets the user past the launch gate.
         setSessionToken(result.session_token);
+        // Hold so the welcome splash plays fully before the app loads.
+        const remaining = SPLASH_MIN_MS - (Date.now() - startedAt);
+        if (remaining > 0) {
+          await new Promise((resolve) => setTimeout(resolve, remaining));
+        }
+        if (cancelled) return;
         router.replace(result.onboarded ? "/discover" : ONBOARDING_ENTRY);
       } catch (err) {
         if (cancelled) return;
@@ -109,17 +121,11 @@ export default function ClaimPage({
   }
 
   return (
-    <main
-      className="min-h-dvh bg-(--app) grid place-items-center p-6"
-      aria-busy="true"
-    >
-      <div
-        role="status"
-        aria-live="polite"
-        className="flex w-full max-w-sm flex-col items-center gap-3 text-center"
-      >
-        <p className="text-body text-(--ink-2)">Signing you in…</p>
-      </div>
-    </main>
+    <>
+      <SplashScreen />
+      <p className="sr-only" role="status" aria-live="polite">
+        Signing you in…
+      </p>
+    </>
   );
 }
