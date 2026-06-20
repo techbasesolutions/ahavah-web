@@ -52,15 +52,10 @@ export function SplashScreen() {
       <div className="ahavah-splash-ring" />
       <div className="ahavah-splash-lockup">
         <div className="ahavah-splash-mark">
-          {/* Splash treatment: lime tile, ink glyph (inverse of the default
-              dark-tile mark) per the handoff hero. */}
-          <LogoMark
-            size={132}
-            tileColor="#D7FF81"
-            glyphColor="#0E0040"
-            knockoutColor="#D7FF81"
-            decorative
-          />
+          {/* Default dark-tile mark — matches the PWA launch icon
+              (public/icon-512.svg) so the OS launch screen and this splash are
+              the same mark on the same indigo, reading as one launch. */}
+          <LogoMark size={132} decorative />
         </div>
         <div className="ahavah-splash-word">
           {/* "Ahavah" wordmark, inlined from the handoff (currentColor). */}
