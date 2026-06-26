@@ -73,7 +73,7 @@ export function QuotaExceededCard({
         // TokenSpendSheet branch already renders a Get-tokens fallback
         // when currentBalance < cost.
       } else {
-        toast.error("Couldn't activate your day-pass — please try again.");
+        toast.error("Couldn't activate your day-pass | please try again.");
       }
     } finally {
       setBusy(false);

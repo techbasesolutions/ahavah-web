@@ -170,7 +170,7 @@ export default function PhotosStep() {
       // shadow the refreshed records (see resetSettledPhotoHooks).
       resetSettledPhotoHooks(slotHooks);
     } catch {
-      toast.error("Couldn't remove that photo — please try again.");
+      toast.error("Couldn't remove that photo | please try again.");
     }
   };
 
@@ -290,7 +290,7 @@ export default function PhotosStep() {
           Add your photos<span className="text-lime">.</span>
         </h1>
         <p className="text-body text-(--ink-2)">
-          Your first photo is your main — it leads Discover and the Map.
+          Your first photo is your main | it leads Discover and the Map.
         </p>
       </motion.div>
 

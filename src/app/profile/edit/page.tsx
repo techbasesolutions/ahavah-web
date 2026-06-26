@@ -145,7 +145,7 @@ function buildSuggestions(
   // invented percentages.
   return [
     {
-      text: "Write a short bio — it's one of the first things people read.",
+      text: "Write a short bio | it's one of the first things people read.",
       lift: "Recommended",
       target: "identity",
     },

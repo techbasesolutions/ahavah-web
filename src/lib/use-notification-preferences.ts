@@ -118,7 +118,7 @@ export function useNotificationPreferences(): {
           if (curr.kind !== "happy" || snapshot == null) return curr;
           return { kind: "happy", prefs: snapshot, savingKey: null };
         });
-        toast.error("Couldn't save that preference — please try again.");
+        toast.error("Couldn't save that preference | please try again.");
       }
     },
     [],

@@ -409,11 +409,11 @@ export default function LandingPage() {
                 our community speaks, from Hebrew to Yoruba to Tagalog.
               </FeatureCard>
               <FeatureCard tone="pink"          Icon={Heart}          title="Faith-aware filters">
-                Calendar (lunar/solar), assembly, Torah level, polygyny stance —
+                Calendar (lunar/solar), assembly, Torah level, polygyny stance |
                 all first-class filters. Find a spouse whose practice fits yours.
               </FeatureCard>
               <FeatureCard tone="success"       Icon={SparklesIcon}  title="Real compatibility">
-                9-axis compatibility scoring — observance, language, family,
+                9-axis compatibility scoring | observance, language, family,
                 relocation, lifestyle. Surface people you actually align with.
               </FeatureCard>
               <FeatureCard tone="indigo"        Icon={MapPin}         title="Diaspora map">

@@ -87,7 +87,7 @@ export default function IdentitySection() {
           className="cursor-not-allowed bg-white/3 text-(--ink-2)"
         />
         <p className="text-caption text-(--ink-3)">
-          Calculated from your date of birth — contact support to correct.
+          Calculated from your date of birth | contact support to correct.
         </p>
       </div>
 

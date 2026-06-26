@@ -52,7 +52,7 @@ export default function PracticalSection() {
       ) : (
         <Card tone="default" className="rounded-xl px-4 py-3">
           <p className="text-meta text-(--ink-3)">
-            Set your gender first to edit intent —{" "}
+            Set your gender first to edit intent |{" "}
             <Link
               href="#field-sex"
               className="text-lime underline hover:text-lime/80"

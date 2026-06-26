@@ -127,7 +127,7 @@ export default function LanguagesStep() {
     // hint tells them WHERE to look.
     if (collidesWithBuiltIn) {
       setFeedback(
-        `"${trimmed}" is in the language list above — pick it from there.`,
+        `"${trimmed}" is in the language list above | pick it from there.`,
       );
       return;
     }

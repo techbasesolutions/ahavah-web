@@ -59,7 +59,7 @@ export function useStartVerification(): StartVerificationResult {
       if (err instanceof ApiError) {
         if (err.status === 503) {
           setErrorMessage(
-            "Verification isn't available yet. We're rolling it out — try again shortly.",
+            "Verification isn't available yet. We're rolling it out | try again shortly.",
           );
         } else if (err.status === 401) {
           setErrorMessage("Sign in again to verify your account.");

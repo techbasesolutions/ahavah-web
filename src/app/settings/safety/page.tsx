@@ -103,7 +103,7 @@ export default function SafetyTipsPage() {
             <CardContent className="px-0">
               <p className="text-body leading-relaxed text-(--ink)/90">
                 Ahavah uses on-device photo verification, 24-hour report review,
-                and instant block-and-mute. If something feels off, act on it —
+                and instant block-and-mute. If something feels off, act on it |
                 we&apos;ll handle the rest.
               </p>
             </CardContent>

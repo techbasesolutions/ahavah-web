@@ -32,7 +32,7 @@ export default function SharePage({
 
   const inviteUrl = `https://ahavah.app/i/${code}`;
   const shareText =
-    "I’m on the Ahavah beta — Torah-observant matchmaking for serious believers. Use my link to join the beta: ";
+    "I’m on the Ahavah beta | Torah-observant matchmaking for serious believers. Use my link to join the beta: ";
 
   const handleShare = async () => {
     if (typeof navigator !== "undefined" && "share" in navigator) {

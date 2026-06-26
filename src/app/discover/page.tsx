@@ -242,7 +242,7 @@ export default function DiscoverPage() {
           next.delete(candidateId);
           return next;
         });
-        toast.error("Couldn't save that — check your connection and try again.");
+        toast.error("Couldn't save that | check your connection and try again.");
       }
       if (hasMore && visibleItems.length <= 3) void loadMore();
     },

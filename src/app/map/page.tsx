@@ -482,7 +482,7 @@ export default function MapPage() {
       aria-pressed={showEveryone}
       aria-label={
         showEveryone
-          ? "Showing everyone — tap to return to the filtered view"
+          ? "Showing everyone | tap to return to the filtered view"
           : "Show everyone (admin)"
       }
       onClick={() => setShowEveryone((v) => !v)}

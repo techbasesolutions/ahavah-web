@@ -58,7 +58,7 @@ export const metadata: Metadata = {
     description:
       "Verified profiles, 100+ languages, real connections. For Messianic Torah-observant believers seeking a spouse. Sign up and create your profile.",
     url: "https://ahavah.app",
-    images: [{ url: "/og.png", width: 1200, height: 630, alt: "Ahavah — Torah-observant matchmaking" }],
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: "Ahavah | Torah-observant matchmaking" }],
   },
   twitter: {
     card: "summary_large_image",
