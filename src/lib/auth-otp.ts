@@ -55,8 +55,17 @@ export type CheckOtpResult = {
 export async function checkOtp(
   email: string,
   otp: string,
+  opts?: {
+    /** Acquisition tag stamped onto NEW onboardees only (e.g. the
+     *  marriage-checklist activity). Existing accounts are unaffected. */
+    source?: "marriage_checklist";
+  },
 ): Promise<CheckOtpResult> {
-  return apiClient.post<CheckOtpResult>("/check-otp", { email, otp });
+  return apiClient.post<CheckOtpResult>("/check-otp", {
+    email,
+    otp,
+    ...(opts?.source ? { source: opts.source } : {}),
+  });
 }
 
 export async function requestPhoneOtp(
