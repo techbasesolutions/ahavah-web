@@ -310,7 +310,7 @@ function ObligationScreen({ passage, role, answer, setAnswer, onNext, onBack }: 
         <label className="mc-field-label mc-label--26">Where do you stand?</label>
         <StancePicker value={a.stance} onChange={(v) => setAnswer({ ...a, stance: v })} />
         {a.stance === "other" ? (
-          <GrowArea className="mc-comment mc-grow" placeholder="Tell us more about where you stand." value={a.otherNote || ""}
+          <GrowArea className="mc-comment mc-grow" placeholder="Say more about where you stand." value={a.otherNote || ""}
             onChange={(e) => setAnswer({ ...a, otherNote: e.target.value })} />
         ) : null}
       </div>
@@ -376,7 +376,7 @@ function OpenSectionScreen({ section, items, setItems, onNext, onBack }: {
           <label className="mc-field-label mc-label--22">Where do you stand?</label>
           <StancePicker value={it.stance} onChange={(v) => update(it.id, { stance: v })} />
           {it.stance === "other" ? (
-            <GrowArea className="mc-comment mc-grow" placeholder="Tell us more about where you stand." value={it.otherNote || ""}
+            <GrowArea className="mc-comment mc-grow" placeholder="Say more about where you stand." value={it.otherNote || ""}
               onChange={(e) => update(it.id, { otherNote: e.target.value })} />
           ) : null}
 
