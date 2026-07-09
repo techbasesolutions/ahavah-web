@@ -32,6 +32,9 @@
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
+  /* Nothing inside may widen the page: a nowrap CTA once forced a
+     horizontal scroll on phones. */
+  overflow-x: clip;
   background:
     radial-gradient(ellipse 70% 30% at 10% 6%, color-mix(in oklch, var(--mc-lavender) 30%, transparent), transparent 70%),
     radial-gradient(ellipse 60% 34% at 92% 92%, color-mix(in oklch, var(--mc-lime) 34%, transparent), transparent 70%),
@@ -89,8 +92,16 @@
 .mc-btn--ghost:hover { background: var(--mc-border-subtle); color: var(--mc-fg); }
 .mc-btn--sm { height: 44px; font-size: 14px; padding-inline: 18px; border-radius: var(--mc-r-md); }
 
-/* Progress */
-.mc-progress { position: sticky; top: 59px; z-index: 40; width: 100%; max-width: 620px; margin: 0 auto 8px; padding: 4px 20px 0; }
+/* Progress — sticky, so it needs its own backdrop or scrolled content
+   bleeds through the section/passage labels. Same treatment as the nav. */
+.mc-progress {
+  position: sticky; top: 59px; z-index: 40;
+  width: 100%; max-width: 620px; margin: 0 auto 8px;
+  padding: 4px 20px 8px;
+  background: color-mix(in oklch, var(--mc-bg-app) 85%, transparent);
+  backdrop-filter: blur(14px) saturate(160%);
+  border-radius: 0 0 14px 14px;
+}
 .mc-progress__track { height: 6px; border-radius: 9999px; background: color-mix(in oklch, var(--mc-fg) 8%, transparent); overflow: hidden; }
 .mc-progress__fill { width: var(--mc-fill, 0%); height: 100%; border-radius: 9999px; background: linear-gradient(90deg, var(--mc-lavender), var(--mc-indigo)); transition: width 400ms cubic-bezier(0.4, 0, 0.2, 1); }
 .mc-progress__meta { margin-top: 8px; display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: var(--mc-fg-muted); }
@@ -178,6 +189,12 @@
 .mc-input::placeholder { color: var(--mc-fg-subtle); }
 .mc-field-err { margin-top: 8px; font-size: 13px; color: var(--mc-pink); font-weight: 600; }
 .mc-nav-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 28px; }
+.mc-nav-row .mc-btn { min-width: 0; }
+/* Compact button metrics on phones so Back + CTA always fit side by side. */
+@media (max-width: 480px) {
+  .mc-btn { font-size: 15px; padding-inline: 16px; height: 50px; }
+  .mc-btn--sm { font-size: 13px; padding-inline: 14px; height: 42px; }
+}
 
 /* Section medallion */
 .mc-medallion { width: 72px; height: 72px; border-radius: 20px; display: grid; place-items: center; margin: 0 auto 24px; color: #000; }

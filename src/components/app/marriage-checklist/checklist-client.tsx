@@ -301,7 +301,7 @@ function ObligationScreen({ passage, role, answer, setAnswer, onNext, onBack }: 
       <div className="mc-nav-row">
         <button className="mc-btn mc-btn--ghost mc-btn--sm" onClick={onBack}><ArrowLeft size={16} /> Back</button>
         <button className="mc-btn mc-btn--cta" disabled={!canAdvance} onClick={onNext}>
-          {canAdvance ? "Next" : "Rate and choose to continue"} <ArrowRight size={18} />
+          {canAdvance ? "Next" : "Rate and choose first"} <ArrowRight size={18} />
         </button>
       </div>
     </div>
