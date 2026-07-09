@@ -119,6 +119,23 @@ function toSendAnswers(rated: RatedItem[]): SendAnswer[] {
   }));
 }
 
+/* -------------------------------- inputs -------------------------------- */
+
+// Auto-growing textarea: starts at the field's default height (CSS
+// min-height) and expands with the content, so longer answers never
+// scroll inside a fixed box. Height is set imperatively (not a JSX
+// style prop) to track scrollHeight.
+function GrowArea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = el.scrollHeight + "px";
+  }, [props.value]);
+  return <textarea ref={ref} rows={1} {...props} />;
+}
+
 /* ---------------------------------- pickers ---------------------------------- */
 
 function ImportancePicker({ value, onChange }: { value?: number | null; onChange: (v: 1 | 2 | 3 | 4 | 5) => void }) {
@@ -268,13 +285,13 @@ function ObligationScreen({ passage, role, answer, setAnswer, onNext, onBack }: 
         <div className="mc-attribution">{passage.translation} &middot; read on YouVersion</div>
 
         <label className="mc-field-label mc-label--28">What does this mean to you?</label>
-        <textarea className="mc-comment mc-comment--flush" placeholder="In your own words." value={a.comment || ""}
+        <GrowArea className="mc-comment mc-comment--flush mc-grow" placeholder="In your own words." value={a.comment || ""}
           onChange={(e) => setAnswer({ ...a, comment: e.target.value })} />
 
         <label className="mc-field-label mc-label--26">What does this look like, practically? <span className="mc-sub">(your own examples)</span></label>
         {examples.map((ex, i) => (
           <div className="mc-example-row" key={i}>
-            <input className="mc-input" placeholder={"Example " + (i + 1)} value={ex} onChange={(e) => setExample(i, e.target.value)} />
+            <GrowArea className="mc-input mc-grow" placeholder={"Example " + (i + 1)} value={ex} onChange={(e) => setExample(i, e.target.value)} />
             {examples.length > 1 ? (
               <button type="button" className="mc-example-x" aria-label="Remove example" onClick={() => removeExample(i)}><X size={17} /></button>
             ) : null}
@@ -293,7 +310,7 @@ function ObligationScreen({ passage, role, answer, setAnswer, onNext, onBack }: 
         <label className="mc-field-label mc-label--26">Where do you stand?</label>
         <StancePicker value={a.stance} onChange={(v) => setAnswer({ ...a, stance: v })} />
         {a.stance === "other" ? (
-          <textarea className="mc-comment" placeholder="Tell us more about where you stand." value={a.otherNote || ""}
+          <GrowArea className="mc-comment mc-grow" placeholder="Tell us more about where you stand." value={a.otherNote || ""}
             onChange={(e) => setAnswer({ ...a, otherNote: e.target.value })} />
         ) : null}
       </div>
@@ -347,7 +364,7 @@ function OpenSectionScreen({ section, items, setItems, onNext, onBack }: {
             <span className="mc-role-tag">Your {meta.short} {i + 1}</span>
             <button className="mc-btn mc-btn--ghost mc-btn--sm mc-btn--remove" onClick={() => remove(it.id)}>Remove</button>
           </div>
-          <input className="mc-input mc-h-gap-12" placeholder={meta.placeholder}
+          <GrowArea className="mc-input mc-h-gap-12 mc-grow" placeholder={meta.placeholder}
             value={it.title} onChange={(e) => update(it.id, { title: e.target.value })} />
 
           <label className="mc-field-label mc-label--22">How much does this matter to you? <span className="mc-sub">(1 to 5)</span></label>
@@ -359,12 +376,12 @@ function OpenSectionScreen({ section, items, setItems, onNext, onBack }: {
           <label className="mc-field-label mc-label--22">Where do you stand?</label>
           <StancePicker value={it.stance} onChange={(v) => update(it.id, { stance: v })} />
           {it.stance === "other" ? (
-            <textarea className="mc-comment" placeholder="Tell us more about where you stand." value={it.otherNote || ""}
+            <GrowArea className="mc-comment mc-grow" placeholder="Tell us more about where you stand." value={it.otherNote || ""}
               onChange={(e) => update(it.id, { otherNote: e.target.value })} />
           ) : null}
 
           <label className="mc-field-label mc-label--22">Your notes <span className="mc-sub">(optional)</span></label>
-          <textarea className="mc-comment mc-comment--flush" placeholder="In your own words."
+          <GrowArea className="mc-comment mc-comment--flush mc-grow" placeholder="In your own words."
             value={it.comment || ""} onChange={(e) => update(it.id, { comment: e.target.value })} />
         </div>
       ))}

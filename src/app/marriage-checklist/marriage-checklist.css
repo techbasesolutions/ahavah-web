@@ -187,6 +187,12 @@
 .mc textarea.mc-comment:focus, .mc .mc-input:focus { outline: none; border-color: var(--mc-lavender); }
 .mc-input { width: 100%; height: 54px; padding-inline: 18px; border-radius: var(--mc-r-md); border: 1.5px solid var(--mc-border); background: var(--mc-bg-card); font: inherit; font-size: 16px; color: var(--mc-fg); }
 .mc-input::placeholder { color: var(--mc-fg-subtle); }
+
+/* Auto-growing fields: default heights preserved via min-height, then the
+   box expands with the content (height driven by GrowArea in JS). */
+.mc textarea.mc-grow { resize: none; overflow: hidden; display: block; }
+.mc textarea.mc-input.mc-grow { height: auto; min-height: 54px; padding-block: 13px; line-height: 1.45; }
+.mc-example-row textarea.mc-input.mc-grow { min-height: 46px; padding-block: 9px; }
 .mc-field-err { margin-top: 8px; font-size: 13px; color: var(--mc-pink); font-weight: 600; }
 .mc-nav-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 28px; }
 .mc-nav-row .mc-btn { min-width: 0; }
