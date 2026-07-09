@@ -307,7 +307,7 @@ function ObligationScreen({ passage, role, answer, setAnswer, onNext, onBack }: 
         <label className="mc-field-label mc-label--26">How often would you practice this? <span className="mc-sub">(you decide)</span></label>
         <FrequencyPicker value={a.frequency} onChange={(v) => setAnswer({ ...a, frequency: v })} />
 
-        <label className="mc-field-label mc-label--26">Where do you stand?</label>
+        <label className="mc-field-label mc-label--26">I understand and am comfortable with my obligations in this regard.</label>
         <StancePicker value={a.stance} onChange={(v) => setAnswer({ ...a, stance: v })} />
         {a.stance === "other" ? (
           <GrowArea className="mc-comment mc-grow" placeholder="Say more about where you stand." value={a.otherNote || ""}
