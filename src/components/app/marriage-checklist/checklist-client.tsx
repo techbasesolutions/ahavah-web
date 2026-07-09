@@ -391,7 +391,7 @@ function OpenSectionScreen({ section, items, setItems, onNext, onBack }: {
               <label className="mc-field-label mc-label--22">How much does this matter to you? <span className="mc-sub">(1 to 5)</span></label>
               <ImportancePicker value={it.importance} onChange={(v) => update(it.id, { importance: v })} />
 
-              <label className="mc-field-label mc-label--22">How often would you practice this? <span className="mc-sub">(you decide)</span></label>
+              <label className="mc-field-label mc-label--22">How often would you like this? <span className="mc-sub">(What are your expectations?)</span></label>
               <FrequencyPicker value={it.frequency} onChange={(v) => update(it.id, { frequency: v })} />
             </>
           )}
