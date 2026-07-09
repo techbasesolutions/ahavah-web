@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { IconBadge } from "@/components/ui/icon-badge";
 
 import { PageShell } from "@/components/app/page-shell";
+import { ApiError } from "@/lib/api-client";
 import { pixelCompleteRegistration } from "@/lib/meta-pixel";
 import { useProfile } from "@/lib/use-profile";
 
@@ -56,10 +57,18 @@ export default function OnboardingCompletePage() {
         setGraduated(true);
         if (personUuid) pixelCompleteRegistration(`reg-${personUuid}`);
       })
-      .catch(() => {
+      .catch((err: unknown) => {
+        // 409 = the backend found name or date of birth missing on the
+        // onboardee row (a wizard persistence gap). Refreshing would loop
+        // on the same failure forever, so route back to re-enter the
+        // fields instead of dead-ending (bug found 2026-07-08).
+        if (err instanceof ApiError && err.status === 409) {
+          router.replace("/onboarding/name");
+          return;
+        }
         setError("We couldn't finalise your profile. Refresh and try again.");
       });
-  }, [finishOnboarding]);
+  }, [finishOnboarding, router]);
 
   const handleStartMatching = async () => {
     if (submitting) return;

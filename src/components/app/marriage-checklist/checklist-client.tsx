@@ -246,7 +246,9 @@ function ObligationScreen({ passage, role, answer, setAnswer, onNext, onBack }: 
   const roleLabel = role === "husband" ? "Husband" : role === "wife" ? "Wife" : null;
   const examples = a.examples && a.examples.length ? a.examples : [""];
   const setExample = (i: number, val: string) => { const arr = [...examples]; arr[i] = val; setAnswer({ ...a, examples: arr }); };
-  const addExample = () => setAnswer({ ...a, examples: [...examples, ""] });
+  // Server caps examples at 10 per item; stop adding at the cap so the
+  // send never 400s on a limit the UI allowed.
+  const addExample = () => { if (examples.length < 10) setAnswer({ ...a, examples: [...examples, ""] }); };
   const removeExample = (i: number) => { const arr = examples.filter((_, j) => j !== i); setAnswer({ ...a, examples: arr.length ? arr : [""] }); };
 
   return (
@@ -316,6 +318,10 @@ function OpenSectionScreen({ section, items, setItems, onNext, onBack }: {
   const mine = items.filter((it) => it.section === section);
 
   function add() {
+    // Server caps the send at 60 answers total (9 passages + own items).
+    // 20 per open section keeps the worst case at 49, so the UI can never
+    // build a payload the API rejects.
+    if (mine.length >= 20) return;
     setItems([...items, {
       id: section + "-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6),
       section, title: "", importance: null, frequency: null, stance: null, comment: "",
@@ -662,10 +668,14 @@ export function ChecklistClient() {
   const TOTAL_PASSAGES = useMemo(() => SCREENS.filter((s) => s.type === "obligation").length, [SCREENS]);
 
   // Persist progress locally so a refresh mid-session keeps your place.
+  // Never on the done screen: onDone clears the store, and re-writing it
+  // here would resurrect it (and a reload would land on a hollow "Sent"
+  // screen instead of a fresh start).
   useEffect(() => {
     if (!hydrated) return;
+    if (SCREENS[Math.min(idx, SCREENS.length - 1)]?.type === "done") return;
     try { localStorage.setItem(STORE, JSON.stringify({ idx, role, answers, custom })); } catch { /* private mode */ }
-  }, [idx, role, answers, custom, hydrated]);
+  }, [idx, role, answers, custom, hydrated, SCREENS]);
 
   useEffect(() => { window.scrollTo({ top: 0, behavior: "smooth" }); }, [idx]);
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 
 import { Input } from "@/components/ui/input";
@@ -69,17 +69,26 @@ export default function DOBStep() {
     if (digits.length === 2) yearRef.current?.focus();
   };
   const handleYearChange = (v: string) => {
-    const digits = v.replace(/\D/g, "").slice(0, 4);
-    setYear(digits);
-    // When all three fields are filled, compute and persist age + the
-    // original DOB string. Backend needs date_of_birth on /onboardee-info;
-    // age alone can't reconstruct the date.
-    const computedAge = computeAge(day, month, digits);
-    if (computedAge !== null && computedAge >= MIN_AGE) {
-      const dobIso = `${digits}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-      update({ age: computedAge, dob: dobIso });
-    }
+    setYear(v.replace(/\D/g, "").slice(0, 4));
   };
+
+  // Persist whenever the three fields form a valid adult date, from CURRENT
+  // state. This used to live inside handleYearChange with stale-closure
+  // day/month, so autofill, pasting, entering the year first, or editing a
+  // field after the year silently skipped the date_of_birth PATCH. Users
+  // then hit finish-onboarding with a NULL dob and an unrecoverable
+  // "We couldn't finalize your profile" (bug found 2026-07-08; every
+  // in-flight onboardee had dob NULL). The lastSentRef dedupes so a valid
+  // date is sent once, not on every render.
+  const lastSentRef = useRef<string | null>(null);
+  useEffect(() => {
+    const computedAge = computeAge(day, month, year);
+    if (computedAge === null || computedAge < MIN_AGE) return;
+    const dobIso = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+    if (lastSentRef.current === dobIso) return;
+    lastSentRef.current = dobIso;
+    update({ age: computedAge, dob: dobIso });
+  }, [day, month, year, update]);
 
   return (
     <OnboardingShell href="/onboarding/dob" ctaDisabled={!isValid}>
