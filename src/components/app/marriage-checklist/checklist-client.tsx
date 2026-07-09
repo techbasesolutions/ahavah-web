@@ -271,7 +271,7 @@ function ObligationScreen({ passage, role, answer, setAnswer, onNext, onBack }: 
         <textarea className="mc-comment mc-comment--flush" placeholder="In your own words." value={a.comment || ""}
           onChange={(e) => setAnswer({ ...a, comment: e.target.value })} />
 
-        <label className="mc-field-label mc-label--26">How could this be carried out? <span className="mc-sub">(your own practical examples)</span></label>
+        <label className="mc-field-label mc-label--26">What does this look like, practically? <span className="mc-sub">(your own examples)</span></label>
         {examples.map((ex, i) => (
           <div className="mc-example-row" key={i}>
             <input className="mc-input" placeholder={"Example " + (i + 1)} value={ex} onChange={(e) => setExample(i, e.target.value)} />
