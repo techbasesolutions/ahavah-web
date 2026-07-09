@@ -28,10 +28,27 @@ export function useAppUpdate(): {
   const applyingRef = useRef(false);
 
   const applyUpdate = useCallback(() => {
+    // The Refresh button must NEVER be a silent no-op (bug 2026-07-08: users
+    // clicked it and nothing happened, leaving them pinned to the old
+    // bundle). Two failure modes are covered:
+    //   - no waiting worker (reference raced away) -> plain hard reload;
+    //     HTML is network-first, so a reload alone fetches the new bundle.
+    //   - SKIP_WAITING posted but controllerchange never fires (a known
+    //     iOS Safari flake) -> reload anyway after a short grace.
     const waiting = regRef.current?.waiting;
-    if (!waiting) return;
     applyingRef.current = true; // controllerchange -> the one reload (effect).
-    waiting.postMessage({ type: "SKIP_WAITING" });
+    if (waiting) {
+      waiting.postMessage({ type: "SKIP_WAITING" });
+      window.setTimeout(() => {
+        if (!reloadedRef.current) {
+          reloadedRef.current = true;
+          window.location.reload();
+        }
+      }, 1200);
+    } else {
+      reloadedRef.current = true;
+      window.location.reload();
+    }
   }, []);
 
   useEffect(() => {
