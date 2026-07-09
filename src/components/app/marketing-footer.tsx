@@ -29,6 +29,7 @@ const AUDIENCE_LINKS = [
   { href: "/messianic-matchmaking", label: "Messianic matchmaking" },
   { href: "/biblical-polygyny",     label: "Biblical marriage" },
   { href: "/faith-marriage-abroad", label: "Across borders" },
+  { href: "/marriage-checklist",    label: "Marriage checklist" },
 ];
 
 const COMPANY_LINKS = [

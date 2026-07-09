@@ -17,6 +17,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/messianic-matchmaking", priority: 0.7, changeFrequency: "monthly" },
     { path: "/biblical-polygyny", priority: 0.7, changeFrequency: "monthly" },
     { path: "/faith-marriage-abroad", priority: 0.7, changeFrequency: "monthly" },
+    { path: "/marriage-checklist", priority: 0.7, changeFrequency: "monthly" },
     { path: "/privacy", priority: 0.3, changeFrequency: "yearly" },
     { path: "/terms", priority: 0.3, changeFrequency: "yearly" },
   ];
