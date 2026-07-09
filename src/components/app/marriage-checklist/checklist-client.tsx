@@ -138,7 +138,9 @@ function GrowArea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
 
 /* ---------------------------------- pickers ---------------------------------- */
 
-function ImportancePicker({ value, onChange }: { value?: number | null; onChange: (v: 1 | 2 | 3 | 4 | 5) => void }) {
+function ImportancePicker({ value, onChange, scale = ["Matters a little", "Matters most"] }: {
+  value?: number | null; onChange: (v: 1 | 2 | 3 | 4 | 5) => void; scale?: [string, string];
+}) {
   return (
     <div>
       <div className="mc-importance" role="radiogroup" aria-label="Importance to you">
@@ -148,7 +150,7 @@ function ImportancePicker({ value, onChange }: { value?: number | null; onChange
             onClick={() => onChange(n)}>{n}</button>
         ))}
       </div>
-      <div className="mc-imp-scale"><span>Matters a little</span><span>Matters most</span></div>
+      <div className="mc-imp-scale"><span>{scale[0]}</span><span>{scale[1]}</span></div>
     </div>
   );
 }
@@ -367,25 +369,32 @@ function OpenSectionScreen({ section, items, setItems, onNext, onBack }: {
           <GrowArea className="mc-input mc-h-gap-12 mc-grow" placeholder={meta.placeholder}
             value={it.title} onChange={(e) => update(it.id, { title: e.target.value })} />
 
-          <label className="mc-field-label mc-label--22">How much does this matter to you? <span className="mc-sub">(1 to 5)</span></label>
-          <ImportancePicker value={it.importance} onChange={(v) => update(it.id, { importance: v })} />
-
-          <label className="mc-field-label mc-label--22">How often would you practice this? <span className="mc-sub">(you decide)</span></label>
-          <FrequencyPicker value={it.frequency} onChange={(v) => update(it.id, { frequency: v })} />
-
-          {/* Nice-to-haves are the couple's own wishes; a stance on your
-              own wish makes no sense. Challenges keep it (where you stand
-              on facing an obstacle is meaningful). */}
-          {section !== "nice-to-have" ? (
+          {section === "challenge" ? (
             <>
-              <label className="mc-field-label mc-label--22">Where do you stand?</label>
+              {/* Challenges are lived, not chosen: measure impact, how often
+                  it shows up, and whether effort is being made on it. */}
+              <label className="mc-field-label mc-label--22">How much does this affect you? <span className="mc-sub">(1 to 5)</span></label>
+              <ImportancePicker value={it.importance} scale={["A little", "A lot"]} onChange={(v) => update(it.id, { importance: v })} />
+
+              <label className="mc-field-label mc-label--22">How often do you experience this?</label>
+              <FrequencyPicker value={it.frequency} onChange={(v) => update(it.id, { frequency: v })} />
+
+              <label className="mc-field-label mc-label--22">Effort is being made to address this:</label>
               <StancePicker value={it.stance} onChange={(v) => update(it.id, { stance: v })} />
               {it.stance === "other" ? (
-                <GrowArea className="mc-comment mc-grow" placeholder="Say more about where you stand." value={it.otherNote || ""}
+                <GrowArea className="mc-comment mc-grow" placeholder="Say more about where this stands." value={it.otherNote || ""}
                   onChange={(e) => update(it.id, { otherNote: e.target.value })} />
               ) : null}
             </>
-          ) : null}
+          ) : (
+            <>
+              <label className="mc-field-label mc-label--22">How much does this matter to you? <span className="mc-sub">(1 to 5)</span></label>
+              <ImportancePicker value={it.importance} onChange={(v) => update(it.id, { importance: v })} />
+
+              <label className="mc-field-label mc-label--22">How often would you practice this? <span className="mc-sub">(you decide)</span></label>
+              <FrequencyPicker value={it.frequency} onChange={(v) => update(it.id, { frequency: v })} />
+            </>
+          )}
 
           <label className="mc-field-label mc-label--22">Your notes <span className="mc-sub">(optional)</span></label>
           <GrowArea className="mc-comment mc-comment--flush mc-grow" placeholder="In your own words."
