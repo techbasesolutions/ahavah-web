@@ -107,7 +107,7 @@ function toSendAnswers(rated: RatedItem[]): SendAnswer[] {
     ...("ref" in r && r.ref ? { ref: r.ref } : {}),
     ...("title" in r && r.title ? { title: r.title } : {}),
     importance: r.importance as number,
-    stance: r.stance as Stance,
+    ...(r.stance ? { stance: r.stance } : {}),
     ...(r.frequency ? { frequency: r.frequency } : {}),
     ...(r.comment && r.comment.trim() ? { comment: r.comment.trim() } : {}),
     ...(r.examples && r.examples.some((e) => e.trim())
@@ -373,11 +373,18 @@ function OpenSectionScreen({ section, items, setItems, onNext, onBack }: {
           <label className="mc-field-label mc-label--22">How often would you practice this? <span className="mc-sub">(you decide)</span></label>
           <FrequencyPicker value={it.frequency} onChange={(v) => update(it.id, { frequency: v })} />
 
-          <label className="mc-field-label mc-label--22">Where do you stand?</label>
-          <StancePicker value={it.stance} onChange={(v) => update(it.id, { stance: v })} />
-          {it.stance === "other" ? (
-            <GrowArea className="mc-comment mc-grow" placeholder="Say more about where you stand." value={it.otherNote || ""}
-              onChange={(e) => update(it.id, { otherNote: e.target.value })} />
+          {/* Nice-to-haves are the couple's own wishes; a stance on your
+              own wish makes no sense. Challenges keep it (where you stand
+              on facing an obstacle is meaningful). */}
+          {section !== "nice-to-have" ? (
+            <>
+              <label className="mc-field-label mc-label--22">Where do you stand?</label>
+              <StancePicker value={it.stance} onChange={(v) => update(it.id, { stance: v })} />
+              {it.stance === "other" ? (
+                <GrowArea className="mc-comment mc-grow" placeholder="Say more about where you stand." value={it.otherNote || ""}
+                  onChange={(e) => update(it.id, { otherNote: e.target.value })} />
+              ) : null}
+            </>
           ) : null}
 
           <label className="mc-field-label mc-label--22">Your notes <span className="mc-sub">(optional)</span></label>

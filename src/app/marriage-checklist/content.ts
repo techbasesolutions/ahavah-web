@@ -57,7 +57,8 @@ export type SendAnswer = {
   ref?: string;
   title?: string;
   importance: number;
-  stance: Stance;
+  /** Absent for nice-to-haves (no stance question on your own wishes). */
+  stance?: Stance;
   frequency?: Frequency;
   comment?: string;
   examples?: string[];
