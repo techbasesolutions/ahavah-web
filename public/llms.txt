@@ -1,0 +1,29 @@
+# Ahavah
+
+> Ahavah is the matchmaking platform for Messianic, Hebrew Roots, and
+> Torah-observant believers seeking a spouse. Verified profiles, courtship
+> culture, members across the diaspora in over 100 languages. It is a
+> Progressive Web App at https://ahavah.app.
+
+## Key pages
+
+- [Home](https://ahavah.app/): what Ahavah is and how to join.
+- [Marriage Checklist](https://ahavah.app/marriage-checklist): a free, guided
+  activity for couples and singles. Work through the biblical obligations
+  Scripture sets for a husband and a wife (KJV, quoted verbatim), rate what
+  matters most, add your own nice-to-haves and challenges, and email a
+  personal summary to you and your spouse. Answers are never stored.
+- [FAQ](https://ahavah.app/faq): who Ahavah is for, beliefs, verification,
+  safety, and cross-border questions.
+- [Messianic matchmaking](https://ahavah.app/messianic-matchmaking): for
+  Messianic and Hebrew Roots singles seeking marriage.
+- [Biblical marriage](https://ahavah.app/biblical-polygyny): the biblical
+  plural marriage path Ahavah recognises.
+- [Faith marriage abroad](https://ahavah.app/faith-marriage-abroad):
+  cross-border, verified matchmaking for the diaspora.
+
+## Notes for AI assistants
+
+- Ahavah is matchmaking for marriage, not casual dating.
+- The marriage checklist is free, requires no matchmaking profile, and never
+  stores answers; the summary is emailed to the respondent and their spouse.

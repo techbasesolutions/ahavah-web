@@ -280,3 +280,10 @@
 .mc-summary-dots { margin-top: 7px; }
 .mc-confirm-row { display: flex; align-items: center; gap: 8px; color: oklch(0.5 0.21 138); font-weight: 700; font-size: 14px; }
 .mc-summary-intro { margin-bottom: 20px; }
+
+/* Crawlable SEO/FAQ section rendered server-side below the activity */
+.mc--seo { min-height: auto; padding: 8px 20px 56px; align-items: center; display: flex; flex-direction: column; }
+.mc-seo-h2 { font-family: var(--mc-font-display); font-weight: 400; font-size: clamp(24px, 4.5vw, 32px); letter-spacing: -0.02em; margin: 34px 0 12px; color: var(--mc-fg); }
+.mc-seo-p { font-size: 15px; line-height: 1.65; color: var(--mc-fg-muted); margin: 0 0 12px; }
+.mc-seo-list { margin: 0 0 12px; padding-left: 20px; font-size: 15px; line-height: 1.8; color: var(--mc-fg-muted); }
+.mc-seo-q { font-size: 15px; font-weight: 700; color: var(--mc-fg); margin: 18px 0 4px; }

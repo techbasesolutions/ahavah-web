@@ -48,6 +48,10 @@ const FAQ_GROUPS: ReadonlyArray<{ theme: string; items: ReadonlyArray<{ q: strin
         q: "Is Ahavah available now?",
         a: "Yes. Ahavah is live. Sign up and create your profile in minutes.",
       },
+      {
+        q: "What is the marriage checklist?",
+        a: "A free, guided activity at ahavah.app/marriage-checklist. Work through the biblical obligations Scripture sets for a husband and a wife, rate what matters most to you, add your own nice-to-haves and challenges, and email a personal summary to you and your spouse. Answers are never stored.",
+      },
     ],
   },
   {
