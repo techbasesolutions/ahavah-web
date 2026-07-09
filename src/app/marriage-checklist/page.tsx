@@ -56,7 +56,7 @@ const FAQ: Array<{ q: string; a: string }> = [
   },
   {
     q: "Which Bible passages are included?",
-    a: "Section one covers Genesis 2:18-24, Exodus 21:10-11, Proverbs 5:15-19, 1 Corinthians 7:2-5, Ephesians 5:22-33, Colossians 3:18-19, 1 Peter 3:1-7, Malachi 2:14-16, and Hebrews 13:4, quoted verbatim from the KJV and linked to the full passage on YouVersion. We add no titles and no interpretation.",
+    a: "Section one covers Genesis 2:18-24, Exodus 21:10-11, Proverbs 5:15-19, 1 Corinthians 7:2-5, Ephesians 5:22-33, Colossians 3:18-19, 1 Peter 3:1-7, Malachi 2:14-16, and Hebrews 13:4, quoted verbatim from the KJV and linked to the full passage on YouVersion.",
   },
   {
     q: "Can I use it if I am single?",
@@ -142,8 +142,7 @@ export default function MarriageChecklistPage() {
             </p>
             <p className="mc-seo-p">
               Section one quotes each passage verbatim from the KJV, with a
-              link to the full text on YouVersion. We add no titles and no
-              interpretation. The passages are:
+              link to the full text on YouVersion. The passages are:
             </p>
             <ul className="mc-seo-list">
               {PASSAGES.map((p) => (
