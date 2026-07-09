@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 
 import { Input } from "@/components/ui/input";
@@ -7,6 +9,7 @@ import { Label } from "@/components/ui/label";
 
 import { OnboardingShell } from "@/components/app/onboarding-shell";
 import { useProfile } from "@/lib/use-profile";
+import { positionOf } from "@/lib/wizard-flow";
 
 const MIN_NAME = 2;
 const MAX_NAME = 30;
@@ -33,13 +36,40 @@ const fadeUp = {
  * write directly via `update({ firstName })`.
  */
 export default function NameStep() {
+  const router = useRouter();
   const { profile, update } = useProfile();
   const name = profile.firstName ?? "";
   const trimmed = name.trim();
   const isValid = trimmed.length >= MIN_NAME && trimmed.length <= MAX_NAME;
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(false);
+
+  // finish-onboarding requires name server-side (NOT NULL on person), so
+  // Continue awaits a CONFIRMED write instead of trusting the optimistic
+  // per-keystroke PATCH (which can fail silently mid-flow). A failed save
+  // surfaces an error and keeps the user here to retry.
+  const handleNext = async () => {
+    if (!isValid || saving) return;
+    setSaveError(false);
+    setSaving(true);
+    try {
+      await update({ firstName: trimmed });
+      router.push(positionOf("/onboarding/name").next ?? "/onboarding/dob");
+    } catch {
+      setSaveError(true);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
-    <OnboardingShell href="/onboarding/name" ctaDisabled={!isValid}>
+    <OnboardingShell
+      href="/onboarding/name"
+      ctaDisabled={!isValid}
+      ctaLoading={saving}
+      ctaLoadingLabel="Saving..."
+      onNext={handleNext}
+    >
       <motion.div
         {...fadeUp}
         transition={{ duration: 0.4 }}
@@ -91,6 +121,11 @@ export default function NameStep() {
             {name.length}/{MAX_NAME}
           </span>
         </div>
+        {saveError ? (
+          <p role="alert" aria-live="polite" className="text-caption font-semibold text-pink">
+            We could not save your name. Check your connection and tap Continue again.
+          </p>
+        ) : null}
       </motion.div>
     </OnboardingShell>
   );

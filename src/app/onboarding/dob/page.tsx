@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 
 import { Input } from "@/components/ui/input";
@@ -8,6 +9,7 @@ import { Label } from "@/components/ui/label";
 
 import { OnboardingShell } from "@/components/app/onboarding-shell";
 import { useProfile } from "@/lib/use-profile";
+import { positionOf } from "@/lib/wizard-flow";
 
 const MIN_AGE = 18;
 
@@ -45,10 +47,13 @@ function computeAge(d: string, m: string, y: string): number | null {
 }
 
 export default function DOBStep() {
+  const router = useRouter();
   const { update } = useProfile();
   const [day, setDay] = useState("");
   const [month, setMonth] = useState("");
   const [year, setYear] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(false);
 
   const monthRef = useRef<HTMLInputElement>(null);
   const yearRef = useRef<HTMLInputElement>(null);
@@ -90,8 +95,34 @@ export default function DOBStep() {
     update({ age: computedAge, dob: dobIso });
   }, [day, month, year, update]);
 
+  // finish-onboarding requires date_of_birth server-side (NOT NULL on
+  // person), so Continue awaits a CONFIRMED write. The eager effect above
+  // remains the fast path; this is the guarantee.
+  const handleNext = async () => {
+    if (saving) return;
+    const computedAge = computeAge(day, month, year);
+    if (computedAge === null || computedAge < MIN_AGE) return;
+    setSaveError(false);
+    setSaving(true);
+    try {
+      const dobIso = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+      await update({ age: computedAge, dob: dobIso });
+      router.push(positionOf("/onboarding/dob").next ?? "/onboarding/location");
+    } catch {
+      setSaveError(true);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
-    <OnboardingShell href="/onboarding/dob" ctaDisabled={!isValid}>
+    <OnboardingShell
+      href="/onboarding/dob"
+      ctaDisabled={!isValid}
+      ctaLoading={saving}
+      ctaLoadingLabel="Saving..."
+      onNext={handleNext}
+    >
       <motion.div
         {...fadeUp}
         transition={{ duration: 0.4 }}
@@ -188,6 +219,11 @@ export default function DOBStep() {
           ? "Please enter a valid date."
           : "You must be 18 or older to use Ahavah."}
       </motion.p>
+      {saveError ? (
+        <p role="alert" aria-live="polite" className="mt-3 text-caption font-semibold text-pink">
+          We could not save your date of birth. Check your connection and tap Continue again.
+        </p>
+      ) : null}
     </OnboardingShell>
   );
 }
