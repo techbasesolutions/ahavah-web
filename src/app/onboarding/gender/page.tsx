@@ -58,7 +58,7 @@ export default function GenderStep() {
     setSaving(true);
     try {
       await update({ sex });
-      router.push(positionOf("/onboarding/gender").next ?? "/onboarding/country");
+      router.push(positionOf("/onboarding/gender").next ?? "/onboarding/marital-status");
     } catch {
       setSaveError(true);
     } finally {
