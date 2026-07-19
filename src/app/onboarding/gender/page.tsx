@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 
 import { Card } from "@/components/ui/card";
@@ -10,6 +12,7 @@ import { cn } from "@/lib/utils";
 
 import { OnboardingShell } from "@/components/app/onboarding-shell";
 import { useProfile } from "@/lib/use-profile";
+import { positionOf } from "@/lib/wizard-flow";
 
 const OPTIONS = [
   { key: "woman", label: "Woman" },
@@ -23,6 +26,9 @@ const fadeUp = {
 
 export default function GenderStep() {
   const { profile, update } = useProfile();
+  const router = useRouter();
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(false);
   // Map profile.sex ("female" | "male") to screen display values ("woman" | "man")
   const sexToDisplay = (sex?: string) => {
     if (sex === "female") return "woman";
@@ -37,8 +43,37 @@ export default function GenderStep() {
   };
   const selected = sexToDisplay(profile.sex);
 
+  // Confirmed-save on Continue (2026-07-19, Laura's onboarding loop):
+  // the onValueChange PATCH is fire-and-forget, so a single failed
+  // save was silent AND never retried — on every later wizard pass the
+  // cached selection pre-selects the radio, onValueChange never fires
+  // again, and the onboardee reaches /finish-onboarding with
+  // gender_id NULL (unrecoverable 409/500 loop). Same class as the
+  // 2026-07-08 name/dob fix: Continue advances only after the PATCH
+  // confirms, exactly like /onboarding/name.
+  const handleNext = async () => {
+    const sex = displayToSex(selected);
+    if (!sex || saving) return;
+    setSaveError(false);
+    setSaving(true);
+    try {
+      await update({ sex });
+      router.push(positionOf("/onboarding/gender").next ?? "/onboarding/country");
+    } catch {
+      setSaveError(true);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
-    <OnboardingShell href="/onboarding/gender" ctaDisabled={!selected}>
+    <OnboardingShell
+      href="/onboarding/gender"
+      ctaDisabled={!selected}
+      ctaLoading={saving}
+      ctaLoadingLabel="Saving..."
+      onNext={handleNext}
+    >
       <motion.div
         {...fadeUp}
         transition={{ duration: 0.4 }}
@@ -109,6 +144,11 @@ export default function GenderStep() {
             );
           })}
         </RadioGroup>
+        {saveError ? (
+          <p role="alert" aria-live="polite" className="mt-3 text-caption font-semibold text-pink">
+            We could not save your answer. Check your connection and tap Continue again.
+          </p>
+        ) : null}
       </motion.div>
     </OnboardingShell>
   );

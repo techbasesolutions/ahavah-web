@@ -58,12 +58,26 @@ export default function OnboardingCompletePage() {
         if (personUuid) pixelCompleteRegistration(`reg-${personUuid}`);
       })
       .catch((err: unknown) => {
-        // 409 = the backend found name or date of birth missing on the
-        // onboardee row (a wizard persistence gap). Refreshing would loop
-        // on the same failure forever, so route back to re-enter the
-        // fields instead of dead-ending (bug found 2026-07-08).
+        // 409 = the backend found required onboardee fields missing (a
+        // wizard persistence gap). Refreshing would loop on the same
+        // failure forever, so route to the step that owns the FIRST
+        // missing field instead of dead-ending (2026-07-08) or
+        // restarting the whole wizard (2026-07-19: gender-only gaps
+        // were bounced to /onboarding/name, which reads as "re-enter
+        // everything"). The 409 body names the missing fields.
         if (err instanceof ApiError && err.status === 409) {
-          router.replace("/onboarding/name");
+          // Plain-text 409 body ("Onboarding incomplete: gender") lands
+          // in err.body; err.message is just "HTTP 409 on ...".
+          const body = (
+            typeof err.body === "string" ? err.body : err.message || ""
+          ).toLowerCase();
+          const step =
+            body.includes("name") || body.includes("date_of_birth")
+              ? "/onboarding/name"
+              : body.includes("gender")
+                ? "/onboarding/gender"
+                : "/onboarding/name";
+          router.replace(step);
           return;
         }
         setError("We couldn't finalise your profile. Refresh and try again.");
