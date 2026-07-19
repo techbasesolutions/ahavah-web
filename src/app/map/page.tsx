@@ -61,6 +61,7 @@ import Link from "next/link";
 import { ChevronRight, MapPin, MessageCircle, SlidersHorizontal, Users } from "lucide-react";
 
 import type { MapView } from "@/components/app/world-map";
+import { saveLensBbox } from "@/lib/map-lens";
 
 import { BottomNav } from "@/components/app/bottom-nav";
 import { FiltersSheet } from "@/components/app/filters-sheet";
@@ -305,6 +306,9 @@ export default function MapPage() {
     if (filters.calendars?.length) n += 1;
     if (filters.educations?.length) n += 1;
     if (filters.healthTags?.length) n += 1;
+    // SOT design note 6 (map lens): the badge counts the lens on every
+    // surface that shows the filter button.
+    if (filters.mapLens) n += 1;
     return n;
   }, [filters]);
   // Drop candidates without a country ISO — the map can't position them.
@@ -515,6 +519,7 @@ export default function MapPage() {
             initialCenter={[initialView.lat, initialView.lng]}
             initialZoom={initialView.zoom}
             onViewChange={persistView}
+            onBoundsChange={saveLensBbox}
           >
             {mapMarkers}
           </WorldMap>
@@ -553,6 +558,7 @@ export default function MapPage() {
               initialCenter={[initialView.lat, initialView.lng]}
               initialZoom={initialView.zoom}
               onViewChange={persistView}
+              onBoundsChange={saveLensBbox}
             >
               {mapMarkers}
             </WorldMap>

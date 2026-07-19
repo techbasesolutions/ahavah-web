@@ -26,6 +26,7 @@ import { Logo } from "@/components/brand/logo";
 import { BottomNav } from "@/components/app/bottom-nav";
 import { EmptyState } from "@/components/app/empty-state";
 import { FiltersSheet } from "@/components/app/filters-sheet";
+import { MapLensChip } from "@/components/app/map-lens-chip";
 import { PageHeader, PageShell } from "@/components/app/page-shell";
 import { PhotoCaption } from "@/components/app/photo-caption";
 import { QuotaExceededCard } from "@/components/app/quota-exceeded-card";
@@ -33,6 +34,7 @@ import { TokenSpendSheet } from "@/components/app/token-spend-sheet";
 import { useTokenBalance } from "@/lib/use-token-balance";
 import { ApiError } from "@/lib/api-client";
 import { useProfile } from "@/lib/use-profile";
+import { applyMapLens, isWorldSpan, loadLensBbox } from "@/lib/map-lens";
 import { cn } from "@/lib/utils";
 import { readOnboarded } from "@/lib/onboarded-storage";
 import { firstMissingStepFor, isDiscoverEligible } from "@/lib/profile-completeness";
@@ -140,6 +142,17 @@ export default function DiscoverPage() {
 
   const { items, loadMore, hasMore, reload } = useDiscoverDeck(httpFilters);
 
+  // Map lens (SOT: "Ahavah Map Lens" export): purely client-side
+  // ordering — never part of httpFilters, so toggling it re-ranks the
+  // loaded deck instantly with zero refetch. lensBbox is null when the
+  // lens is off, no map area was ever saved, or the saved area spans
+  // the whole world (no locality signal).
+  const lensBbox = useMemo(() => {
+    if (!filters.mapLens) return null;
+    const b = loadLensBbox();
+    return b && !isWorldSpan(b) ? b : null;
+  }, [filters.mapLens]);
+
   // Count active filters for the badge on the top-bar filter button.
   const activeFilterCount = useMemo(() => {
     let n = 0;
@@ -156,6 +169,9 @@ export default function DiscoverPage() {
     if (filters.calendars?.length) n += 1;
     if (filters.educations?.length) n += 1;
     if (filters.healthTags?.length) n += 1;
+    // SOT design note 6: the badge counts the lens so the deck header
+    // always discloses how many preferences are shaping the order.
+    if (filters.mapLens) n += 1;
     return n;
   }, [filters]);
 
@@ -192,10 +208,15 @@ export default function DiscoverPage() {
   const tokenBalanceForSheet =
     tokenBalanceState === "happy" ? tokenBalance : null;
 
-  // Filter out candidates mid-decision or already decided.
+  // Filter out candidates mid-decision or already decided. The map lens
+  // re-orders (inside-area first) BEFORE the local exclusions; it never
+  // removes anyone.
   const visibleItems = useMemo(
-    () => items.filter((c) => !pendingIds.has(c.id) && !decidedIds.has(c.id)),
-    [items, pendingIds, decidedIds],
+    () =>
+      applyMapLens(items, lensBbox).filter(
+        (c) => !pendingIds.has(c.id) && !decidedIds.has(c.id),
+      ),
+    [items, lensBbox, pendingIds, decidedIds],
   );
 
   const candidate = visibleItems[0];
@@ -798,6 +819,17 @@ export default function DiscoverPage() {
           </div>
         </PageHeader>
 
+        {/* Map-lens status chip (SOT frame 1): between header and deck,
+            only while the lens is actively shaping the order. */}
+        {filters.mapLens && lensBbox ? (
+          <MapLensChip
+            className="mx-5 mt-3"
+            onDismiss={() =>
+              setFilters((prev) => ({ ...prev, mapLens: false }))
+            }
+          />
+        ) : null}
+
         {/* Card slot + action row */}
         <div className="relative mt-3 flex min-h-0 flex-1 flex-col gap-4 px-5 pb-3">
           {candidateCard}
@@ -897,6 +929,18 @@ export default function DiscoverPage() {
             QuotaExceededCard conditional + empty state (pre-canonical;
             shared with mobile via the same candidate state). */}
         <div className="flex flex-col items-center justify-center gap-7">
+          {/* Map-lens status chip (SOT atoms board): reused at the deck
+              card's width above the card. The SOT designed the mobile
+              placement; desktop reuses the same atom so the ordering is
+              disclosed on both viewports. */}
+          {filters.mapLens && lensBbox ? (
+            <MapLensChip
+              className="w-115 -mb-2"
+              onDismiss={() =>
+                setFilters((prev) => ({ ...prev, mapLens: false }))
+              }
+            />
+          ) : null}
           {/* candidateCard's candidate-branch motion.div uses `flex-1` to
               fill its parent's height — the wrapper MUST be flex flex-col
               for that to size correctly. The empty + quota branches use

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, MapPin } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -94,12 +94,14 @@ export type DiscoverFiltersState = {
   country?: ReadonlyArray<string>;
   languages?: ReadonlyArray<string>;
   verifiedOnly?: boolean;
+  mapLens?: boolean;
 };
 
 const DEFAULT_FILTERS: DiscoverFiltersState = {
   ageMin: 18,
   ageMax: 80,
   verifiedOnly: false,
+  mapLens: false,
 };
 
 // --- Helpers ----------------------------------------------------------------
@@ -439,6 +441,30 @@ export function FiltersSheet({
               checked={filters.verifiedOnly ?? false}
               onCheckedChange={(v) => update("verifiedOnly", v)}
               aria-label="Verified only"
+            />
+          </section>
+
+          {/* Map lens (SOT: "Ahavah Map Lens" export). Copies the
+              Verified-only row anatomy exactly, plus a small lavender
+              map pin marking the row as map-linked. Caption changes
+              with state per the design notes: off explains what turning
+              it on does, on explains the silent update rule. */}
+          <section className="flex items-center justify-between gap-3 border-b border-(--hairline) py-4 last:border-b-0">
+            <div className="flex flex-col gap-1">
+              <h3 className="flex items-center gap-1.5 text-overline text-(--ink-2)">
+                <MapPin className="size-3.5 shrink-0 text-lavender" aria-hidden />
+                Use my map view
+              </h3>
+              <p className="text-caption text-(--ink-3)">
+                {filters.mapLens
+                  ? "Updates whenever you leave the map page."
+                  : "People in the area you last viewed on the map appear first."}
+              </p>
+            </div>
+            <Switch
+              checked={filters.mapLens ?? false}
+              onCheckedChange={(v) => update("mapLens", v)}
+              aria-label="Use my map view"
             />
           </section>
         </div>

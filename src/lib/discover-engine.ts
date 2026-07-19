@@ -55,6 +55,10 @@ export interface DiscoverFilters {
   healthTags?: readonly HealthTag[];
   educations?: readonly EducationLevel[];
   verifiedOnly?: boolean;
+  /** Map lens (2026-07-19): rank candidates inside the member's last
+   *  map viewport FIRST. Client-side ordering only — never sent to
+   *  /search and never excludes anyone. See lib/map-lens.ts. */
+  mapLens?: boolean;
   /** SP23: filter by marital status. Empty/undefined = no filter. */
   maritalStatuses?: ReadonlyArray<MaritalStatus>;
   /** SP23: filter by parental status via 2-bucket multi-select. */
