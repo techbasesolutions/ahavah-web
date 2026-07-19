@@ -124,7 +124,12 @@ Phase 1 — kit corrections, zero product change, one PR:
 5. bottom-nav radius → 24px token; switch default → design scale;
    filters-sheet grab handle.
 
-Phase 2 — after CTA-radius ruling: normalize `size="cta"` radius.
+Phase 2 — DONE (operator ruling 2026-07-19: full pill wins). Button
+`size="cta"` radius normalized rounded-2xl → rounded-full; no usage
+carried a per-instance radius override, so the single kit change
+covers all 30 call sites. The design project's ds.jsx PrimaryBtn
+(radius 16) should be updated on the design side to match its own
+exports.
 
 Sweep duty: these primitives touch nearly every route. Verification
 must render EVERY surface composing them at 390 AND desktop (both

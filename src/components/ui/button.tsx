@@ -111,7 +111,10 @@ const buttonVariants = cva(
         tap:        "h-tap gap-2 px-4 text-meta has-data-[icon=inline-end]:pr-3 has-data-[icon=inline-start]:pl-3",
         "icon-tap": "size-tap [&_svg:not([class*='size-'])]:size-5",
         // Primary CTA — full-width, 56px, bold body, lg radius.
-        cta: "h-cta w-full gap-2 px-6 text-body font-bold rounded-2xl [&_svg:not([class*='size-'])]:size-5",
+        // Full-pill CTA per operator ruling 2026-07-19 (audit Phase 2):
+        // ds.jsx specified r16 but every recent design export draws
+        // primary CTAs as full pills; the pill wins.
+        cta: "h-cta w-full gap-2 px-6 text-body font-bold rounded-full [&_svg:not([class*='size-'])]:size-5",
         // Circular floating action / swipe-deck buttons.
         "circle-lg": "size-tap-lg rounded-full [&_svg:not([class*='size-'])]:size-5",
         "circle-xl": "size-tap-xl rounded-full [&_svg:not([class*='size-'])]:size-6",
