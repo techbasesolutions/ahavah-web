@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import {
-  ChevronRight, CreditCard, Loader2, LogOut, RotateCcw, Settings,
+  ChevronRight, CreditCard, Eye, Loader2, LogOut, RotateCcw, Settings,
   ShieldCheck, Sparkles, TriangleAlert, UserPen,
 } from "lucide-react";
 
@@ -13,6 +13,7 @@ import { apiClient, ApiError } from "@/lib/api-client";
 import { isPremium } from "@/lib/profile-schema";
 import { computeCompleteness } from "@/lib/profile-completeness";
 import { useProfile } from "@/lib/use-profile";
+import { useVisitors } from "@/lib/use-visitors";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -61,11 +62,16 @@ type ProfileLink = {
   subtitle?: string;
   href: string;
   tone: "brand" | "success" | "muted";
+  /** Who-viewed-you (SOT design note 7): lime new-count pill next to
+   *  the title. Clears once /views has been opened. */
+  badge?: number;
 };
 
 export default function ProfilePage() {
   const router = useRouter();
   const { profile, signOut, refreshProfile } = useProfile();
+  // New-view count for the Who-viewed-you row pill + caption.
+  const { newCount: newViewsCount } = useVisitors();
   const [signOutOpen, setSignOutOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   // Phase W cutover (2026-05-15) — cancel-deletion self-service. The
@@ -150,8 +156,15 @@ export default function ProfilePage() {
     ? "Premium · manage subscription"
     : "Upgrade to Premium →";
   const subscriptionHref = premium ? "/billing-portal" : "/paywall";
+  // Who-viewed-you entry row (SOT design note 7): sits between Edit
+  // profile and Verification; caption flips with the new-view count.
+  const viewsSubtitle =
+    newViewsCount > 0
+      ? `${newViewsCount} new ${newViewsCount === 1 ? "view" : "views"} since you last checked`
+      : "See recent views of your profile";
   const PROFILE_LINKS: ReadonlyArray<ProfileLink> = [
     { Icon: UserPen,     title: "Edit profile", subtitle: "Photos, bio, basics",             href: "/profile/edit", tone: "brand" },
+    { Icon: Eye,         title: "Who viewed you", subtitle: viewsSubtitle,                   href: "/views",        tone: "brand", badge: newViewsCount },
     { Icon: ShieldCheck, title: "Verification", subtitle: verifySubtitle,                    href: "/verify",       tone: "success" },
     { Icon: CreditCard,  title: "Subscription", subtitle: subscriptionSubtitle,              href: subscriptionHref, tone: "success" },
     { Icon: Settings,    title: "Settings",     subtitle: "Notifications, privacy, account", href: "/settings",     tone: "muted" },
@@ -364,7 +377,14 @@ export default function ProfilePage() {
                   </IconBadge>
                 </ItemMedia>
                 <ItemContent>
-                  <ItemTitle className="text-meta text-(--ink)">{item.title}</ItemTitle>
+                  <ItemTitle className="flex items-center gap-2 text-meta text-(--ink)">
+                    {item.title}
+                    {item.badge ? (
+                      <Pill variant="lime" size="sm">
+                        {item.badge > 99 ? "99+" : item.badge}
+                      </Pill>
+                    ) : null}
+                  </ItemTitle>
                   {item.subtitle ? (
                     <ItemDescription className="text-caption text-(--ink-3)">
                       {item.subtitle}
@@ -502,8 +522,13 @@ export default function ProfilePage() {
                   </IconBadge>
                 </ItemMedia>
                 <ItemContent>
-                  <ItemTitle className="text-meta font-semibold text-(--ink,#0F0B1F)">
+                  <ItemTitle className="flex items-center gap-2 text-meta font-semibold text-(--ink,#0F0B1F)">
                     {item.title}
+                    {item.badge ? (
+                      <Pill variant="lime" size="sm">
+                        {item.badge > 99 ? "99+" : item.badge}
+                      </Pill>
+                    ) : null}
                   </ItemTitle>
                   {item.subtitle ? (
                     <ItemDescription className="text-caption text-(--ink-3,oklch(0.60_0.04_280))">

@@ -187,6 +187,40 @@ export type OutgoingLikesResponse = {
   likes: ReadonlyArray<OutgoingLikeRecord>;
 };
 
+/** Who-viewed-you (2026-07-19): one row of GET /visitors, either
+ *  direction. Backend ships visited_pass_3 verbatim (minus internal
+ *  ordering fields). Members who browse invisibly or hide from
+ *  strangers never appear in visited_you — enforced server-side. */
+export type VisitorRecord = {
+  person_uuid: string;
+  /** NULL when the viewer's privacy requires a verification level the
+   *  member lacks — render the locked row, never the person. */
+  photo_uuid: string | null;
+  photo_blurhash: string | null;
+  /** ISO8601 visit time. */
+  time: string;
+  name: string | null;
+  /** NULL unless the person shows their age. */
+  age: number | null;
+  gender: string | null;
+  /** NULL unless the person shows their location. */
+  location: string | null;
+  is_verified: boolean;
+  /** visited_you rows only: visit is newer than the member's last
+   *  check (POST /mark-visitors-checked resets the clock). */
+  is_new: boolean;
+  /** 'basics' | 'photos' when the member must verify to see this
+   *  person; null when fully visible. */
+  verification_required_to_view: "basics" | "photos" | null;
+  was_invisible: boolean;
+};
+
+export type VisitorsResponse = {
+  visited_you: ReadonlyArray<VisitorRecord>;
+  you_visited: ReadonlyArray<VisitorRecord>;
+  last_visited_at: string | null;
+};
+
 // ---------------------------------------------------------------------------
 // Chat — REST companion endpoints (real-time goes via WebSocket; see
 // chat-types.ts in Agent 4's module).

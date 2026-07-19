@@ -332,7 +332,9 @@ export default function ProfileDetailPage({ params }: Props) {
           ? "/matches?tab=likes"
           : from === "youliked"
             ? "/matches?tab=youliked"
-            : "/discover";
+            : from === "views"
+              ? "/views"
+              : "/discover";
   const backLabel =
     from === "map"
       ? "Back to map"
@@ -342,7 +344,9 @@ export default function ProfileDetailPage({ params }: Props) {
           ? "Back to Liked you"
           : from === "youliked"
             ? "Back to You liked"
-            : "Back to discover";
+            : from === "views"
+              ? "Back to Views"
+              : "Back to discover";
 
   // Super-like spend path — mirrors /discover's handleSuperLike, adapted to
   // act on this profile's uuid and return to the launching surface on success.
