@@ -6,10 +6,11 @@ Posts" and the Marriage Checklist post set — same brand system, same
 export format. The member email has already gone out; these posts
 carry the same story to Facebook and Instagram.
 
-## The story (one campaign, four proofs)
+## The story (new updates, plainly)
 
-Headline idea: the platform listens and ships. Four features went live
-in one week, all from member feedback:
+Frame: "New on Ahavah" — a straightforward update announcement. No
+meta-narrative about the team or shipping speed; the features carry
+the post. Four updates, now live:
 
 1. **See who viewed you** — every view of your profile, new ones
    flagged. (Lead feature: strongest curiosity hook for non-members.)
@@ -19,10 +20,6 @@ in one week, all from member feedback:
    people from that area appear first in your feed.
 4. **Nobody stays hidden** — distance and unanswered profile questions
    no longer hide anyone.
-
-Angle for the public audience: this is matchmaking software being
-built seriously, fast, in the open, for this community. "Built by
-believers, shipped weekly" energy. Not feature-list dryness.
 
 ## Formats (match the Marriage post set)
 
