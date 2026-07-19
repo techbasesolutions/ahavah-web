@@ -40,12 +40,12 @@ const SECTIONS: ReadonlyArray<{ slug: string; heading: string; body: string }> =
   {
     slug: "rights",
     heading: "Your rights",
-    body: "Access, correction, deletion, export. Email admin@ahavah.app to exercise any of these; we'll respond within 30 days.",
+    body: "Access, correction, deletion, export. Email support@ahavah.app to exercise any of these; we'll respond within 30 days.",
   },
   {
     slug: "children",
     heading: "No under-18 use",
-    body: "Ahavah is 18+. We don't knowingly collect data from minors. If you believe a minor has an account, email admin@ahavah.app and we'll remove it.",
+    body: "Ahavah is 18+. We don't knowingly collect data from minors. If you believe a minor has an account, email support@ahavah.app and we'll remove it.",
   },
   {
     slug: "changes",
@@ -55,7 +55,7 @@ const SECTIONS: ReadonlyArray<{ slug: string; heading: string; body: string }> =
   {
     slug: "contact",
     heading: "Contact",
-    body: "Privacy questions: admin@ahavah.app.",
+    body: "Privacy questions: support@ahavah.app.",
   },
 ];
 

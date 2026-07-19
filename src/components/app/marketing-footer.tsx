@@ -35,7 +35,7 @@ const AUDIENCE_LINKS = [
 const COMPANY_LINKS = [
   { href: "/faq",                    label: "Help & FAQ" },
   { href: "/resources",              label: "Resources" },
-  { href: "mailto:admin@ahavah.app", label: "Contact" },
+  { href: "mailto:support@ahavah.app", label: "Contact" },
 ];
 
 const LEGAL_LINKS = [

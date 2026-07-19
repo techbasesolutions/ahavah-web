@@ -42,7 +42,7 @@ const SECTIONS: ReadonlyArray<{ slug: string; heading: string; body: string }> =
   {
     slug: "contact",
     heading: "Contact",
-    body: "Questions about these guidelines: admin@ahavah.app.",
+    body: "Questions about these guidelines: support@ahavah.app.",
   },
 ];
 

@@ -88,7 +88,7 @@ const FAQ_GROUPS: ReadonlyArray<{ theme: string; items: ReadonlyArray<{ q: strin
       },
       {
         q: "Can I report or block someone?",
-        a: "Yes. Use the menu on any profile or chat to report or block, or email admin@ahavah.app.",
+        a: "Yes. Use the menu on any profile or chat to report or block, or email support@ahavah.app.",
       },
     ],
   },
@@ -109,7 +109,7 @@ const FAQ_GROUPS: ReadonlyArray<{ theme: string; items: ReadonlyArray<{ q: strin
       },
       {
         q: "How do I contact a real person?",
-        a: "Email admin@ahavah.app. A human reads it.",
+        a: "Email support@ahavah.app. A human reads it.",
       },
     ],
   },
@@ -203,10 +203,10 @@ export default function FaqPage() {
             <div className="flex flex-col gap-1 min-w-0">
               <p className="text-base font-bold text-(--ink) m-0">Need a real person?</p>
               <a
-                href="mailto:admin@ahavah.app"
+                href="mailto:support@ahavah.app"
                 className="text-sm font-semibold text-lavender hover:underline"
               >
-                admin@ahavah.app
+                support@ahavah.app
               </a>
             </div>
           </CardContent>

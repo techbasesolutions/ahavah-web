@@ -127,7 +127,7 @@ export default function AccountSettingsPage() {
       // to see + use the "Cancel deletion" CTA during the grace window.
       router.push("/profile");
     } catch {
-      setDeleteError("Couldn't delete your account. Try again or contact admin@ahavah.app.");
+      setDeleteError("Couldn't delete your account. Try again or contact support@ahavah.app.");
       setDeleting(false);
     }
   };

@@ -198,10 +198,10 @@ export function LegalArticleShell({
                 Questions or concerns?
               </p>
               <Link
-                href="mailto:admin@ahavah.app"
+                href="mailto:support@ahavah.app"
                 className="mt-0.5 block text-sm font-semibold text-lavender hover:underline"
               >
-                admin@ahavah.app
+                support@ahavah.app
               </Link>
             </div>
           </div>
@@ -283,10 +283,10 @@ export function LegalArticleShell({
                   Questions or concerns?
                 </p>
                 <Link
-                  href="mailto:admin@ahavah.app"
+                  href="mailto:support@ahavah.app"
                   className="mt-0.5 block text-sm font-semibold text-lavender hover:underline"
                 >
-                  admin@ahavah.app
+                  support@ahavah.app
                 </Link>
               </div>
             </div>

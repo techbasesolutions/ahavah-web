@@ -183,7 +183,7 @@ export default function ProfilePage() {
   // Counterpart to /settings/account "Delete account" → /account
   // (which sets activated=FALSE + stamps deletion_requested_at).
   // Without this surface, the only way to undo was emailing
-  // admin@ahavah.app — a mailbox that doesn't exist yet.
+  // support@ahavah.app — a mailbox that doesn't exist yet.
   const deletionRequestedAt = profile.deletionRequestedAt;
   const handleCancelDeletion = async () => {
     if (restoreBusy) return;

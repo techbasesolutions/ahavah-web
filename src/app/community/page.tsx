@@ -41,7 +41,7 @@ const SECTIONS: ReadonlyArray<{ slug: string; heading: string; body: string }> =
   {
     slug: "report",
     heading: "How to report",
-    body: "Tap the kebab menu on any profile or chat to report or block. Or email admin@ahavah.app with details. We act on every report; bad-faith reports also count against you.",
+    body: "Tap the kebab menu on any profile or chat to report or block. Or email support@ahavah.app with details. We act on every report; bad-faith reports also count against you.",
   },
   {
     slug: "enforcement",
@@ -51,12 +51,12 @@ const SECTIONS: ReadonlyArray<{ slug: string; heading: string; body: string }> =
   {
     slug: "appeals",
     heading: "Appeals",
-    body: "Disagree with an enforcement action? Email admin@ahavah.app with your account email and a brief explanation. A human will review.",
+    body: "Disagree with an enforcement action? Email support@ahavah.app with your account email and a brief explanation. A human will review.",
   },
   {
     slug: "contact",
     heading: "Contact",
-    body: "Anything else: admin@ahavah.app.",
+    body: "Anything else: support@ahavah.app.",
   },
 ];
 

@@ -51,7 +51,7 @@ const FAQS: ReadonlyArray<{ q: string; a: string }> = [
   },
   {
     q: "How do I delete my account?",
-    a: "Go to Profile, then Settings, then Account, then Delete account. Your profile goes invisible immediately. After a 7-day grace window the account is permanently deleted. To cancel within that window, email admin@ahavah.app from your sign-in address.",
+    a: "Go to Profile, then Settings, then Account, then Delete account. Your profile goes invisible immediately. After a 7-day grace window the account is permanently deleted. To cancel within that window, email support@ahavah.app from your sign-in address.",
   },
   {
     q: "Is my data shared?",
@@ -135,15 +135,15 @@ export default function HelpPage() {
               Icon={Mail}
               tone="brand"
               title="Email support"
-              description="admin@ahavah.app"
-              href="mailto:admin@ahavah.app?subject=Ahavah%20support"
+              description="support@ahavah.app"
+              href="mailto:support@ahavah.app?subject=Ahavah%20support"
             />
             <ContactRow
               Icon={Bug}
               tone="muted"
               title="Report a bug"
-              description="admin@ahavah.app"
-              href="mailto:admin@ahavah.app?subject=Ahavah%20bug%20report"
+              description="support@ahavah.app"
+              href="mailto:support@ahavah.app?subject=Ahavah%20bug%20report"
             />
           </CardContent>
         </Card>
@@ -242,7 +242,7 @@ export default function HelpPage() {
           <section id="contact" className="scroll-mt-20 flex flex-col gap-2 mt-4">
             <h2 className="text-h3 text-(--ink) m-0">Get in touch</h2>
             <p className="text-meta leading-relaxed text-(--ink-2) m-0">
-              For anything else, email <a href="mailto:admin@ahavah.app" className="text-lavender hover:underline">admin@ahavah.app</a>. We usually reply the same business day.
+              For anything else, email <a href="mailto:support@ahavah.app" className="text-lavender hover:underline">support@ahavah.app</a>. We usually reply the same business day.
             </p>
           </section>
         </article>
@@ -260,15 +260,15 @@ export default function HelpPage() {
                 Icon={Mail}
                 tone="brand"
                 title="Email support"
-                description="admin@ahavah.app"
-                href="mailto:admin@ahavah.app?subject=Ahavah%20support"
+                description="support@ahavah.app"
+                href="mailto:support@ahavah.app?subject=Ahavah%20support"
               />
               <ContactRow
                 Icon={Bug}
                 tone="muted"
                 title="Report a bug"
-                description="admin@ahavah.app"
-                href="mailto:admin@ahavah.app?subject=Ahavah%20bug%20report"
+                description="support@ahavah.app"
+                href="mailto:support@ahavah.app?subject=Ahavah%20bug%20report"
               />
             </CardContent>
           </Card>

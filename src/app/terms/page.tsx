@@ -26,7 +26,7 @@ const SECTIONS: ReadonlyArray<{ slug: string; heading: string; body: string }> =
   {
     slug: "account",
     heading: "Your account",
-    body: "Keep your sign-in details private. Tell us at admin@ahavah.app if you suspect unauthorized access.",
+    body: "Keep your sign-in details private. Tell us at support@ahavah.app if you suspect unauthorized access.",
   },
   {
     slug: "conduct",
@@ -56,7 +56,7 @@ const SECTIONS: ReadonlyArray<{ slug: string; heading: string; body: string }> =
   {
     slug: "contact",
     heading: "Contact",
-    body: "Questions about these terms? Email admin@ahavah.app.",
+    body: "Questions about these terms? Email support@ahavah.app.",
   },
 ];
 
