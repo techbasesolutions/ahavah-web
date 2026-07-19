@@ -167,21 +167,13 @@ export function VisitorRow({ row }: { row: VisitorRecord }) {
 }
 
 export function ViewedYouEmptyState() {
-  return (
-    <EmptyState
-      variant="profile-unavailable"
-      title="No views yet"
-      description="When someone views your profile, you will see them here."
-    />
-  );
+  return <EmptyState variant="no-views" />;
 }
 
 export function YouViewedEmptyState() {
   return (
     <EmptyState
-      variant="no-matches"
-      title="Nothing here yet"
-      description="Profiles you open will be listed here so you can find your way back."
+      variant="no-views-sent"
       action={{ label: "Go to Discover", href: "/discover" }}
     />
   );

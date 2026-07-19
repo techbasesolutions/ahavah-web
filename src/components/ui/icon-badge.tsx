@@ -20,9 +20,12 @@ const iconBadgeVariants = cva(
   {
     variants: {
       tone: {
-        brand:       "bg-lavender/10 text-lavender",
-        destructive: "bg-pink/10     text-pink",
-        success:     "bg-success/10  text-success",
+        // 14% tints per the design system (ds.jsx IconBadgeBox uses
+        // color-mix 14% — the /10 tints were one step fainter than
+        // designed; audit 2026-07-19 #6).
+        brand:       "bg-lavender/14 text-lavender",
+        destructive: "bg-pink/14     text-pink",
+        success:     "bg-success/14  text-success",
         muted:       "bg-white/5     text-(--ink-3)",
         // Solid lime check pill (paywall feature list, etc.) — NOT the
         // 10%-tint pattern of the other tones; this one IS the badge colour.

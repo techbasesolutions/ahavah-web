@@ -4,12 +4,14 @@ import * as React from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
+  Eye,
   EyeOff,
   Heart,
   MessageCircle,
   Search,
   ShieldAlert,
   SlidersHorizontal,
+  UserRound,
   WifiOff,
 } from "lucide-react";
 
@@ -45,7 +47,9 @@ type Variant =
   | "filter-too-narrow"
   | "you-blocked-everyone"
   | "no-internet"
-  | "profile-unavailable";
+  | "profile-unavailable"
+  | "no-views"
+  | "no-views-sent";
 
 type Preset = {
   title: string;
@@ -55,6 +59,10 @@ type Preset = {
   // empties; lucide icons cover utility/info empties.
   useLogo?: boolean;
   iconColor?: string;
+  /** Soft-tint tile behind the media (design-system empty pattern:
+   *  icon in an 88px color-mix tile — see docs/design-audit
+   *  2026-07-19 #2). Defaults to the lavender tint. */
+  tileClass?: string;
 };
 
 const PRESETS: Record<Variant, Preset> = {
@@ -97,12 +105,31 @@ const PRESETS: Record<Variant, Preset> = {
     description: "Check your connection. We'll try again automatically.",
     Icon: WifiOff,
     iconColor: "text-(--ink-2)",
+    // Theme-aware neutral tint — plain white/8 disappears on the light
+    // theme's cream surfaces.
+    tileClass: "bg-(--ink)/8",
   },
   "profile-unavailable": {
     title: "This profile isn't available",
     description:
       "It might be private, or no longer active. Head back to discover to meet more people.",
     Icon: EyeOff,
+    iconColor: "text-lavender",
+  },
+  // Who-viewed-you empties (SOT: "Ahavah Who Viewed You" export) — the
+  // Viewed-you empty uses the OPEN eye ("no views yet" is neutral, not
+  // "hidden"); the You-viewed empty uses the person glyph.
+  "no-views": {
+    title: "No views yet",
+    description: "When someone views your profile, you will see them here.",
+    Icon: Eye,
+    iconColor: "text-lavender",
+  },
+  "no-views-sent": {
+    title: "Nothing here yet",
+    description:
+      "Profiles you open will be listed here so you can find your way back.",
+    Icon: UserRound,
     iconColor: "text-lavender",
   },
 };
@@ -128,22 +155,31 @@ export function EmptyState({
   className,
 }: EmptyStateProps) {
   const preset = PRESETS[variant];
-  const { Icon, useLogo, iconColor } = preset;
+  const { Icon, useLogo, iconColor, tileClass } = preset;
 
+  // Design-system empty pattern (audit 2026-07-19 #2): media sits in an
+  // 88px soft-tint circle; actions are lime pill CTAs, never outline.
   return (
     <Empty className={cn("mt-6", className)}>
       <EmptyHeader>
         <EmptyMedia>
-          {useLogo ? (
-            <LogoMark size={56} decorative />
-          ) : (
-            <Icon className={cn("size-14", iconColor ?? "text-(--ink-2)")} />
-          )}
+          <span
+            className={cn(
+              "flex size-22 items-center justify-center rounded-full",
+              tileClass ?? "bg-lavender/14",
+            )}
+          >
+            {useLogo ? (
+              <LogoMark size={44} decorative />
+            ) : (
+              <Icon className={cn("size-10", iconColor ?? "text-(--ink-2)")} />
+            )}
+          </span>
         </EmptyMedia>
-        <EmptyTitle className="text-h3 text-(--ink)">
+        <EmptyTitle className="text-h2 text-(--ink)">
           {title ?? preset.title}
         </EmptyTitle>
-        <EmptyDescription className="text-meta text-(--ink-2)">
+        <EmptyDescription className="max-w-65 text-meta text-(--ink-2)">
           {description ?? preset.description}
         </EmptyDescription>
       </EmptyHeader>
@@ -152,14 +188,20 @@ export function EmptyState({
           {action.href ? (
             <Button
               nativeButton={false}
-              variant="outline"
-              size="lg"
+              tone="cta"
+              size="tap"
+              className="h-tap-lg rounded-full px-7 font-bold"
               render={<Link href={action.href} prefetch={false} />}
             >
               {action.label}
             </Button>
           ) : (
-            <Button variant="outline" size="lg" onClick={action.onClick}>
+            <Button
+              tone="cta"
+              size="tap"
+              className="h-tap-lg rounded-full px-7 font-bold"
+              onClick={action.onClick}
+            >
               {action.label}
             </Button>
           )}
@@ -195,16 +237,23 @@ export function ErrorState({
     <Empty className={cn("mt-6", className)}>
       <EmptyHeader>
         <EmptyMedia>
-          <AlertTriangle className="size-14 text-pink" />
+          <span className="flex size-22 items-center justify-center rounded-full bg-pink/14">
+            <AlertTriangle className="size-10 text-pink" />
+          </span>
         </EmptyMedia>
-        <EmptyTitle className="text-h3 text-(--ink)">{title}</EmptyTitle>
-        <EmptyDescription className="text-meta text-(--ink-2)">
+        <EmptyTitle className="text-h2 text-(--ink)">{title}</EmptyTitle>
+        <EmptyDescription className="max-w-65 text-meta text-(--ink-2)">
           {description}
         </EmptyDescription>
       </EmptyHeader>
       {retry ? (
         <EmptyContent>
-          <Button variant="outline" size="lg" onClick={retry.onClick}>
+          <Button
+            tone="cta"
+            size="tap"
+            className="h-tap-lg rounded-full px-7 font-bold"
+            onClick={retry.onClick}
+          >
             {retry.label ?? "Try again"}
           </Button>
         </EmptyContent>

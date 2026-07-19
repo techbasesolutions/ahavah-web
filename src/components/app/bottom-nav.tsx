@@ -44,7 +44,9 @@ export function BottomNav() {
           balance is no longer always-on chrome. Access via Settings →
           Wallet (links to /profile/tokens). The floating BottomNav row
           is now a single child; flex-col + gap collapsed. */}
-      <div className="flex h-tap-xl w-full items-center justify-around rounded-3xl border border-border bg-(--card) px-2 shadow-[0_8px_24px_rgba(0,0,0,0.45)]">
+      {/* radius 24 per the design system (BottomNav borderRadius:24 in
+          screens.jsx; rounded-3xl rendered 35px — audit 2026-07-19 #7). */}
+      <div className="flex h-tap-xl w-full items-center justify-around rounded-[24px] border border-border bg-(--card) px-2 shadow-[0_8px_24px_rgba(0,0,0,0.45)]">
         {TABS.map(({ key, href, label, Icon }) => {
           const active = pathname === href || pathname.startsWith(`${href}/`);
           const showInboxBadge = key === "inbox" && unreadCount > 0;

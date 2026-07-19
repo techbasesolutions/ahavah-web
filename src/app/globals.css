@@ -156,6 +156,15 @@
   --text-body-strong--line-height: 1.5;
   --text-body-strong--font-weight: 600;
 
+  /* Alias: `text-body-s` is the design system's own name for this style
+     (ds.jsx t-body-s = 16 / 1.5 / 600) and the name page code actually
+     uses. It was UNDECLARED until 2026-07-19, so every `text-body-s`
+     class silently resolved to nothing and those labels inherited
+     default size/weight — see docs/design-audit-2026-07-19.md #4. */
+  --text-body-s: 16px;
+  --text-body-s--line-height: 1.5;
+  --text-body-s--font-weight: 600;
+
   --text-meta: 14px;
   --text-meta--line-height: 1.45;
 

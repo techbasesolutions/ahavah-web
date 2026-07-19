@@ -284,7 +284,17 @@ export function FiltersSheet({
           isDesktop ? "w-full sm:max-w-md" : "rounded-t-3xl",
         )}
       >
-        <SheetHeader className="items-center px-5 pt-6 pb-3">
+        {/* Grab handle on the bottom-sheet presentation (design-system
+            sheets carry a 44x5 pill handle; audit 2026-07-19 #9). */}
+        {!isDesktop ? (
+          <div
+            aria-hidden
+            className="mx-auto mt-2 h-1.25 w-11 shrink-0 rounded-full bg-white/18"
+          />
+        ) : null}
+        <SheetHeader
+          className={cn("items-center px-5 pb-3", isDesktop ? "pt-6" : "pt-4")}
+        >
           <SheetTitle className="text-h2 text-(--ink)">Filters</SheetTitle>
         </SheetHeader>
 

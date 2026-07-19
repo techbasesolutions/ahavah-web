@@ -65,10 +65,14 @@ Matches-family card names and other labels are quietly unstyled.
 Fix: declare `--text-body-s` (alias of body-strong values) or rename
 usages; declare-alias is the zero-churn fix.
 
-### 5. `--text-muted` / ink-3 lightness
-- DESIGN tokens.css: oklch(0.66 0.05 280).
-- APP globals.css: oklch(0.72 0.05 280) — every muted caption app-wide
-  renders one step brighter than designed. One-line fix.
+### 5. `--text-muted` / ink-3 lightness — RETRACTED after code review
+- DESIGN tokens.css: oklch(0.66 0.05 280). APP: oklch(0.72 0.05 280).
+- The app value is a DOCUMENTED, deliberate WCAG-contrast correction
+  (globals.css comment dated 2026-06-16, verified by
+  scripts/audit-contrast.mjs: 0.66 passed the math but failed
+  perception). This is a justified accessibility divergence, kept.
+  Ideally the design project's tokens.css adopts 0.72 to close the gap
+  from the other side.
 
 ## Class 4 — minor tint/geometry deltas (systemic but subtle)
 
