@@ -327,6 +327,11 @@ export default function DiscoverPage() {
       await refreshTokens();
       setDecidedIds(new Set());
       await reload();
+      // Never silent (2026-07-19: a member spent 3 tokens onto an
+      // already-empty deck and saw "nothing happened"). If the rebuilt
+      // deck is still empty, the empty state's Adjust-filters CTA is
+      // the visible next step.
+      toast.success("Passes cleared. Your passed profiles are back.");
     } catch (e) {
       if (e instanceof ApiError && e.status === 402) {
         toast.error("Not enough tokens to see passes again.");
