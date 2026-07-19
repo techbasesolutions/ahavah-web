@@ -2,9 +2,17 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
-import { Lock, MapPin, MessageCircle, Sparkles } from "lucide-react";
+import {
+  Eye,
+  Lock,
+  MapPin,
+  MessageCircle,
+  MoreHorizontal,
+  Sparkles,
+  Undo2,
+} from "lucide-react";
 
 import { TokenActionIcon } from "@/lib/icon-map";
 
@@ -14,6 +22,12 @@ const SuperLikeIcon = TokenActionIcon.SuperLike;
 import { toast } from "sonner";
 
 import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Pill } from "@/components/kibo-ui/pill";
@@ -39,6 +53,8 @@ import type {
   LikeRecord,
   MatchesResponse,
   MatchRecord,
+  OutgoingLikeRecord,
+  OutgoingLikesResponse,
 } from "@/lib/api-types";
 import { photoOrGradient, photosFromUuids, type PhotoSource } from "@/lib/photo-or-gradient";
 import { isOnline } from "@/lib/last-seen";
@@ -62,7 +78,35 @@ type LoadState<T> =
   | { kind: "locked"; count: number }
   | { kind: "error"; message: string };
 
-type Tab = "matches" | "likes";
+type Tab = "matches" | "likes" | "youliked";
+
+/**
+ * Relative caption for the You liked card, per the SOT export
+ * ("Liked yesterday", "Super-liked 2 days ago", "Liked just now").
+ * Backend ships liked_at as Postgres text ("2026-07-19 09:43:55+00");
+ * normalize to ISO before parsing. Unparseable → empty caption.
+ */
+function likedCaption(likedAt: string, isSuper?: boolean): string {
+  const iso = likedAt.replace(" ", "T").replace(/\+00$/, "Z");
+  const then = new Date(iso).getTime();
+  if (!Number.isFinite(then)) return "";
+  const mins = Math.max(0, Math.floor((Date.now() - then) / 60_000));
+  const hours = Math.floor(mins / 60);
+  const days = Math.floor(hours / 24);
+  const when =
+    mins < 60
+      ? "just now"
+      : hours < 24
+        ? `${hours} ${hours === 1 ? "hour" : "hours"} ago`
+        : days === 1
+          ? "yesterday"
+          : days < 7
+            ? `${days} days ago`
+            : days < 30
+              ? `${Math.floor(days / 7)} ${Math.floor(days / 7) === 1 ? "week" : "weeks"} ago`
+              : `${Math.floor(days / 30)} ${Math.floor(days / 30) === 1 ? "month" : "months"} ago`;
+  return `${isSuper ? "Super-liked" : "Liked"} ${when}`;
+}
 
 /**
  * /matches — Your mutual matches list.
@@ -91,14 +135,19 @@ export default function MatchesPage() {
 
 function MatchesPageContent() {
   const searchParams = useSearchParams();
-  // ?tab=likes lets /profile/[uuid]?from=likes back-button land users
-  // on the right tab. Default Matches.
-  const initialTab: Tab = searchParams.get("tab") === "likes" ? "likes" : "matches";
+  // ?tab=likes / ?tab=youliked let /profile/[uuid]?from=... back-buttons
+  // land users on the right tab. Default Matches.
+  const tabParam = searchParams.get("tab");
+  const initialTab: Tab =
+    tabParam === "likes" ? "likes" : tabParam === "youliked" ? "youliked" : "matches";
   const [tab, setTab] = useState<Tab>(initialTab);
   const [matchesState, setMatchesState] = useState<LoadState<MatchRecord>>({
     kind: "loading",
   });
   const [likesState, setLikesState] = useState<LoadState<LikeRecord>>({
+    kind: "loading",
+  });
+  const [outgoingState, setOutgoingState] = useState<LoadState<OutgoingLikeRecord>>({
     kind: "loading",
   });
 
@@ -165,7 +214,35 @@ function MatchesPageContent() {
     [],
   );
 
-  // Fetch BOTH lists on mount so the tab toggle's badge count is
+  // 'You liked' tab (2026-07-19): outgoing likes. No premium gate and
+  // no tab badge (design note 1: lime pills mean "act on this";
+  // outgoing likes need no action).
+  const fetchOutgoing = useMemo(
+    () => async () => {
+      setOutgoingState({ kind: "loading" });
+      try {
+        const res = await apiClient.get<OutgoingLikesResponse>(
+          "/likes/outgoing",
+        );
+        setOutgoingState(
+          res.likes.length === 0
+            ? { kind: "empty" }
+            : { kind: "happy", items: res.likes },
+        );
+      } catch (e) {
+        const msg =
+          e instanceof ApiError
+            ? e.message
+            : e instanceof Error
+              ? e.message
+              : "Couldn't load your likes.";
+        setOutgoingState({ kind: "error", message: msg });
+      }
+    },
+    [],
+  );
+
+  // Fetch ALL lists on mount so the tab toggle's badge count is
   // correct from the first paint. Empty / error states are handled
   // per-tab below. The setState-in-effect lint warns generically here
   // — these are mount-driven async fetches that own their own state
@@ -174,9 +251,10 @@ function MatchesPageContent() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void fetchMatches();
-     
+
     void fetchLikes();
-  }, [fetchMatches, fetchLikes]);
+    void fetchOutgoing();
+  }, [fetchMatches, fetchLikes, fetchOutgoing]);
 
   const likesCount =
     likesState.kind === "happy"
@@ -185,8 +263,18 @@ function MatchesPageContent() {
         ? likesState.count
         : 0;
 
-  const activeState = tab === "matches" ? matchesState : likesState;
-  const onRetry = tab === "matches" ? fetchMatches : fetchLikes;
+  const activeState =
+    tab === "matches"
+      ? matchesState
+      : tab === "likes"
+        ? likesState
+        : outgoingState;
+  const onRetry =
+    tab === "matches"
+      ? fetchMatches
+      : tab === "likes"
+        ? fetchLikes
+        : fetchOutgoing;
 
   // Phase 4 monetization-tokens (2026-05-16): tapping a blurred liker
   // card opens TokenSpendSheet → POST /tokens/reveal → refetch likes.
@@ -237,12 +325,35 @@ function MatchesPageContent() {
     }
   };
 
+  // 'You liked' take-back (SOT overflow menu): withdraw an outgoing
+  // like; the person returns to the caller's discover deck. No token
+  // refund for super-likes — the spend already happened.
+  const handleTakeBack = async (id: string, name: string) => {
+    try {
+      await apiClient.post("/likes/outgoing/take-back", { profile_uuid: id });
+      toast.success(`Like taken back. ${name} will return to your deck.`);
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 404) {
+        toast.error("Nothing to take back.");
+      } else {
+        toast.error("Couldn't take back the like. Try again.");
+        console.error("take-back failed:", e);
+      }
+    } finally {
+      void fetchOutgoing();
+    }
+  };
+
   // Tab strip — shared between mobile and desktop (rendered in different
   // positions but identical markup so tab state stays in sync).
+  // Per the SOT design notes: NO count pill on 'You liked' — lime pills
+  // mean "act on this" and outgoing likes need no action.
   const tabStrip = (
     <Tabs
       value={tab}
-      onValueChange={(v) => setTab((v === "likes" ? "likes" : "matches"))}
+      onValueChange={(v) =>
+        setTab(v === "likes" ? "likes" : v === "youliked" ? "youliked" : "matches")
+      }
     >
       <TabsList variant="brand" aria-label="Filter matches">
         <TabsTrigger value="matches">Matches</TabsTrigger>
@@ -254,6 +365,7 @@ function MatchesPageContent() {
             </Pill>
           ) : null}
         </TabsTrigger>
+        <TabsTrigger value="youliked">You liked</TabsTrigger>
       </TabsList>
     </Tabs>
   );
@@ -266,15 +378,26 @@ function MatchesPageContent() {
     ) : activeState.kind === "error" ? (
       <MatchesErrorState onRetry={() => void onRetry()} />
     ) : activeState.kind === "empty" ? (
-      tab === "matches" ? <MatchesEmptyState /> : <LikesEmptyState />
+      tab === "matches" ? (
+        <MatchesEmptyState />
+      ) : tab === "likes" ? (
+        <LikesEmptyState />
+      ) : (
+        <YouLikedEmptyState />
+      )
     ) : activeState.kind === "locked" ? (
       <LikesLockedState count={activeState.count} />
     ) : tab === "matches" ? (
       <MatchesGrid matches={activeState.items as ReadonlyArray<MatchRecord>} />
-    ) : (
+    ) : tab === "likes" ? (
       <LikesGrid
         likes={activeState.items as ReadonlyArray<LikeRecord>}
         onRevealRequest={(id, name) => setRevealing({ id, name })}
+      />
+    ) : (
+      <YouLikedGrid
+        likes={activeState.items as ReadonlyArray<OutgoingLikeRecord>}
+        onTakeBack={handleTakeBack}
       />
     );
 
@@ -639,6 +762,178 @@ function LikesEmptyState() {
       variant="no-matches"
       title="No likes yet"
       description="When someone likes you, they'll show up here so you can decide whether to like them back."
+    />
+  );
+}
+
+// YouLikedGrid — 'You liked' tab (2026-07-19, SOT: "Ahavah You Liked Tab"
+// export). Same card family as MatchesGrid/LikesGrid: photo-link →
+// profile, name + online dot, location, NO message button. Additions per
+// the SOT: a muted "Liked N days ago" caption under the metadata (lime
+// "Super-liked ..." when is_super), the lime ring + Super pill reused
+// from LikesGrid, and a quiet glass overflow button top-right of the
+// photo opening a two-item menu: View profile / Take back like.
+function YouLikedGrid({
+  likes,
+  onTakeBack,
+}: {
+  likes: ReadonlyArray<OutgoingLikeRecord>;
+  onTakeBack: (id: string, name: string) => void;
+}) {
+  const router = useRouter();
+  return (
+    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 px-5 pt-6 md:px-0 md:pt-0">
+      {likes.map((l, i) => {
+        const peer = l.with_profile;
+        const peerName = peer.firstName ?? "Someone";
+        const peerAge = peer.age;
+        const peerLocation =
+          peer.city && peer.country
+            ? `${peer.city}, ${peer.country}`
+            : (peer.country ?? "");
+        const peerPhotos =
+          peer.photos && peer.photos.length > 0
+            ? peer.photos
+            : photosFromUuids((peer as { photo_uuids?: unknown }).photo_uuids);
+        const photoSource: PhotoSource = photoOrGradient(
+          { firstName: peerName, photos: peerPhotos },
+          0,
+        );
+        const caption = likedCaption(l.liked_at, l.is_super);
+        return (
+          <motion.div
+            key={peer.id}
+            {...fadeUp}
+            transition={{ duration: 0.3, delay: staggerDelay(i) }}
+            className={cn(
+              "relative flex flex-col gap-2.5",
+              l.is_super &&
+                "rounded-2xl ring-2 ring-lime ring-offset-2 ring-offset-(--canvas)",
+            )}
+          >
+            {l.is_super ? (
+              <Pill
+                variant="lime"
+                size="sm"
+                className="absolute top-2 left-2 z-10 gap-1"
+              >
+                <SuperLikeIcon className="size-3" aria-hidden fill="currentColor" /> Super
+              </Pill>
+            ) : null}
+            {/* SOT: quiet glass overflow button pinned top-right of the
+                photo. Sibling of the photo Link (never nested) so the
+                menu opens without navigating. */}
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                aria-label={`More options for ${peerName}`}
+                className={cn(
+                  "absolute top-2 right-2 z-10 flex size-7 items-center justify-center",
+                  "rounded-full border border-white/20 bg-black/30 text-white backdrop-blur-sm",
+                  "outline-none focus-visible:ring-2 focus-visible:ring-lavender",
+                )}
+              >
+                <MoreHorizontal className="size-4" aria-hidden />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="min-w-49 rounded-xl bg-(--card) p-1.5 ring-white/15"
+              >
+                <DropdownMenuItem
+                  className="gap-2.5 rounded-lg px-3 py-2.5 text-body-s font-semibold text-(--ink) focus:bg-white/5"
+                  onClick={() => router.push(`/profile/${peer.id}?from=youliked`)}
+                >
+                  <Eye className="size-4 text-lavender" aria-hidden />
+                  View profile
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="items-start gap-2.5 rounded-lg px-3 py-2.5 text-body-s font-semibold text-(--ink) focus:bg-white/5"
+                  onClick={() => onTakeBack(peer.id, peerName)}
+                >
+                  <Undo2 className="mt-0.5 size-4 text-lavender" aria-hidden />
+                  <span className="flex flex-col">
+                    Take back like
+                    <span className="text-caption font-normal text-(--ink-3)">
+                      They return to your deck
+                    </span>
+                  </span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Link
+              href={`/profile/${peer.id}?from=youliked`}
+              prefetch={false}
+              aria-label={`View ${peerName}'s profile`}
+              className={cn(
+                buttonVariants({ variant: "ghost", size: "block" }),
+                "h-auto p-0 rounded-[18px] overflow-hidden",
+              )}
+            >
+              <PhotoTile
+                aspect="4/5"
+                radius="lg"
+                surface="none"
+                bg={
+                  photoSource.kind === "gradient" ? photoSource.css : undefined
+                }
+                className="w-full"
+              >
+                {photoSource.kind === "photo" && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={photoSource.src}
+                    alt={`${peerName}'s photo`}
+                    className="absolute inset-0 size-full object-cover"
+                  />
+                )}
+              </PhotoTile>
+            </Link>
+            <div className="flex items-center gap-1.5 text-body-s text-(--ink)">
+              <span className="truncate">
+                {peerName}
+                {peerAge ? `, ${peerAge}` : ""}
+              </span>
+              {isOnline(peer.seconds_since_last_online) ? (
+                <>
+                  <span
+                    aria-hidden
+                    className="inline-block size-2 shrink-0 rounded-full bg-lime"
+                  />
+                  <span className="sr-only">Online now</span>
+                </>
+              ) : null}
+            </div>
+            {peerLocation ? (
+              <div className="flex items-center gap-1 text-caption text-(--ink-2) -mt-1">
+                <MapPin className="size-3 shrink-0" aria-hidden />
+                <span className="truncate">{peerLocation}</span>
+              </div>
+            ) : null}
+            {/* SOT status caption: a record, never a rejection. Muted by
+                default; lime + semibold for your own super-likes. */}
+            {caption ? (
+              <div
+                className={cn(
+                  "text-caption -mt-1",
+                  l.is_super ? "font-semibold text-lime" : "text-(--ink-3)",
+                )}
+              >
+                {caption}
+              </div>
+            ) : null}
+          </motion.div>
+        );
+      })}
+    </div>
+  );
+}
+
+function YouLikedEmptyState() {
+  return (
+    <EmptyState
+      variant="no-matches"
+      title="No likes sent yet"
+      description="This is where the people you like wait for you. When someone likes you back, they become a match."
+      action={{ label: "Go to Discover", href: "/discover" }}
     />
   );
 }

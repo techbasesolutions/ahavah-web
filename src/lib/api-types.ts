@@ -171,6 +171,22 @@ export type IncomingLikesResponse = {
   premium: boolean;
 };
 
+/** 'You liked' tab (2026-07-19): one outgoing like — a person the
+ *  session user liked who hasn't matched back yet. No hidden/premium
+ *  redaction — this is the caller's own data. */
+export type OutgoingLikeRecord = {
+  with_profile: PeerProfile;
+  liked_at: string;
+  /** TRUE when the session user spent 2 tokens to super-like. Display
+   *  only — taking the like back does not refund the spend. */
+  is_super?: boolean;
+};
+
+export type OutgoingLikesResponse = {
+  count: number;
+  likes: ReadonlyArray<OutgoingLikeRecord>;
+};
+
 // ---------------------------------------------------------------------------
 // Chat — REST companion endpoints (real-time goes via WebSocket; see
 // chat-types.ts in Agent 4's module).
