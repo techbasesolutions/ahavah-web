@@ -321,6 +321,12 @@ function reverseTranslateValue(
       if (serverValue === "No") return 0;
       if (serverValue === "Yes") return 1;
       return undefined;
+    case "wantsChildren":
+      // yes_no_maybe name -> client "yes" | "no". "Maybe"/"Unanswered"
+      // are not client options, so they read as still-unanswered.
+      if (serverValue === "Yes") return "yes";
+      if (serverValue === "No") return "no";
+      return undefined;
     case "intent":
       // looking_for "Marriage" / "Long-term dating" / etc. — no inverse
       // that recovers the original intent enum cleanly. Leave undefined;
@@ -408,6 +414,13 @@ const SERVER_TO_CLIENT_KEY: Record<string, keyof Profile> = {
   "looking for": "intent",
   "relationship status": "maritalStatus",
   "has kids": "children",
+  // "wants kids" -> wantsChildren was MISSING from this map (audit
+  // 2026-07-20), so the backend's real answer never reached the
+  // completeness gate; it only ever read ahavah_extra.wantsChildren.
+  // Mirrors the "has kids" -> children pattern; value is a yes_no_maybe
+  // name ("Yes"/"No"/"Maybe"/"Unanswered").
+  "wants kids": "wantsChildren",
+  wants_kids: "wantsChildren",
   // /profile-info returns `photo` as a sparse `{ "1": uuid1, "2": uuid2 }`
   // map. Map it to the client-side `photos` array (PhotoRecord[]) so the
   // hero card + edit screen see the real uploads.
@@ -698,6 +711,15 @@ export function useProfile(): UseProfileResult {
           "relocation", "communicationPrefs",
           "verificationTags", "boundaryTags",
           "nationality",
+          // wantsChildren + children live ONLY in ahavah_extra on the
+          // client gate, and neither is in ONBOARDEE_ALLOWED_KEYS, so
+          // the onboarding answer was dropped during the wizard AND
+          // skipped by this back-sync — leaving EVERY graduated member
+          // with "children preference" permanently "missing" for a
+          // question they answered (audit 2026-07-20: 27/27 members had
+          // wants_kids = Unanswered). Back-syncing them here persists the
+          // cached onboarding answer on the next load.
+          "wantsChildren", "children",
         ] as const;
         const toSync: Record<string, unknown> = {};
         for (const k of TORAH_FIELDS) {
