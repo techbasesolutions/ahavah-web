@@ -159,9 +159,20 @@ export default function LandingPage() {
           </>
         }
         cta={
-          <Button tone="elevated" size="tap" onClick={scrollToForm} className="rounded-xl">
-            Sign up
-          </Button>
+          <>
+            {/* Member report 2026-07-19: returning members found no way
+                to sign in — the only entry was labeled Sign up. */}
+            <Link
+              href="/auth/sign-in"
+              prefetch={false}
+              className="text-meta font-semibold text-(--ink-2) transition-colors hover:text-(--ink)"
+            >
+              Log in
+            </Link>
+            <Button tone="elevated" size="tap" onClick={scrollToForm} className="rounded-xl">
+              Sign up
+            </Button>
+          </>
         }
       />
 

@@ -93,24 +93,44 @@ const SECTIONS: ReadonlyArray<{
  * All form state stays inside the existing section components (they all
  * read + write through `useProfile`). Autosave is unchanged.
  */
-type Suggestion = { text: string; lift: string; target?: string };
+type Suggestion = { text: string; lift: string; target?: string; field?: string };
 
-// Required field -> human label + the /profile/edit section anchor to
-// scroll to (each section renders id="section-<id>"). Keys match
-// MINIMUM_COMPLETE_FIELDS so every missing required field is nameable.
+// Required field -> human label + anchors. `field` targets the exact
+// control (each wrapped in id="field-<key>", audit 2026-07-20: the old
+// SECTION-level jump landed members at the section top, a full screen
+// away from fields like wantsChildren — read as "goes to the wrong
+// place" and left required fields uncompletable). `section` remains
+// the fallback. Keys match MINIMUM_COMPLETE_FIELDS.
 const REQUIRED_FIELD_META: Partial<
-  Record<keyof Profile, { label: string; section: string }>
+  Record<keyof Profile, { label: string; section: string; field: string }>
 > = {
-  firstName: { label: "First name", section: "identity" },
-  age: { label: "Age", section: "identity" },
-  sex: { label: "Gender", section: "identity" },
-  maritalStatus: { label: "Marital status", section: "identity" },
-  wantsChildren: { label: "Children preference", section: "identity" },
-  country: { label: "Country", section: "identity" },
-  intent: { label: "Intent", section: "practical" },
-  assembly: { label: "Assembly", section: "faith" },
-  relocation: { label: "Relocation openness", section: "practical" },
+  firstName: { label: "First name", section: "identity", field: "field-firstName" },
+  age: { label: "Age", section: "identity", field: "field-age" },
+  sex: { label: "Gender", section: "identity", field: "field-sex" },
+  maritalStatus: { label: "Marital status", section: "identity", field: "field-maritalStatus" },
+  wantsChildren: { label: "Children preference", section: "identity", field: "field-wantsChildren" },
+  country: { label: "Country", section: "identity", field: "field-country" },
+  intent: { label: "Intent", section: "practical", field: "field-intent" },
+  assembly: { label: "Assembly", section: "faith", field: "field-assembly" },
+  relocation: { label: "Relocation openness", section: "practical", field: "field-relocation" },
 };
+
+/** Scroll the exact field into view (centered) and pulse a lavender
+ *  ring on it so the member sees WHICH control the app means. Falls
+ *  back to the section anchor when the field isn't mounted. */
+function jumpToField(fieldId: string | undefined, sectionId: string | undefined) {
+  const el =
+    (fieldId ? document.getElementById(fieldId) : null) ??
+    (sectionId ? document.getElementById(`section-${sectionId}`) : null);
+  if (!el) return;
+  el.scrollIntoView({ behavior: "smooth", block: "center" });
+  el.classList.remove("field-flash");
+  // Force a reflow so re-adding the class restarts the animation on
+  // repeated taps.
+  void el.offsetWidth;
+  el.classList.add("field-flash");
+  window.setTimeout(() => el.classList.remove("field-flash"), 2000);
+}
 
 /**
  * Suggestions derived from real completeness state. Required-field
@@ -130,6 +150,7 @@ function buildSuggestions(
         text: `Add your ${meta?.label ?? "missing detail"} to start matching.`,
         lift: "Required",
         target: meta?.section,
+        field: meta?.field,
       };
     });
   }
@@ -371,7 +392,17 @@ export default function EditProfilePage() {
                 className="mt-3.5"
               />
               {requiredMissing > 0 ? (
-                <div className="mt-3 flex items-start gap-2.5 px-3 py-2.5 rounded-xl bg-pink/10">
+                /* Tappable (audit 2026-07-20: a member tried to tap this
+                   exact alert and nothing happened) — jumps to the first
+                   missing required field with the flash highlight. */
+                <button
+                  type="button"
+                  onClick={() => {
+                    const meta = REQUIRED_FIELD_META[missing[0]];
+                    jumpToField(meta?.field, meta?.section);
+                  }}
+                  className="mt-3 flex w-full items-start gap-2.5 rounded-xl bg-pink/10 px-3 py-2.5 text-left outline-none transition-colors hover:bg-pink/15 focus-visible:ring-2 focus-visible:ring-pink"
+                >
                   <span
                     aria-hidden
                     className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-pink/20 text-pink"
@@ -383,9 +414,9 @@ export default function EditProfilePage() {
                       {requiredMissing} required field
                       {requiredMissing === 1 ? "" : "s"}
                     </span>{" "}
-                    missing.
+                    missing. Tap to fix.
                   </p>
-                </div>
+                </button>
               ) : null}
             </CardContent>
           </Card>
@@ -402,17 +433,11 @@ export default function EditProfilePage() {
                     variant="muted"
                     size="sm"
                     onClick={
-                      s.target
-                        ? () =>
-                            document
-                              .getElementById(`section-${s.target}`)
-                              ?.scrollIntoView({
-                                behavior: "smooth",
-                                block: "start",
-                              })
+                      s.field || s.target
+                        ? () => jumpToField(s.field, s.target)
                         : undefined
                     }
-                    className={s.target ? "cursor-pointer" : undefined}
+                    className={s.field || s.target ? "cursor-pointer" : undefined}
                   >
                     <ItemMedia variant="icon">
                       <span className="text-overline font-extrabold text-(--ink-2)">

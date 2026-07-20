@@ -34,13 +34,16 @@ export default function FaithSection() {
       title="Faith"
       description="What you believe and how you keep it."
     >
-      <MultiSelectField<Assembly>
-        label="I identify as"
-        description="Pick every term that fits."
-        options={ASSEMBLIES}
-        value={profile.assembly ?? []}
-        onValueChange={(v) => update({ assembly: v })}
-      />
+      {/* field-anchored for completeness deep-links (audit 2026-07-20). */}
+      <div id="field-assembly" className="scroll-mt-24">
+        <MultiSelectField<Assembly>
+          label="I identify as"
+          description="Pick every term that fits."
+          options={ASSEMBLIES}
+          value={profile.assembly ?? []}
+          onValueChange={(v) => update({ assembly: v })}
+        />
+      </div>
 
       <SingleSelectField<TorahLevel>
         id="torah-level"

@@ -5,11 +5,13 @@ import {
   ETHNICITIES,
   MARITAL_STATUSES,
   NATIONALITIES,
+  WANTS_CHILDREN,
   type EducationLevel,
   type Ethnicity,
   type MaritalStatus,
   type Nationality,
   type Sex,
+  type WantsChildren,
 } from "@/lib/profile-schema";
 import { ALL_COUNTRIES } from "@/lib/countries";
 import { LANGUAGES, labelForLanguage } from "@/lib/languages";
@@ -49,15 +51,19 @@ export default function IdentitySection() {
       title="Basic Identity"
       description="Tell us about yourself"
     >
-      {/* 1. firstName */}
-      <TextField
-        id="firstName"
-        label="First Name"
-        value={profile.firstName ?? ""}
-        onChange={(v) => update({ firstName: v || undefined })}
-        maxLength={30}
-        helper="Just your first name"
-      />
+      {/* 1. firstName — field-anchored so completeness suggestions can
+          jump straight here (audit 2026-07-20: section-level anchors
+          left members at the wrong field). */}
+      <div id="field-firstName" className="scroll-mt-24">
+        <TextField
+          id="firstName"
+          label="First Name"
+          value={profile.firstName ?? ""}
+          onChange={(v) => update({ firstName: v || undefined })}
+          maxLength={30}
+          helper="Just your first name"
+        />
+      </div>
 
       {/* 2. displayName */}
       <TextField
@@ -76,7 +82,7 @@ export default function IdentitySection() {
           the immutable DOB on the backend. If they need to correct DOB
           they have to ask support; rare-enough event that we don't
           ship a self-serve flow. */}
-      <div className="flex flex-col gap-1.5">
+      <div id="field-age" className="flex flex-col gap-1.5 scroll-mt-24">
         <Label htmlFor="age-display">Age</Label>
         <Input
           id="age-display"
@@ -107,13 +113,31 @@ export default function IdentitySection() {
       {/* 4b. maritalStatus — Sub-plan 18 T4. Single-select between Never
           Married / Married / Re-married / Divorced. Same SP17-consolidated
           clean lime-fill active state via SingleSelectField. */}
-      <SingleSelectField<MaritalStatus>
-        id="edit-marital-status"
-        label="Marital status"
-        value={profile.maritalStatus}
-        onValueChange={(next) => update({ maritalStatus: next })}
-        options={MARITAL_STATUSES}
-      />
+      <div id="field-maritalStatus" className="scroll-mt-24">
+        <SingleSelectField<MaritalStatus>
+          id="edit-marital-status"
+          label="Marital status"
+          value={profile.maritalStatus}
+          onValueChange={(next) => update({ maritalStatus: next })}
+          options={MARITAL_STATUSES}
+        />
+      </div>
+
+      {/* 4d. wantsChildren — REQUIRED completeness field that previously
+          had NO control outside onboarding (audit 2026-07-20, member
+          report: stuck at "1 required field missing" with nothing to
+          tap). The onboarding step even promises "you can change this
+          anytime from your profile" — now true. Distinct from the
+          children COUNT below. */}
+      <div id="field-wantsChildren" className="scroll-mt-24">
+        <SingleSelectField<WantsChildren>
+          id="edit-wants-children"
+          label="Children preference"
+          value={profile.wantsChildren}
+          onValueChange={(next) => update({ wantsChildren: next })}
+          options={WANTS_CHILDREN}
+        />
+      </div>
 
       {/* 4c. children — Sub-plan 18 T4. Inline number input (no abstraction
           warranted for a single int field). Sanitized: empty-string typing
@@ -155,6 +179,7 @@ export default function IdentitySection() {
       {/* 5. country — ComboboxField (search-as-you-type) drawing from the
           full ALL_COUNTRIES list. No more 2-letter text input + drill-out
           to /onboarding/country to find the picker. */}
+      <div id="field-country" className="scroll-mt-24">
       <ComboboxField
         id="country"
         label="Country"
@@ -166,6 +191,7 @@ export default function IdentitySection() {
         value={profile.country}
         onValueChange={(v: string) => update({ country: v })}
       />
+      </div>
 
       {/* 5b. precise location — debounced /search-locations typeahead.
           Picking a result PATCHes `location` (long_friendly), the same

@@ -40,37 +40,44 @@ export default function PracticalSection() {
       title="Practical compatibility"
       description="The logistics that make a relationship work day-to-day."
     >
-      {/* 1. intent (gender-conditional, multi-select) */}
+      {/* 1. intent (gender-conditional, multi-select) — field-anchored
+          for completeness deep-links (audit 2026-07-20). */}
       {intentOpts ? (
-        <MultiSelectField
-          label="What you're looking for"
-          description="Pick every option that fits"
-          options={intentOpts}
-          value={profile.intent ?? []}
-          onValueChange={(v: Intent[]) => update({ intent: v })}
-        />
+        <div id="field-intent" className="scroll-mt-24">
+          <MultiSelectField
+            label="What you're looking for"
+            description="Pick every option that fits"
+            options={intentOpts}
+            value={profile.intent ?? []}
+            onValueChange={(v: Intent[]) => update({ intent: v })}
+          />
+        </div>
       ) : (
-        <Card tone="default" className="rounded-xl px-4 py-3">
-          <p className="text-meta text-(--ink-3)">
-            Set your gender first to edit intent |{" "}
-            <Link
-              href="#field-sex"
-              className="text-lime underline hover:text-lime/80"
-            >
-              set it above →
-            </Link>
-          </p>
-        </Card>
+        <div id="field-intent" className="scroll-mt-24">
+          <Card tone="default" className="rounded-xl px-4 py-3">
+            <p className="text-meta text-(--ink-3)">
+              Set your gender first to edit intent |{" "}
+              <Link
+                href="#field-sex"
+                className="text-lime underline hover:text-lime/80"
+              >
+                set it above →
+              </Link>
+            </p>
+          </Card>
+        </div>
       )}
 
-      {/* 2. relocation */}
-      <SingleSelectField
-        id="relocation"
-        label="Relocation"
-        options={RELOCATIONS}
-        value={profile.relocation}
-        onValueChange={(v: Relocation) => update({ relocation: v })}
-      />
+      {/* 2. relocation — field-anchored for completeness deep-links. */}
+      <div id="field-relocation" className="scroll-mt-24">
+        <SingleSelectField
+          id="relocation"
+          label="Relocation"
+          options={RELOCATIONS}
+          value={profile.relocation}
+          onValueChange={(v: Relocation) => update({ relocation: v })}
+        />
+      </div>
 
       {/* 3. communicationPrefs */}
       <MultiSelectField

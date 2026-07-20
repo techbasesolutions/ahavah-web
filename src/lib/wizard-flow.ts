@@ -25,7 +25,11 @@ export const WIZARD_STEPS: ReadonlyArray<WizardStep> = [
   { href: "/onboarding/dob",            label: "Date of birth",  requiredField: "age" },
   { href: "/onboarding/gender",         label: "Gender",         requiredField: "sex" },
   { href: "/onboarding/marital-status", label: "Marital status", requiredField: "maritalStatus" },
-  { href: "/onboarding/children",       label: "Children",       requiredField: "children" },
+  // requiredField was "children" (the count) while the step writes
+  // wantsChildren — the gate and the page tracked different fields
+  // (audit 2026-07-20), letting members graduate with wantsChildren
+  // unset and then fail the completeness gate with no edit control.
+  { href: "/onboarding/children",       label: "Children",       requiredField: "wantsChildren" },
   { href: "/onboarding/looking-for",    label: "Looking for",    requiredField: "intent" },
   { href: "/onboarding/photos",         label: "Photos" },
   { href: "/onboarding/country",        label: "Country",        requiredField: "country" },

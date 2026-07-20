@@ -1055,3 +1055,18 @@
     animation: ahavah-splash-fade-in 0.6s ease 1s forwards;
   }
 }
+/* ------------------------------------------------------------------ */
+/* Field flash — completeness deep-links pulse a lavender ring on the */
+/* exact control they scrolled to (audit 2026-07-20: section-level    */
+/* jumps read as "goes to the wrong place"). Applied transiently by   */
+/* /profile/edit's jumpToField(); self-clears after the animation.    */
+/* ------------------------------------------------------------------ */
+@keyframes ahavah-field-flash {
+  0%   { box-shadow: 0 0 0 0 color-mix(in oklch, var(--lavender) 70%, transparent); }
+  35%  { box-shadow: 0 0 0 5px color-mix(in oklch, var(--lavender) 55%, transparent); }
+  100% { box-shadow: 0 0 0 5px transparent; }
+}
+.field-flash {
+  border-radius: var(--radius-lg);
+  animation: ahavah-field-flash 1.8s ease-out;
+}
