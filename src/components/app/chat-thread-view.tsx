@@ -13,6 +13,7 @@ import { chatClient } from "@/lib/chat-client";
 import { isChatTransportAvailable } from "@/lib/chat-transport";
 import { readChatSession } from "@/lib/chat-session";
 import { useChatThread } from "@/lib/use-chat-thread";
+import type { ChatMessage } from "@/lib/chat-types";
 import { apiClient, ApiError } from "@/lib/api-client";
 import type { Profile } from "@/lib/profile-schema";
 import { isOnline } from "@/lib/last-seen";
@@ -35,6 +36,47 @@ import { cn } from "@/lib/utils";
  */
 
 const TYPING_STOP_DEBOUNCE_MS = 3_000;
+
+/**
+ * Turn a server block reason into something the member can act on.
+ * Every rejection used to render as a bare "failed" with the reason
+ * discarded, so a blocked member had no idea why or what to do
+ * (2026-07-21). Copy rules: sentence case, no em dashes.
+ */
+function failureText(reason?: ChatMessage["failureReason"]): {
+  title: string;
+  hint: string;
+} {
+  switch (reason) {
+    case "verification-required":
+      return {
+        title: "Verify your profile to send messages",
+        hint: "(verify your profile to send)",
+      };
+    case "blocked-spam":
+      return {
+        title: "This message looked like spam and was not sent",
+        hint: "(blocked as spam)",
+      };
+    case "rate-limited":
+      return {
+        title: "You are sending too quickly. Wait a moment and try again",
+        hint: "(too many messages, wait a moment)",
+      };
+    case "not-unique":
+      return {
+        title: "You already sent this exact message",
+        hint: "(duplicate message)",
+      };
+    case "too-long":
+      return { title: "That message is too long", hint: "(too long)" };
+    case "blocked":
+      return { title: "This message could not be delivered", hint: "(not delivered)" };
+    case "server-error":
+    default:
+      return { title: "Failed to send", hint: "(tap to retry)" };
+  }
+}
 
 /**
  * Sample/legacy slugs (daniel, esther, ...) seed thumbnails when no real
@@ -260,14 +302,17 @@ export function ChatThreadView({ id }: Props) {
                   m.status === "pending"
                     ? "Sending…"
                     : m.status === "failed"
-                    ? "Failed to send"
+                    ? failureText(m.failureReason).title
                     : undefined
                 }
               >
                 {m.body}
                 {m.status === "failed" && (
-                  <span aria-label="Failed to send" className="ml-2 text-caption">
-                    (tap to retry)
+                  <span
+                    aria-label={failureText(m.failureReason).title}
+                    className="ml-2 text-caption not-italic"
+                  >
+                    {failureText(m.failureReason).hint}
                   </span>
                 )}
               </span>

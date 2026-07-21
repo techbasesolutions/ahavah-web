@@ -36,6 +36,19 @@ export type ChatMessage = {
   serverTime: string;
   /** Optimistic-send state. */
   status: ChatMessageStatus;
+  /** Why a `failed` message failed, straight from the server's block
+   *  reason. Without this every rejection rendered as a bare "failed"
+   *  and the member had no idea what to do (2026-07-21: a member's
+   *  messages were rejected by the verification hold and she was told
+   *  nothing). Only meaningful when status === "failed". */
+  failureReason?:
+    | "verification-required"
+    | "blocked-spam"
+    | "rate-limited"
+    | "blocked"
+    | "not-unique"
+    | "too-long"
+    | "server-error";
   /** Optional audio payload uuid (present on AudioMessage stanzas; unused by current UI). */
   audioUuid?: string;
 };

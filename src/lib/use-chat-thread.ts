@@ -217,17 +217,25 @@ export function useChatThread(threadId: string, myUuid: string): UseChatThreadRe
           // Find pending bubble keyed by clientId and flip status.
           const next: ChatMessage["status"] =
             e.result === "delivered" ? "sent" : "failed";
+          // Carry the REASON through (2026-07-21). The server already
+          // sends it and chat-stanza already decodes it; it used to be
+          // dropped here, so every rejection looked identical and the
+          // member was left guessing.
+          const reason: ChatMessage["failureReason"] | undefined =
+            next === "failed" && e.result !== "delivered"
+              ? (e.result as ChatMessage["failureReason"])
+              : undefined;
           setMessages((prev) =>
             prev.map((m) =>
               m.clientId === e.clientId
-                ? { ...m, status: next, body: m.body }
+                ? { ...m, status: next, body: m.body, failureReason: reason }
                 : m,
             ),
           );
           // Persist the flip.
           const flipped = messagesRef.current.find((m) => m.clientId === e.clientId);
           if (flipped) {
-            void appendMessage({ ...flipped, status: next });
+            void appendMessage({ ...flipped, status: next, failureReason: reason });
           }
           // Clear the ack timeout.
           const timer = ackTimersRef.current.get(e.clientId);
