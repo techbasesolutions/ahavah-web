@@ -489,6 +489,9 @@ function decodeBlockedAck(root: ElLike): ChatEvent | null {
   if (reason === "age-verification") {
     return { type: "message-ack", clientId: id, result: "verification-required" };
   }
+  if (reason === "not-matched") {
+    return { type: "message-ack", clientId: id, result: "not-matched" };
+  }
   if (reason?.startsWith("rate-limited")) {
     return { type: "message-ack", clientId: id, result: "rate-limited", reason };
   }

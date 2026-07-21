@@ -720,6 +720,15 @@ export function useProfile(): UseProfileResult {
           // wants_kids = Unanswered). Back-syncing them here persists the
           // cached onboarding answer on the next load.
           "wantsChildren", "children",
+          // intent has the SAME trap (audit 2026-07-21): not in
+          // ONBOARDEE_ALLOWED_KEYS, and reverseTranslateValue has no
+          // inverse for the upstream `looking for` column, so
+          // profile.intent can only ever come from ahavah_extra.intent.
+          // Every member who joined since the wizard shipped reached
+          // /discover with intent unset (7 of 7 recent signups), which
+          // both fails the completeness gate and hides them from
+          // intent-filtered search.
+          "intent",
         ] as const;
         const toSync: Record<string, unknown> = {};
         for (const k of TORAH_FIELDS) {

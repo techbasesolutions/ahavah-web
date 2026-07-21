@@ -42,6 +42,7 @@ export type ChatMessage = {
    *  messages were rejected by the verification hold and she was told
    *  nothing). Only meaningful when status === "failed". */
   failureReason?:
+    | "not-matched"
     | "verification-required"
     | "blocked-spam"
     | "rate-limited"
@@ -90,7 +91,7 @@ export type ChatEvent =
   | {
       type: "message-ack";
       clientId: string;
-      result: "delivered" | "blocked" | "blocked-spam" | "rate-limited" | "not-unique" | "too-long" | "verification-required" | "server-error";
+      result: "delivered" | "blocked" | "blocked-spam" | "rate-limited" | "not-unique" | "too-long" | "verification-required" | "not-matched" | "server-error";
       reason?: string;
     }
   | { type: "typing-in"; fromUserId: string; toUserId: string }

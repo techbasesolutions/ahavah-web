@@ -48,6 +48,11 @@ function failureText(reason?: ChatMessage["failureReason"]): {
   hint: string;
 } {
   switch (reason) {
+    case "not-matched":
+      return {
+        title: "You can message each other once you match",
+        hint: "(you can message once you match)",
+      };
     case "verification-required":
       return {
         title: "Verify your profile to send messages",
