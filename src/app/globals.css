@@ -287,6 +287,11 @@
   --nav-bg:               var(--bg-elevated);
   --nav-border:           rgba(255,255,255,0.10);
   --nav-inactive:         var(--lavender);
+  /* Inline text links on canvas/cards (SOT: privacy location toggles) —
+     lavender on dark, indigo on light. dark:/light: utilities can't do
+     this: <html> carries a permanent `dark` class while real theming
+     flips [data-theme]. */
+  --link-accent:          var(--lavender);
   --pill-glass:           rgba(0,0,0,0.30);
   --pill-glass-ink:       #ffffff;
   --pill-glass-border:    rgba(255,255,255,0.20);
@@ -385,6 +390,7 @@
   --nav-bg:              #FFFFFF;
   --nav-border:          rgba(15,11,31,0.08);
   --nav-inactive:        oklch(0.46 0.30 270);
+  --link-accent:         var(--indigo);
 
   /* Shadows — new vars (not in dark globals) */
   --shadow-soft:         0 8px 24px rgba(15,11,31,0.10);

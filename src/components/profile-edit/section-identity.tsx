@@ -199,14 +199,22 @@ export default function IdentitySection() {
           re-resolves coordinates to the chosen city. Distinct from the
           free-text City / State rows below (those persist to ahavah_extra
           for display only and don't move the map pin). */}
+      {/* field-anchored so the privacy screen's "Add your city" note can
+          deep-link here. Picking also sets citySet=true — the map-pin gate
+          requires it, and only onboarding used to set it, so a member sent
+          here to fix their pin would otherwise stay unpinned. */}
+      <div id="field-location" className="scroll-mt-24">
       <LocationField
         id="precise-location"
         label="Precise location"
         placeholder="Type your city or town"
         description="Pick your city to place yourself exactly on the map."
         value={profile.location}
-        onSelect={(longFriendly) => update({ location: longFriendly })}
+        onSelect={(longFriendly) =>
+          update({ location: longFriendly, citySet: true })
+        }
       />
+      </div>
 
       {/* 6. stateOrProvince */}
       <TextField

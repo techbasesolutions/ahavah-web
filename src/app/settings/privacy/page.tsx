@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Lock } from "lucide-react";
+import { ChevronRight, Lock } from "lucide-react";
 
 import {
   Item,
@@ -72,6 +72,11 @@ export default function PrivacySettingsPage() {
   // honest (locked) state shows first and never flickers a dead toggle.
   const [isGold, setIsGold] = useState(false);
   const [savingKey, setSavingKey] = useState<BackedKey | null>(null);
+  // citySet drives the in-place "Add your city to appear on the map" note
+  // (map pins require a real city; country-only members sit on a fabricated
+  // centroid and are never pinned). null until /me resolves so the note
+  // can't flash for members who do have a city.
+  const [citySet, setCitySet] = useState<boolean | null>(null);
   const { value: showOnMap, setValue: setShowOnMapLocal } = useShowOnMap();
   const { update: updateProfile } = useProfile();
   // Fan the toggle out to BOTH localStorage (instant UI feedback) and
@@ -112,6 +117,15 @@ export default function PrivacySettingsPage() {
       .catch(() => {
         // Quiet fail — defaults stay; user can still toggle (PATCH will
         // reflect on next reload).
+      });
+    // Same source as CityNudgeBanner: /me carries ahavah_extra.citySet.
+    void apiClient
+      .get<{ citySet?: boolean }>("/me")
+      .then((d) => {
+        if (!cancelled) setCitySet(d.citySet ?? true);
+      })
+      .catch(() => {
+        // Unknown stays null — the note simply doesn't render.
       });
     return () => {
       cancelled = true;
@@ -204,13 +218,141 @@ export default function PrivacySettingsPage() {
     );
   };
 
+  // SOT: "Ahavah Privacy Location Toggles" export (2026-07-29).
+  // "Show me on the map" is a dependent child of "Show my location":
+  // master and child share one card, the child on a faintly sunken fill
+  // with an L-shaped connective rule from the master row. Backend map
+  // gate = show_my_location AND showOnMap AND citySet; this card is the
+  // gate's presentation, so all three conditions surface in place.
+  const masterLocked = GOLD_GATED.showLocation && !isGold;
+  const masterOn = toggles.showLocation;
+  const showCityNote = masterOn && showOnMap && citySet === false;
+
+  const locationCard = (
+    <Item variant="muted" className="flex-col items-stretch">
+      {/* Master row — same anatomy as renderPrivacyToggle (live + locked). */}
+      <div className="flex w-full items-center gap-3">
+        <ItemContent>
+          <ItemTitle className="text-meta text-(--ink)">
+            Show my location
+            {masterLocked ? (
+              <Pill variant="lavender" size="sm">
+                <Lock aria-hidden />
+                Gold
+              </Pill>
+            ) : null}
+          </ItemTitle>
+          {/* line-clamp-none: the primitive clamps at 2 lines; the SOT
+              shows this three-line description in full. */}
+          <ItemDescription className="line-clamp-none text-caption text-(--ink-3)">
+            Display your city and country on your profile and the map. Turn
+            off to hide both and remove your map pin.
+            {masterLocked ? (
+              <>
+                {" "}
+                <Link href="/verify/gold" prefetch={false}>
+                  Gold members only.
+                </Link>
+              </>
+            ) : null}
+          </ItemDescription>
+          {masterLocked ? (
+            <Button
+              variant="outlineSubtle"
+              size="sm"
+              render={<Link href="/verify/gold" prefetch={false} />}
+              className="mt-2 self-start"
+            >
+              Get Gold
+            </Button>
+          ) : null}
+        </ItemContent>
+        <Switch
+          checked={toggles.showLocation}
+          disabled={masterLocked || savingKey === "showLocation"}
+          onCheckedChange={
+            masterLocked
+              ? undefined
+              : (checked) => void setBacked("showLocation", checked)
+          }
+          aria-label={
+            masterLocked ? "Show my location (Gold members only)" : "Show my location"
+          }
+        />
+      </div>
+
+      {/* Child row — sunken fill + L-rule connector from the master row. */}
+      <div className="relative mt-1 w-full pl-6">
+        <span
+          aria-hidden
+          className="absolute top-0 bottom-1/2 left-2.5 w-3 rounded-bl-md border-b border-l border-(--ink)/15"
+        />
+        <div className="flex w-full items-center gap-3 rounded-lg bg-muted/80 px-3 py-2.5">
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span
+              className={`text-meta ${masterOn ? "text-(--ink)" : "text-(--ink-3)"}`}
+            >
+              Show me on the map
+            </span>
+            {masterOn ? (
+              <>
+                <span className="text-caption text-(--ink-3)">
+                  Appear as a pin near your city so nearby members can find
+                  you.
+                </span>
+                {showCityNote ? (
+                  <span className="text-caption">
+                    <Link
+                      href="/profile/edit#field-location"
+                      prefetch={false}
+                      className="font-semibold text-(--link-accent) underline underline-offset-2"
+                    >
+                      Add your city
+                    </Link>{" "}
+                    <span className="text-(--ink-3)">
+                      to appear on the map
+                    </span>
+                    <ChevronRight
+                      aria-hidden
+                      className="inline size-3 align-[-1px] text-(--ink-3)"
+                    />
+                  </span>
+                ) : null}
+              </>
+            ) : (
+              // Suspended, not off: the master is off, so the pin is gone
+              // regardless. The stored value stays visible (a greyed
+              // off-position switch would lie about it); the caption says
+              // why, in --ink-2 so it clears AA in both themes.
+              <span className="text-caption text-(--ink-2)">
+                Requires location sharing.
+              </span>
+            )}
+          </div>
+          <Switch
+            checked={showOnMap}
+            disabled={!masterOn}
+            onCheckedChange={
+              masterOn ? (checked) => setShowOnMap(checked) : undefined
+            }
+            aria-label="Show me on the map"
+            className={masterOn ? undefined : "opacity-[0.38]"}
+          />
+        </div>
+      </div>
+    </Item>
+  );
+
   return (
     <SettingsShell title="Privacy">
       <div className="flex flex-col gap-6 px-3 pt-4 md:px-0 md:pt-0">
         <section className="flex flex-col gap-2">
-          <h2 className="px-3 text-overline text-(--ink-3)">
-            Profile visibility
-          </h2>
+          <h2 className="px-3 text-overline text-(--ink-3)">Location</h2>
+          <ItemGroup className="gap-1">{locationCard}</ItemGroup>
+        </section>
+
+        <section className="flex flex-col gap-2">
+          <h2 className="px-3 text-overline text-(--ink-3)">Profile</h2>
           <ItemGroup className="gap-1">
             {renderPrivacyToggle({
               settingKey: "showAge",
@@ -219,37 +361,18 @@ export default function PrivacySettingsPage() {
                 "Display age next to your name on your profile and the swipe deck.",
             })}
 
-            <Item variant="muted">
-              <ItemContent>
-                <ItemTitle className="text-meta text-(--ink)">
-                  Show me on the map
-                </ItemTitle>
-                <ItemDescription className="text-caption text-(--ink-3)">
-                  Others see your avatar pinned to your country on the
-                  discovery map. Turn off to stay hidden.
-                </ItemDescription>
-              </ItemContent>
-              <Switch
-                checked={showOnMap}
-                onCheckedChange={(checked) => setShowOnMap(checked)}
-                aria-label="Show me on the map"
-              />
-            </Item>
-
-            {renderPrivacyToggle({
-              settingKey: "showLocation",
-              title: "Show my location",
-              description:
-                "Display your city and country on your profile. Turn off to hide both. Peers see only your name and age.",
-            })}
-
             {renderPrivacyToggle({
               settingKey: "hideFromStrangers",
               title: "Hide me from strangers",
               description:
                 "Only people you've liked or messaged can see your full profile. Others see a limited view.",
             })}
+          </ItemGroup>
+        </section>
 
+        <section className="flex flex-col gap-2">
+          <h2 className="px-3 text-overline text-(--ink-3)">Matching</h2>
+          <ItemGroup className="gap-1">
             <Item variant="muted">
               <ItemContent>
                 <ItemTitle className="text-meta text-(--ink)">
