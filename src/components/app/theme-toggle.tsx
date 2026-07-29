@@ -1,5 +1,6 @@
 "use client"
 
+import { useSyncExternalStore } from "react"
 import { Moon, Sun } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -23,8 +24,18 @@ type Props = {
 
 export function ThemeToggle({ variant = "switch", showLabel, className }: Props) {
   const { mode, setMode } = useTheme()
-  const resolved = resolveTheme(mode)
-  const isLight = resolved === "light"
+  // Hydration guard: the server resolves "auto" to dark (no matchMedia),
+  // but the client's first render can resolve light — flipping the
+  // icon/aria-label mid-hydration and failing the whole tree. This
+  // store reads false for the hydration pass and true immediately
+  // after, keeping the server's dark assumption until it's safe to
+  // resolve for real (no effect, so no set-state-in-effect lint).
+  const hydrated = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  )
+  const isLight = hydrated && resolveTheme(mode) === "light"
 
   if (variant === "icon") {
     // Theme-aware styling using Tailwind v4 arbitrary CSS-var syntax
