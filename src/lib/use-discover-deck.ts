@@ -49,6 +49,11 @@ export type UseDiscoverDeckResult = {
   items: ReadonlyArray<DiscoverCandidate>;
   loadMore: () => Promise<void>;
   isLoading: boolean;
+  /** True once the FIRST /search response (success or error) has landed.
+   *  Lets consumers tell "never fetched yet" apart from "confirmed
+   *  empty". isLoading alone cannot cover the first painted frame: it
+   *  starts false and only flips in the mount effect, after paint. */
+  hasLoadedOnce: boolean;
   error: ApiError | null;
   hasMore: boolean;
   /** Reset pagination + refetch from the head, in place. Use after a
@@ -138,6 +143,7 @@ export function useDiscoverDeck(
   const [cursor, setCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
 
   // Re-entrancy guard — flips true at request start, false at end. Setting
@@ -296,6 +302,12 @@ export function useDiscoverDeck(
       if (seq === requestSeq.current) {
         inFlight.current = false;
         setIsLoading(false);
+        // Latches true forever after the FIRST response (success or
+        // error). Consumers use it to tell "never fetched yet" apart
+        // from "confirmed empty" — isLoading alone can't cover the
+        // first painted frame, because it starts false and only flips
+        // in the mount effect, i.e. AFTER first paint.
+        setHasLoadedOnce(true);
       }
     }
     // We intentionally exclude `filters` from the deps and use the closure-
@@ -350,5 +362,5 @@ export function useDiscoverDeck(
     return runFetch(true);
   }, [runFetch]);
 
-  return { items, loadMore, isLoading, error, hasMore, reload };
+  return { items, loadMore, isLoading, hasLoadedOnce, error, hasMore, reload };
 }

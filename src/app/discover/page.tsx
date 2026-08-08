@@ -141,7 +141,7 @@ export default function DiscoverPage() {
     ],
   );
 
-  const { items, loadMore, hasMore, reload, isLoading } =
+  const { items, loadMore, hasMore, reload, isLoading, hasLoadedOnce } =
     useDiscoverDeck(httpFilters);
 
   // Map lens (SOT: "Ahavah Map Lens" export): purely client-side
@@ -502,12 +502,15 @@ export default function DiscoverPage() {
             onDayPassActivated={() => setQuotaState(null)}
           />
         </motion.div>
-      ) : !candidate && isLoading ? (
-        /* Deck fetch in flight with nothing to show yet. Without this
-           branch the empty state below rendered DURING every /search
-           round-trip, so members saw "You're all caught up" flash and
-           then people "show back up" when the response landed (reported
-           2026-08-08). Loading is not emptiness. */
+      ) : !candidate && (isLoading || !hasLoadedOnce) ? (
+        /* Deck fetch in flight (or never yet attempted) with nothing to
+           show. Without this branch the empty state below rendered
+           DURING every /search round-trip, so members saw "You're all
+           caught up" flash and then people "show back up" when the
+           response landed (reported 2026-08-08). !hasLoadedOnce covers
+           the first painted frame, where isLoading is still false
+           because the mount effect hasn't run. Loading is not
+           emptiness. */
         <motion.div
           key="deck-loading"
           initial={{ opacity: 0 }}
