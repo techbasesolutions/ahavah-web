@@ -616,22 +616,26 @@ describe("Profile aggregate", () => {
     expect(p.interests).toBeUndefined();
   });
 
-  it("MINIMUM_COMPLETE_FIELDS lists the 10 soft-required fields", () => {
-    // Sourced from 2026-05-11 product spec — asterisked fields in the
-    // Torah-observant matchmaker profile structure. verificationTags
-    // requires AT LEAST ONE tag (empty arrays are not-filled).
-    // Sub-plan 18 added `maritalStatus` + `children`.
+  it("MINIMUM_COMPLETE_FIELDS lists the 9 soft-required fields", () => {
+    // Sourced from the 2026-05-11 product spec (asterisked fields in the
+    // Torah-observant matchmaker profile structure), then evolved:
+    //   - de1565d dropped `verificationTags`: /onboarding/verification is a
+    //     "Skip for now" step, and requiring a field no wizard step writes
+    //     stranded users on /discover with a dead redirect.
+    //   - c4b34c5 swapped sub-plan 18's `children` count for the binary
+    //     `wantsChildren` when /onboarding/children collapsed to a single
+    //     wants-children question; `children` stays on Profile for legacy
+    //     round-trip only.
     expect(MINIMUM_COMPLETE_FIELDS).toEqual([
       "firstName",
       "age",
       "sex",
       "maritalStatus",
-      "children",
+      "wantsChildren",
       "country",
       "intent",
       "assembly",
       "relocation",
-      "verificationTags",
     ]);
   });
 
@@ -657,23 +661,37 @@ import {
   SAMPLE_PROFILES,
   sampleByName,
 } from "@/lib/profile-sample";
-import { computeCompleteness } from "@/lib/profile-completeness";
+import {
+  computeCompleteness,
+  missingRequiredFields,
+} from "@/lib/profile-completeness";
 
 describe("Sample profiles", () => {
   it("SAMPLE_PROFILES has exactly 8 entries", () => {
     expect(SAMPLE_PROFILES).toHaveLength(8);
   });
 
-  it("samples are discoverEligible except for documented T6 demo (Tirzah)", () => {
-    // Sub-plan 14 / T6+T7: Tirzah's verificationTags was intentionally
-    // emptied so the /map "Verified only" filter has an observable
-    // effect. verificationTags is in MINIMUM_COMPLETE_FIELDS, so she
-    // is the ONE expected discoverEligible=false sample. Every other
-    // sample must still pass.
+  it("every sample is discoverEligible (9-field required set)", () => {
+    // History: sub-plan 14 / T6+T7 emptied Tirzah's verificationTags so the
+    // /map "Verified only" filter has an observable effect, which used to
+    // make her the one discoverEligible=false sample. de1565d then dropped
+    // verificationTags from MINIMUM_COMPLETE_FIELDS entirely, so her empty
+    // array no longer affects the gate (pinned below). c4b34c5 replaced the
+    // required `children` count with the binary `wantsChildren`; the samples
+    // drifted for a while (none set it) and were realigned on 2026-08-09:
+    // every sample now sets `wantsChildren` while keeping its legacy
+    // `children` count so consumers of both shapes stay exercised.
     for (const p of SAMPLE_PROFILES) {
-      const expected = p.firstName === "Tirzah" ? false : true;
-      expect(computeCompleteness(p).discoverEligible).toBe(expected);
+      expect(missingRequiredFields(p)).toEqual([]);
+      expect(computeCompleteness(p).discoverEligible).toBe(true);
+      expect(p.wantsChildren === "yes" || p.wantsChildren === "no").toBe(true);
     }
+
+    // Tirzah's demo exception is map-only: her verificationTags is still
+    // intentionally empty, but it is no longer part of the gate.
+    const tirzah = sampleByName("Tirzah");
+    expect(tirzah?.verificationTags).toEqual([]);
+    expect(missingRequiredFields(tirzah!)).not.toContain("verificationTags");
   });
 
   it("samples cover both sexes (4 male, 4 female)", () => {

@@ -14,10 +14,11 @@ import {
   uploadPhoto,
 } from "@/lib/photo-storage";
 import type { ProfileInfoResponse } from "@/lib/api-types";
+import { clearOnboarded, writeOnboarded } from "@/lib/onboarded-storage";
 
 // Mock the api-client so we can intercept the wire calls without spinning
 // up a real backend. `apiClient.delete` doesn't accept a body, so the
-// implementation falls back to a raw fetch() for DELETE — we mock that too.
+// implementation falls back to a raw fetch() for DELETE, so we mock that too.
 vi.mock("@/lib/api-client", async () => {
   const actual =
     await vi.importActual<typeof import("@/lib/api-client")>("@/lib/api-client");
@@ -39,11 +40,16 @@ const mockGet = apiClient.get as Mock;
 const mockPatch = apiClient.patch as Mock;
 
 describe("photo-storage / moderationStateFromScore", () => {
-  it("null score → pending-review", () => {
-    expect(moderationStateFromScore(null)).toBe("pending-review");
+  // Since eaf5b63 a missing score maps to "approved", not "pending-review":
+  // backend GET /profile-info does not surface nsfw_score, and the PATCH
+  // classifier runs synchronously and only saves photos that passed. A photo
+  // that exists in GET already passed moderation, so null must not paint the
+  // amber "Reviewing" badge forever.
+  it("null score → approved (photo exists, so it already passed the synchronous classifier)", () => {
+    expect(moderationStateFromScore(null)).toBe("approved");
   });
-  it("undefined score → pending-review", () => {
-    expect(moderationStateFromScore(undefined)).toBe("pending-review");
+  it("undefined score → approved (same rule as null)", () => {
+    expect(moderationStateFromScore(undefined)).toBe("approved");
   });
   it("score 0.2 → approved", () => {
     expect(moderationStateFromScore(0.2)).toBe("approved");
@@ -132,10 +138,10 @@ describe("photo-storage / adaptProfileInfoPhotos", () => {
     expect(result.map((p) => p.uuid)).toEqual(["a", "c", "e"]);
   });
 
-  it("synthesizes moderation_state from score map: null → pending-review", () => {
+  it("synthesizes moderation_state from score map: null → approved (score not surfaced means already passed)", () => {
     const payload: ProfileInfoResponse = { photo: { "1": "u" } };
     const [photo] = adaptProfileInfoPhotos(payload, { "1": null });
-    expect(photo?.moderation_state).toBe("pending-review");
+    expect(photo?.moderation_state).toBe("approved");
     expect(photo?.nsfw_score).toBeNull();
   });
 
@@ -196,20 +202,28 @@ describe("photo-storage / getQuota", () => {
 describe("photo-storage / uploadPhoto", () => {
   beforeEach(() => {
     mockPatch.mockReset();
+    // Writes route via profileEndpoint() since 31a0567: /onboardee-info
+    // until the onboarded flag is set, /profile-info afterwards. Default
+    // test state = onboardee.
+    clearOnboarded();
   });
 
-  it("compresses → base64 → PATCH /profile-info with correct payload", async () => {
+  afterEach(() => {
+    clearOnboarded();
+  });
+
+  it("compresses → base64 → PATCH /onboardee-info (onboardee) with correct payload", async () => {
     mockPatch.mockResolvedValueOnce({});
     // Smallest possible 1-byte JPEG blob mock. FileReader's readAsDataURL
     // produces `data:application/octet-stream;base64,XXX` for arbitrary
-    // bytes — good enough for shape testing.
+    // bytes, good enough for shape testing.
     const blob = new Blob([new Uint8Array([0xff, 0xd8, 0xff])], {
       type: "image/jpeg",
     });
     const result = await uploadPhoto(blob, { position: 2, top: 10, left: 20 });
 
     expect(mockPatch).toHaveBeenCalledWith(
-      "/profile-info",
+      "/onboardee-info",
       expect.objectContaining({
         base64_file: expect.objectContaining({
           position: 2,
@@ -244,6 +258,14 @@ describe("photo-storage / uploadPhoto", () => {
     expect(payload.base64_file.top).toBe(0);
     expect(payload.base64_file.left).toBe(0);
   });
+
+  it("PATCHes /profile-info once the onboarded flag is set", async () => {
+    writeOnboarded(true);
+    mockPatch.mockResolvedValueOnce({});
+    const blob = new Blob([new Uint8Array([0x42])], { type: "image/jpeg" });
+    await uploadPhoto(blob, { position: 1 });
+    expect(mockPatch.mock.calls[0]?.[0]).toBe("/profile-info");
+  });
 });
 
 describe("photo-storage / blobToBase64DataUrl", () => {
@@ -260,13 +282,27 @@ describe("photo-storage / blobToBase64DataUrl", () => {
 describe("photo-storage / reorderPhotos", () => {
   beforeEach(() => {
     mockPatch.mockReset();
+    clearOnboarded();
   });
 
-  it("PATCHes /profile-info with photo_assignments map", async () => {
+  afterEach(() => {
+    clearOnboarded();
+  });
+
+  it("PATCHes /onboardee-info (onboardee) with photo_assignments map", async () => {
     mockPatch.mockResolvedValueOnce({});
     await reorderPhotos({ 1: 2, 2: 1 });
-    expect(mockPatch).toHaveBeenCalledWith("/profile-info", {
+    expect(mockPatch).toHaveBeenCalledWith("/onboardee-info", {
       photo_assignments: { 1: 2, 2: 1 },
+    });
+  });
+
+  it("PATCHes /profile-info once the onboarded flag is set", async () => {
+    writeOnboarded(true);
+    mockPatch.mockResolvedValueOnce({});
+    await reorderPhotos({ 1: 2 });
+    expect(mockPatch).toHaveBeenCalledWith("/profile-info", {
+      photo_assignments: { 1: 2 },
     });
   });
 });
@@ -276,13 +312,15 @@ describe("photo-storage / deletePhoto", () => {
 
   beforeEach(() => {
     originalFetch = globalThis.fetch;
+    clearOnboarded();
   });
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
+    clearOnboarded();
   });
 
-  it("DELETEs /profile-info with files:[position] body", async () => {
+  it("DELETEs /onboardee-info (onboardee) with files:[position] body", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
@@ -293,10 +331,24 @@ describe("photo-storage / deletePhoto", () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toContain("/profile-info");
+    expect(url).toContain("/onboardee-info");
     expect(init.method).toBe("DELETE");
     expect(init.credentials).toBe("include");
     expect(init.body).toBe(JSON.stringify({ files: [3] }));
+  });
+
+  it("DELETEs /profile-info once the onboarded flag is set", async () => {
+    writeOnboarded(true);
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+    } as Response);
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    await deletePhoto(1);
+
+    const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain("/profile-info");
   });
 
   it("throws when DELETE returns non-2xx", async () => {

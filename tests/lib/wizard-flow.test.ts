@@ -10,10 +10,30 @@ import {
 } from "@/lib/wizard-flow";
 
 describe("wizard-flow", () => {
-  it("WIZARD_STEPS has 16 entries in the canonical order", () => {
-    expect(WIZARD_STEPS).toHaveLength(16);
-    expect(WIZARD_STEPS[0].href).toBe("/onboarding/verify-email");
-    expect(WIZARD_STEPS[15].href).toBe("/onboarding/verification");
+  it("WIZARD_STEPS has 17 entries in the canonical order", () => {
+    // Canonical count is 17 since commit 786e800 inserted the optional
+    // /onboarding/city step right after /onboarding/country (was 16).
+    // Keep these literal so an accidental step add/remove fails loudly.
+    expect(WIZARD_STEPS).toHaveLength(17);
+    expect(WIZARD_STEPS.map((s) => s.href)).toEqual([
+      "/onboarding/verify-email",
+      "/onboarding/verify-phone",
+      "/onboarding/name",
+      "/onboarding/dob",
+      "/onboarding/gender",
+      "/onboarding/marital-status",
+      "/onboarding/children",
+      "/onboarding/looking-for",
+      "/onboarding/photos",
+      "/onboarding/country",
+      "/onboarding/city",
+      "/onboarding/languages",
+      "/onboarding/bio",
+      "/onboarding/polygyny",
+      "/onboarding/assembly",
+      "/onboarding/relocation",
+      "/onboarding/verification",
+    ]);
   });
 
   it("marital-status + children are slotted between gender and looking-for", () => {
@@ -31,7 +51,8 @@ describe("wizard-flow", () => {
   it("positionOf returns 1-indexed step + total for an existing href", () => {
     const pos = positionOf("/onboarding/name");
     expect(pos.step).toBe(3);
-    expect(pos.totalSteps).toBe(16);
+    // 17 total since the optional city step landed in commit 786e800.
+    expect(pos.totalSteps).toBe(17);
   });
 
   it("positionOf wires back + next for a middle step", () => {
@@ -53,7 +74,8 @@ describe("wizard-flow", () => {
   it("positionOf returns step=0 for an unknown href (does not throw)", () => {
     const pos = positionOf("/onboarding/nonexistent");
     expect(pos.step).toBe(0);
-    expect(pos.totalSteps).toBe(16);
+    // 17 total since the optional city step landed in commit 786e800.
+    expect(pos.totalSteps).toBe(17);
     expect(pos.back).toBeNull();
     expect(pos.next).toBeNull();
   });
@@ -72,7 +94,7 @@ describe("wizard-flow", () => {
     expect(routeForField("firstName")).toBe("/onboarding/name");
     expect(routeForField("intent")).toBe("/onboarding/looking-for");
     // Fields without a wizard step (e.g. interests is not required) return null.
-    // Post-SP24, verificationTags is also unmapped — the /onboarding/verification
+    // Post-SP24, verificationTags is also unmapped: the /onboarding/verification
     // step still renders but no longer carries a requiredField annotation.
     expect(routeForField("verificationTags")).toBeNull();
     expect(routeForField("interests")).toBeNull();
@@ -82,7 +104,7 @@ describe("wizard-flow", () => {
     const partial: Profile = {
       firstName: "Test",
       // age, sex, country, intent, assembly, relocation, verificationTags missing
-      verificationTags: ["government-id"], // late field set early — should NOT short-circuit
+      verificationTags: ["government-id"], // late field set early, should NOT short-circuit
     };
     // age is the next required after firstName, so step 4 (/onboarding/dob)
     expect(firstMissingStepFor(partial)).toBe("/onboarding/dob");
@@ -94,7 +116,10 @@ describe("wizard-flow", () => {
       age: 30,
       sex: "male",
       maritalStatus: "never-married",
+      // Since commit e406150 the children step gates on wantsChildren
+      // (what the page actually writes), not the children count.
       children: 0,
+      wantsChildren: "yes",
       country: "BB",
       intent: ["first-wife"],
       assembly: ["torah-observant"],
@@ -111,7 +136,7 @@ describe("wizard-flow", () => {
   it("does not gate /onboarding/verification on verificationTags after SP24", () => {
     // Profile that satisfies every other required wizard field but has no
     // verificationTags. Pre-SP24 this would have routed to
-    // /onboarding/verification; post-SP24 the wizard treats verificationTags
+    // /onboarding/verification. Post-SP24 the wizard treats verificationTags
     // as earned at /verify/[tier], not pre-committed at onboarding, so
     // firstMissingStepFor returns null.
     const profile: Profile = {
@@ -119,7 +144,9 @@ describe("wizard-flow", () => {
       age: 30,
       sex: "female",
       maritalStatus: "never-married",
+      // wantsChildren required since commit e406150 (children count is not).
       children: 0,
+      wantsChildren: "no",
       country: "BB",
       intent: ["marriage-only"],
       assembly: ["messianic"],

@@ -3,18 +3,19 @@ import type { Profile } from "@/lib/profile-schema";
 /**
  * 8 seed sample profiles for development + sub-plan testing.
  * 4 male + 4 female; covers all 4 Torah levels; covers both polygyny
- * stances; varies country/ethnicity. Most profiles pass
- * `computeCompleteness().discoverEligible` (all 10 minimum fields incl.
- * sub-plan 18's `maritalStatus` + `children`).
+ * stances; varies country/ethnicity. Every profile passes
+ * `computeCompleteness().discoverEligible` (the 9 minimum fields; the
+ * required set lost `verificationTags` in de1565d and swapped the
+ * `children` count for the binary `wantsChildren` in c4b34c5 - the
+ * legacy counts are kept alongside `wantsChildren` on purpose so
+ * consumers of both shapes stay exercised).
  *
  * Two intentional demo exceptions (sub-plan 14 / T6+T7):
  *   - Caleb has `showOnMap: false` so the /map "filter out opt-outs"
  *     path is observable (his marker is hidden).
  *   - Tirzah has empty `verificationTags` so the /map "Verified only"
  *     filter toggle has an observable effect (her marker disappears).
- *     She is still rendered in /discover etc. (verificationTags is in
- *     MINIMUM_COMPLETE_FIELDS — she fails discoverEligible — but
- *     SAMPLE_PROFILES is itself the candidate pool, not a viewer.)
+ *     Since de1565d this no longer affects her discoverEligible.
  */
 export const SAMPLE_PROFILES: ReadonlyArray<Profile> = [
   {
@@ -23,6 +24,7 @@ export const SAMPLE_PROFILES: ReadonlyArray<Profile> = [
     sex: "male",
     maritalStatus: "never-married",
     children: 0,
+    wantsChildren: "yes",
     country: "BB",
     nationality: "barbadian",
     ethnicities: ["afro-caribbean"],
@@ -54,6 +56,7 @@ export const SAMPLE_PROFILES: ReadonlyArray<Profile> = [
     sex: "female",
     maritalStatus: "never-married",
     children: 0,
+    wantsChildren: "yes",
     country: "US",
     nationality: "american",
     ethnicities: ["afro-american"],
@@ -84,6 +87,7 @@ export const SAMPLE_PROFILES: ReadonlyArray<Profile> = [
     sex: "male",
     maritalStatus: "married",
     children: 3,
+    wantsChildren: "yes",
     country: "JM",
     nationality: "jamaican",
     ethnicities: ["afro-caribbean"],
@@ -115,6 +119,7 @@ export const SAMPLE_PROFILES: ReadonlyArray<Profile> = [
     sex: "female",
     maritalStatus: "never-married",
     children: 0,
+    wantsChildren: "yes",
     country: "IL",
     nationality: "israeli",
     ethnicities: ["middle-eastern"],
@@ -149,6 +154,7 @@ export const SAMPLE_PROFILES: ReadonlyArray<Profile> = [
     // reads naturally as widowed-and-rebuilding.
     maritalStatus: "widowed",
     children: 2,
+    wantsChildren: "yes",
     country: "ZA",
     nationality: "south-african",
     ethnicities: ["southern-african"],
@@ -184,6 +190,7 @@ export const SAMPLE_PROFILES: ReadonlyArray<Profile> = [
     sex: "female",
     maritalStatus: "never-married",
     children: 0,
+    wantsChildren: "yes",
     country: "GB",
     nationality: "british",
     ethnicities: ["afro-caribbean", "european", "mixed-heritage"],
@@ -214,6 +221,7 @@ export const SAMPLE_PROFILES: ReadonlyArray<Profile> = [
     sex: "male",
     maritalStatus: "re-married",
     children: 6,
+    wantsChildren: "yes",
     country: "NG",
     nationality: "nigerian",
     ethnicities: ["west-african"],
@@ -245,6 +253,7 @@ export const SAMPLE_PROFILES: ReadonlyArray<Profile> = [
     sex: "female",
     maritalStatus: "never-married",
     children: 0,
+    wantsChildren: "yes",
     country: "GH",
     nationality: "ghanaian",
     ethnicities: ["west-african"],

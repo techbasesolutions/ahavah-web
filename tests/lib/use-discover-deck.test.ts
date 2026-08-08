@@ -50,8 +50,10 @@ describe("useDiscoverDeck", () => {
     vi.restoreAllMocks();
   });
 
-  // Test 1 — empty initial result. /search returns 0 candidates +
+  // Test 1 - empty initial result. /search returns 0 candidates +
   // next_cursor null; hook should land at items=[], hasMore=false.
+  // hasLoadedOnce latches true once the first response lands, so the
+  // consumer can tell "confirmed empty" apart from "never fetched".
   it("renders empty items when /search returns no results", async () => {
     (apiClient.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       results: [],
@@ -64,20 +66,25 @@ describe("useDiscoverDeck", () => {
     expect(result.current.items).toEqual([]);
     expect(result.current.hasMore).toBe(false);
     expect(result.current.error).toBeNull();
+    expect(result.current.hasLoadedOnce).toBe(true);
   });
 
-  // Test 2 — single page. Three candidates returned, next_cursor null.
+  // Test 2 - single page. Three candidates returned, next_cursor null.
   it("loads a single page of candidates", async () => {
     (apiClient.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       results: [
-        // The DiscoverCandidate type is a Profile + id; only id is asserted
-        // by this test so the shape narrows are intentionally minimal.
-        { id: "alice" },
-        { id: "bob" },
-        { id: "carol" },
+        // The hook adapts raw /search rows at the boundary: candidate.id
+        // is mapped from `prospect_uuid` (Q_CACHED_SEARCH) or `uuid`
+        // (Q_UNCACHED_SEARCH), NEVER from a raw `id` field - the backend's
+        // integer person.id must not leak into candidate.id (likes would
+        // silently fail to persist; see the adapter comment in the hook).
+        // Only the mapped id is asserted, so the row shapes stay minimal.
+        { uuid: "alice" },
+        { uuid: "bob" },
+        { uuid: "carol" },
       ],
       next_cursor: null,
-    } as SearchResponse);
+    } as unknown as SearchResponse);
 
     const { result } = renderHook(() => useDiscoverDeck({}));
     await waitFor(() => expect(result.current.items.length).toBe(3));
@@ -90,19 +97,20 @@ describe("useDiscoverDeck", () => {
     expect(result.current.hasMore).toBe(false);
   });
 
-  // Test 3 — two pages. First fetch returns cursor "p2"; loadMore() then
-  // appends a second batch and sets hasMore false.
+  // Test 3 - two pages. First fetch returns cursor "p2"; loadMore() then
+  // appends a second batch and sets hasMore false. Rows carry `uuid`
+  // because the adapter maps candidate.id from prospect_uuid/uuid only.
   it("paginates across two pages and preserves cursor in second request", async () => {
     const getMock = apiClient.get as ReturnType<typeof vi.fn>;
     getMock
       .mockResolvedValueOnce({
-        results: [{ id: "alice" }, { id: "bob" }],
+        results: [{ uuid: "alice" }, { uuid: "bob" }],
         next_cursor: "p2",
-      } as SearchResponse)
+      } as unknown as SearchResponse)
       .mockResolvedValueOnce({
-        results: [{ id: "carol" }, { id: "dan" }],
+        results: [{ uuid: "carol" }, { uuid: "dan" }],
         next_cursor: null,
-      } as SearchResponse);
+      } as unknown as SearchResponse);
 
     const { result } = renderHook(() => useDiscoverDeck({}));
     await waitFor(() => expect(result.current.items.length).toBe(2));
@@ -126,8 +134,10 @@ describe("useDiscoverDeck", () => {
     expect(secondCallPath).toContain("cursor=p2");
   });
 
-  // Test 4 — cursor preserved on re-entry guard. Concurrent loadMore() calls
+  // Test 4 - cursor preserved on re-entry guard. Concurrent loadMore() calls
   // during an in-flight fetch should not double-request the same cursor.
+  // Also pins hasLoadedOnce's latch semantics: false while the very first
+  // request is still in flight, true only after its response lands.
   it("guards against re-entrant loadMore (in-flight dedupe)", async () => {
     const getMock = apiClient.get as ReturnType<typeof vi.fn>;
     let resolveFirst: (value: SearchResponse) => void = () => {};
@@ -145,27 +155,30 @@ describe("useDiscoverDeck", () => {
     });
 
     expect(getMock).toHaveBeenCalledTimes(1);
+    // First response has not landed yet, so the latch is still down.
+    expect(result.current.hasLoadedOnce).toBe(false);
 
     await act(async () => {
       resolveFirst({
-        results: [{ id: "alice" }],
+        results: [{ uuid: "alice" }],
         next_cursor: null,
-      } as SearchResponse);
+      } as unknown as SearchResponse);
     });
 
     await waitFor(() => expect(result.current.items.length).toBe(1));
+    expect(result.current.hasLoadedOnce).toBe(true);
   });
 
-  // Test 5 — error path leaves last good state intact. First page loads
+  // Test 5 - error path leaves last good state intact. First page loads
   // successfully; subsequent page rejects with an ApiError; items should
   // remain unchanged and error.status should be 500.
   it("preserves last good items when a paginated fetch errors", async () => {
     const getMock = apiClient.get as ReturnType<typeof vi.fn>;
     getMock
       .mockResolvedValueOnce({
-        results: [{ id: "alice" }, { id: "bob" }],
+        results: [{ uuid: "alice" }, { uuid: "bob" }],
         next_cursor: "p2",
-      } as SearchResponse)
+      } as unknown as SearchResponse)
       .mockRejectedValueOnce(new ApiError(500, null, "boom"));
 
     const { result } = renderHook(() => useDiscoverDeck({}));
@@ -179,5 +192,7 @@ describe("useDiscoverDeck", () => {
     expect(result.current.items.map((c) => c.id)).toEqual(["alice", "bob"]);
     expect(result.current.error).toBeInstanceOf(ApiError);
     expect(result.current.error?.status).toBe(500);
+    // The latch counts errors as "a response landed" and never unlatches.
+    expect(result.current.hasLoadedOnce).toBe(true);
   });
 });
