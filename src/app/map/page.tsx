@@ -263,7 +263,6 @@ export default function MapPage() {
   // Has the deck loaded at least once? Normal-mode markers are gated on
   // this so /map/markers isn't hit before the cache exists (empty result
   // otherwise). realCandidates is [] until the first /search lands.
-  const deckLoaded = realCandidates.length > 0;
 
   // Admin "Show everyone" — operators flip the marker source to GET
   // /admin/map (every activated user, unfiltered, including map opt-outs)
@@ -278,12 +277,17 @@ export default function MapPage() {
   // (gated on the deck having loaded); admin mode reads all activated
   // users (always enabled once toggled). Each marker is an individual point;
   // Leaflet's MarkerClusterGroup clusters + spiderfies them client-side.
+  // MAP = DIRECTORY (2026-07-19 backend decision): GET /map/markers reads
+  // members directly and owes nothing to the deck. The old `enabled:
+  // deckLoaded` gate re-coupled them on the frontend, so whenever the deck
+  // was empty or still fetching, the map rendered ZERO pins (reported
+  // 2026-08-08 as "unregulated" appearing/disappearing). Markers now fetch
+  // unconditionally and refresh only when the FILTERS actually change
+  // (httpFilters is memoized), not on every deck round-trip.
   const markers = useMapMarkers({
     admin: everyoneMode,
-    enabled: everyoneMode || deckLoaded,
-    // Re-read the cache when the deck re-runs /search (filter change rebuilds
-    // it); realCandidates gets a new identity on each deck fetch.
-    refreshKey: realCandidates,
+    enabled: true,
+    refreshKey: httpFilters,
   });
 
   // Phase W cutover (2026-05-15) — count active filters for the badge

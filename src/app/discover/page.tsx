@@ -29,6 +29,7 @@ import { FiltersSheet } from "@/components/app/filters-sheet";
 import { MapLensChip } from "@/components/app/map-lens-chip";
 import { PageHeader, PageShell } from "@/components/app/page-shell";
 import { PhotoCaption } from "@/components/app/photo-caption";
+import { Skeleton } from "@/components/ui/skeleton";
 import { QuotaExceededCard } from "@/components/app/quota-exceeded-card";
 import { TokenSpendSheet } from "@/components/app/token-spend-sheet";
 import { useTokenBalance } from "@/lib/use-token-balance";
@@ -140,7 +141,8 @@ export default function DiscoverPage() {
     ],
   );
 
-  const { items, loadMore, hasMore, reload } = useDiscoverDeck(httpFilters);
+  const { items, loadMore, hasMore, reload, isLoading } =
+    useDiscoverDeck(httpFilters);
 
   // Map lens (SOT: "Ahavah Map Lens" export): purely client-side
   // ordering — never part of httpFilters, so toggling it re-ranks the
@@ -500,6 +502,26 @@ export default function DiscoverPage() {
             onDayPassActivated={() => setQuotaState(null)}
           />
         </motion.div>
+      ) : !candidate && isLoading ? (
+        /* Deck fetch in flight with nothing to show yet. Without this
+           branch the empty state below rendered DURING every /search
+           round-trip, so members saw "You're all caught up" flash and
+           then people "show back up" when the response landed (reported
+           2026-08-08). Loading is not emptiness. */
+        <motion.div
+          key="deck-loading"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.2 }}
+          className="flex min-h-0 flex-1 flex-col gap-3"
+        >
+          <Skeleton className="w-full min-h-0 flex-1 rounded-2xl" />
+          <div className="flex items-center justify-center gap-6 pt-1">
+            <Skeleton className="size-14 rounded-full" />
+            <Skeleton className="size-16 rounded-full" />
+            <Skeleton className="size-14 rounded-full" />
+          </div>
+        </motion.div>
       ) : candidate ? (
         <motion.div
           key={candidate.id}
@@ -654,7 +676,7 @@ export default function DiscoverPage() {
           <EmptyState
             variant="filter-too-narrow"
             title="You're all caught up"
-            description="No more matches nearby -- try widening your filters to see more people."
+            description="No more matches nearby. Try widening your filters to see more people."
             action={{
               label: "Adjust filters",
               onClick: () => setFiltersOpen(true),

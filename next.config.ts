@@ -76,7 +76,11 @@ const nextConfig: NextConfig = {
         // rectangle.
         "img-src 'self' data: blob: https://user-images.ahavah.app https://email-assets.ahavah.app https://*.digitaloceanspaces.com https://*.basemaps.cartocdn.com https://www.facebook.com",
           "font-src 'self' data: https://fonts.gstatic.com",
-          "connect-src 'self' https://api.ahavah.app wss://chat.ahavah.app wss://chat.ahavah.app:5443 wss://chat.ahavah.app:5442 https://www.facebook.com",
+          // basemaps.cartocdn.com: tile IMG loads pass img-src, but the
+          // map's tile-persistence fetch() (world-map.tsx CachedTiles)
+          // is connect-src — without this entry every tile fetch threw
+          // "Failed to fetch" while <img> tiles loaded fine (2026-08-09).
+          "connect-src 'self' https://api.ahavah.app wss://chat.ahavah.app wss://chat.ahavah.app:5443 wss://chat.ahavah.app:5442 https://www.facebook.com https://*.basemaps.cartocdn.com",
           "frame-ancestors 'none'",
           "form-action 'self'",
           "base-uri 'self'",

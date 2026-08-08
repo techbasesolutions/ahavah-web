@@ -10,13 +10,19 @@
  * stale older bundle gets evicted in `activate`).
  */
 
-const CACHE = "ahavah-20260616-hotfixes";
+const CACHE = "ahavah-1cc15e07418a";
 
 // Routes whose HTML we want available offline. Must all return 200 on
 // install or addAll() rejects the whole batch — keep this conservative.
 // /offline is the dedicated edge-state page used as the navigation
 // fallback when the network is unreachable.
 const APP_SHELL = ["/", "/offline", "/manifest.json", "/icon-192.svg", "/icon-512.svg"];
+
+// Basemap tile cache: deploy-stable (deliberately NOT keyed on CACHE —
+// tiles don't change when the app deploys). Owned entirely by the page
+// (world-map.tsx CachedTiles reads/writes/trims it); named here ONLY so
+// `activate` knows to preserve it across deploys.
+const TILE_CACHE = "ahavah-map-tiles-v1";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -32,7 +38,15 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(
+        // Evict stale APP caches only. TILE_CACHE survives deploys on
+        // purpose: basemap tiles are immutable and re-downloading the
+        // whole map after every release is exactly the slowness members
+        // keep reporting.
+        keys
+          .filter((k) => k !== CACHE && k !== TILE_CACHE)
+          .map((k) => caches.delete(k)),
+      ))
   );
   self.clients.claim();
 });
@@ -55,6 +69,14 @@ self.addEventListener("fetch", (event) => {
   // devices and serve stale state after sign-out. Let the browser's
   // normal request flow handle them; do not even respondWith.
   if (url.pathname.startsWith("/api/")) return;
+
+  // Map basemap tiles are deliberately NOT intercepted. Verified
+  // 2026-08-09: routing tile requests through the SW (any variant —
+  // reconstructed Request OR fetch(event.request)) broke tile loading
+  // outright in an environment where the native path worked, turning
+  // "slow tiles" into "no tiles". The tile cache (TILE_CACHE) is read
+  // AND written entirely from the page (world-map.tsx CachedTiles);
+  // the SW's only involvement is preserving that cache in `activate`.
 
   // Cross-origin requests aren't ours to cache (Stripe, Spaces, etc.).
   if (url.origin !== self.location.origin) return;

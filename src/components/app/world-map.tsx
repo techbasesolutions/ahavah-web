@@ -47,7 +47,7 @@ import "leaflet/dist/leaflet.css";
 
 import { useEffect, type ReactNode } from "react";
 import L from "leaflet";
-import { MapContainer, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import { MapContainer, useMap, useMapEvents } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 
 import { cn } from "@/lib/utils";
@@ -131,6 +131,138 @@ function FillController() {
       map.off("resize", apply);
     };
   }, [map]);
+  return null;
+}
+
+/**
+ * CachedTiles — basemap tile layer with a page-side persistent cache.
+ *
+ * Why not the service worker: verified 2026-08-09 that ANY SW
+ * interception of tile requests (reconstructed Request or
+ * fetch(event.request)) can break tile loading outright in
+ * environments where the native <img> path works fine — "no tiles"
+ * is never an acceptable failure mode for a speed optimisation. So
+ * the SW leaves tiles alone entirely, and this layer does both sides
+ * of the work in page context:
+ *
+ *   - createTile checks the Cache API first: a hit renders from a
+ *     blob URL instantly (no network, works offline);
+ *   - a miss loads the tile NATIVELY (identical to the stock layer,
+ *     so the failure mode is identical too) and then persists it via
+ *     fetch(), which resolves from the browser HTTP cache (CARTO
+ *     sends max-age=15552000) — no extra network cost.
+ *
+ * The cache survives deploys (sw.js `activate` preserves it) and is
+ * FIFO-trimmed to TILE_CACHE_MAX (~600 tiles ≈ 10-20MB), so repeat
+ * visits and back-and-forth panning render previously seen areas
+ * with zero network round-trips — the "loads in stages" complaint.
+ */
+const TILE_CACHE = "ahavah-map-tiles-v1";
+const TILE_CACHE_MAX = 600;
+
+const cachesAvailable = () =>
+  typeof window !== "undefined" && "caches" in window;
+
+/** Best-effort write-behind: store a just-rendered tile, trim FIFO. */
+async function persistTile(url: string) {
+  try {
+    const cache = await caches.open(TILE_CACHE);
+    if (await cache.match(url)) return;
+    const res = await fetch(url, { mode: "cors" });
+    if (!res.ok) return;
+    await cache.put(url, res);
+    const keys = await cache.keys();
+    if (keys.length > TILE_CACHE_MAX) {
+      for (const key of keys.slice(0, keys.length - TILE_CACHE_MAX)) {
+        await cache.delete(key);
+      }
+    }
+  } catch {
+    // Quota, private mode, offline — caching is best-effort only.
+  }
+}
+
+const CachedTileLayer = L.TileLayer.extend({
+  createTile(this: L.TileLayer, coords: L.Coords, done: L.DoneCallback) {
+    const tile = document.createElement("img");
+    tile.alt = "";
+    const url = (this as L.TileLayer & {
+      getTileUrl(c: L.Coords): string;
+    }).getTileUrl(coords);
+
+    const loadNative = () => {
+      tile.onload = () => {
+        void persistTile(url);
+        done(undefined, tile);
+      };
+      tile.onerror = () => done(new Error("tile failed"), tile);
+      tile.src = url;
+    };
+
+    if (!cachesAvailable()) {
+      loadNative();
+      return tile;
+    }
+
+    caches
+      .open(TILE_CACHE)
+      .then((cache) => cache.match(url))
+      .then(async (hit) => {
+        if (!hit) {
+          loadNative();
+          return;
+        }
+        const blob = await hit.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        tile.onload = () => {
+          URL.revokeObjectURL(objectUrl);
+          done(undefined, tile);
+        };
+        tile.onerror = () => {
+          // Corrupt cache entry — fall back to the network path.
+          URL.revokeObjectURL(objectUrl);
+          void caches
+            .open(TILE_CACHE)
+            .then((c) => c.delete(url))
+            .catch(() => {});
+          loadNative();
+        };
+        tile.src = objectUrl;
+      })
+      .catch(loadNative);
+
+    return tile;
+  },
+});
+
+interface CachedTilesProps {
+  url: string;
+  attribution: string;
+  subdomains: string;
+}
+
+/** react-leaflet bridge for CachedTileLayer (same options the stock
+ *  <TileLayer> carried; remounts when `url` changes for theme flips). */
+function CachedTiles({ url, attribution, subdomains }: CachedTilesProps) {
+  const map = useMap();
+  useEffect(() => {
+    type TileLayerCtor = new (
+      u: string,
+      o: L.TileLayerOptions,
+    ) => L.TileLayer;
+    const layer = new (CachedTileLayer as unknown as TileLayerCtor)(url, {
+      attribution,
+      subdomains,
+      noWrap: true,
+      keepBuffer: 6,
+      updateWhenIdle: false,
+      updateWhenZooming: false,
+    });
+    layer.addTo(map);
+    return () => {
+      map.removeLayer(layer);
+    };
+  }, [map, url, attribution, subdomains]);
   return null;
 }
 
@@ -273,22 +405,16 @@ export function WorldMap({
       // match the theme instead of showing grey.
       style={{ zIndex: 0, background: "var(--card)" }}
     >
-      <TileLayer
-        // key forces a clean tile-layer remount when the theme flips, so
-        // the basemap swaps light<->dark instead of blending stale tiles.
+      {/* Cache-backed basemap (CachedTiles doc above): previously seen
+          areas render instantly from the Cache API; new areas load
+          natively exactly like the stock TileLayer, then persist.
+          key remounts the layer when the theme flips so the basemap
+          swaps light<->dark instead of blending stale tiles. */}
+      <CachedTiles
         key={tileStyle}
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
         url={`https://{s}.basemaps.cartocdn.com/rastertiles/${tileStyle}/{z}/{x}/{y}.png`}
         subdomains="abcd"
-        // Single world copy (pairs with maxBounds).
-        noWrap
-        // Smoother panning: preload a wide ring of off-screen tiles (default 2)
-        // and fetch during the pan gesture rather than only after it settles,
-        // so panning reveals already-loaded tiles instead of loading "in
-        // stages". 6 rings keeps the next few drags pre-warmed.
-        keepBuffer={6}
-        updateWhenIdle={false}
-        updateWhenZooming={false}
       />
       <FillController />
       <MapEventHandler
