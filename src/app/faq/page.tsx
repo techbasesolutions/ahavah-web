@@ -90,6 +90,10 @@ const FAQ_GROUPS: ReadonlyArray<{ theme: string; items: ReadonlyArray<{ q: strin
         q: "Can I report or block someone?",
         a: "Yes. Use the menu on any profile or chat to report or block, or email support@ahavah.app.",
       },
+      {
+        q: "Can I use an AI-generated or illustrated photo?",
+        a: "No. Your photos must show the real you. Illustrated or AI-generated images can appear alongside real photos, but they can never be your only photo, and your main photo must clearly show your face. Profiles without a real photo cannot get verified and may have photos removed.",
+      },
     ],
   },
   {
