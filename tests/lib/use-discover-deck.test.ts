@@ -195,4 +195,83 @@ describe("useDiscoverDeck", () => {
     // The latch counts errors as "a response landed" and never unlatches.
     expect(result.current.hasLoadedOnce).toBe(true);
   });
+
+  // Test 6 - foreground revalidation, stale case. The hook tracks
+  // lastFetchedAt in a ref, set when the winning fetch completes. We
+  // deliberately avoid vi.useFakeTimers here: it interferes with the
+  // hook's async fetch plumbing (the awaited apiClient.get promise
+  // never resolves under fake timers without manual tick-advancing,
+  // which is brittle against the seq-guard's microtask ordering).
+  // Instead we spy on Date.now so the hook's own staleness check reads
+  // a controlled clock while the underlying event loop stays real.
+  it("reloads when the tab becomes visible after the stale threshold", async () => {
+    const getMock = apiClient.get as ReturnType<typeof vi.fn>;
+    getMock
+      .mockResolvedValueOnce({
+        results: [{ uuid: "alice" }],
+        next_cursor: null,
+      } as unknown as SearchResponse)
+      .mockResolvedValueOnce({
+        results: [{ uuid: "bob" }],
+        next_cursor: null,
+      } as unknown as SearchResponse);
+
+    const baseNow = Date.now();
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(baseNow);
+
+    const { result } = renderHook(() => useDiscoverDeck({}));
+    await waitFor(() => expect(result.current.items.length).toBe(1));
+    expect(getMock).toHaveBeenCalledTimes(1);
+
+    // Age the mocked clock past the 10-minute stale threshold.
+    nowSpy.mockReturnValue(baseNow + 11 * 60 * 1000);
+
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      get: () => "visible",
+    });
+    await act(async () => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    await waitFor(() => expect(getMock).toHaveBeenCalledTimes(2));
+    const secondCallPath = getMock.mock.calls[1]?.[0] as string;
+    expect(secondCallPath).toContain("/search");
+    await waitFor(() => expect(result.current.items.map((c) => c.id)).toEqual(["bob"]));
+  });
+
+  // Test 7 - foreground revalidation, fresh case. Same setup, but the
+  // mocked clock only advances 5 minutes (under the 10-minute
+  // threshold), so visibilitychange must NOT trigger a second fetch.
+  it("does not reload when the tab becomes visible before the stale threshold", async () => {
+    const getMock = apiClient.get as ReturnType<typeof vi.fn>;
+    getMock.mockResolvedValueOnce({
+      results: [{ uuid: "alice" }],
+      next_cursor: null,
+    } as unknown as SearchResponse);
+
+    const baseNow = Date.now();
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(baseNow);
+
+    const { result } = renderHook(() => useDiscoverDeck({}));
+    await waitFor(() => expect(result.current.items.length).toBe(1));
+    expect(getMock).toHaveBeenCalledTimes(1);
+
+    // Advance the mocked clock by less than the stale threshold.
+    nowSpy.mockReturnValue(baseNow + 5 * 60 * 1000);
+
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      get: () => "visible",
+    });
+    await act(async () => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    // Give any (incorrect) async reload a tick to fire before asserting.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(getMock).toHaveBeenCalledTimes(1);
+  });
 });

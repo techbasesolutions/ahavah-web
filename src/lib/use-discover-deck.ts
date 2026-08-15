@@ -45,6 +45,10 @@ export type DiscoverFilters = {
   healthTags?: ReadonlyArray<string>;
 };
 
+// Foreground-revalidation threshold. See the visibilitychange effect
+// inside useDiscoverDeck for the rationale.
+const STALE_MS = 10 * 60 * 1000;
+
 export type UseDiscoverDeckResult = {
   items: ReadonlyArray<DiscoverCandidate>;
   loadMore: () => Promise<void>;
@@ -163,6 +167,11 @@ export function useDiscoverDeck(
   // cursor so the second call advances correctly.
   const cursorRef = useRef<string | null>(null);
   const hasMoreRef = useRef(true);
+  // Timestamp (ms) of the last successful /search completion, set only for
+  // the winning (non-stale) request. Drives the foreground-revalidation
+  // effect below. Long-lived PWA sessions never remounted the page, so a
+  // deck fetched hours ago could go stale without any signal to refetch.
+  const lastFetchedAt = useRef(0);
 
   // Stringify the filters to compare across renders. JSON.stringify is safe
   // here because the filter shape is plain primitives + arrays.
@@ -284,6 +293,7 @@ export function useDiscoverDeck(
       hasMoreRef.current = nextCursor !== null;
       setHasMore(nextCursor !== null);
       setError(null);
+      lastFetchedAt.current = Date.now();
     } catch (e) {
       // Stale-response check: see comment above on the success path.
       if (seq !== requestSeq.current) return;
@@ -361,6 +371,20 @@ export function useDiscoverDeck(
     setError(null);
     return runFetch(true);
   }, [runFetch]);
+
+  // Long-lived PWA sessions never remounted the page, so server-side
+  // changes (pass windows lapsing, new members) only appeared after a
+  // full relaunch. When the app returns to the foreground after 10+
+  // minutes, refetch from the head in place.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState !== "visible") return;
+      if (Date.now() - lastFetchedAt.current < STALE_MS) return;
+      void reload();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [reload]);
 
   return { items, loadMore, isLoading, hasLoadedOnce, error, hasMore, reload };
 }
