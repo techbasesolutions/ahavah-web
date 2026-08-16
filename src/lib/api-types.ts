@@ -282,3 +282,43 @@ export type CheckoutWebResponse = {
 // ---------------------------------------------------------------------------
 
 export type TokenBalanceResponse = { balance: number };
+
+// ---------------------------------------------------------------------------
+// Referrals — /invite screen (2026-08-15, Claude Design export "Ahavah
+// Invite"). GET /referrals/me is the single combined source for the
+// share link AND the invite list/totals — there is no separate endpoint
+// for the list, so a fetch failure loses both at once (see use-referrals.ts
+// for how the /invite screen still recovers a "link still works" state
+// from a previously-cached response).
+// ---------------------------------------------------------------------------
+
+/** Row lifecycle. `pending`/`graduated` both render as "still finishing
+ *  their profile" per the design export; only `credited` unlocks the
+ *  +30 days / +5 tokens badge. */
+export type ReferralItemState = "pending" | "graduated" | "credited";
+
+export type ReferralItem = {
+  state: ReferralItemState;
+  created_at: string;
+  /** Null until the referred friend sets a display name. The UI never
+   *  shows an email or any other identifying fallback — null renders as
+   *  the literal string "A friend". */
+  display_name: string | null;
+};
+
+export type ReferralTotals = {
+  joined: number;
+  credited: number;
+  premium_days_earned: number;
+  tokens_earned: number;
+};
+
+export type ReferralsMeResponse = {
+  code: string;
+  link: string;
+  items: ReferralItem[];
+  totals: ReferralTotals;
+  // Backend ships additional legacy keys alongside these (contract note
+  // from the /invite build brief); we only read the fields above.
+  [key: string]: unknown;
+};

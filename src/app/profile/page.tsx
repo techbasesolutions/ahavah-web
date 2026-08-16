@@ -43,6 +43,7 @@ import { Pill } from "@/components/kibo-ui/pill";
 
 import { BottomNav } from "@/components/app/bottom-nav";
 import { BoostCard } from "@/components/app/boost-card";
+import { InviteCard } from "@/components/app/invite-card";
 import { PageShell } from "@/components/app/page-shell";
 
 const fadeUp = {
@@ -352,9 +353,10 @@ export default function ProfilePage() {
         <motion.div
           {...fadeUp}
           transition={{ duration: 0.35, delay: 0.04 }}
-          className="px-5 pt-4"
+          className="px-5 pt-4 flex flex-col gap-3"
         >
           <BoostCard />
+          <InviteCard />
         </motion.div>
 
         <motion.div
@@ -463,6 +465,7 @@ export default function ProfilePage() {
               positioned between Hero and Completeness per the sprint
               integration brief. */}
           <BoostCard />
+          <InviteCard />
 
           {/* Profile completeness card — canonical screens/10-profile.md
               §Completeness. Theme-aware tokens throughout. */}

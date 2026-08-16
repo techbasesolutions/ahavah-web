@@ -283,6 +283,16 @@
   --ink-3:                var(--text-muted);
   --hairline:             rgba(255,255,255,0.08);
   --border:               rgba(255,255,255,0.15);
+  /* Faint "raised surface" tint — pill inputs / chip fields sitting on
+     top of a card (SOT: /invite link field + copy chip + error box).
+     Matches the design export's own --raise token 1:1. */
+  --raise:                rgba(255,255,255,0.045);
+  /* /invite invite-list avatar tile for pending/graduated rows (the
+     "A friend" placeholder). Distinct, quieter gradient from the
+     credited-row tile (which reuses --color-indigo/--color-lavender
+     directly since that pairing is unchanged across themes). */
+  --invite-avatar-pending:     linear-gradient(150deg, #241A52, #3A2A78);
+  --invite-avatar-pending-ink: rgba(255, 255, 255, 0.42);
   --status:               #ffffff;
   --nav-bg:               var(--bg-elevated);
   --nav-border:           rgba(255,255,255,0.10);
@@ -380,6 +390,9 @@
   --ink-2:               oklch(0.45 0.05 280);
   --ink-3:               oklch(0.60 0.04 280);
   --hairline:            rgba(15,11,31,0.06);
+  --raise:               rgba(15,11,31,0.03);
+  --invite-avatar-pending:     linear-gradient(150deg, #EDE7FF, #D9CCFF);
+  --invite-avatar-pending-ink: #5524F5;
   --status:              #0F0B1F;
   --pill-glass:          rgba(15,11,31,0.06);
   --pill-glass-ink:      #0F0B1F;

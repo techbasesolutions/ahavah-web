@@ -35,6 +35,7 @@ import { Pill } from "@/components/kibo-ui/pill";
 import { apiClient, ApiError } from "@/lib/api-client";
 import { useTokenBalance } from "@/lib/use-token-balance";
 import { BackButton } from "@/components/app/back-button";
+import { InviteTokensRow } from "@/components/app/invite-tokens-row";
 import { TokenHistory } from "@/components/app/token-history";
 import { BottomNav } from "@/components/app/bottom-nav";
 import { LogoMark } from "@/components/brand/logo-mark";
@@ -181,6 +182,10 @@ export default function TokensPage() {
               </div>
             </CardContent>
           </Card>
+        </motion.div>
+
+        <motion.div {...fadeUp} transition={{ duration: 0.3, delay: 0.06 }}>
+          <InviteTokensRow />
         </motion.div>
 
         <motion.div {...fadeUp} transition={{ duration: 0.3, delay: 0.08 }}>
@@ -407,6 +412,7 @@ export default function TokensPage() {
 
         {/* RIGHT — history + payment methods rail */}
         <div className="flex flex-col gap-4 min-h-0">
+          <InviteTokensRow />
           <TokenHistory variant="desktop" />
 
           <Card tone="default">
