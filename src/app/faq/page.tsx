@@ -55,6 +55,31 @@ const FAQ_GROUPS: ReadonlyArray<{ theme: string; items: ReadonlyArray<{ q: strin
     ],
   },
   {
+    theme: "Signing in",
+    items: [
+      {
+        q: "How do I sign in? I did not make a password.",
+        a: "Ahavah has no passwords. You sign in with a one-time code we email you. Type your email address, tap Send code, then open your email and look for a message from Ahavah. It has a 6-number code. Type those 6 numbers into the app and you are in.",
+      },
+      {
+        q: "What is the one-time code?",
+        a: "It is a set of 6 numbers, like 034219, that we send to your email each time you sign in. It is not a password to remember. It is only for that one sign-in, and it stops working after you use it.",
+      },
+      {
+        q: "I did not get the code email.",
+        a: "Give it a minute, then check your spam or junk folder (search for Ahavah). Make sure you typed your email correctly. Still nothing? Tap Resend code and we will send a fresh one.",
+      },
+      {
+        q: "The code did not work.",
+        a: "Three common reasons: the code is more than 10 minutes old (ask for a new one), you asked for a second code and typed the old one (always use the newest email), or a number was mistyped. Get a new code and type it slowly.",
+      },
+      {
+        q: "How long does the code last?",
+        a: "10 minutes. After that it stops working and you just ask for a new one. You can ask for a new code about 30 seconds after the last one.",
+      },
+    ],
+  },
+  {
     theme: "Beliefs and marriage",
     items: [
       {
