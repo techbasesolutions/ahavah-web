@@ -70,17 +70,19 @@ const nextConfig: NextConfig = {
           // and has silently eaten third-party calls before.
           "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://connect.facebook.net",
           "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-          // CARTO basemap CDN (a-d.basemaps.cartocdn.com) feeds the /map
-        // page via react-leaflet's TileLayer; without explicit whitelist
-        // the CSP blocks the tile images and the map renders as a blank
-        // rectangle.
-        "img-src 'self' data: blob: https://user-images.ahavah.app https://email-assets.ahavah.app https://*.digitaloceanspaces.com https://*.basemaps.cartocdn.com https://www.facebook.com",
+          // Esri ArcGIS basemap tiles (server.arcgisonline.com) feed the
+        // /map page via world-map.tsx CachedTiles; without explicit
+        // whitelist the CSP blocks the tile images and the map renders
+        // as a blank rectangle. Swapped off CARTO's keyless
+        // basemaps.cartocdn.com on 2026-08-25: CARTO now stamps every
+        // keyless tile with an "API KEY REQUIRED" watermark.
+        "img-src 'self' data: blob: https://user-images.ahavah.app https://email-assets.ahavah.app https://*.digitaloceanspaces.com https://server.arcgisonline.com https://www.facebook.com",
           "font-src 'self' data: https://fonts.gstatic.com",
-          // basemaps.cartocdn.com: tile IMG loads pass img-src, but the
+          // server.arcgisonline.com: tile IMG loads pass img-src, but the
           // map's tile-persistence fetch() (world-map.tsx CachedTiles)
           // is connect-src — without this entry every tile fetch threw
           // "Failed to fetch" while <img> tiles loaded fine (2026-08-09).
-          "connect-src 'self' https://api.ahavah.app wss://chat.ahavah.app wss://chat.ahavah.app:5443 wss://chat.ahavah.app:5442 https://www.facebook.com https://*.basemaps.cartocdn.com",
+          "connect-src 'self' https://api.ahavah.app wss://chat.ahavah.app wss://chat.ahavah.app:5443 wss://chat.ahavah.app:5442 https://www.facebook.com https://server.arcgisonline.com",
           "frame-ancestors 'none'",
           "form-action 'self'",
           "base-uri 'self'",

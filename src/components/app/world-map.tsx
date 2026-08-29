@@ -157,7 +157,12 @@ function FillController() {
  * visits and back-and-forth panning render previously seen areas
  * with zero network round-trips — the "loads in stages" complaint.
  */
-const TILE_CACHE = "ahavah-map-tiles-v1";
+// v2 (2026-08-25): provider swap CARTO -> Esri. The version bump orphans
+// the v1 cache so members never see a persisted "API KEY REQUIRED"
+// watermark tile from the old CARTO endpoint. sw.js activate preserves
+// this name across deploys; the old v1 name falls out of its keep-list
+// and gets evicted.
+const TILE_CACHE = "ahavah-map-tiles-v2";
 const TILE_CACHE_MAX = 600;
 
 const cachesAvailable = () =>
@@ -382,7 +387,17 @@ export function WorldMap({
   // Theme-aware basemap — Dark Matter in the dark theme, Voyager in light,
   // resolved via the app's own theme store so it tracks live toggles.
   const { mode } = useTheme();
-  const tileStyle = resolveTheme(mode) === "dark" ? "dark_all" : "voyager";
+  // Esri ArcGIS canvas basemaps (keyless, dark + light variants). Swapped
+  // off CARTO on 2026-08-25: CARTO's keyless basemaps.cartocdn.com
+  // endpoint began stamping every tile with an "API KEY REQUIRED"
+  // watermark, which members saw across the map on every zoom. Esri's
+  // canvas tiles serve clean over CORS and match the app's dark/light
+  // themes. NOTE: Esri's URL order is /{z}/{y}/{x} (row/col), unlike
+  // CARTO/OSM's /{z}/{x}/{y}.
+  const esriService =
+    resolveTheme(mode) === "dark"
+      ? "World_Dark_Gray_Base"
+      : "World_Light_Gray_Base";
 
   return (
     <MapContainer
@@ -411,10 +426,10 @@ export function WorldMap({
           key remounts the layer when the theme flips so the basemap
           swaps light<->dark instead of blending stale tiles. */}
       <CachedTiles
-        key={tileStyle}
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-        url={`https://{s}.basemaps.cartocdn.com/rastertiles/${tileStyle}/{z}/{x}/{y}.png`}
-        subdomains="abcd"
+        key={esriService}
+        attribution='Tiles &copy; <a href="https://www.esri.com">Esri</a> &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors'
+        url={`https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/${esriService}/MapServer/tile/{z}/{y}/{x}`}
+        subdomains=""
       />
       <FillController />
       <MapEventHandler

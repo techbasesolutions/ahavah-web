@@ -22,7 +22,10 @@ const APP_SHELL = ["/", "/offline", "/manifest.json", "/icon-192.svg", "/icon-51
 // tiles don't change when the app deploys). Owned entirely by the page
 // (world-map.tsx CachedTiles reads/writes/trims it); named here ONLY so
 // `activate` knows to preserve it across deploys.
-const TILE_CACHE = "ahavah-map-tiles-v1";
+// v2 (2026-08-25): bumped with the world-map.tsx provider swap
+// (CARTO -> Esri). activate keeps only this name, so the old v1 cache
+// full of CARTO "API KEY REQUIRED" watermark tiles is evicted.
+const TILE_CACHE = "ahavah-map-tiles-v2";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
