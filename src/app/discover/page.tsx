@@ -27,12 +27,14 @@ import { BottomNav } from "@/components/app/bottom-nav";
 import { EmptyState } from "@/components/app/empty-state";
 import { FiltersSheet } from "@/components/app/filters-sheet";
 import { MapLensChip } from "@/components/app/map-lens-chip";
+import { NextAction } from "@/components/app/next-action";
 import { PageHeader, PageShell } from "@/components/app/page-shell";
 import { PhotoCaption } from "@/components/app/photo-caption";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QuotaExceededCard } from "@/components/app/quota-exceeded-card";
 import { TokenSpendSheet } from "@/components/app/token-spend-sheet";
 import { useTokenBalance } from "@/lib/use-token-balance";
+import { useNextAction } from "@/lib/use-next-action";
 import { ApiError } from "@/lib/api-client";
 import { useProfile } from "@/lib/use-profile";
 import { applyMapLens, isWorldSpan, loadLensBbox } from "@/lib/map-lens";
@@ -91,6 +93,14 @@ export default function DiscoverPage() {
   // FiltersSheet is hoisted to /discover so the empty-state CTA can open
   // it. The header trigger uses the same sheet via a render prop.
   const [filtersOpen, setFiltersOpen] = useState(false);
+  // Scroll target for the next-action card's "Browse/Open the deck" CTAs
+  // (verification-pending + steady-deck states) — the deck is already on
+  // this page, so the CTA just brings it into view rather than navigating.
+  const deckSlotRef = useRef<HTMLDivElement>(null);
+  const scrollToDeck = useCallback(() => {
+    deckSlotRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+  const openFilters = useCallback(() => setFiltersOpen(true), []);
 
   // Soft-completeness gate.
   useEffect(() => {
@@ -223,6 +233,18 @@ export default function DiscoverPage() {
 
   const candidate = visibleItems[0];
   const photoCount = Math.max(1, candidate?.photos?.length ?? 0);
+
+  // Next-action card (SOT: "Signed-in home ..." frames) — one prioritized
+  // nudge above the deck. Reuses visibleItems.length rather than
+  // re-fetching the deck; see src/lib/use-next-action.ts for the ranking
+  // + real-signal inventory.
+  const nextAction = useNextAction({
+    profile: userProfile,
+    profileLoaded: loaded,
+    deckCount: visibleItems.length,
+    onOpenDeck: scrollToDeck,
+    onAdjustFilters: openFilters,
+  });
 
   // Reset photo index whenever the candidate changes.
   useEffect(() => {
@@ -849,6 +871,22 @@ export default function DiscoverPage() {
           </div>
         </PageHeader>
 
+        {/* Next-action card (SOT: "Signed-in home ..." frames) — the one
+            prioritized nudge, above the deck. Reuses the same deck data
+            already loaded for the swipe card below (visibleItems.length)
+            instead of re-fetching. onOpenDeck scrolls the existing deck
+            into view; onAdjustFilters opens the same FiltersSheet the
+            header trigger uses. */}
+        {nextAction.primary ? (
+          <div className="mx-5 mt-3">
+            <NextAction
+              firstName={userProfile.firstName}
+              primary={nextAction.primary}
+              more={nextAction.more}
+            />
+          </div>
+        ) : null}
+
         {/* Map-lens status chip (SOT frame 1): between header and deck,
             only while the lens is actively shaping the order. */}
         {filters.mapLens && lensBbox ? (
@@ -861,7 +899,10 @@ export default function DiscoverPage() {
         ) : null}
 
         {/* Card slot + action row */}
-        <div className="relative mt-3 flex min-h-0 flex-1 flex-col gap-4 px-5 pb-3">
+        <div
+          ref={deckSlotRef}
+          className="relative mt-3 flex min-h-0 flex-1 flex-col gap-4 px-5 pb-3"
+        >
           {candidateCard}
           {actionRowMobile}
         </div>

@@ -137,6 +137,54 @@ export async function getThreadHistory(
 }
 
 /**
+ * Scan the ENTIRE cache (all threads, not just one) for the most recent
+ * outgoing message still sitting in `failed` state. Used by the /discover
+ * "next action" surface to surface "your message to X did not send"
+ * without the caller having to open every thread.
+ *
+ * This is a real signal, but a LOCAL one: it only sees messages this
+ * browser has cached (sent from this device, or synced into view via a
+ * previously-opened thread's MAM history). A failure on another device,
+ * or one that predates this browser's cache, will not surface here.
+ * There's no server-side "do I have any failed sends" aggregate endpoint
+ * today — see next-action.ts's module doc for how this gap is handled.
+ *
+ * No `threadId` index covers `status`, so this walks every row in the
+ * store (bounded by the ≤50-per-thread cap this cache already enforces —
+ * see the module doc above) rather than using an indexed range query.
+ */
+export async function getMostRecentFailedOutgoing(
+  myUuid: string,
+): Promise<ChatMessage | null> {
+  if (!getIDB() || !myUuid) return null;
+  try {
+    const db = await openDB();
+    return await new Promise<ChatMessage | null>((resolve, reject) => {
+      const tx = db.transaction(STORE, "readonly");
+      const store = tx.objectStore(STORE);
+      let best: ChatMessage | null = null;
+      const cursorReq = store.openCursor();
+      cursorReq.onsuccess = () => {
+        const cursor = cursorReq.result;
+        if (cursor) {
+          const msg = cursor.value as ChatMessage;
+          if (msg.status === "failed" && msg.fromUserId === myUuid) {
+            if (!best || msg.serverTime.localeCompare(best.serverTime) > 0) {
+              best = msg;
+            }
+          }
+          cursor.continue();
+        }
+      };
+      tx.oncomplete = () => resolve(best);
+      tx.onerror = () => reject(tx.error ?? new Error("IDB read failed"));
+    });
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Wipe the entire chat cache. Invoke on sign-out.
  */
 export async function clearAll(): Promise<void> {
