@@ -144,6 +144,81 @@ export function finishProfilePrimaryLabel(input: { hasPhoto: boolean; hasBio: bo
 }
 
 /**
+ * Primary CTA href for the BLOCKING profile-incomplete card. Photo/about
+ * aren't part of MINIMUM_COMPLETE_FIELDS, so there's no dedicated
+ * onboarding step for them — those cases fall back to `/profile/edit`
+ * same as before. Once photo AND about both exist, the ONLY reason left
+ * to be non-eligible is a missing MINIMUM_COMPLETE_FIELDS entry, so the
+ * CTA should route to that field's real onboarding step
+ * (`firstMissingStepFor(profile)`, resolved by the caller — this file
+ * stays free of a profile-completeness import) rather than a generic
+ * edit page that may not even surface that field.
+ */
+export function blockingProfilePrimaryHref(input: {
+  hasPhoto: boolean;
+  hasBio: boolean;
+  firstMissingStepHref: string | null;
+}): string {
+  if (!input.hasPhoto || !input.hasBio) return "/profile/edit";
+  return input.firstMissingStepHref ?? "/profile/edit";
+}
+
+/**
+ * Short, human labels for MINIMUM_COMPLETE_FIELDS — used ONLY to name a
+ * genuinely-missing required field in the BLOCKING profile-incomplete
+ * card's body copy. Never used to invent a per-field primary CTA label
+ * (a prod audit, 2026-09-08, found 7 members non-eligible ONLY because
+ * `wantsChildren` was unanswered — they already had a photo and about,
+ * so the old hardcoded "Add a photo" + photo/about body was flat wrong
+ * for them). Keyed loosely by string (not `keyof Profile`) so this file
+ * stays free of a profile-schema import — callers pass whatever key
+ * `missingRequiredFields()` returned.
+ */
+export const REQUIRED_FIELD_LABEL: Readonly<Record<string, string>> = {
+  firstName: "your name",
+  age: "your age",
+  sex: "your sex",
+  maritalStatus: "your marital status",
+  wantsChildren: "whether you want children",
+  country: "your country",
+  intent: "what you are looking for",
+  assembly: "your assembly",
+  relocation: "your relocation preference",
+};
+
+/**
+ * Title + body for the BLOCKING profile-incomplete card. Only claims the
+ * photo/about specifics when one of them is ACTUALLY missing; otherwise
+ * a generic, always-true sentence — naming the single missing field when
+ * there's exactly one, per REQUIRED_FIELD_LABEL, without ever fabricating
+ * a reason that doesn't apply to this member.
+ */
+export function blockingProfileCopy(input: {
+  hasPhoto: boolean;
+  hasBio: boolean;
+  missingRequiredKeys: ReadonlyArray<string>;
+}): { title: string; body: string } {
+  const title = "Finish your profile to appear in the deck";
+  if (!input.hasPhoto || !input.hasBio) {
+    return {
+      title,
+      body: "Members only see profiles with a photo and an about section. Yours is hidden until then.",
+    };
+  }
+  if (input.missingRequiredKeys.length === 1) {
+    const label = REQUIRED_FIELD_LABEL[input.missingRequiredKeys[0]] ?? "one required detail";
+    return {
+      title,
+      body: `One required detail is missing (${label}), so your profile is not shown in the deck yet.`,
+    };
+  }
+  return {
+    title,
+    body: "A few required details are missing, so your profile is not shown in the deck yet.",
+  };
+}
+
+/**
  * Which profile-completion card (if any) should be live, given whether
  * the member is genuinely `isDiscoverEligible()` and how many steps are
  * left. This is the single decision point the 2026-09-08 prod bug fix

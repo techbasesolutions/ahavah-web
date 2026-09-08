@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   NEXT_ACTION_RANK,
+  blockingProfileCopy,
+  blockingProfilePrimaryHref,
   computeVisibilitySteps,
   finishProfilePrimaryLabel,
   greetingFor,
@@ -212,6 +214,97 @@ describe("next-action: finishProfilePrimaryLabel (2026-09-08 prod bug fix)", () 
 
   it("prioritizes the photo over the about section when both are missing", () => {
     expect(finishProfilePrimaryLabel({ hasPhoto: false, hasBio: false })).toBe("Add a photo");
+  });
+});
+
+describe("next-action: blocking card names the ACTUAL missing item (2026-09-08, all-24-members audit)", () => {
+  // A prod audit of every member (not just the n=1 report above) found 7
+  // members non-eligible ONLY because `wantsChildren` was unanswered —
+  // they already had a photo AND an about section. The old blocking card
+  // hardcoded photo/about copy + "Add a photo" for every non-eligible
+  // member regardless of cause. These tests lock the real fix.
+
+  it("(a) non-eligible due to wantsChildren only (has photo+about): does NOT claim photo/about are missing", () => {
+    const { title, body } = blockingProfileCopy({
+      hasPhoto: true,
+      hasBio: true,
+      missingRequiredKeys: ["wantsChildren"],
+    });
+    expect(body.toLowerCase()).not.toContain("photo");
+    expect(body.toLowerCase()).not.toContain("about section");
+    expect(title).not.toMatch(/photo/i);
+  });
+
+  it("(a) non-eligible due to wantsChildren only: primary CTA is NOT 'Add a photo'", () => {
+    expect(finishProfilePrimaryLabel({ hasPhoto: true, hasBio: true })).not.toBe("Add a photo");
+    expect(finishProfilePrimaryLabel({ hasPhoto: true, hasBio: true })).toBe("Finish profile");
+  });
+
+  it("(a) non-eligible due to wantsChildren only: CTA href routes to firstMissingStepFor's step, not /profile/edit", () => {
+    const href = blockingProfilePrimaryHref({
+      hasPhoto: true,
+      hasBio: true,
+      firstMissingStepHref: "/onboarding/children",
+    });
+    expect(href).toBe("/onboarding/children");
+  });
+
+  it("(a) names the single missing required field in the body", () => {
+    const { body } = blockingProfileCopy({
+      hasPhoto: true,
+      hasBio: true,
+      missingRequiredKeys: ["wantsChildren"],
+    });
+    expect(body).toContain("whether you want children");
+  });
+
+  it("(b) non-eligible due to missing photo: photo-specific copy is still correct", () => {
+    const { body } = blockingProfileCopy({
+      hasPhoto: false,
+      hasBio: true,
+      missingRequiredKeys: [],
+    });
+    expect(body).toBe(
+      "Members only see profiles with a photo and an about section. Yours is hidden until then.",
+    );
+    expect(finishProfilePrimaryLabel({ hasPhoto: false, hasBio: true })).toBe("Add a photo");
+  });
+
+  it("(b) non-eligible due to missing photo: CTA href falls back to /profile/edit (no onboarding step for photo)", () => {
+    const href = blockingProfilePrimaryHref({
+      hasPhoto: false,
+      hasBio: true,
+      firstMissingStepHref: null,
+    });
+    expect(href).toBe("/profile/edit");
+  });
+
+  it("claims photo/about specifics whenever either is genuinely missing, even alongside other missing fields", () => {
+    const { body } = blockingProfileCopy({
+      hasPhoto: false,
+      hasBio: false,
+      missingRequiredKeys: ["age", "country"],
+    });
+    expect(body).toBe(
+      "Members only see profiles with a photo and an about section. Yours is hidden until then.",
+    );
+  });
+
+  it("uses a generic sentence (no fabricated field name) when multiple required fields are missing", () => {
+    const { body } = blockingProfileCopy({
+      hasPhoto: true,
+      hasBio: true,
+      missingRequiredKeys: ["age", "country", "assembly"],
+    });
+    expect(body).toBe("A few required details are missing, so your profile is not shown in the deck yet.");
+  });
+
+  it("(c) eligible + missing about still gets the unchanged soft profile-finish treatment", () => {
+    // Confirms this fix did not touch the profile-finish path: an
+    // eligible member missing only "about" still gets the soft card
+    // (pickProfileCompletionCard) and the same honest CTA label.
+    expect(pickProfileCompletionCard({ eligible: true, stepsLeft: 1 })).toBe("profile-finish");
+    expect(finishProfilePrimaryLabel({ hasPhoto: true, hasBio: false })).toBe("Add your about");
   });
 });
 

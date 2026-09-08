@@ -34,7 +34,15 @@
  *      eligible member. The "About N minutes" estimate is a UX heuristic
  *      (2 min/step), not measured. The primary CTA label is derived from
  *      which field is actually missing (finishProfilePrimaryLabel) rather
- *      than hardcoded "Add a photo".
+ *      than hardcoded "Add a photo". Fixed AGAIN same day after auditing
+ *      all 24 prod members (not just the one report): the BLOCKING card's
+ *      title/body/CTA-href also unconditionally assumed photo/about were
+ *      the cause — 7 real members were non-eligible ONLY because
+ *      `wantsChildren` was unanswered (photo + about already present).
+ *      blockingProfileCopy() + blockingProfilePrimaryHref() now name the
+ *      ACTUAL missing item (photo/about specifics only when true; a
+ *      required-field-named or generic sentence otherwise) and route the
+ *      CTA to `firstMissingStepFor(profile)`'s real onboarding step.
  *   4. verification-pending   REAL via GET /check-verification (the same
  *      endpoint useBronzeVerification/useSilverVerification poll during
  *      an active submission) — read once here so a reload doesn't lose
@@ -63,6 +71,7 @@ import type { Profile } from "@/lib/profile-schema";
 import { isPremium } from "@/lib/profile-schema";
 import {
   computeCompleteness,
+  firstMissingStepFor,
   isDiscoverEligible,
   missingRequiredFields,
 } from "@/lib/profile-completeness";
@@ -73,6 +82,8 @@ import { getMostRecentFailedOutgoing } from "@/lib/chat-cache";
 import { visitTimeLabel } from "@/lib/use-visitors";
 import type { ChatMessage } from "@/lib/chat-types";
 import {
+  blockingProfileCopy,
+  blockingProfilePrimaryHref,
   computeVisibilitySteps,
   finishProfilePrimaryLabel,
   pickProfileCompletionCard,
@@ -366,25 +377,45 @@ export function useNextAction(input: {
         // /discover (the page's own redirect covers most of this) but
         // kept correct for whatever slips through (e.g. a required field
         // cleared post-onboarding).
+        //
+        // Bug fix (2026-09-08, prod audit of all 24 members): this used
+        // to hardcode the photo/about title+body+CTA unconditionally —
+        // 7 real members were non-eligible ONLY because `wantsChildren`
+        // was unanswered (they already had a photo and about), so they
+        // were told "Add a photo" and shown false photo/about copy. The
+        // title/body now only claim photo/about when one is genuinely
+        // missing (blockingProfileCopy); the CTA routes to the actual
+        // missing MINIMUM_COMPLETE_FIELDS step (firstMissingStepFor) once
+        // photo and about both exist (blockingProfilePrimaryHref).
+        const { title, body } = blockingProfileCopy({
+          hasPhoto,
+          hasBio,
+          missingRequiredKeys: missingRequired,
+        });
+        const primaryHref = blockingProfilePrimaryHref({
+          hasPhoto,
+          hasBio,
+          firstMissingStepHref: firstMissingStepFor(profile as Profile) ?? null,
+        });
         live.push({
           kind: "profile-incomplete",
           primary: {
             kind: "profile-incomplete",
             tone: "urgent",
             kicker: "Finish your profile",
-            title: `${visibility.stepsLeft} ${visibility.stepsLeft === 1 ? "step" : "steps"} left before you appear in the deck`,
-            body: "Members only see profiles with a photo and an about section. Yours is hidden until then.",
+            title,
+            body,
             primaryLabel,
-            primaryHref: editHref,
+            primaryHref,
             secondaryLabel: "See all steps",
             secondaryHref: editHref,
             progress,
           },
           row: {
             kind: "profile-incomplete",
-            title: `${visibility.stepsLeft} ${visibility.stepsLeft === 1 ? "step" : "steps"} left`,
-            subtitle: "Finish your profile",
-            href: editHref,
+            title: "Finish your profile",
+            subtitle: `${visibility.stepsLeft} ${visibility.stepsLeft === 1 ? "step" : "steps"} left`,
+            href: primaryHref,
           },
         });
       } else {
