@@ -511,7 +511,7 @@ export function useNextAction(input: {
           body: "Profiles with answers get more likes.",
           primaryLabel: "Add answers",
           primaryHref: "/profile/edit",
-          secondaryLabel: "Profiles with answers get more likes",
+          secondaryLabel: "See profile",
           secondaryHref: "/profile/edit",
         },
         row: {

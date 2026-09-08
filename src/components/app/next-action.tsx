@@ -208,7 +208,7 @@ export function NextAction({
           </div>
         ) : null}
 
-        <div className="mt-0.5 flex items-center gap-3.5">
+        <div className="mt-0.5 flex flex-wrap items-center gap-x-3.5 gap-y-2">
           <PrimaryAction
             label={primary.primaryLabel}
             href={primary.primaryHref}
