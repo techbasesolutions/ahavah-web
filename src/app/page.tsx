@@ -194,11 +194,13 @@ export default function LandingPage() {
                   </span>
                 </div>
 
-                {/* Device-led on mobile: the app screen leads the hero, matching
-                    the design handoff. Desktop shows PhoneMockup in the right
-                    column instead (this instance is lg:hidden). */}
-                <MobileDeviceHero className="lg:hidden mt-3 mb-9" />
-
+                {/* Headline-led hero (Claude Design SOT "Ahavah Landing First
+                    Viewport", 2026-09): the value proposition and primary
+                    action sit in the top two-thirds so they stay above the
+                    fold at 360-430px. The mockup moved below the trust line
+                    (see MobileDeviceHero call after the trust line) so it
+                    can no longer displace the proposition — it's cropped by
+                    the fold on purpose. */}
                 <h1
                   className="m-0 text-(--ink) text-[clamp(36px,9.8vw,92px)]"
                   style={{
@@ -210,17 +212,55 @@ export default function LandingPage() {
                 >
                   Find a spouse
                   <br />
-                  across{" "}
-                  <span className="whitespace-nowrap">
-                    borders<span className="inline-block text-(--color-lime) translate-y-[0.04em]">.</span>
-                  </span>
+                  across <span className="text-(--color-lime)">borders</span>.
                 </h1>
 
-                <p className="mt-6 lg:mt-7 max-w-[540px] text-[17px] lg:text-[21px] leading-[1.55] text-(--ink-2)">
-                  Verified profiles, 100+ languages, real connections. The
-                  matchmaking platform for Messianic Torah-observant believers,
-                  here to help you meet a future spouse.
+                <p className="mt-3 lg:mt-5 max-w-[31ch] lg:max-w-[44ch] text-[15px] lg:text-[19px] leading-[1.5] text-(--ink-2)">
+                  International matchmaking for Messianic, Torah-observant
+                  people looking to marry.
+                  <span className="hidden lg:inline">
+                    {" "}Match across countries, talk with intent, and meet
+                    families when you are both ready.
+                  </span>
                 </p>
+
+                {/* Two actions, one primary — lime "Join free" is the only
+                    filled button; "See how it works" is the outline pill for
+                    people not ready to sign up yet. Both route to the
+                    existing hero CTA targets (waitlist form below, and the
+                    existing "How it works" section) rather than new ones. */}
+                <div className="mt-4.5 lg:mt-7.5 flex flex-wrap items-center gap-2.5 lg:gap-3">
+                  <Button
+                    type="button"
+                    tone="cta"
+                    size="cta"
+                    onClick={scrollToForm}
+                    className="h-13 lg:h-15 w-auto shrink-0 px-6 lg:px-8"
+                  >
+                    Join free
+                  </Button>
+                  <Button
+                    variant="outlineSubtle"
+                    size="cta"
+                    render={<a href="#how" />}
+                    className="h-13 lg:h-15 w-auto shrink-0 px-6 lg:px-8"
+                  >
+                    See how it works
+                  </Button>
+                </div>
+
+                <p className="mt-3 lg:mt-5 flex items-center gap-1.5 text-[12.5px] lg:text-sm text-(--ink-3)">
+                  <ShieldCheck size={15} className="shrink-0 text-lime" />
+                  Verified profiles. Marriage intent only.
+                  <span className="hidden lg:inline"> No casual dating.</span>
+                </p>
+
+                {/* Device-led visual now sits BELOW the proposition on mobile,
+                    cropped by the fold on purpose (see SOT annotation "Landing
+                    hero: what changed and why", point 2). Desktop shows
+                    PhoneMockup in the right column instead (that instance is
+                    lg:hidden below). */}
+                <MobileDeviceHero className="lg:hidden mt-8" />
 
                 {/* ── Waitlist form ────────────────────────────────────────── */}
                 <form onSubmit={handleSubmit} noValidate className="mt-9 max-w-[520px]">
