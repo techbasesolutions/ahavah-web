@@ -6,6 +6,7 @@ import {
   Camera,
   Clock,
   Heart,
+  ListChecks,
   MapPin,
   MessageCircle,
   Sparkles,
@@ -15,7 +16,7 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import type { NextActionKind } from "@/lib/next-action";
+import { greetingFor, type NextActionKind } from "@/lib/next-action";
 import type { NextActionPrimaryData, NextActionRowData } from "@/lib/use-next-action";
 
 import { Avatar, AvatarFallback, AvatarGroup, AvatarImage } from "@/components/ui/avatar";
@@ -46,6 +47,7 @@ const ROW_ICON: Record<NextActionKind, LucideIcon> = {
   "new-match": Heart,
   "profile-incomplete": Camera,
   "verification-pending": Clock,
+  "profile-finish": ListChecks,
   "add-city": MapPin,
   "profile-nudge": Sparkles,
   "premium-upsell": Star,
@@ -137,9 +139,7 @@ export function NextAction({
   if (!primary) return null;
 
   const tone = TONE_STYLE[primary.tone];
-  // "Welcome" only for the brand-new / profile-hidden state — every other
-  // live condition greets a member who has already met the app before.
-  const greeting = primary.kind === "profile-incomplete" ? "Welcome" : "Shalom";
+  const greeting = greetingFor(primary.kind);
 
   return (
     <div className="flex flex-col gap-3">

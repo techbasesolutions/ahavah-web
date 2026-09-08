@@ -3,6 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   NEXT_ACTION_RANK,
   computeVisibilitySteps,
+  finishProfilePrimaryLabel,
+  greetingFor,
+  pickProfileCompletionCard,
   selectNextAction,
   writtenAtLabel,
   type NextActionKind,
@@ -17,16 +20,21 @@ type Fixture = RankedItem & { label: string };
 const item = (kind: NextActionKind): Fixture => ({ kind, label: kind });
 
 describe("next-action: NEXT_ACTION_RANK", () => {
-  it("matches the SOT's 'Next-action priority order' board 1-8", () => {
+  it("matches the SOT's 'Next-action priority order' board, plus profile-finish", () => {
+    // profile-finish (rank 5) was added 2026-09-08 alongside the
+    // profile-incomplete/eligibility bug fix — it is not one of the SOT's
+    // original 8 ranks, slotted right after verification-pending, before
+    // the other evergreen nudges. See NEXT_ACTION_RANK's own doc comment.
     expect(NEXT_ACTION_RANK).toEqual({
       "message-failed": 1,
       "new-match": 2,
       "profile-incomplete": 3,
       "verification-pending": 4,
-      "add-city": 5,
-      "profile-nudge": 6,
-      "premium-upsell": 7,
-      "steady-deck": 8,
+      "profile-finish": 5,
+      "add-city": 6,
+      "profile-nudge": 7,
+      "premium-upsell": 8,
+      "steady-deck": 9,
     });
   });
 });
@@ -74,7 +82,7 @@ describe("next-action: selectNextAction", () => {
     ];
     const { primary, more } = selectNextAction(live);
     expect(primary?.kind).toBe("verification-pending");
-    // Rank order: add-city (5) < profile-nudge (6) < premium-upsell (7).
+    // Rank order: add-city (6) < profile-nudge (7) < premium-upsell (8).
     expect(more.map((m) => m.kind)).toEqual(["add-city", "profile-nudge", "premium-upsell"]);
   });
 
@@ -122,6 +130,88 @@ describe("next-action: computeVisibilitySteps", () => {
       requiredTotal: 9,
     });
     expect(result.doneCount).toBe(0);
+  });
+});
+
+describe("next-action: pickProfileCompletionCard (2026-09-08 prod bug fix)", () => {
+  // Prod report: a Gold-verified, already-appearing member (10 of 11
+  // steps done -> stepsLeft = 1, but isDiscoverEligible === true) was
+  // shown the BLOCKING "you are hidden ... before you appear in the
+  // deck" card. That's false for an eligible member. These tests lock
+  // the fix at the decision-function level.
+
+  it("(a) eligible + incomplete -> the soft 'profile-finish' nudge, never the blocking card", () => {
+    const result = pickProfileCompletionCard({ eligible: true, stepsLeft: 1 });
+    expect(result).toBe("profile-finish");
+  });
+
+  it("(b) not-eligible + incomplete -> the blocking 'profile-incomplete' (hidden) card", () => {
+    const result = pickProfileCompletionCard({ eligible: false, stepsLeft: 4 });
+    expect(result).toBe("profile-incomplete");
+  });
+
+  it("(d) fully complete (stepsLeft === 0) -> no card at all, eligible or not", () => {
+    expect(pickProfileCompletionCard({ eligible: true, stepsLeft: 0 })).toBeNull();
+    expect(pickProfileCompletionCard({ eligible: false, stepsLeft: 0 })).toBeNull();
+  });
+
+  it("never returns the blocking card for an eligible member, at any stepsLeft", () => {
+    for (let stepsLeft = 1; stepsLeft <= 11; stepsLeft++) {
+      expect(pickProfileCompletionCard({ eligible: true, stepsLeft })).toBe("profile-finish");
+    }
+  });
+});
+
+describe("next-action: greetingFor (2026-09-08 prod bug fix)", () => {
+  it("(a) stays 'Shalom' for the soft profile-finish nudge (eligible + incomplete)", () => {
+    expect(greetingFor("profile-finish")).toBe("Shalom");
+  });
+
+  it("(b) is 'Welcome' only for the genuinely-hidden profile-incomplete card", () => {
+    expect(greetingFor("profile-incomplete")).toBe("Welcome");
+  });
+
+  it("is 'Shalom' for every other kind, including null (nothing live)", () => {
+    const otherKinds: NextActionKind[] = [
+      "message-failed",
+      "new-match",
+      "verification-pending",
+      "add-city",
+      "profile-nudge",
+      "premium-upsell",
+      "steady-deck",
+    ];
+    for (const kind of otherKinds) {
+      expect(greetingFor(kind)).toBe("Shalom");
+    }
+    expect(greetingFor(null)).toBe("Shalom");
+  });
+});
+
+describe("next-action: finishProfilePrimaryLabel (2026-09-08 prod bug fix)", () => {
+  // Prod report: the primary CTA said "Add a photo" even when
+  // profile.photos was non-empty. The label must name the REAL missing
+  // item.
+
+  it("(c) says 'Add a photo' only when the photo is actually missing", () => {
+    expect(finishProfilePrimaryLabel({ hasPhoto: false, hasBio: true })).toBe("Add a photo");
+  });
+
+  it("(c) says 'Add your about' when the photo exists but the about section doesn't", () => {
+    expect(finishProfilePrimaryLabel({ hasPhoto: true, hasBio: false })).toBe("Add your about");
+  });
+
+  it("never says 'Add a photo' when a photo already exists", () => {
+    expect(finishProfilePrimaryLabel({ hasPhoto: true, hasBio: false })).not.toBe("Add a photo");
+    expect(finishProfilePrimaryLabel({ hasPhoto: true, hasBio: true })).not.toBe("Add a photo");
+  });
+
+  it("falls back to a generic label once photo and about are both present", () => {
+    expect(finishProfilePrimaryLabel({ hasPhoto: true, hasBio: true })).toBe("Finish profile");
+  });
+
+  it("prioritizes the photo over the about section when both are missing", () => {
+    expect(finishProfilePrimaryLabel({ hasPhoto: false, hasBio: false })).toBe("Add a photo");
   });
 });
 

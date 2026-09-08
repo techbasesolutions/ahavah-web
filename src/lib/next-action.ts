@@ -21,6 +21,7 @@ export type NextActionKind =
   | "new-match"
   | "profile-incomplete"
   | "verification-pending"
+  | "profile-finish"
   | "add-city"
   | "profile-nudge"
   | "premium-upsell"
@@ -30,16 +31,28 @@ export type NextActionKind =
  * Rank order per the SOT's "Next-action priority order" board — 1 is
  * highest priority (becomes the one primary card). Every other LIVE
  * condition collapses into "And N more", ordered by this same rank.
+ *
+ * "profile-finish" is NOT one of the SOT's original 8 ranks — it was
+ * added after a prod bug report (2026-09-08): "profile-incomplete" (rank
+ * 3, the BLOCKING "you are hidden" card) must only ever fire for a member
+ * who is genuinely not `isDiscoverEligible()`. On /discover, that's rare
+ * — the page's own soft-completeness gate already redirects ineligible,
+ * not-yet-onboarded members away. The common case is an ELIGIBLE member
+ * who is simply not 100% complete (e.g. 10/11 fields) — they already
+ * appear in the deck, so telling them they're "hidden" is false. That
+ * case gets "profile-finish": a soft, evergreen nudge slotted right
+ * after verification-pending, honest that the profile already shows.
  */
 export const NEXT_ACTION_RANK: Readonly<Record<NextActionKind, number>> = {
   "message-failed": 1,
   "new-match": 2,
   "profile-incomplete": 3,
   "verification-pending": 4,
-  "add-city": 5,
-  "profile-nudge": 6,
-  "premium-upsell": 7,
-  "steady-deck": 8,
+  "profile-finish": 5,
+  "add-city": 6,
+  "profile-nudge": 7,
+  "premium-upsell": 8,
+  "steady-deck": 9,
 };
 
 export type RankedItem = { kind: NextActionKind };
@@ -114,4 +127,51 @@ export function computeVisibilitySteps(input: {
   const doneCount = Math.max(0, stepsTotal - stepsLeft);
   const estimatedMinutes = Math.max(1, stepsLeft * 2);
   return { stepsLeft, stepsTotal, doneCount, estimatedMinutes };
+}
+
+/**
+ * The finish-profile / profile-incomplete card's primary CTA must name a
+ * REAL missing item — a prod bug (2026-09-08) hardcoded "Add a photo"
+ * even when the member already had one. Photo and about are checked
+ * first because they're the two things called out by name in the SOT
+ * copy; any other missing required field falls back to a generic label
+ * rather than guessing which one to name.
+ */
+export function finishProfilePrimaryLabel(input: { hasPhoto: boolean; hasBio: boolean }): string {
+  if (!input.hasPhoto) return "Add a photo";
+  if (!input.hasBio) return "Add your about";
+  return "Finish profile";
+}
+
+/**
+ * Which profile-completion card (if any) should be live, given whether
+ * the member is genuinely `isDiscoverEligible()` and how many steps are
+ * left. This is the single decision point the 2026-09-08 prod bug fix
+ * hinges on — keeping it here (pure, no React/profile-schema import)
+ * means "eligible member never sees the blocking card" is locked by a
+ * unit test rather than only provable by reading use-next-action.ts.
+ *
+ *   stepsLeft <= 0            -> null (nothing to show; fully done)
+ *   stepsLeft > 0, eligible   -> "profile-finish" (soft, honest, evergreen)
+ *   stepsLeft > 0, NOT eligible -> "profile-incomplete" (blocking, "hidden")
+ */
+export function pickProfileCompletionCard(input: {
+  eligible: boolean;
+  stepsLeft: number;
+}): Extract<NextActionKind, "profile-incomplete" | "profile-finish"> | null {
+  if (input.stepsLeft <= 0) return null;
+  return input.eligible ? "profile-finish" : "profile-incomplete";
+}
+
+/**
+ * Greeting copy for the signed-in home surface. "Welcome" is reserved
+ * for the genuinely-hidden state (`profile-incomplete`) — every other
+ * primary card, including the soft `profile-finish` nudge, greets a
+ * member who has already met the app before with "Shalom". Fixed
+ * 2026-09-08 alongside the profile-completion bug: this used to key off
+ * `stepsLeft > 0` (via the old single "profile-incomplete" kind), which
+ * flipped an eligible-but-incomplete member's greeting to "Welcome" too.
+ */
+export function greetingFor(primaryKind: NextActionKind | null): "Shalom" | "Welcome" {
+  return primaryKind === "profile-incomplete" ? "Welcome" : "Shalom";
 }

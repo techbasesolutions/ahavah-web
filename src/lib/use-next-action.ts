@@ -20,10 +20,21 @@
  *      APPROXIMATED: MatchRecord has no seen/unseen flag server-side, so
  *      "recent" is a client-side recency window (RECENT_MATCH_MS) on
  *      `created_at` rather than a true read receipt.
- *   3. profile-incomplete     REAL — profile.photos / profile.bio
- *      directly, plus the same MINIMUM_COMPLETE_FIELDS gate /discover's
- *      own eligibility check uses (missingRequiredFields). The "About N
- *      minutes" estimate is a UX heuristic (2 min/step), not measured.
+ *   3. profile-incomplete /   REAL — profile.photos / profile.bio
+ *      profile-finish          directly, plus the same MINIMUM_COMPLETE_FIELDS
+ *      gate /discover's own eligibility check uses (missingRequiredFields,
+ *      isDiscoverEligible). Two distinct cards share this signal:
+ *      "profile-incomplete" (BLOCKING, "you are hidden") fires ONLY when
+ *      `!isDiscoverEligible(profile)` — genuinely not visible in the deck.
+ *      "profile-finish" (soft, evergreen, rank 5) fires when the member
+ *      IS eligible (already appears) but `stepsLeft > 0` (missing photo/
+ *      about/an optional field) — it never claims the member is hidden.
+ *      Fixed 2026-09-08 after a prod report: this used to fire the
+ *      blocking copy for ANY `stepsLeft > 0`, which is false for an
+ *      eligible member. The "About N minutes" estimate is a UX heuristic
+ *      (2 min/step), not measured. The primary CTA label is derived from
+ *      which field is actually missing (finishProfilePrimaryLabel) rather
+ *      than hardcoded "Add a photo".
  *   4. verification-pending   REAL via GET /check-verification (the same
  *      endpoint useBronzeVerification/useSilverVerification poll during
  *      an active submission) — read once here so a reload doesn't lose
@@ -50,7 +61,11 @@ import { useEffect, useMemo, useState } from "react";
 import { apiClient } from "@/lib/api-client";
 import type { Profile } from "@/lib/profile-schema";
 import { isPremium } from "@/lib/profile-schema";
-import { computeCompleteness, missingRequiredFields } from "@/lib/profile-completeness";
+import {
+  computeCompleteness,
+  isDiscoverEligible,
+  missingRequiredFields,
+} from "@/lib/profile-completeness";
 import type { MatchesResponse, MatchRecord } from "@/lib/api-types";
 import { photoOrGradient, photosFromUuids } from "@/lib/photo-or-gradient";
 import { readChatSession } from "@/lib/chat-session";
@@ -59,6 +74,8 @@ import { visitTimeLabel } from "@/lib/use-visitors";
 import type { ChatMessage } from "@/lib/chat-types";
 import {
   computeVisibilitySteps,
+  finishProfilePrimaryLabel,
+  pickProfileCompletionCard,
   selectNextAction,
   writtenAtLabel,
   type NextActionKind,
@@ -299,44 +316,105 @@ export function useNextAction(input: {
       });
     }
 
-    // 3. profile-incomplete (photo + about are a real client-visible
-    //    signal; the SOT copy is specifically about them) -------------
+    // 3. profile-incomplete (BLOCKING) vs profile-finish (soft evergreen)
+    //    -----------------------------------------------------------------
+    // Bug fix (2026-09-08, prod report): a Gold-verified member who
+    // already appears in the deck (isDiscoverEligible === true) was shown
+    // the BLOCKING "you are hidden ... before you appear in the deck"
+    // card + a "Welcome" greeting, just because one optional field
+    // (`stepsLeft`, which also counts photo/about) was non-zero. That is
+    // false for an eligible member — they are NOT hidden.
+    //
+    // /discover's own soft-completeness gate (the `useEffect` above this
+    // hook, in discover/page.tsx) already redirects a genuinely-ineligible,
+    // not-yet-onboarded member AWAY to their missing step — but it
+    // early-returns once `readOnboarded()` is true, so an already-onboarded
+    // member who is merely missing an optional field (or even a
+    // MINIMUM_COMPLETE_FIELDS field entered post-onboarding, e.g. via a
+    // reverted /profile/edit change) can legitimately reach /discover
+    // while eligible. That's the common case this hook must not
+    // mislabel as "hidden".
+    //
+    // isDiscoverEligible() (same MINIMUM_COMPLETE_FIELDS gate the page
+    // itself uses) is the authoritative "is this member actually hidden"
+    // check — NOT merely "stepsLeft > 0", which also counts photo/about
+    // (not part of that gate) and can be > 0 for an already-visible member.
     const hasPhoto = Boolean(profile.photos && profile.photos.length > 0);
     const hasBio = Boolean(profile.bio && profile.bio.length > 0);
     const missingRequired = missingRequiredFields(profile as Profile);
+    const eligible = isDiscoverEligible(profile as Profile);
     const visibility = computeVisibilitySteps({
       hasPhoto,
       hasBio,
       missingRequiredCount: missingRequired.length,
       requiredTotal: computeCompleteness(profile as Profile).requiredTotal,
     });
-    if (visibility.stepsLeft > 0) {
+    const completionCard = pickProfileCompletionCard({
+      eligible,
+      stepsLeft: visibility.stepsLeft,
+    });
+    if (completionCard) {
       const editHref = "/profile/edit";
-      live.push({
-        kind: "profile-incomplete",
-        primary: {
+      const primaryLabel = finishProfilePrimaryLabel({ hasPhoto, hasBio });
+      const progress = {
+        percent: Math.round((visibility.doneCount / visibility.stepsTotal) * 100),
+        doneLabel: `${visibility.doneCount} of ${visibility.stepsTotal} done`,
+        etaLabel: `About ${visibility.estimatedMinutes} ${visibility.estimatedMinutes === 1 ? "minute" : "minutes"}`,
+      };
+      if (completionCard === "profile-incomplete") {
+        // Genuinely hidden — the blocking, urgent card. Rare on
+        // /discover (the page's own redirect covers most of this) but
+        // kept correct for whatever slips through (e.g. a required field
+        // cleared post-onboarding).
+        live.push({
           kind: "profile-incomplete",
-          tone: "urgent",
-          kicker: "Finish your profile",
-          title: `${visibility.stepsLeft} ${visibility.stepsLeft === 1 ? "step" : "steps"} left before you appear in the deck`,
-          body: "Members only see profiles with a photo and an about section. Yours is hidden until then.",
-          primaryLabel: "Add a photo",
-          primaryHref: editHref,
-          secondaryLabel: "See all steps",
-          secondaryHref: editHref,
-          progress: {
-            percent: Math.round((visibility.doneCount / visibility.stepsTotal) * 100),
-            doneLabel: `${visibility.doneCount} of ${visibility.stepsTotal} done`,
-            etaLabel: `About ${visibility.estimatedMinutes} ${visibility.estimatedMinutes === 1 ? "minute" : "minutes"}`,
+          primary: {
+            kind: "profile-incomplete",
+            tone: "urgent",
+            kicker: "Finish your profile",
+            title: `${visibility.stepsLeft} ${visibility.stepsLeft === 1 ? "step" : "steps"} left before you appear in the deck`,
+            body: "Members only see profiles with a photo and an about section. Yours is hidden until then.",
+            primaryLabel,
+            primaryHref: editHref,
+            secondaryLabel: "See all steps",
+            secondaryHref: editHref,
+            progress,
           },
-        },
-        row: {
-          kind: "profile-incomplete",
-          title: `${visibility.stepsLeft} ${visibility.stepsLeft === 1 ? "step" : "steps"} left`,
-          subtitle: "Finish your profile",
-          href: editHref,
-        },
-      });
+          row: {
+            kind: "profile-incomplete",
+            title: `${visibility.stepsLeft} ${visibility.stepsLeft === 1 ? "step" : "steps"} left`,
+            subtitle: "Finish your profile",
+            href: editHref,
+          },
+        });
+      } else {
+        // Eligible — already appears in the deck, just not 100% done.
+        // Soft, evergreen, honest: never claims the profile is hidden.
+        live.push({
+          kind: "profile-finish",
+          primary: {
+            kind: "profile-finish",
+            tone: "calm",
+            kicker: "Finish your profile",
+            title:
+              visibility.stepsLeft === 1
+                ? "One more step to finish your profile"
+                : `${visibility.stepsLeft} steps left to finish your profile`,
+            body: "A more complete profile gets seen by more people.",
+            primaryLabel,
+            primaryHref: editHref,
+            secondaryLabel: "See all steps",
+            secondaryHref: editHref,
+            progress,
+          },
+          row: {
+            kind: "profile-finish",
+            title: "Finish your profile",
+            subtitle: progress.doneLabel,
+            href: editHref,
+          },
+        });
+      }
     }
 
     // 4. verification-pending --------------------------------------------
