@@ -198,23 +198,23 @@ export function blockingProfileCopy(input: {
   hasBio: boolean;
   missingRequiredKeys: ReadonlyArray<string>;
 }): { title: string; body: string } {
-  const title = "Finish your profile to appear in the deck";
+  const title = "Finish your profile";
   if (!input.hasPhoto || !input.hasBio) {
     return {
       title,
-      body: "Members only see profiles with a photo and an about section. Yours is hidden until then.",
+      body: "Add a photo and an about section to help members get to know you.",
     };
   }
   if (input.missingRequiredKeys.length === 1) {
     const label = REQUIRED_FIELD_LABEL[input.missingRequiredKeys[0]] ?? "one required detail";
     return {
       title,
-      body: `One required detail is missing (${label}), so your profile is not shown in the deck yet.`,
+      body: `One profile detail is missing (${label}). You can add it now.`,
     };
   }
   return {
     title,
-    body: "A few required details are missing, so your profile is not shown in the deck yet.",
+    body: "A few profile details are missing. You can finish them now.",
   };
 }
 

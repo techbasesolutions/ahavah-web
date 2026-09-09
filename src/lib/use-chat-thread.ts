@@ -25,10 +25,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { chatClient } from "@/lib/chat-client";
-import { appendMessage, getThreadHistory } from "@/lib/chat-cache";
+import { appendMessage, getThreadHistory, removeMessage } from "@/lib/chat-cache";
 import { apiClient } from "@/lib/api-client";
 import { translateText } from "@/lib/translate";
 import type { ChatEvent, ChatMessage } from "@/lib/chat-types";
+
+import { readChatSession } from "@/lib/chat-session";
+import { SESSION_RESET, sessionEpoch } from "@/lib/session-lifecycle";
 
 const ACK_TIMEOUT_MS = 10_000;
 const TYPING_TTL_MS = 5_000;
@@ -42,6 +45,8 @@ export type UseChatThreadResult = {
   theyAreTyping: boolean;
   /** Send a message. Pushes optimistic pending bubble; flips on ack. */
   send: (body: string) => void;
+  retry: (id: string) => void;
+  discard: (id: string) => void;
   /** Forward a typing indicator. Caller debounces; hook just relays. */
   setMyTyping: (isTyping: boolean) => void;
   /** messageId -> {kind, mine}. `mine` true = the viewer's own reaction. */
@@ -76,6 +81,9 @@ type TranslationEntry = {
  *                   (e.g. while session auth is still resolving).
  */
 export function useChatThread(threadId: string, myUuid: string): UseChatThreadResult {
+  const epoch = sessionEpoch();
+  const current = useCallback(() => epoch === sessionEpoch() && readChatSession()?.myUuid === myUuid, [epoch, myUuid]);
+  const replacements = useRef(new Map<string, string>());
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isHydrated, setIsHydrated] = useState(false);
   const [theyAreTyping, setTheyAreTyping] = useState(false);
@@ -104,7 +112,7 @@ export function useChatThread(threadId: string, myUuid: string): UseChatThreadRe
       // Use microtask so setState isn't synchronous within the effect body
       // (React 19's recommended pattern; setState-in-effect lint rule).
       Promise.resolve().then(() => {
-        if (cancelled) return;
+        if (cancelled || !current()) return;
         setMessages([]);
         setIsHydrated(true);
       });
@@ -113,15 +121,15 @@ export function useChatThread(threadId: string, myUuid: string): UseChatThreadRe
       };
     }
     void (async () => {
-      const cached = await getThreadHistory(threadId, 50);
-      if (cancelled) return;
+      const cached = await getThreadHistory(myUuid, threadId, 50);
+      if (cancelled || !current()) return;
       setMessages(cached);
       setIsHydrated(true);
     })();
     return () => {
       cancelled = true;
     };
-  }, [threadId]);
+  }, [threadId, myUuid, current]);
 
   // -----------------------------------------------------------------------
   // MAM history fetch — when client is ready, ask the server for the
@@ -132,7 +140,7 @@ export function useChatThread(threadId: string, myUuid: string): UseChatThreadRe
     if (!threadId || !myUuid) return;
     const queryId = `mam-${threadId}-${Date.now()}`;
     const tryFetch = () => {
-      if (chatClient.getState() === "ready") {
+      if (current() && chatClient.getState() === "ready") {
         chatClient.fetchHistory({ queryId, peerUuid: threadId, max: 50 });
         return true;
       }
@@ -148,7 +156,7 @@ export function useChatThread(threadId: string, myUuid: string): UseChatThreadRe
     return off;
     // threadId/myUuid only — re-running on every state churn would
     // duplicate-fetch.
-  }, [threadId, myUuid]);
+  }, [threadId, myUuid, current]);
 
   // -----------------------------------------------------------------------
   // Reaction hydrate — fetch existing reactions for this thread once we
@@ -164,7 +172,7 @@ export function useChatThread(threadId: string, myUuid: string): UseChatThreadRe
         reactions: Array<{ message_stanza_id: string; reactor_uuid: string; kind: string }>;
       }>(`/reactions?with=${encodeURIComponent(threadId)}`)
       .then((res) => {
-        if (cancelled) return;
+        if (cancelled || !current()) return;
         const next = new Map<string, { kind: string; mine: boolean }>();
         for (const r of res.reactions ?? []) {
           next.set(r.message_stanza_id, { kind: r.kind, mine: r.reactor_uuid === myUuid });
@@ -177,7 +185,7 @@ export function useChatThread(threadId: string, myUuid: string): UseChatThreadRe
     return () => {
       cancelled = true;
     };
-  }, [threadId, myUuid]);
+  }, [threadId, myUuid, current]);
 
   // -----------------------------------------------------------------------
   // Event subscription — live messages, acks, typing.
@@ -186,6 +194,7 @@ export function useChatThread(threadId: string, myUuid: string): UseChatThreadRe
     if (!threadId || !myUuid) return;
 
     const handle = (e: ChatEvent) => {
+      if (!current()) return;
       switch (e.type) {
         case "message-in": {
           if (e.message.threadId !== threadId) return;
@@ -194,7 +203,7 @@ export function useChatThread(threadId: string, myUuid: string): UseChatThreadRe
           // reconnect.)
           if (messagesRef.current.some((m) => m.id === e.message.id)) return;
           setMessages((prev) => [...prev, e.message]);
-          void appendMessage(e.message);
+          void appendMessage(myUuid, e.message);
           return;
         }
         case "history-result": {
@@ -205,7 +214,7 @@ export function useChatThread(threadId: string, myUuid: string): UseChatThreadRe
             for (const m of e.messages) byId.set(m.id, m);
             // Persist any newly-seen history rows.
             for (const m of e.messages) {
-              if (!prev.some((p) => p.id === m.id)) void appendMessage(m);
+              if (!prev.some((p) => p.id === m.id)) void appendMessage(myUuid, m);
             }
             return Array.from(byId.values()).sort((a, b) =>
               a.serverTime.localeCompare(b.serverTime),
@@ -235,8 +244,15 @@ export function useChatThread(threadId: string, myUuid: string): UseChatThreadRe
           // Persist the flip.
           const flipped = messagesRef.current.find((m) => m.clientId === e.clientId);
           if (flipped) {
-            void appendMessage({ ...flipped, status: next, failureReason: reason });
+            void appendMessage(myUuid, { ...flipped, status: next, failureReason: reason });
           }
+          const replaced = replacements.current.get(e.clientId);
+          if (next === "sent" && replaced) {
+            void removeMessage(myUuid, replaced).then(() => {
+              if (current()) setMessages(prev => prev.filter(m => m.id !== replaced));
+            }).catch(() => {});
+          }
+          replacements.current.delete(e.clientId);
           // Clear the ack timeout.
           const timer = ackTimersRef.current.get(e.clientId);
           if (timer) {
@@ -279,16 +295,18 @@ export function useChatThread(threadId: string, myUuid: string): UseChatThreadRe
         typingTimerRef.current = null;
       }
     };
-  }, [threadId, myUuid]);
+  }, [threadId, myUuid, current]);
 
   // -----------------------------------------------------------------------
   // Send
   // -----------------------------------------------------------------------
   const send = useCallback(
-    (body: string) => {
+    (body: string, replacesId?: string) => {
       const trimmed = body.trim();
-      if (!trimmed || !threadId || !myUuid) return;
+      if (!trimmed || !threadId || !myUuid || !current()) return;
+      if (replacesId && [...replacements.current.values()].includes(replacesId)) return;
       const clientId = makeClientId();
+      if (replacesId) replacements.current.set(clientId, replacesId);
       const now = new Date().toISOString();
       const optimistic: ChatMessage = {
         id: clientId,
@@ -301,21 +319,26 @@ export function useChatThread(threadId: string, myUuid: string): UseChatThreadRe
         status: "pending",
       };
       setMessages((prev) => [...prev, optimistic]);
-      void appendMessage(optimistic);
+      void appendMessage(myUuid, optimistic);
 
       const accepted = chatClient.sendMessage(threadId, clientId, trimmed);
       if (!accepted) {
+        replacements.current.delete(clientId);
         // Couldn't even put on the wire — flip immediately.
         setMessages((prev) =>
           prev.map((m) => (m.clientId === clientId ? { ...m, status: "failed" } : m)),
         );
-        void appendMessage({ ...optimistic, status: "failed" });
+        void appendMessage(myUuid, { ...optimistic, status: "failed" });
         return;
       }
 
       // 10s ack timeout — flip to failed if we never hear back.
       const timer = setTimeout(() => {
+        if (!current()) return;
+        const pending = messagesRef.current.find(m => m.clientId === clientId && m.status === "pending");
+        if (pending) void appendMessage(myUuid, { ...pending, status: "failed" });
         ackTimersRef.current.delete(clientId);
+        replacements.current.delete(clientId);
         setMessages((prev) =>
           prev.map((m) =>
             m.clientId === clientId && m.status === "pending"
@@ -326,19 +349,43 @@ export function useChatThread(threadId: string, myUuid: string): UseChatThreadRe
       }, ACK_TIMEOUT_MS);
       ackTimersRef.current.set(clientId, timer);
     },
-    [threadId, myUuid],
+    [threadId, myUuid, current],
   );
+
+  const retry = useCallback((id: string) => {
+    const message = messagesRef.current.find(m => m.id === id && m.status === "failed" && m.fromUserId === myUuid);
+    if (message && (!message.failureReason || ["server-error", "rate-limited"].includes(message.failureReason))) send(message.body, id);
+  }, [myUuid, send]);
+  const discard = useCallback((id: string) => {
+    if (!current()) return;
+    void removeMessage(myUuid, id).then(() => {
+      if (current()) setMessages(prev => prev.filter(m => m.id !== id));
+    }).catch(() => {});
+  }, [myUuid, current]);
+  useEffect(() => {
+    const reset = () => {
+      setMessages([]);
+      messagesRef.current = [];
+      setReactions(new Map());
+      setTranslations(new Map());
+      replacements.current.clear();
+      for (const timer of ackTimersRef.current.values()) clearTimeout(timer);
+      ackTimersRef.current.clear();
+    };
+    window.addEventListener(SESSION_RESET, reset);
+    return () => window.removeEventListener(SESSION_RESET, reset);
+  }, []);
 
   // -----------------------------------------------------------------------
   // Typing
   // -----------------------------------------------------------------------
   const setMyTyping = useCallback(
     (isTyping: boolean) => {
-      if (!threadId || !myUuid) return;
+      if (!threadId || !myUuid || !current()) return;
       if (isTyping) chatClient.sendTyping(threadId);
       // "false" maps to "don't send" — backend treats absence as paused.
     },
-    [threadId, myUuid],
+    [threadId, myUuid, current],
   );
 
   // -----------------------------------------------------------------------
@@ -346,7 +393,7 @@ export function useChatThread(threadId: string, myUuid: string): UseChatThreadRe
   // -----------------------------------------------------------------------
   const react = useCallback(
     (messageId: string) => {
-      if (!threadId || !myUuid) return;
+      if (!threadId || !myUuid || !current()) return;
       let didAdd = false;
       setReactions((prev) => {
         const next = new Map(prev);
@@ -366,6 +413,7 @@ export function useChatThread(threadId: string, myUuid: string): UseChatThreadRe
           kind: "heart",
         })
         .catch(() => {
+          if (!current()) return;
           // Roll back the optimistic change on failure.
           setReactions((prev) => {
             const next = new Map(prev);
@@ -375,7 +423,7 @@ export function useChatThread(threadId: string, myUuid: string): UseChatThreadRe
           });
         });
     },
-    [threadId, myUuid],
+    [threadId, myUuid, current],
   );
 
   // -----------------------------------------------------------------------
@@ -383,6 +431,7 @@ export function useChatThread(threadId: string, myUuid: string): UseChatThreadRe
   // (state lives here; backend passes through on any failure).
   // -----------------------------------------------------------------------
   const translate = useCallback((messageId: string, text: string) => {
+    if (!current()) return;
     setTranslations((prev) => {
       const next = new Map(prev);
       next.set(messageId, { state: "loading", showing: "translation" });
@@ -391,6 +440,7 @@ export function useChatThread(threadId: string, myUuid: string): UseChatThreadRe
     const target = typeof navigator !== "undefined" ? navigator.language : "en-US";
     void translateText(text, target)
       .then((res) => {
+        if (!current()) return;
         setTranslations((prev) => {
           const next = new Map(prev);
           next.set(messageId, { state: "done", text: res.translated, showing: "translation" });
@@ -398,13 +448,14 @@ export function useChatThread(threadId: string, myUuid: string): UseChatThreadRe
         });
       })
       .catch(() => {
+        if (!current()) return;
         setTranslations((prev) => {
           const next = new Map(prev);
           next.set(messageId, { state: "error", showing: "original" });
           return next;
         });
       });
-  }, []);
+  }, [current]);
 
   const toggleTranslation = useCallback((messageId: string) => {
     setTranslations((prev) => {
@@ -434,6 +485,8 @@ export function useChatThread(threadId: string, myUuid: string): UseChatThreadRe
       isHydrated,
       theyAreTyping,
       send,
+      retry,
+      discard,
       setMyTyping,
       reactions,
       react,
@@ -446,6 +499,8 @@ export function useChatThread(threadId: string, myUuid: string): UseChatThreadRe
       isHydrated,
       theyAreTyping,
       send,
+      retry,
+      discard,
       setMyTyping,
       reactions,
       react,

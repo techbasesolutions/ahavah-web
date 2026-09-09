@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronRight, Lock } from "lucide-react";
 
 import {
@@ -17,8 +17,6 @@ import { Button } from "@/components/ui/button";
 
 import { SettingsShell } from "@/components/app/settings-shell";
 import { apiClient } from "@/lib/api-client";
-import { useShowOnMap } from "@/lib/use-show-on-map";
-import { useProfile } from "@/lib/use-profile";
 
 // Backend accepts these fields on PATCH /profile-info as Optional[str]
 // with "Yes" / "No" values. Other privacy toggles previously listed on
@@ -77,15 +75,26 @@ export default function PrivacySettingsPage() {
   // centroid and are never pinned). null until /me resolves so the note
   // can't flash for members who do have a city.
   const [citySet, setCitySet] = useState<boolean | null>(null);
-  const { value: showOnMap, setValue: setShowOnMapLocal } = useShowOnMap();
-  const { update: updateProfile } = useProfile();
-  // Fan the toggle out to BOTH localStorage (instant UI feedback) and
-  // the server (so the choice survives cache clears + new devices).
-  // Server PATCH is fire-and-forget — failures don't block the local
-  // toggle since useProfile's update queues a retry on next refresh.
-  const setShowOnMap = (next: boolean) => {
-    setShowOnMapLocal(next);
-    void updateProfile({ showOnMap: next });
+  const [showOnMap, setShowOnMap] = useState(false);
+  const [privacyLoaded, setPrivacyLoaded] = useState(false);
+  const [mapSaving, setMapSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const busy = useRef(false);
+  const saveMapVisibility = async (next: boolean) => {
+    if (busy.current || !privacyLoaded) return;
+    busy.current = true;
+    setMapSaving(true);
+    setSaveError(null);
+    try {
+      await apiClient.patch("/profile-info", { ahavah_extra: { showOnMap: next } });
+      setShowOnMap(next);
+    } catch {
+      setSaveError("Could not save. Your previous visibility still applies. Please try again.");
+    } finally {
+      busy.current = false;
+      setMapSaving(false);
+    }
   };
 
   useEffect(() => {
@@ -94,6 +103,10 @@ export default function PrivacySettingsPage() {
       .get<Record<string, unknown>>("/profile-info")
       .then((p) => {
         if (cancelled) return;
+        const extra = p.ahavah_extra as { showOnMap?: boolean; citySet?: boolean } | undefined;
+        setShowOnMap(extra?.showOnMap !== false);
+        setPrivacyLoaded(true);
+        setSaveError(null);
         // Read gold both ways defensively: `has_gold` (Duolicious boolean tied
         // to the verification ladder) OR `ahavah_verification_tier === "gold"`.
         setIsGold(
@@ -115,8 +128,7 @@ export default function PrivacySettingsPage() {
         });
       })
       .catch(() => {
-        // Quiet fail — defaults stay; user can still toggle (PATCH will
-        // reflect on next reload).
+        if (!cancelled) setSaveError("Could not load your saved privacy settings.");
       });
     // Same source as CityNudgeBanner: /me carries ahavah_extra.citySet.
     void apiClient
@@ -130,21 +142,22 @@ export default function PrivacySettingsPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [loadAttempt]);
 
   const setBacked = async (key: BackedKey, value: boolean) => {
-    if (savingKey) return;
-    const prev = toggles[key];
-    setToggles((curr) => ({ ...curr, [key]: value }));
+    if (busy.current || !privacyLoaded) return;
+    busy.current = true;
+    setSaveError(null);
     setSavingKey(key);
     try {
       await apiClient.patch("/profile-info", {
         [SERVER_FIELD[key]]: value ? "Yes" : "No",
       });
+      setToggles((curr) => ({ ...curr, [key]: value }));
     } catch {
-      // Rollback on failure.
-      setToggles((curr) => ({ ...curr, [key]: prev }));
+      setSaveError("Could not save. Your previous privacy settings still apply. Please try again.");
     } finally {
+      busy.current = false;
       setSavingKey(null);
     }
   };
@@ -210,7 +223,7 @@ export default function PrivacySettingsPage() {
         </ItemContent>
         <Switch
           checked={toggles[settingKey]}
-          disabled={savingKey === settingKey}
+          disabled={!privacyLoaded || Boolean(savingKey) || mapSaving}
           onCheckedChange={(checked) => void setBacked(settingKey, checked)}
           aria-label={title}
         />
@@ -269,7 +282,7 @@ export default function PrivacySettingsPage() {
         </ItemContent>
         <Switch
           checked={toggles.showLocation}
-          disabled={masterLocked || savingKey === "showLocation"}
+          disabled={!privacyLoaded || masterLocked || Boolean(savingKey) || mapSaving}
           onCheckedChange={
             masterLocked
               ? undefined
@@ -331,9 +344,9 @@ export default function PrivacySettingsPage() {
           </div>
           <Switch
             checked={showOnMap}
-            disabled={!masterOn}
+            disabled={!privacyLoaded || !masterOn || mapSaving || Boolean(savingKey)}
             onCheckedChange={
-              masterOn ? (checked) => setShowOnMap(checked) : undefined
+              masterOn ? (checked) => void saveMapVisibility(checked) : undefined
             }
             aria-label="Show me on the map"
             className={masterOn ? undefined : "opacity-[0.38]"}
@@ -346,6 +359,10 @@ export default function PrivacySettingsPage() {
   return (
     <SettingsShell title="Privacy">
       <div className="flex flex-col gap-6 px-3 pt-4 md:px-0 md:pt-0">
+        <p role="status" className="text-caption text-(--ink-2)">
+          {saveError ?? (!privacyLoaded ? "Loading saved privacy settings..." : mapSaving || savingKey ? "Saving privacy settings..." : "Showing your saved privacy settings.")}
+        </p>
+        {!privacyLoaded && saveError && <Button onClick={() => setLoadAttempt(n => n + 1)}>Try again</Button>}
         <section className="flex flex-col gap-2">
           <h2 className="px-3 text-overline text-(--ink-3)">Location</h2>
           <ItemGroup className="gap-1">{locationCard}</ItemGroup>
@@ -385,7 +402,7 @@ export default function PrivacySettingsPage() {
               </ItemContent>
               <Switch
                 checked={toggles.requireVerifiedMatches}
-                disabled={savingKey === "requireVerifiedMatches"}
+                disabled={!privacyLoaded || Boolean(savingKey) || mapSaving}
                 onCheckedChange={(checked) =>
                   void setBacked("requireVerifiedMatches", checked)
                 }

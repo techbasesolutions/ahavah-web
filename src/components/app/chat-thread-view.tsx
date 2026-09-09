@@ -7,6 +7,7 @@ import { BlockReportSheet } from "@/components/app/block-report-sheet";
 import { TextBubble } from "@/components/app/chat-bubble";
 import { ChatHeader } from "@/components/app/chat-header";
 import { ChatInput } from "@/components/app/chat-input";
+import { Button } from "@/components/ui/button";
 import { sampleByName } from "@/lib/profile-sample";
 import { photoOrGradient } from "@/lib/photo-or-gradient";
 import { chatClient } from "@/lib/chat-client";
@@ -79,7 +80,7 @@ function failureText(reason?: ChatMessage["failureReason"]): {
       return { title: "This message could not be delivered", hint: "(not delivered)" };
     case "server-error":
     default:
-      return { title: "Failed to send", hint: "(tap to retry)" };
+      return { title: "Delivery not confirmed", hint: "Check the conversation before sending again." };
   }
 }
 
@@ -175,6 +176,8 @@ export function ChatThreadView({ id }: Props) {
     isHydrated,
     theyAreTyping,
     send,
+    retry,
+    discard,
     setMyTyping,
     reactions,
     react,
@@ -189,6 +192,7 @@ export function ChatThreadView({ id }: Props) {
 
   const searchParams = useSearchParams();
   const prefill = searchParams?.get("prefill") ?? null;
+  const recoveryId = searchParams?.get("message") ?? null;
   useEffect(() => {
     if (!prefill) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -239,8 +243,10 @@ export function ChatThreadView({ id }: Props) {
   };
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages.length, theyAreTyping]);
+    const target = recoveryId ? document.getElementById(`message-${recoveryId}`) : null;
+    if (target) { target.scrollIntoView({ block: "center" }); target.focus(); }
+    else endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages.length, theyAreTyping, recoveryId]);
 
   useEffect(() => {
     if (!myUuid || !id) return;
@@ -299,6 +305,8 @@ export function ChatThreadView({ id }: Props) {
               onToggleTranslation={() => toggleTranslation(m.id)}
             >
               <span
+                id={`message-${m.id}`}
+                tabIndex={-1}
                 className={cn(
                   m.status === "pending" && "opacity-70",
                   m.status === "failed" && "italic text-red-500",
@@ -318,6 +326,14 @@ export function ChatThreadView({ id }: Props) {
                     className="ml-2 text-caption not-italic"
                   >
                     {failureText(m.failureReason).hint}
+                    {m.fromUserId === myUuid && (
+                      <span className="flex flex-wrap gap-2 mt-2">
+                        {(!m.failureReason || ["server-error", "rate-limited"].includes(m.failureReason)) && (
+                          <Button size="sm" onClick={() => retry(m.id)}>Send again</Button>
+                        )}
+                        <Button size="sm" variant="ghost" onClick={() => discard(m.id)}>Discard saved message</Button>
+                      </span>
+                    )}
                   </span>
                 )}
               </span>

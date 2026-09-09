@@ -221,7 +221,7 @@ export function useNextAction(input: {
       )?.with_profile;
       const name = peer?.firstName ?? null;
       const title = name ? `Your message to ${name} did not send` : "Your message did not send";
-      const chatHref = `/chat/${encodeURIComponent(failedMessage.threadId)}`;
+      const chatHref = `/chat/${encodeURIComponent(failedMessage.threadId)}?message=${encodeURIComponent(failedMessage.id)}`;
       const photoSource = peer
         ? photoOrGradient(
             {
@@ -241,8 +241,8 @@ export function useNextAction(input: {
           tone: "warn",
           kicker: "Not sent",
           title,
-          body: `Written ${writtenAtLabel(toIso(failedMessage.serverTime))}. It is saved, so nothing is lost.`,
-          primaryLabel: "Try again",
+          body: `Written ${writtenAtLabel(toIso(failedMessage.serverTime))}. Review the saved message and its delivery status.`,
+          primaryLabel: "Review message",
           primaryHref: chatHref,
           secondaryLabel: "Open the chat",
           secondaryHref: chatHref,
@@ -483,7 +483,7 @@ export function useNextAction(input: {
           tone: "calm",
           kicker: "Suggestion",
           title: "Add your city",
-          body: "You are shown at your country's centre. Add your city so people nearby can find you.",
+          body: "Add your city to appear on the map when location sharing and map visibility are enabled.",
           primaryLabel: "Add city",
           primaryHref: "/profile/edit",
           secondaryLabel: "Appear on the map",

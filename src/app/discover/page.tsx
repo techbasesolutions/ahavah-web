@@ -40,6 +40,7 @@ import { useProfile } from "@/lib/use-profile";
 import { applyMapLens, isWorldSpan, loadLensBbox } from "@/lib/map-lens";
 import { cn } from "@/lib/utils";
 import { readOnboarded } from "@/lib/onboarded-storage";
+import { getSessionToken } from "@/lib/api-client";
 import { firstMissingStepFor, isDiscoverEligible } from "@/lib/profile-completeness";
 import { useDecisions } from "@/lib/use-decisions";
 import { useDiscoverDeck } from "@/lib/use-discover-deck";
@@ -105,6 +106,7 @@ export default function DiscoverPage() {
   // Soft-completeness gate.
   useEffect(() => {
     if (!loaded) return;
+    if (!getSessionToken()) { router.replace("/auth/sign-in"); return; }
     if (readOnboarded()) return;
     if (!isDiscoverEligible(userProfile)) {
       const missingStep = firstMissingStepFor(userProfile);
@@ -461,7 +463,7 @@ export default function DiscoverPage() {
   }, [photoIndex, cyclePhotos, candidate]);
 
   // Loading / redirect guard.
-  if (!loaded || (loaded && !readOnboarded() && !isDiscoverEligible(userProfile))) {
+  if (!loaded || !getSessionToken() || (loaded && !readOnboarded() && !isDiscoverEligible(userProfile))) {
     return (
       <PageShell bottomPad="nav-fixed" desktopShell="sidebar" topBarTitle="Discover" topBarBack={false}>
         <h1 className="sr-only">Discover</h1>

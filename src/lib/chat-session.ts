@@ -19,6 +19,8 @@
  * SSR-safe: returns `null` when localStorage is unavailable.
  */
 
+import { clearAccountData } from "@/lib/session-lifecycle";
+
 const SESSION_TOKEN_KEY = "ahavah.session-token";
 const MY_UUID_KEY = "ahavah.my-uuid";
 
@@ -68,6 +70,8 @@ export function readChatSession(): { myUuid: string; sessionToken: string } | nu
 export function writeChatSession(session: ChatSession): void {
   if (typeof window === "undefined") return;
   try {
+    const previous = window.localStorage.getItem(MY_UUID_KEY);
+    if (previous && session.myUuid && previous !== session.myUuid) void clearAccountData();
     // Guard against null / undefined being coerced to the literal strings
     // "null" / "undefined" by setItem(). /check-otp returns
     // person_uuid: null for fresh onboardees (no person row yet) — we
@@ -91,6 +95,7 @@ export function writeChatSession(session: ChatSession): void {
 /** Wipe the chat session. Called on sign-out. */
 export function clearChatSession(): void {
   if (typeof window === "undefined") return;
+  void clearAccountData();
   try {
     window.localStorage.removeItem(MY_UUID_KEY);
     window.localStorage.removeItem(SESSION_TOKEN_KEY);

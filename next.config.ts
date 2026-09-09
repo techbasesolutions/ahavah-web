@@ -14,7 +14,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/api/:path*",
-        destination: "https://api.ahavah.app/:path*",
+        destination: `${process.env.AHAVAH_API_ORIGIN ?? (process.env.NODE_ENV === "development" ? "http://127.0.0.1:5000" : "https://api.ahavah.app")}/:path*`,
       },
     ];
   },

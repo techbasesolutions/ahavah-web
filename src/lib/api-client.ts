@@ -18,6 +18,8 @@
  * the same return shape as `post` plus an optional `onProgress` callback.
  */
 
+import { clearAccountData, sessionEpoch } from "@/lib/session-lifecycle";
+
 const BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5000";
 
@@ -30,7 +32,6 @@ const SESSION_TOKEN_KEY = "ahavah.session-token";
 let _sessionToken: string | null = null;
 
 export function getSessionToken(): string | null {
-  if (_sessionToken) return _sessionToken;
   if (typeof window === "undefined") return null;
   try {
     const raw = window.localStorage.getItem(SESSION_TOKEN_KEY);
@@ -45,7 +46,7 @@ export function getSessionToken(): string | null {
       try { window.localStorage.removeItem(SESSION_TOKEN_KEY); } catch { /* */ }
     }
   } catch {
-    _sessionToken = null;
+    // Storage denied: retain this tab's in-memory credential.
   }
   // Backfill the ahavah.authed cookie for users who signed in before
   // the cookie existed (localStorage token present, cookie missing).
@@ -77,6 +78,8 @@ export function getSessionToken(): string | null {
  */
 export function setSessionToken(token: string | null | undefined): void {
   if (token === undefined) return;
+  const previous = getSessionToken();
+  if (previous !== token) void clearAccountData();
   _sessionToken = token;
   if (typeof window === "undefined") return;
   try {
@@ -190,10 +193,11 @@ function maybeRedirectForEdgeStatus(status: number, url: string): void {
   }
 }
 
-async function parseResponse<T>(res: Response): Promise<T> {
+async function parseResponse<T>(res: Response, isCurrent: () => boolean): Promise<T> {
   const contentType = res.headers.get("content-type") ?? "";
   const isJson = contentType.includes("application/json");
   const body: unknown = isJson ? await res.json().catch(() => null) : await res.text();
+  if (!isCurrent()) throw new ApiError(409, null, "Session changed during response");
 
   if (!res.ok) {
     // Global edge-status handling — fires BEFORE we throw so the
@@ -222,6 +226,7 @@ async function request<T>(
     "Content-Type": "application/json",
   };
   const token = getSessionToken();
+  const epoch = sessionEpoch();
   if (token) headers["Authorization"] = `Bearer ${token}`;
   const init: RequestInit = {
     method,
@@ -232,7 +237,24 @@ async function request<T>(
     init.body = JSON.stringify(payload);
   }
   const res = await fetch(url, init);
-  return parseResponse<T>(res);
+  if (epoch !== sessionEpoch() || token !== getSessionToken()) {
+    throw new ApiError(409, null, "Session changed during request");
+  }
+  const result = await parseResponse<T>(res, () => epoch === sessionEpoch() && token === getSessionToken());
+  if (epoch !== sessionEpoch() || token !== getSessionToken()) throw new ApiError(409, null, "Session changed during response");
+  return result;
+}
+
+export async function signOutSession(): Promise<void> {
+  const token = getSessionToken();
+  setSessionToken(null);
+  // Also clear when storage was denied or the token had already expired.
+  await clearAccountData();
+  try {
+    if (token) await fetch(`${BASE_URL}/sign-out`, {
+      method: "POST", headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(5000),
+    });
+  } catch { /* Local teardown must not depend on network availability. */ }
 }
 
 export type ProgressEvent = {
@@ -255,11 +277,13 @@ function postMultipart<T>(
     xhr.open("POST", url, true);
     xhr.withCredentials = true;
     const token = getSessionToken();
+    const epoch = sessionEpoch();
+    const isCurrent = () => epoch === sessionEpoch() && token === getSessionToken();
     if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
 
     if (options?.onProgress) {
       xhr.upload.onprogress = (e) => {
-        if (e.lengthComputable) {
+        if (isCurrent() && e.lengthComputable) {
           options.onProgress!({
             loadedBytes: e.loaded,
             totalBytes: e.total,
@@ -269,6 +293,7 @@ function postMultipart<T>(
     }
 
     xhr.onload = () => {
+      if (!isCurrent()) { reject(new ApiError(409, null, "Session changed during upload")); return; }
       const contentType = xhr.getResponseHeader("content-type") ?? "";
       const isJson = contentType.includes("application/json");
       let body: unknown = xhr.responseText;

@@ -3,19 +3,19 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 
 import type { Profile } from "@/lib/profile-schema";
+import { SESSION_RESET, sessionEpoch } from "@/lib/session-lifecycle";
 import {
   loadProfileFromCache,
   saveProfileToCache,
   clearProfileCache,
 } from "@/lib/use-profile-storage";
-import { apiClient, ApiError, setSessionToken } from "@/lib/api-client";
-import { clearChatSession, writeChatSession } from "@/lib/chat-session";
+import { apiClient, ApiError, signOutSession } from "@/lib/api-client";
+import { writeChatSession } from "@/lib/chat-session";
 import { cdnUrlFor } from "@/lib/photo-storage";
 import type { PhotoRecord } from "@/lib/photo-types";
 import {
   readOnboarded,
   writeOnboarded,
-  clearOnboarded,
 } from "@/lib/onboarded-storage";
 
 // Re-export so existing call sites that import { writeOnboarded } from
@@ -634,6 +634,7 @@ export function useProfile(): UseProfileResult {
   }, [profile]);
 
   const refreshProfile = useCallback(async () => {
+    const epoch = sessionEpoch();
     // The localStorage `ahavah.onboarded` flag is a CACHE of server
     // truth, NOT the source of truth. We probe /me first — if the
     // backend treats the session as onboarded (returns 200 with a
@@ -664,6 +665,7 @@ export function useProfile(): UseProfileResult {
       // ahavah.my-uuid is missing for users who graduated via
       // /finish-onboarding. Without it `useInbox` sits in a permanent
       // skeleton and the chat WebSocket can't SASL-bind.
+      if (epoch !== sessionEpoch()) return;
       const personUuid = typeof me.person_uuid === "string" ? me.person_uuid : null;
       if (personUuid) {
         writeChatSession({ myUuid: personUuid });
@@ -801,6 +803,16 @@ export function useProfile(): UseProfileResult {
     void refreshProfile();
   }, [refreshProfile]);
 
+  useEffect(() => {
+    const reset = () => {
+      profileRef.current = {};
+      setProfileState({});
+      lastServerSnapshot.current = null;
+    };
+    window.addEventListener(SESSION_RESET, reset);
+    return () => window.removeEventListener(SESSION_RESET, reset);
+  }, []);
+
   const update = useCallback(
     async (patch: Partial<Profile>) => {
       // Read from ref (synchronously up-to-date) NOT from the closure
@@ -885,19 +897,10 @@ export function useProfile(): UseProfileResult {
   );
 
   const signOut = useCallback(async () => {
-    try {
-      await apiClient.post("/sign-out", {});
-    } catch {
-      // Server-side sign-out may fail (network, already expired session)
-      // but the local cleanup below MUST happen regardless or we leave
-      // the UI in a logged-in-looking state.
-    }
-    clearProfileCache();
-    clearChatSession();
-    setSessionToken(null);
-    clearOnboarded();
     setProfileState({});
+    profileRef.current = {};
     lastServerSnapshot.current = null;
+    await signOutSession();
   }, []);
 
   const finishOnboarding = useCallback(async () => {

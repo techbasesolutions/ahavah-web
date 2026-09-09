@@ -45,31 +45,66 @@ afterEach(async () => {
 });
 
 describe("chat-cache", () => {
+  it("isolates two accounts even when peer and message ids coincide", async () => {
+    await appendMessage("alice", msg({ id: "same", threadId: "peer", body: "Alice private" }));
+    await appendMessage("bob", msg({ id: "same", threadId: "peer", body: "Bob private" }));
+    expect((await getThreadHistory("alice", "peer"))[0].body).toBe("Alice private");
+    expect((await getThreadHistory("bob", "peer"))[0].body).toBe("Bob private");
+  });
+
+  it("retains old failed messages for recovery while pruning actual successful history", async () => {
+    await appendMessage("me", msg({ id: "old-failure", threadId: "peer", status: "failed" }));
+    for (let i = 0; i < 100; i++) {
+      await appendMessage("me", msg({ id: `new-${i}`, threadId: "peer", serverTime: new Date(Date.UTC(2026, 8, 8, 0, i)).toISOString() }));
+    }
+    const all = await getThreadHistory("me", "peer", 1000);
+    expect(all).toHaveLength(51);
+    expect((await getThreadHistory("me", "peer", 50)).some(m => m.id === "old-failure")).toBe(true);
+  });
+
+  it("prevents an in-flight open/write from restoring data after teardown", async () => {
+    const write = appendMessage("me", msg({ id: "late", threadId: "peer" }));
+    const clear = clearAll();
+    await Promise.all([write, clear]);
+    expect(await getThreadHistory("me", "peer")).toEqual([]);
+  });
+
+  it("discards legacy ownerless messages on schema upgrade", async () => {
+    await new Promise<void>((resolve, reject) => {
+      const req = indexedDB.open("ahavah-chat", 1);
+      req.onupgradeneeded = () => {
+        req.result.createObjectStore("messages", { keyPath: "id" }).put(msg({ id: "legacy", threadId: "peer" }));
+      };
+      req.onsuccess = () => { req.result.close(); resolve(); };
+      req.onerror = () => reject(req.error);
+    });
+    expect(await getThreadHistory("me", "peer")).toEqual([]);
+  });
   it("appendMessage + getThreadHistory roundtrip", async () => {
-    await appendMessage(msg({ id: "1", threadId: "thread-a", body: "first" }));
-    await appendMessage(msg({ id: "2", threadId: "thread-a", body: "second", serverTime: "2026-05-12T00:00:01.000Z" }));
-    const history = await getThreadHistory("thread-a");
+    await appendMessage("me", msg({ id: "1", threadId: "thread-a", body: "first" }));
+    await appendMessage("me", msg({ id: "2", threadId: "thread-a", body: "second", serverTime: "2026-05-12T00:00:01.000Z" }));
+    const history = await getThreadHistory("me", "thread-a");
     expect(history.map((m) => m.body)).toEqual(["first", "second"]);
   });
 
   it("isolates threads", async () => {
-    await appendMessage(msg({ id: "1", threadId: "a", body: "alice-msg" }));
-    await appendMessage(msg({ id: "2", threadId: "b", body: "bob-msg" }));
-    expect((await getThreadHistory("a")).map((m) => m.body)).toEqual(["alice-msg"]);
-    expect((await getThreadHistory("b")).map((m) => m.body)).toEqual(["bob-msg"]);
+    await appendMessage("me", msg({ id: "1", threadId: "a", body: "alice-msg" }));
+    await appendMessage("me", msg({ id: "2", threadId: "b", body: "bob-msg" }));
+    expect((await getThreadHistory("me", "a")).map((m) => m.body)).toEqual(["alice-msg"]);
+    expect((await getThreadHistory("me", "b")).map((m) => m.body)).toEqual(["bob-msg"]);
   });
 
   it("sorts by serverTime ascending", async () => {
-    await appendMessage(msg({ id: "z", threadId: "t", body: "late",  serverTime: "2026-05-12T00:00:05.000Z" }));
-    await appendMessage(msg({ id: "a", threadId: "t", body: "early", serverTime: "2026-05-12T00:00:01.000Z" }));
-    await appendMessage(msg({ id: "m", threadId: "t", body: "mid",   serverTime: "2026-05-12T00:00:03.000Z" }));
-    const out = await getThreadHistory("t");
+    await appendMessage("me", msg({ id: "z", threadId: "t", body: "late",  serverTime: "2026-05-12T00:00:05.000Z" }));
+    await appendMessage("me", msg({ id: "a", threadId: "t", body: "early", serverTime: "2026-05-12T00:00:01.000Z" }));
+    await appendMessage("me", msg({ id: "m", threadId: "t", body: "mid",   serverTime: "2026-05-12T00:00:03.000Z" }));
+    const out = await getThreadHistory("me", "t");
     expect(out.map((m) => m.body)).toEqual(["early", "mid", "late"]);
   });
 
   it("caps to limit, keeping most recent", async () => {
     for (let i = 0; i < 60; i++) {
-      await appendMessage(
+      await appendMessage("me",
         msg({
           id: `m${i}`,
           threadId: "cap",
@@ -78,7 +113,7 @@ describe("chat-cache", () => {
         }),
       );
     }
-    const out = await getThreadHistory("cap", 50);
+    const out = await getThreadHistory("me", "cap", 50);
     expect(out).toHaveLength(50);
     expect(out[0].body).toBe("10");
     expect(out[49].body).toBe("59");
@@ -86,7 +121,7 @@ describe("chat-cache", () => {
 
   it("custom limit", async () => {
     for (let i = 0; i < 10; i++) {
-      await appendMessage(
+      await appendMessage("me",
         msg({
           id: `m${i}`,
           threadId: "lim",
@@ -95,27 +130,27 @@ describe("chat-cache", () => {
         }),
       );
     }
-    const out = await getThreadHistory("lim", 3);
+    const out = await getThreadHistory("me", "lim", 3);
     expect(out.map((m) => m.body)).toEqual(["7", "8", "9"]);
   });
 
   it("overwrites on duplicate id (pending → sent flip)", async () => {
-    await appendMessage(msg({ id: "x", threadId: "t", body: "pending body", status: "pending" }));
-    await appendMessage(msg({ id: "x", threadId: "t", body: "pending body", status: "sent" }));
-    const out = await getThreadHistory("t");
+    await appendMessage("me", msg({ id: "x", threadId: "t", body: "pending body", status: "pending" }));
+    await appendMessage("me", msg({ id: "x", threadId: "t", body: "pending body", status: "sent" }));
+    const out = await getThreadHistory("me", "t");
     expect(out).toHaveLength(1);
     expect(out[0].status).toBe("sent");
   });
 
   it("returns [] for unknown thread", async () => {
-    expect(await getThreadHistory("nope")).toEqual([]);
+    expect(await getThreadHistory("me", "nope")).toEqual([]);
   });
 
   it("clearAll wipes every thread", async () => {
-    await appendMessage(msg({ id: "1", threadId: "a", body: "x" }));
-    await appendMessage(msg({ id: "2", threadId: "b", body: "y" }));
+    await appendMessage("me", msg({ id: "1", threadId: "a", body: "x" }));
+    await appendMessage("me", msg({ id: "2", threadId: "b", body: "y" }));
     await clearAll();
-    expect(await getThreadHistory("a")).toEqual([]);
-    expect(await getThreadHistory("b")).toEqual([]);
+    expect(await getThreadHistory("me", "a")).toEqual([]);
+    expect(await getThreadHistory("me", "b")).toEqual([]);
   });
 });

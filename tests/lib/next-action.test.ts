@@ -265,7 +265,7 @@ describe("next-action: blocking card names the ACTUAL missing item (2026-09-08, 
       missingRequiredKeys: [],
     });
     expect(body).toBe(
-      "Members only see profiles with a photo and an about section. Yours is hidden until then.",
+      "Add a photo and an about section to help members get to know you.",
     );
     expect(finishProfilePrimaryLabel({ hasPhoto: false, hasBio: true })).toBe("Add a photo");
   });
@@ -286,7 +286,7 @@ describe("next-action: blocking card names the ACTUAL missing item (2026-09-08, 
       missingRequiredKeys: ["age", "country"],
     });
     expect(body).toBe(
-      "Members only see profiles with a photo and an about section. Yours is hidden until then.",
+      "Add a photo and an about section to help members get to know you.",
     );
   });
 
@@ -296,7 +296,7 @@ describe("next-action: blocking card names the ACTUAL missing item (2026-09-08, 
       hasBio: true,
       missingRequiredKeys: ["age", "country", "assembly"],
     });
-    expect(body).toBe("A few required details are missing, so your profile is not shown in the deck yet.");
+    expect(body).toBe("A few profile details are missing. You can finish them now.");
   });
 
   it("(c) eligible + missing about still gets the unchanged soft profile-finish treatment", () => {
