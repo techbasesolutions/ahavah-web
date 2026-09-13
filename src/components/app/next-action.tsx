@@ -49,7 +49,6 @@ const ROW_ICON: Record<NextActionKind, LucideIcon> = {
   "verification-pending": Clock,
   "profile-finish": ListChecks,
   "add-city": MapPin,
-  "profile-nudge": Sparkles,
   "premium-upsell": Star,
   "steady-deck": Sparkles,
 };

@@ -23,7 +23,6 @@ export type NextActionKind =
   | "verification-pending"
   | "profile-finish"
   | "add-city"
-  | "profile-nudge"
   | "premium-upsell"
   | "steady-deck";
 
@@ -50,7 +49,6 @@ export const NEXT_ACTION_RANK: Readonly<Record<NextActionKind, number>> = {
   "verification-pending": 4,
   "profile-finish": 5,
   "add-city": 6,
-  "profile-nudge": 7,
   "premium-upsell": 8,
   "steady-deck": 9,
 };

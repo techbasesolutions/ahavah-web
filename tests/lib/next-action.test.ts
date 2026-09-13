@@ -34,7 +34,6 @@ describe("next-action: NEXT_ACTION_RANK", () => {
       "verification-pending": 4,
       "profile-finish": 5,
       "add-city": 6,
-      "profile-nudge": 7,
       "premium-upsell": 8,
       "steady-deck": 9,
     });
@@ -80,12 +79,11 @@ describe("next-action: selectNextAction", () => {
       item("verification-pending"),
       item("premium-upsell"),
       item("add-city"),
-      item("profile-nudge"),
     ];
     const { primary, more } = selectNextAction(live);
     expect(primary?.kind).toBe("verification-pending");
-    // Rank order: add-city (6) < profile-nudge (7) < premium-upsell (8).
-    expect(more.map((m) => m.kind)).toEqual(["add-city", "profile-nudge", "premium-upsell"]);
+    // Rank order: add-city (6) < premium-upsell (8).
+    expect(more.map((m) => m.kind)).toEqual(["add-city", "premium-upsell"]);
   });
 
   it("only surfaces steady-deck when it is the sole live entry (caller's responsibility)", () => {
@@ -179,7 +177,6 @@ describe("next-action: greetingFor (2026-09-08 prod bug fix)", () => {
       "new-match",
       "verification-pending",
       "add-city",
-      "profile-nudge",
       "premium-upsell",
       "steady-deck",
     ];
@@ -328,5 +325,18 @@ describe("next-action: writtenAtLabel", () => {
 
   it("renders empty string for an unparseable timestamp", () => {
     expect(writtenAtLabel("not-a-date", now)).toBe("");
+  });
+});
+
+describe("profile-nudge removal", () => {
+  it("never ranks a profile-nudge kind because no screen can satisfy it", () => {
+    expect(Object.keys(NEXT_ACTION_RANK)).not.toContain("profile-nudge");
+  });
+  it("selects premium-upsell, not an answers nudge, for a complete member without prompt cards", () => {
+    const live = [
+      { kind: "premium-upsell" as const, primary: { kind: "premium-upsell" } as never, row: { kind: "premium-upsell" } as never },
+    ];
+    const { primary } = selectNextAction(live);
+    expect(primary?.kind).toBe("premium-upsell");
   });
 });

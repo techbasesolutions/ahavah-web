@@ -50,11 +50,9 @@
  *      to idle on every mount).
  *   5. add-city               REAL — profile.citySet, the same signal
  *      CityNudgeBanner reads (spread in from ahavah_extra by useProfile).
- *   6. profile-nudge          REAL — profile.promptCards empty/undefined.
- *      Copy is fixed ("Add two more answers") because there's no
- *      real "how many answers should you have" denominator to compute a
- *      precise remaining count from — using a dynamic number here would
- *      be inventing a signal that doesn't exist. See the report for detail.
+ *   6. profile-nudge          REMOVED 2026-09-13 — no screen ever wrote
+ *      profile.promptCards, so this card's "Add answers" CTA landed on
+ *      /profile/edit with nothing to add. Unsatisfiable for every member.
  *   7. premium-upsell         REAL — isPremium(profile).
  *   8. steady-deck            REAL — the caller's own deck item count
  *      (reused from useDiscoverDeck, not re-fetched here). The second
@@ -498,30 +496,8 @@ export function useNextAction(input: {
       });
     }
 
-    // 6. profile-nudge (answers / prompt cards) -----------------------
-    const hasAnswers = Boolean(profile.promptCards && profile.promptCards.length > 0);
-    if (!hasAnswers) {
-      live.push({
-        kind: "profile-nudge",
-        primary: {
-          kind: "profile-nudge",
-          tone: "calm",
-          kicker: "Suggestion",
-          title: "Add two more answers",
-          body: "Profiles with answers get more likes.",
-          primaryLabel: "Add answers",
-          primaryHref: "/profile/edit",
-          secondaryLabel: "See profile",
-          secondaryHref: "/profile/edit",
-        },
-        row: {
-          kind: "profile-nudge",
-          title: "Add two more answers",
-          subtitle: "Profiles with answers get more likes",
-          href: "/profile/edit",
-        },
-      });
-    }
+    // profile-nudge removed 2026-09-13: no screen writes promptCards, so the
+    // "Add two more answers" nudge was unsatisfiable for every member.
 
     // 7. premium-upsell ------------------------------------------------
     if (!isPremium(profile)) {
