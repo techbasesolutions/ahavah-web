@@ -33,6 +33,11 @@ const SECTIONS: ReadonlyArray<{ slug: string; heading: string; body: string }> =
     body: "Stripe (payments + Identity), our infrastructure providers (DigitalOcean, Vercel), email delivery (Resend). We don't sell your data. We don't share verification documents with other members.",
   },
   {
+    slug: "spotlight",
+    heading: "Spotlight",
+    body: "Spotlight features members on the Ahavah Facebook page, Instagram and the weekly community email, only if you opt in. If you do, we share your first name, age, country and one photo you choose, and you approve each card before it is posted. You can turn Spotlight off any time in Settings, Privacy; we then remove the card and delete posts we control. Posts on Instagram cannot be removed by us automatically and are removed by hand.",
+  },
+  {
     slug: "retention",
     heading: "Retention",
     body: "Account data stays until you delete. Deletion is permanent within 30 days. Anonymized aggregate analytics may be retained beyond that.",

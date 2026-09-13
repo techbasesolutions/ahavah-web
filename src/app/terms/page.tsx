@@ -39,6 +39,11 @@ const SECTIONS: ReadonlyArray<{ slug: string; heading: string; body: string }> =
     body: "You keep ownership of what you post. By posting you grant us a worldwide non-exclusive license to host, display, and process your content so the service works.",
   },
   {
+    slug: "spotlight",
+    heading: "Spotlight",
+    body: "If you opt in to Spotlight you grant Ahavah a limited, non-exclusive, revocable licence to publish the first name, age, country and the photo you approve for each Spotlight card on the Ahavah Facebook page, Instagram and member emails. You can revoke it at any time by turning Spotlight off in Settings, Privacy. Revocation stops future use; we remove existing posts we control within seven days.",
+  },
+  {
     slug: "termination",
     heading: "Termination",
     body: "You can delete your account at any time from Settings. We can suspend or delete accounts that violate these terms or applicable law.",

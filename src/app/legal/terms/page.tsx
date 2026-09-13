@@ -35,6 +35,11 @@ export default function TermsPage() {
           body: "You provide a real photo of yourself and accurate profile information. We may suspend accounts that misrepresent identity or violate our community standards.",
         },
         {
+          slug: "spotlight",
+          heading: "Spotlight",
+          body: "If you opt in to Spotlight you grant Ahavah a limited, non-exclusive, revocable licence to publish the first name, age, country and the photo you approve for each Spotlight card on the Ahavah Facebook page, Instagram and member emails. You can revoke it at any time by turning Spotlight off in Settings, Privacy. Revocation stops future use; we remove existing posts we control within seven days.",
+        },
+        {
           slug: "updates",
           heading: "Updates",
           body: "We may update these terms as the product and the legal copy mature. Continued use after a meaningful change implies acceptance.",
