@@ -2,6 +2,7 @@
 
 import { LegalArticleShell } from "@/components/app/legal-article-shell";
 import { useRequireSession } from "@/lib/use-require-session";
+import { SPOTLIGHT_PRIVACY } from "@/lib/legal-spotlight-copy";
 
 export default function PrivacyPage() {
   useRequireSession();
@@ -30,8 +31,8 @@ export default function PrivacyPage() {
         },
         {
           slug: "spotlight",
-          heading: "Spotlight",
-          body: "Spotlight features members on the Ahavah Facebook page, Instagram and the weekly community email, only if you opt in. If you do, we share your first name, age, country and one photo you choose, and you approve each card before it is posted. You can turn Spotlight off any time in Settings, Privacy; we then remove the card and delete posts we control. Posts on Instagram cannot be removed by us automatically and are removed by hand.",
+          heading: SPOTLIGHT_PRIVACY.title,
+          body: SPOTLIGHT_PRIVACY.body,
         },
         {
           slug: "your-rights",

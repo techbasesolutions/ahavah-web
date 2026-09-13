@@ -42,6 +42,9 @@ export type NextActionKind =
  * case gets "profile-finish": a soft, evergreen nudge slotted right
  * after verification-pending, honest that the profile already shows.
  */
+// Rank 7 is intentionally vacant: it was "profile-nudge", removed on
+// 2026-09-08 because its condition was unsatisfiable. The remaining ranks
+// keep their original numbers so the SOT board still reads across.
 export const NEXT_ACTION_RANK: Readonly<Record<NextActionKind, number>> = {
   "message-failed": 1,
   "new-match": 2,

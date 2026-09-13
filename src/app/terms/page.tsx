@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 
 import { MarketingHeader } from "@/components/app/marketing-header";
 import { MarketingFooter } from "@/components/app/marketing-footer";
+import { SPOTLIGHT_TERMS } from "@/lib/legal-spotlight-copy";
 
 const SECTIONS: ReadonlyArray<{ slug: string; heading: string; body: string }> = [
   {
@@ -40,8 +41,8 @@ const SECTIONS: ReadonlyArray<{ slug: string; heading: string; body: string }> =
   },
   {
     slug: "spotlight",
-    heading: "Spotlight",
-    body: "If you opt in to Spotlight you grant Ahavah a limited, non-exclusive, revocable licence to publish the first name, age, country and the photo you approve for each Spotlight card on the Ahavah Facebook page, Instagram and member emails. You can revoke it at any time by turning Spotlight off in Settings, Privacy. Revocation stops future use; we remove existing posts we control within seven days.",
+    heading: SPOTLIGHT_TERMS.title,
+    body: SPOTLIGHT_TERMS.body,
   },
   {
     slug: "termination",

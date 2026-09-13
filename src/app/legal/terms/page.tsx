@@ -2,6 +2,7 @@
 
 import { LegalArticleShell } from "@/components/app/legal-article-shell";
 import { useRequireSession } from "@/lib/use-require-session";
+import { SPOTLIGHT_TERMS } from "@/lib/legal-spotlight-copy";
 
 export default function TermsPage() {
   useRequireSession();
@@ -36,8 +37,8 @@ export default function TermsPage() {
         },
         {
           slug: "spotlight",
-          heading: "Spotlight",
-          body: "If you opt in to Spotlight you grant Ahavah a limited, non-exclusive, revocable licence to publish the first name, age, country and the photo you approve for each Spotlight card on the Ahavah Facebook page, Instagram and member emails. You can revoke it at any time by turning Spotlight off in Settings, Privacy. Revocation stops future use; we remove existing posts we control within seven days.",
+          heading: SPOTLIGHT_TERMS.title,
+          body: SPOTLIGHT_TERMS.body,
         },
         {
           slug: "updates",
