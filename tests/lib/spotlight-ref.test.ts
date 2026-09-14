@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { SPOTLIGHT_REF_COOKIE, clearSpotlightRef, readSpotlightRef } from "@/lib/spotlight-ref";
 
 /**
- * document.cookie stub — a minimal cookie jar good enough to exercise
+ * document.cookie stub: a minimal cookie jar good enough to exercise
  * readSpotlightRef/clearSpotlightRef without depending on jsdom's own
  * cookie-jar semantics (which vary by test origin/protocol).
  */

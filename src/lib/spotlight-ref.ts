@@ -3,9 +3,9 @@
  *
  * `/s/[key]` sets a 7-day `ahavah.spotlight_ref` cookie on the click-
  * through redirect (see src/app/s/[key]/route.ts). finishOnboarding
- * (use-profile.ts) reads it straight off document.cookie — no
- * localStorage mirror needed, since onboarding always continues on the
- * same site the cookie was set on — and sends it as spotlight_ref on the
+ * (use-profile.ts) reads it straight off document.cookie: no
+ * localStorage mirror is needed, since onboarding always continues on the
+ * same site the cookie was set on, and sends it as spotlight_ref on the
  * finish-onboarding POST, then clears it once that POST succeeds so a
  * later graduation never re-sends a stale ref.
  */
