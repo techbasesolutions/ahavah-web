@@ -17,6 +17,7 @@ import {
   readOnboarded,
   writeOnboarded,
 } from "@/lib/onboarded-storage";
+import { clearSpotlightRef, readSpotlightRef } from "@/lib/spotlight-ref";
 
 // Re-export so existing call sites that import { writeOnboarded } from
 // "@/lib/use-profile" keep working without churn.
@@ -914,10 +915,17 @@ export function useProfile(): UseProfileResult {
       await refreshProfile();
       return null;
     }
+    // Carries the /s/<key> click through to sign-up: if the onboardee
+    // arrived via a spotlight campaign link, that cookie's key rides
+    // along on this POST so the backend can attribute the click. Cleared
+    // only once the POST actually succeeds, so a retry after a network
+    // failure still carries it.
+    const spotlightRef = readSpotlightRef();
     const graduated = await apiClient.post<{ person_uuid?: string }>(
       "/finish-onboarding",
-      {},
+      spotlightRef ? { spotlight_ref: spotlightRef } : {},
     );
+    clearSpotlightRef();
     writeOnboarded(true);
     // Post-graduation sync: PATCH the fields the onboardee schema didn't
     // accept (relationship_status, has_kids, looking_for, about, ...) so
