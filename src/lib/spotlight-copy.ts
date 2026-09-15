@@ -73,7 +73,7 @@ export const SPOTLIGHT_COPY = {
       footer: "This page has not changed anything yet.",
       // POST result 'new_revision': the server made a different card
       // instead of recording a decision, so the page reloads and asks
-      // again. Shown above the buttons on that second pass only.
+      // again. Shown above the card image on that second pass only.
       changedNotice:
         "This card changed, so nothing has been approved yet. Look at the new one and approve it if you are happy with it.",
     },
