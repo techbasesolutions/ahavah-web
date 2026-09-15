@@ -71,6 +71,11 @@ export const SPOTLIGHT_COPY = {
       approveButton: "Approve this card",
       skipButton: "Skip this card",
       footer: "This page has not changed anything yet.",
+      // POST result 'new_revision': the server made a different card
+      // instead of recording a decision, so the page reloads and asks
+      // again. Shown above the buttons on that second pass only.
+      changedNotice:
+        "This card changed, so nothing has been approved yet. Look at the new one and approve it if you are happy with it.",
     },
     approved: {
       heading: "Approved. We will email you when it is live.",
@@ -96,6 +101,25 @@ export const SPOTLIGHT_COPY = {
     paused: {
       heading: "Approvals are paused for a moment.",
       paragraph: "Nothing has changed. We will email you when this card can be approved.",
+    },
+    // POST 403 (the link was minted for a different mailbox) and the 409
+    // reasons that mean this link cannot decide this card: not_subject,
+    // not_found, and anything unrecognised. None of them is a connection
+    // failure, so none of them should read like one.
+    rejected: {
+      heading: "We could not record that decision.",
+      paragraph:
+        "This link may not be the one for this card. Nothing has changed. Open Settings, Privacy to manage Spotlight.",
+      button: "Open Settings, Privacy",
+    },
+    // POST 409 photo_not_owned: the photo on the card is no longer one we
+    // are allowed to post, usually because it was removed or is waiting on
+    // review again between the email and this click.
+    photoRejected: {
+      heading: "We could not use that photo.",
+      paragraph:
+        "It may have been removed, or it is waiting on review again. Nothing has been posted. Open the link again once your photos are settled.",
+      button: "Try again",
     },
     // invalid, expired and error reuse the confirm page states verbatim
     // (brief Step 1: "the confirm page states with the same copy"), so

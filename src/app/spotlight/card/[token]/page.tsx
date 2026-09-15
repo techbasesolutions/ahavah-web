@@ -32,10 +32,14 @@ import { SPOTLIGHT_COPY } from "@/lib/spotlight-copy";
  *       'skipped' | 'awaiting_member', expires_at, stale }
  *     400 invalid_token, 404 not found (treated as invalid), 410 expired
  *   POST /spotlight/card/<token> { decision: 'approve', photo_uuid } ->
- *     { ok, result: 'approved' } or { ok, already, status }
+ *     { ok, result: 'approved' | 'already' | 'new_revision' } or
+ *     { ok, already, status }. 'new_revision' is NOT a decision: the
+ *     server made a different card and is waiting to be asked again.
  *   POST /spotlight/card/<token> { decision: 'skip' } -> { ok }
- *     409 { error: 'approvals_disabled' } -> paused, any other 409 ->
- *     error; 410 { error: 'stale' } -> expired
+ *     409 { error: 'approvals_disabled' } -> paused,
+ *     409 { error: 'preview_unavailable' } -> unavailable,
+ *     409 { error: 'photo_not_owned' } -> photoRejected,
+ *     403 and any other 409 -> rejected; 410 { error: 'stale' } -> expired
  */
 
 type CardState =
@@ -45,18 +49,24 @@ type CardState =
   | "skipped"
   | "unavailable"
   | "paused"
+  | "rejected"
+  | "photoRejected"
   | "invalid"
   | "expired"
   | "error";
 
+// Every field the API can answer as null does: `age`, `country` and
+// `photo_uuid` come off the current revision or the profile row and are
+// null before one exists, and `photos` is the member's approved photo
+// list as objects, not bare urls (service/spotlight/approval.py).
 type CardGetResponse = {
   first_name: string;
-  age: number;
-  country: string;
+  age: number | null;
+  country: string | null;
   kind: string;
   caption: string;
-  photos: string[];
-  photo_uuid: string;
+  photos: { uuid: string; url: string }[] | null;
+  photo_uuid: string | null;
   revision: number;
   preview_available: boolean;
   image_url: string | null;
@@ -67,9 +77,10 @@ type CardGetResponse = {
 
 type CardPostResponse = {
   ok: boolean;
-  result?: "approved";
+  result?: "approved" | "already" | "new_revision";
   already?: boolean;
   status?: "approved" | "skipped" | "awaiting_member";
+  revision?: number;
 };
 
 const SETTINGS_PRIVACY_HREF = "/settings/privacy";
@@ -135,8 +146,13 @@ export default function SpotlightCardPage({
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [photoUuid, setPhotoUuid] = useState<string | null>(null);
   const [posting, setPosting] = useState(false);
-  // Bumped by the error state's "Try again" button to re-run the GET.
+  // Bumped by the error state's "Try again" button, and by a
+  // `new_revision` answer, to re-run the GET.
   const [attempt, setAttempt] = useState(0);
+  // True once a POST came back `new_revision`: the card on screen is not
+  // the one the member looked at, and no consent was recorded, so the
+  // default state carries a line saying so.
+  const [askAgain, setAskAgain] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -169,14 +185,26 @@ export default function SpotlightCardPage({
     };
   }, [token, attempt]);
 
-  // Shared by both decisions: a 409 with approvals_disabled is the
-  // "paused" state, any other 409 is the generic error, and a 410 means
-  // the token went stale mid-decision.
+  // Shared by both decisions. Every refusal the API can give has a named
+  // reason, and none of them is a connection failure, so none of them is
+  // allowed to land on the "We could not reach Ahavah" copy: that copy
+  // names the wrong cause and invites a retry that cannot help.
+  //   409 approvals_disabled  -> paused (an operator pause)
+  //   409 preview_unavailable -> unavailable (nothing rendered yet)
+  //   409 photo_not_owned     -> photoRejected (the photo went away)
+  //   409 anything else, 403  -> rejected (this link cannot decide this)
+  //   410                     -> expired (the token went stale mid-decision)
+  // A genuine transport failure, with no ApiError at all, still reaches
+  // the generic error state.
   function handlePostError(err: unknown) {
     if (err instanceof ApiError && err.status === 409) {
       const body = err.body as { error?: string } | null;
       if (body?.error === "approvals_disabled") setState("paused");
-      else setState("error");
+      else if (body?.error === "preview_unavailable") setState("unavailable");
+      else if (body?.error === "photo_not_owned") setState("photoRejected");
+      else setState("rejected");
+    } else if (err instanceof ApiError && err.status === 403) {
+      setState("rejected");
     } else if (err instanceof ApiError && err.status === 410) {
       setState("expired");
     } else {
@@ -192,9 +220,27 @@ export default function SpotlightCardPage({
         decision: "approve",
         photo_uuid: photoUuid,
       });
-      if (result.result === "approved" || result.status === "approved") setState("approved");
-      else if (result.status === "skipped") setState("skipped");
-      else if (result.ok) setState("approved");
+      // Branch on `result` explicitly. `approved` and `already` both mean
+      // the consent is on record. `new_revision` means the opposite: the
+      // server made a different card and recorded nothing, so re-run the
+      // GET and ask the member about the card that came back rather than
+      // telling them it is approved. The `{ ok, already, status }` shape
+      // (a replayed token) is the only other answer the API gives; any
+      // other body is not a contract this page knows, so it is an error
+      // rather than a guess.
+      if (result.result === "approved" || result.result === "already") {
+        setState("approved");
+      } else if (result.result === "new_revision") {
+        setAskAgain(true);
+        setState("loading");
+        setAttempt((a) => a + 1);
+      } else if (result.already && result.status === "approved") {
+        setState("approved");
+      } else if (result.already && result.status === "skipped") {
+        setState("skipped");
+      } else {
+        setState("error");
+      }
     } catch (err) {
       handlePostError(err);
     } finally {
@@ -230,6 +276,7 @@ export default function SpotlightCardPage({
           </Badge>
           <CardHeading>{COPY.default.headline}</CardHeading>
           <CardParagraph>{COPY.default.paragraph}</CardParagraph>
+          {askAgain ? <CardParagraph>{COPY.default.changedNotice}</CardParagraph> : null}
           {imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -243,7 +290,10 @@ export default function SpotlightCardPage({
               size="cta"
               tone="cta"
               onClick={() => void handleApprove()}
-              disabled={posting}
+              // No photo_uuid means the POST would be rejected with a 400
+              // before it decided anything, so the button must not look
+              // like it will work.
+              disabled={posting || !photoUuid}
               className="lg:w-auto lg:self-start lg:px-[34px]"
             >
               {COPY.default.approveButton}
@@ -306,10 +356,28 @@ export default function SpotlightCardPage({
     );
   }
 
-  if (state === "invalid" || state === "expired" || state === "error") {
+  // `rejected` and `photoRejected` join this block rather than the
+  // buttonless one above: both are dead ends for this link, and both give
+  // the member somewhere to go (Settings, Privacy, or a fresh read).
+  if (
+    state === "invalid" ||
+    state === "expired" ||
+    state === "error" ||
+    state === "rejected" ||
+    state === "photoRejected"
+  ) {
     const copy =
-      state === "invalid" ? CONFIRM_COPY.invalid : state === "expired" ? CONFIRM_COPY.expired : CONFIRM_COPY.error;
+      state === "invalid"
+        ? CONFIRM_COPY.invalid
+        : state === "expired"
+          ? CONFIRM_COPY.expired
+          : state === "rejected"
+            ? COPY.rejected
+            : state === "photoRejected"
+              ? COPY.photoRejected
+              : CONFIRM_COPY.error;
     const Icon = state === "expired" ? Clock : AlertCircle;
+    const retry = state === "error" || state === "photoRejected";
     return (
       <SpotlightShell wide={false}>
         <div className="flex min-h-0 flex-1 flex-col justify-center gap-4 lg:flex-none lg:justify-start lg:gap-5">
@@ -318,7 +386,7 @@ export default function SpotlightCardPage({
           </CardBadge>
           <CardHeading>{copy.heading}</CardHeading>
           <CardParagraph>{copy.paragraph}</CardParagraph>
-          {state === "error" ? (
+          {retry ? (
             <Button
               variant="outline"
               size="cta"

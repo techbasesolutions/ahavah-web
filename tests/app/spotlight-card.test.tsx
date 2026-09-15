@@ -41,7 +41,7 @@ function baseCard(overrides: Record<string, unknown> = {}) {
     country: "Jamaica",
     kind: "single",
     caption: "Loves long walks.",
-    photos: ["https://example.com/p1.jpg"],
+    photos: [{ uuid: "photo-abc", url: "https://example.com/p1.jpg" }],
     photo_uuid: "photo-abc",
     revision: 1,
     preview_available: true,
@@ -151,4 +151,107 @@ it("renders the invalid state when the GET rejects with a 404", async () => {
   api.get.mockRejectedValue(new ApiError(404, { error: "not_found" }));
   await renderPage();
   await screen.findByText("This link is not valid.");
+});
+
+// Fix wave item 1. `approve_card` answers with one of three results, and
+// only two of them mean the member consented. The third, `new_revision`,
+// means the server made a different card and recorded nothing; reporting
+// that as "Approved" claimed a consent the server never took.
+
+it("Approve lands on the approved state when the result is approved", async () => {
+  api.get.mockResolvedValue(baseCard());
+  api.post.mockResolvedValue({ ok: true, result: "approved" });
+  await renderPage();
+  fireEvent.click(await screen.findByRole("button", { name: "Approve this card" }));
+  await screen.findByText("Approved. We will email you when it is live.");
+});
+
+it("Approve lands on the approved state when the result is already", async () => {
+  api.get.mockResolvedValue(baseCard());
+  api.post.mockResolvedValue({ ok: true, result: "already" });
+  await renderPage();
+  fireEvent.click(await screen.findByRole("button", { name: "Approve this card" }));
+  await screen.findByText("Approved. We will email you when it is live.");
+});
+
+it("a new_revision result re-reads the card and asks again instead of reporting success", async () => {
+  api.get
+    .mockResolvedValueOnce(baseCard())
+    .mockResolvedValue(baseCard({ revision: 2, photo_uuid: "photo-def", image_url: "https://example.com/card-2.png" }));
+  api.post.mockResolvedValue({ ok: true, result: "new_revision", revision: 2 });
+  await renderPage();
+  fireEvent.click(await screen.findByRole("button", { name: "Approve this card" }));
+  await screen.findByText(
+    "This card changed, so nothing has been approved yet. Look at the new one and approve it if you are happy with it.",
+  );
+  expect(screen.queryByText("Approved. We will email you when it is live.")).not.toBeInTheDocument();
+  // The second GET is the re-read, and the new card is what is on screen.
+  expect(api.get).toHaveBeenCalledTimes(2);
+  expect(screen.getByRole("img", { name: "Your Spotlight card" })).toHaveAttribute(
+    "src",
+    "https://example.com/card-2.png",
+  );
+  expect(screen.getByRole("button", { name: "Approve this card" })).toBeEnabled();
+});
+
+it("an unrecognised approve result lands on the error state", async () => {
+  api.get.mockResolvedValue(baseCard());
+  api.post.mockResolvedValue({ ok: true, result: "something_else" });
+  await renderPage();
+  fireEvent.click(await screen.findByRole("button", { name: "Approve this card" }));
+  await screen.findByText("We could not reach Ahavah.");
+});
+
+it("a replayed token that reports already skipped lands on the skipped state", async () => {
+  api.get.mockResolvedValue(baseCard());
+  api.post.mockResolvedValue({ ok: true, already: true, status: "skipped" });
+  await renderPage();
+  fireEvent.click(await screen.findByRole("button", { name: "Approve this card" }));
+  await screen.findByText("Skipped. Nothing will be posted.");
+});
+
+// Fix wave, also-fix items: the POST refusals that are not connection
+// failures no longer read as one.
+
+it("a 409 preview_unavailable shows the unavailable copy", async () => {
+  api.get.mockResolvedValue(baseCard());
+  api.post.mockRejectedValue(new ApiError(409, { error: "preview_unavailable" }));
+  await renderPage();
+  fireEvent.click(await screen.findByRole("button", { name: "Approve this card" }));
+  await screen.findByText("Your card is still being prepared.");
+});
+
+it("a 409 photo_not_owned says the photo could not be used", async () => {
+  api.get.mockResolvedValue(baseCard());
+  api.post.mockRejectedValue(new ApiError(409, { error: "photo_not_owned" }));
+  await renderPage();
+  fireEvent.click(await screen.findByRole("button", { name: "Approve this card" }));
+  await screen.findByText("We could not use that photo.");
+  expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
+});
+
+it("a 403 says the decision was not recorded rather than blaming the connection", async () => {
+  api.get.mockResolvedValue(baseCard());
+  api.post.mockRejectedValue(new ApiError(403, { error: "forbidden" }));
+  await renderPage();
+  fireEvent.click(await screen.findByRole("button", { name: "Approve this card" }));
+  await screen.findByText("We could not record that decision.");
+  expect(screen.queryByText("We could not reach Ahavah.")).not.toBeInTheDocument();
+});
+
+it("an unnamed 409 says the decision was not recorded rather than blaming the connection", async () => {
+  api.get.mockResolvedValue(baseCard());
+  api.post.mockRejectedValue(new ApiError(409, { error: "not_subject" }));
+  await renderPage();
+  fireEvent.click(await screen.findByRole("button", { name: "Approve this card" }));
+  await screen.findByText("We could not record that decision.");
+});
+
+it("Approve is disabled when the card carries no photo_uuid", async () => {
+  api.get.mockResolvedValue(baseCard({ photo_uuid: null }));
+  await renderPage();
+  const approve = await screen.findByRole("button", { name: "Approve this card" });
+  expect(approve).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Skip this card" })).toBeEnabled();
+  expect(api.post).not.toHaveBeenCalled();
 });
