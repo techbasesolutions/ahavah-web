@@ -61,6 +61,12 @@ describe("spotlight-ref", () => {
       expect(readSpotlightRef()).toBeNull();
     });
 
+    it("accepts a full 32-character receipt (the secrets.token_urlsafe(24) shape the API mints)", () => {
+      const receipt = "R".repeat(32);
+      document.cookie = `${SPOTLIGHT_REF_COOKIE}=${receipt}`;
+      expect(readSpotlightRef()).toBe(receipt);
+    });
+
     it("returns null when the cookie value contains characters outside the key charset", () => {
       document.cookie = `${SPOTLIGHT_REF_COOKIE}=<script>`;
       expect(readSpotlightRef()).toBeNull();
