@@ -27,7 +27,7 @@ import { SPOTLIGHT_COPY } from "@/lib/spotlight-copy";
 //
 // Phase W cutover added `requireVerifiedMatches` (Task 4). The
 // "Related" shortcut block (Blocked users + Account & data) was
-// removed in Task 10 — those have canonical homes on /settings and
+// removed in Task 10, those have canonical homes on /settings and
 // reachable in one tap.
 type BackedKey =
   | "showAge"
@@ -160,7 +160,7 @@ export default function PrivacySettingsPage() {
         if (!cancelled) setCitySet(d.citySet ?? true);
       })
       .catch(() => {
-        // Unknown stays null — the note simply doesn't render.
+        // Unknown stays null, the note simply doesn't render.
       });
     return () => {
       cancelled = true;
@@ -246,7 +246,7 @@ export default function PrivacySettingsPage() {
         </ItemContent>
         <Switch
           checked={toggles[settingKey]}
-          disabled={!privacyLoaded || Boolean(savingKey) || mapSaving}
+          disabled={!privacyLoaded || Boolean(savingKey) || mapSaving || spotlightSaving}
           onCheckedChange={(checked) => void setBacked(settingKey, checked)}
           aria-label={title}
         />
@@ -266,7 +266,7 @@ export default function PrivacySettingsPage() {
 
   const locationCard = (
     <Item variant="muted" className="flex-col items-stretch">
-      {/* Master row — same anatomy as renderPrivacyToggle (live + locked). */}
+      {/* Master row, same anatomy as renderPrivacyToggle (live + locked). */}
       <div className="flex w-full items-center gap-3">
         <ItemContent>
           <ItemTitle className="text-meta text-(--ink)">
@@ -305,7 +305,7 @@ export default function PrivacySettingsPage() {
         </ItemContent>
         <Switch
           checked={toggles.showLocation}
-          disabled={!privacyLoaded || masterLocked || Boolean(savingKey) || mapSaving}
+          disabled={!privacyLoaded || masterLocked || Boolean(savingKey) || mapSaving || spotlightSaving}
           onCheckedChange={
             masterLocked
               ? undefined
@@ -317,7 +317,7 @@ export default function PrivacySettingsPage() {
         />
       </div>
 
-      {/* Child row — sunken fill + L-rule connector from the master row. */}
+      {/* Child row: sunken fill + L-rule connector from the master row. */}
       <div className="relative mt-1 w-full pl-6">
         <span
           aria-hidden
@@ -367,7 +367,7 @@ export default function PrivacySettingsPage() {
           </div>
           <Switch
             checked={showOnMap}
-            disabled={!privacyLoaded || !masterOn || mapSaving || Boolean(savingKey)}
+            disabled={!privacyLoaded || !masterOn || mapSaving || Boolean(savingKey) || spotlightSaving}
             onCheckedChange={
               masterOn ? (checked) => void saveMapVisibility(checked) : undefined
             }
@@ -445,7 +445,7 @@ export default function PrivacySettingsPage() {
               </ItemContent>
               <Switch
                 checked={toggles.requireVerifiedMatches}
-                disabled={!privacyLoaded || Boolean(savingKey) || mapSaving}
+                disabled={!privacyLoaded || Boolean(savingKey) || mapSaving || spotlightSaving}
                 onCheckedChange={(checked) =>
                   void setBacked("requireVerifiedMatches", checked)
                 }
