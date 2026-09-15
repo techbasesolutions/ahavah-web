@@ -1075,6 +1075,21 @@
   }
 }
 /* ------------------------------------------------------------------ */
+/* Spotlight confirm page (Task 4): two values the SOT export defines   */
+/* that have no app token yet: the headline `em`'s accessible light-    */
+/* theme lime (distinct from --color-lime's own light override, which  */
+/* is tuned for solid fills, not foreground text), and the mail row's   */
+/* sunk fill (no --sunk token exists in this file). Both are plain      */
+/* [data-theme] overrides, same technique as .logo-dark/.logo-light     */
+/* above, since Tailwind's dark: variant can't key off [data-theme].    */
+/* ------------------------------------------------------------------ */
+.spotlight-em { color: var(--color-lime); }
+[data-theme="light"] .spotlight-em { color: #4a7a00; }
+
+.spotlight-sunk { background-color: rgba(255, 255, 255, 0.035); }
+[data-theme="light"] .spotlight-sunk { background-color: rgba(15, 11, 31, 0.025); }
+
+/* ------------------------------------------------------------------ */
 /* Field flash — completeness deep-links pulse a lavender ring on the */
 /* exact control they scrolled to (audit 2026-07-20: section-level    */
 /* jumps read as "goes to the wrong place"). Applied transiently by   */
