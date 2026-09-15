@@ -1,6 +1,13 @@
 import type { NextConfig } from "next";
 import createMDX from "@next/mdx";
 
+// Relative, not the "@/" alias: next.config.ts is loaded by Next's own config
+// loader rather than by the app bundle, so tsconfig path aliases are not
+// guaranteed to apply here. The same module is imported by
+// src/app/s/[key]/route.ts, which is the point: the API origin is defined
+// once and referenced twice, never copied.
+import { apiOrigin } from "./src/lib/api-origin";
+
 const nextConfig: NextConfig = {
   // Let .md/.mdx files be processed by the MDX loader. App routes remain
   // .ts/.tsx; content MDX lives outside app/ so these add no extra routes.
@@ -14,7 +21,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/api/:path*",
-        destination: `${process.env.AHAVAH_API_ORIGIN ?? (process.env.NODE_ENV === "development" ? "http://127.0.0.1:5000" : "https://api.ahavah.app")}/:path*`,
+        destination: `${apiOrigin()}/:path*`,
       },
     ];
   },

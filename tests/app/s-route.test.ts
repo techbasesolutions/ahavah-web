@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { GET } from "@/app/s/[key]/route";
+import { apiOrigin } from "@/lib/api-origin";
 
 const RECEIPT = "R".repeat(32);
 
@@ -119,6 +120,43 @@ describe("/s/[key]", () => {
     await GET(new Request("https://ahavah.app/s/abc123?p=twitter"), { params: Promise.resolve({ key: "abc123" }) });
     expect(calledUrl).not.toContain("p=twitter");
     expect(calledUrl).not.toContain("?p=");
+  });
+
+  it("pins cache: no-store on the upstream call", async () => {
+    // A cached 302 would hand one receipt to many visitors: the first sign-up
+    // consumes the single-use receipt and everyone else silently earns no
+    // credit. Uncached is the Next 16 default for route handlers, but this
+    // property is load-bearing, so it is stated on the request and asserted
+    // here rather than inherited.
+    let init: RequestInit | undefined;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_input: string | URL | Request, got?: RequestInit) => {
+        init = got;
+        return upstream({ location: "https://target.example/x" });
+      }),
+    );
+    await GET(new Request("https://ahavah.app/s/abc123"), { params: Promise.resolve({ key: "abc123" }) });
+    expect(init?.cache).toBe("no-store");
+    expect(init?.redirect).toBe("manual");
+  });
+
+  it("calls the origin from the shared api-origin module, the one next.config also imports", async () => {
+    // The route used to repeat next.config.ts's origin expression character
+    // for character. If the two drifted, the direct call would fail, every
+    // click would fall back to the proxy and mint no receipt, and clicks
+    // would keep rising while sign-ups went to zero. Both now reference one
+    // module, and this asserts the route really uses it.
+    let calledUrl = "";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: string | URL | Request) => {
+        calledUrl = String(input);
+        return upstream({ location: "https://target.example/x" });
+      }),
+    );
+    await GET(new Request("https://ahavah.app/s/abc123"), { params: Promise.resolve({ key: "abc123" }) });
+    expect(calledUrl).toBe(`${apiOrigin()}/s/abc123`);
   });
 
   it("sets a 7-day ahavah.spotlight_ref cookie scoped to the whole site", async () => {

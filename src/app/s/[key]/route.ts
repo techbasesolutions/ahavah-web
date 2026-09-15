@@ -13,25 +13,21 @@
 // failing must never leave anyone on an error page. Read
 // node_modules/next/dist/docs for the Route Handler signature and the
 // NextResponse cookies API before changing this.
+//
+// The API origin comes from src/lib/api-origin.ts, the one module
+// next.config.ts's /api rewrite also imports. This file used to repeat that
+// expression character for character while calling next.config the single
+// source of truth, so the two could drift apart with no test and no error
+// to show for it (see that module's own comment for the failure mode).
 import { NextResponse } from "next/server";
 
+import { apiOrigin } from "@/lib/api-origin";
 import { SPOTLIGHT_REF_COOKIE } from "@/lib/spotlight-ref";
 
 const COOKIE_MAX_AGE_SEC = 60 * 60 * 24 * 7; // 7 days
 const RECEIPT_HEADER = "x-spotlight-receipt";
 const UPSTREAM_TIMEOUT_MS = 5000;
 const ALLOWED_PLATFORMS = new Set(["facebook", "instagram"]);
-
-// Mirrors the /api rewrite destination in next.config.ts, the single
-// source of truth for where the Flask API lives. That rewrite is what the
-// browser used to be redirected through; this route calls the same origin
-// directly so it can inspect the response before the browser does.
-function apiOrigin(): string {
-  return (
-    process.env.AHAVAH_API_ORIGIN ??
-    (process.env.NODE_ENV === "development" ? "http://127.0.0.1:5000" : "https://api.ahavah.app")
-  );
-}
 
 // `?p=` names the platform a click came from. Only forward the two values
 // the API records; anything else is noise (or worse) and is dropped here
@@ -70,6 +66,14 @@ export async function GET(req: Request, ctx: { params: Promise<{ key: string }> 
   try {
     const upstream = await fetch(`${apiOrigin()}/s/${encodedKey}${query}`, {
       redirect: "manual",
+      // Stated, not inherited. Route handlers are uncached by default in
+      // Next 16, but a cached 302 here would hand ONE receipt to many
+      // visitors: every one of them would carry the same cookie value, the
+      // first sign-up would consume that single-use receipt and the rest
+      // would silently earn no credit. That property is load-bearing for
+      // attribution, so it is pinned on the request rather than left to a
+      // default a future version or a config option could change.
+      cache: "no-store",
       signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
       // The API classifies bot vs. human off this header (_ua_class in
       // service/campaigns/__init__.py) to decide whether a click ever
