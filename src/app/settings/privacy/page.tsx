@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 
 import { SettingsShell } from "@/components/app/settings-shell";
 import { apiClient } from "@/lib/api-client";
+import { SPOTLIGHT_COPY } from "@/lib/spotlight-copy";
 
 // Backend accepts these fields on PATCH /profile-info as Optional[str]
 // with "Yes" / "No" values. Other privacy toggles previously listed on
@@ -78,6 +79,12 @@ export default function PrivacySettingsPage() {
   const [showOnMap, setShowOnMap] = useState(false);
   const [privacyLoaded, setPrivacyLoaded] = useState(false);
   const [mapSaving, setMapSaving] = useState(false);
+  // Community Spotlight opt-in (Wave 3, Task 3). Off by default; turning it
+  // off runs the withdrawal operation server-side (spec 3.1), so this stays
+  // a plain PATCH like every other row on this page, not a client-side
+  // guess. Not Gold-gated.
+  const [spotlight, setSpotlight] = useState(false);
+  const [spotlightSaving, setSpotlightSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const busy = useRef(false);
@@ -96,6 +103,21 @@ export default function PrivacySettingsPage() {
       setMapSaving(false);
     }
   };
+  const saveSpotlight = async (next: boolean) => {
+    if (busy.current || !privacyLoaded) return;
+    busy.current = true;
+    setSpotlightSaving(true);
+    setSaveError(null);
+    try {
+      await apiClient.patch("/profile-info", { spotlight_opt_in: next });
+      setSpotlight(next);
+    } catch {
+      setSaveError("Could not save. Your previous setting still applies. Please try again.");
+    } finally {
+      busy.current = false;
+      setSpotlightSaving(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -105,6 +127,7 @@ export default function PrivacySettingsPage() {
         if (cancelled) return;
         const extra = p.ahavah_extra as { showOnMap?: boolean; citySet?: boolean } | undefined;
         setShowOnMap(extra?.showOnMap !== false);
+        setSpotlight(p.spotlight_opt_in === true);
         setPrivacyLoaded(true);
         setSaveError(null);
         // Read gold both ways defensively: `has_gold` (Duolicious boolean tied
@@ -366,6 +389,26 @@ export default function PrivacySettingsPage() {
         <section className="flex flex-col gap-2">
           <h2 className="px-3 text-overline text-(--ink-3)">Location</h2>
           <ItemGroup className="gap-1">{locationCard}</ItemGroup>
+        </section>
+
+        <section className="flex flex-col gap-2">
+          <h2 className="px-3 text-overline text-(--ink-3)">{SPOTLIGHT_COPY.privacy.sectionLabel}</h2>
+          <ItemGroup className="gap-1">
+            <Item variant="muted">
+              <ItemContent>
+                <ItemTitle className="text-meta text-(--ink)">{SPOTLIGHT_COPY.privacy.title}</ItemTitle>
+                <ItemDescription className="line-clamp-none text-caption text-(--ink-3)">
+                  {SPOTLIGHT_COPY.privacy.description}
+                </ItemDescription>
+              </ItemContent>
+              <Switch
+                checked={spotlight}
+                disabled={!privacyLoaded || Boolean(savingKey) || mapSaving || spotlightSaving}
+                onCheckedChange={(checked) => void saveSpotlight(checked)}
+                aria-label={SPOTLIGHT_COPY.privacy.title}
+              />
+            </Item>
+          </ItemGroup>
         </section>
 
         <section className="flex flex-col gap-2">
