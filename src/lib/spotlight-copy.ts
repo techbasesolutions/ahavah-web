@@ -61,4 +61,45 @@ export const SPOTLIGHT_COPY = {
       button: "Try again",
     },
   },
+  card: {
+    chip: "Spotlight",
+    default: {
+      headline: "Your Spotlight card is ready.",
+      paragraph:
+        "This is the card we will post on the Ahavah Facebook page and Instagram, with your first name, age and country. Approve it and we schedule it. Skip it and nothing is posted.",
+      imageAlt: "Your Spotlight card",
+      approveButton: "Approve this card",
+      skipButton: "Skip this card",
+      footer: "This page has not changed anything yet.",
+    },
+    approved: {
+      heading: "Approved. We will email you when it is live.",
+      paragraph:
+        "Your card is on its way to the queue. You can turn Spotlight off any time in Settings, Privacy.",
+      link: "Open Settings, Privacy",
+    },
+    skipped: {
+      heading: "Skipped. Nothing will be posted.",
+      paragraph:
+        "You can still be featured later. Turn Spotlight off in Settings, Privacy if you would rather not.",
+      link: "Open Settings, Privacy",
+    },
+    // preview_available: false, or image_url null: the card is not ready
+    // to look at yet. No button, per the brief; there is nothing to do
+    // here but wait for the next email.
+    unavailable: {
+      heading: "Your card is still being prepared.",
+      paragraph: "We will email you again when it is ready to look at.",
+    },
+    // POST 409 approvals_disabled: a temporary operator pause, not the
+    // member's doing. No button, per the brief.
+    paused: {
+      heading: "Approvals are paused for a moment.",
+      paragraph: "Nothing has changed. We will email you when this card can be approved.",
+    },
+    // invalid, expired and error reuse the confirm page states verbatim
+    // (brief Step 1: "the confirm page states with the same copy"), so
+    // this page reads SPOTLIGHT_COPY.confirm.invalid/expired/error rather
+    // than duplicating the strings here.
+  },
 } as const;
