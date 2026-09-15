@@ -1089,6 +1089,23 @@
 .spotlight-sunk { background-color: rgba(255, 255, 255, 0.035); }
 [data-theme="light"] .spotlight-sunk { background-color: rgba(15, 11, 31, 0.025); }
 
+/* Task 5 carry-over fix: the confirm page's ghost pill (Button
+   variant="outline") rendered with no visible outline. The base button
+   class sets `border-transparent`, and the variant's `border-border`
+   utility loses the Tailwind class-merge order against it (both are
+   plain utility classes with equal specificity, so whichever the
+   Tailwind build emits later in the stylesheet wins, regardless of
+   the order the two classes appear in the component's className
+   string). A plain CSS rule declared after Tailwind's own generated
+   utilities in this file always wins the cascade at equal
+   specificity, exactly like .spotlight-em/.spotlight-sunk above, so
+   it isn't at the mercy of that ordering. `var(--border)` is already
+   theme-aware (rgba(255,255,255,0.15) dark / rgba(15,11,31,0.12)
+   light, matching the SOT's `.btn--ghost` 1:1), so no [data-theme]
+   override is needed here. Add this class to any ghost/outline pill
+   on the Spotlight member surfaces (confirm, card). */
+.spotlight-ghost { border: 1px solid var(--border); }
+
 /* ------------------------------------------------------------------ */
 /* Field flash — completeness deep-links pulse a lavender ring on the */
 /* exact control they scrolled to (audit 2026-07-20: section-level    */

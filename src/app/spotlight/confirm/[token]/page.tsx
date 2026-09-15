@@ -255,7 +255,7 @@ export default function SpotlightConfirmPage({
                 setState("loading");
                 setAttempt((a) => a + 1);
               }}
-              className="lg:w-auto lg:self-start lg:px-[34px]"
+              className="spotlight-ghost lg:w-auto lg:self-start lg:px-[34px]"
             >
               {copy.button}
             </Button>
@@ -266,7 +266,11 @@ export default function SpotlightConfirmPage({
               size="cta"
               nativeButton={false}
               render={<Link href={SETTINGS_PRIVACY_HREF} prefetch={false} />}
-              className="lg:w-auto lg:self-start lg:px-[34px]"
+              className={
+                state === "expired"
+                  ? "lg:w-auto lg:self-start lg:px-[34px]"
+                  : "spotlight-ghost lg:w-auto lg:self-start lg:px-[34px]"
+              }
             >
               {copy.button}
             </Button>
