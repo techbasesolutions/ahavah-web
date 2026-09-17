@@ -8,11 +8,16 @@
 
 import { use, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { AlertCircle, Check, ChevronRight, Clock, Mail } from "lucide-react";
+import { AlertCircle, Check, Clock, Mail } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SpotlightShell } from "@/components/app/spotlight-shell";
+import {
+  SETTINGS_PRIVACY_HREF,
+  SpotlightSettingsLink,
+  SpotlightStateBlock,
+} from "@/components/app/spotlight-state-block";
 
 import { apiClient, ApiError } from "@/lib/api-client";
 import { SPOTLIGHT_COPY } from "@/lib/spotlight-copy";
@@ -53,7 +58,6 @@ type ConfirmPostResponse = {
   already: boolean;
 };
 
-const SETTINGS_PRIVACY_HREF = "/settings/privacy";
 const COPY = SPOTLIGHT_COPY.confirm;
 
 // Shared headline treatment (Ultra display face, per the SOT `.ch1`) for
@@ -75,39 +79,6 @@ function ConfirmParagraph({ children }: { children: ReactNode }) {
     <p className="m-0 text-[14.5px] leading-[1.55] text-(--ink-2) lg:max-w-[52ch] lg:text-base">
       {children}
     </p>
-  );
-}
-
-// 60px round badge: lime/18% for the two "done" states (already,
-// success), gold/16% for the two "stop here" states (invalid, expired
-// and the reused error layout). Sized/tinted per the brief; no existing
-// IconBadge tone matches these exact percentages, so this stays a plain
-// span rather than stretching that primitive to fit one page.
-function ConfirmBadge({ tone, children }: { tone: "ok" | "warn"; children: ReactNode }) {
-  return (
-    <span
-      className={
-        tone === "ok"
-          ? "flex size-[60px] shrink-0 items-center justify-center self-start rounded-full bg-(--color-lime)/[0.18] text-(--color-lime)"
-          : "flex size-[60px] shrink-0 items-center justify-center self-start rounded-full bg-(--color-gold)/[0.16] text-(--color-gold)"
-      }
-    >
-      {children}
-    </span>
-  );
-}
-
-// The SOT's `.slink`, a settings deep link used by both "done" states.
-function SettingsLink({ label }: { label: string }) {
-  return (
-    <Link
-      href={SETTINGS_PRIVACY_HREF}
-      prefetch={false}
-      className="inline-flex items-center gap-1.5 self-start text-[14.5px] font-bold text-(--link-accent)"
-    >
-      {label}
-      <ChevronRight size={15} aria-hidden />
-    </Link>
   );
 }
 
@@ -224,14 +195,13 @@ export default function SpotlightConfirmPage({
     const copy = state === "already" ? COPY.already : COPY.success;
     return (
       <SpotlightShell wide={false}>
-        <div className="flex min-h-0 flex-1 flex-col justify-center gap-4 lg:flex-none lg:justify-start lg:gap-5">
-          <ConfirmBadge tone="ok">
-            <Check size={27} strokeWidth={2.8} aria-hidden />
-          </ConfirmBadge>
-          <ConfirmHeading>{copy.heading}</ConfirmHeading>
-          <ConfirmParagraph>{copy.paragraph}</ConfirmParagraph>
-          <SettingsLink label={copy.link} />
-        </div>
+        <SpotlightStateBlock
+          tone="ok"
+          icon={Check}
+          heading={copy.heading}
+          paragraph={copy.paragraph}
+          action={<SpotlightSettingsLink label={copy.link} />}
+        />
       </SpotlightShell>
     );
   }
@@ -239,43 +209,38 @@ export default function SpotlightConfirmPage({
   if (state === "invalid" || state === "expired" || state === "error") {
     const copy = state === "invalid" ? COPY.invalid : state === "expired" ? COPY.expired : COPY.error;
     const Icon = state === "expired" ? Clock : AlertCircle;
+    const action =
+      state === "error" ? (
+        <Button
+          variant="outline"
+          size="cta"
+          onClick={() => {
+            setState("loading");
+            setAttempt((a) => a + 1);
+          }}
+          className="spotlight-ghost lg:w-auto lg:self-start lg:px-[34px]"
+        >
+          {copy.button}
+        </Button>
+      ) : (
+        <Button
+          variant={state === "expired" ? undefined : "outline"}
+          tone={state === "expired" ? "cta" : "none"}
+          size="cta"
+          nativeButton={false}
+          render={<Link href={SETTINGS_PRIVACY_HREF} prefetch={false} />}
+          className={
+            state === "expired"
+              ? "lg:w-auto lg:self-start lg:px-[34px]"
+              : "spotlight-ghost lg:w-auto lg:self-start lg:px-[34px]"
+          }
+        >
+          {copy.button}
+        </Button>
+      );
     return (
       <SpotlightShell wide={false}>
-        <div className="flex min-h-0 flex-1 flex-col justify-center gap-4 lg:flex-none lg:justify-start lg:gap-5">
-          <ConfirmBadge tone="warn">
-            <Icon size={26} strokeWidth={1.9} aria-hidden />
-          </ConfirmBadge>
-          <ConfirmHeading>{copy.heading}</ConfirmHeading>
-          <ConfirmParagraph>{copy.paragraph}</ConfirmParagraph>
-          {state === "error" ? (
-            <Button
-              variant="outline"
-              size="cta"
-              onClick={() => {
-                setState("loading");
-                setAttempt((a) => a + 1);
-              }}
-              className="spotlight-ghost lg:w-auto lg:self-start lg:px-[34px]"
-            >
-              {copy.button}
-            </Button>
-          ) : (
-            <Button
-              variant={state === "expired" ? undefined : "outline"}
-              tone={state === "expired" ? "cta" : "none"}
-              size="cta"
-              nativeButton={false}
-              render={<Link href={SETTINGS_PRIVACY_HREF} prefetch={false} />}
-              className={
-                state === "expired"
-                  ? "lg:w-auto lg:self-start lg:px-[34px]"
-                  : "spotlight-ghost lg:w-auto lg:self-start lg:px-[34px]"
-              }
-            >
-              {copy.button}
-            </Button>
-          )}
-        </div>
+        <SpotlightStateBlock tone="warn" icon={Icon} heading={copy.heading} paragraph={copy.paragraph} action={action} />
       </SpotlightShell>
     );
   }

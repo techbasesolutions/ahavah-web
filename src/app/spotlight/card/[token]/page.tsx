@@ -8,11 +8,16 @@
 
 import { use, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { AlertCircle, Check, ChevronRight, Clock } from "lucide-react";
+import { AlertCircle, Check, Clock } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SpotlightShell } from "@/components/app/spotlight-shell";
+import {
+  SETTINGS_PRIVACY_HREF,
+  SpotlightSettingsLink,
+  SpotlightStateBlock,
+} from "@/components/app/spotlight-state-block";
 
 import { apiClient, ApiError } from "@/lib/api-client";
 import { SPOTLIGHT_COPY } from "@/lib/spotlight-copy";
@@ -83,13 +88,14 @@ type CardPostResponse = {
   revision?: number;
 };
 
-const SETTINGS_PRIVACY_HREF = "/settings/privacy";
 const COPY = SPOTLIGHT_COPY.card;
 const CONFIRM_COPY = SPOTLIGHT_COPY.confirm;
 
 // Shared furniture, same treatment as /spotlight/confirm's local
-// ConfirmHeading/ConfirmParagraph/ConfirmBadge/SettingsLink (kept
-// per-page rather than exported, matching the existing convention there).
+// ConfirmHeading/ConfirmParagraph (kept per-page for the "default"
+// state's own headline/paragraph; every other state now renders through
+// the shared SpotlightStateBlock/SpotlightSettingsLink instead of a
+// per-page badge/link pair).
 function CardHeading({ children }: { children: ReactNode }) {
   return (
     <h1
@@ -106,33 +112,6 @@ function CardParagraph({ children }: { children: ReactNode }) {
     <p className="m-0 text-[14.5px] leading-[1.55] text-(--ink-2) lg:max-w-[52ch] lg:text-base">
       {children}
     </p>
-  );
-}
-
-function CardBadge({ tone, children }: { tone: "ok" | "warn"; children: ReactNode }) {
-  return (
-    <span
-      className={
-        tone === "ok"
-          ? "flex size-[60px] shrink-0 items-center justify-center self-start rounded-full bg-(--color-lime)/[0.18] text-(--color-lime)"
-          : "flex size-[60px] shrink-0 items-center justify-center self-start rounded-full bg-(--color-gold)/[0.16] text-(--color-gold)"
-      }
-    >
-      {children}
-    </span>
-  );
-}
-
-function SettingsLink({ label }: { label: string }) {
-  return (
-    <Link
-      href={SETTINGS_PRIVACY_HREF}
-      prefetch={false}
-      className="inline-flex items-center gap-1.5 self-start text-[14.5px] font-bold text-(--link-accent)"
-    >
-      {label}
-      <ChevronRight size={15} aria-hidden />
-    </Link>
   );
 }
 
@@ -320,14 +299,13 @@ export default function SpotlightCardPage({
     const copy = state === "approved" ? COPY.approved : COPY.skipped;
     return (
       <SpotlightShell wide={false}>
-        <div className="flex min-h-0 flex-1 flex-col justify-center gap-4 lg:flex-none lg:justify-start lg:gap-5">
-          <CardBadge tone="ok">
-            <Check size={27} strokeWidth={2.8} aria-hidden />
-          </CardBadge>
-          <CardHeading>{copy.heading}</CardHeading>
-          <CardParagraph>{copy.paragraph}</CardParagraph>
-          <SettingsLink label={copy.link} />
-        </div>
+        <SpotlightStateBlock
+          tone="ok"
+          icon={Check}
+          heading={copy.heading}
+          paragraph={copy.paragraph}
+          action={<SpotlightSettingsLink label={copy.link} />}
+        />
       </SpotlightShell>
     );
   }
@@ -339,19 +317,14 @@ export default function SpotlightCardPage({
   // "paused" (a temporary operator condition, same icon the confirm
   // page uses for "invalid"). Neither icon choice is specified by the
   // brief or the SOT (no frame exists for this page); flagged in the
-  // task report.
+  // task report. No `action` prop is passed: these are the only two
+  // states where SpotlightStateBlock renders nothing after the paragraph.
   if (state === "unavailable" || state === "paused") {
     const copy = state === "unavailable" ? COPY.unavailable : COPY.paused;
     const Icon = state === "unavailable" ? Clock : AlertCircle;
     return (
       <SpotlightShell wide={false}>
-        <div className="flex min-h-0 flex-1 flex-col justify-center gap-4 lg:flex-none lg:justify-start lg:gap-5">
-          <CardBadge tone="warn">
-            <Icon size={26} strokeWidth={1.9} aria-hidden />
-          </CardBadge>
-          <CardHeading>{copy.heading}</CardHeading>
-          <CardParagraph>{copy.paragraph}</CardParagraph>
-        </div>
+        <SpotlightStateBlock tone="warn" icon={Icon} heading={copy.heading} paragraph={copy.paragraph} />
       </SpotlightShell>
     );
   }
@@ -378,43 +351,37 @@ export default function SpotlightCardPage({
               : CONFIRM_COPY.error;
     const Icon = state === "expired" ? Clock : AlertCircle;
     const retry = state === "error" || state === "photoRejected";
+    const action = retry ? (
+      <Button
+        variant="outline"
+        size="cta"
+        onClick={() => {
+          setState("loading");
+          setAttempt((a) => a + 1);
+        }}
+        className="spotlight-ghost lg:w-auto lg:self-start lg:px-[34px]"
+      >
+        {copy.button}
+      </Button>
+    ) : (
+      <Button
+        variant={state === "expired" ? undefined : "outline"}
+        tone={state === "expired" ? "cta" : "none"}
+        size="cta"
+        nativeButton={false}
+        render={<Link href={SETTINGS_PRIVACY_HREF} prefetch={false} />}
+        className={
+          state === "expired"
+            ? "lg:w-auto lg:self-start lg:px-[34px]"
+            : "spotlight-ghost lg:w-auto lg:self-start lg:px-[34px]"
+        }
+      >
+        {copy.button}
+      </Button>
+    );
     return (
       <SpotlightShell wide={false}>
-        <div className="flex min-h-0 flex-1 flex-col justify-center gap-4 lg:flex-none lg:justify-start lg:gap-5">
-          <CardBadge tone="warn">
-            <Icon size={26} strokeWidth={1.9} aria-hidden />
-          </CardBadge>
-          <CardHeading>{copy.heading}</CardHeading>
-          <CardParagraph>{copy.paragraph}</CardParagraph>
-          {retry ? (
-            <Button
-              variant="outline"
-              size="cta"
-              onClick={() => {
-                setState("loading");
-                setAttempt((a) => a + 1);
-              }}
-              className="spotlight-ghost lg:w-auto lg:self-start lg:px-[34px]"
-            >
-              {copy.button}
-            </Button>
-          ) : (
-            <Button
-              variant={state === "expired" ? undefined : "outline"}
-              tone={state === "expired" ? "cta" : "none"}
-              size="cta"
-              nativeButton={false}
-              render={<Link href={SETTINGS_PRIVACY_HREF} prefetch={false} />}
-              className={
-                state === "expired"
-                  ? "lg:w-auto lg:self-start lg:px-[34px]"
-                  : "spotlight-ghost lg:w-auto lg:self-start lg:px-[34px]"
-              }
-            >
-              {copy.button}
-            </Button>
-          )}
-        </div>
+        <SpotlightStateBlock tone="warn" icon={Icon} heading={copy.heading} paragraph={copy.paragraph} action={action} />
       </SpotlightShell>
     );
   }
