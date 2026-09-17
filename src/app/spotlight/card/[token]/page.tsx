@@ -130,6 +130,19 @@ export default function SpotlightCardPage({
   // so consent binds to the card on screen and never to one rendered
   // after this page read it (Wave 3d Task 2).
   const [revision, setRevision] = useState<number | null>(null);
+  // True once the mounted <img> has finished loading the bytes it is
+  // showing (or was already complete on mount, e.g. served from cache).
+  // Approve must not enable before that: consent is to the image on
+  // screen, and a blank image area is not that (Fix wave item 3). If the
+  // image instead fires `onError`, this simply never becomes true and
+  // Approve stays disabled; no existing state on this page names "the
+  // image failed to load" as distinct from the API errors above, and
+  // this fix does not invent one.
+  // Tracked as the url that finished loading, not a boolean, so a
+  // `new_revision` re-read that swaps in a new url is unloaded by
+  // construction: the previous image's load never carries over.
+  const [loadedUrl, setLoadedUrl] = useState<string | null>(null);
+  const imageLoaded = imageUrl !== null && loadedUrl === imageUrl;
   const [posting, setPosting] = useState(false);
   // Bumped by the error state's "Try again" button, and by a
   // `new_revision` answer, to re-run the GET.
@@ -268,9 +281,17 @@ export default function SpotlightCardPage({
           {imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
+              // An image already complete when it mounts (served from
+              // cache) may never fire its own `load` event.
+              ref={(img) => {
+                if (img && img.complete && img.naturalWidth > 0 && loadedUrl !== imageUrl) {
+                  setLoadedUrl(imageUrl);
+                }
+              }}
               src={imageUrl}
               alt={COPY.default.imageAlt}
               className="aspect-square w-full rounded-[20px] object-cover"
+              onLoad={() => setLoadedUrl(imageUrl)}
             />
           ) : null}
           <div className="flex flex-col gap-3 lg:flex-row">
@@ -279,9 +300,11 @@ export default function SpotlightCardPage({
               tone="cta"
               onClick={() => void handleApprove()}
               // No photo_uuid or no revision means the POST would be
-              // rejected with a 400 before it decided anything, so the
+              // rejected with a 400 before it decided anything, and an
+              // unloaded image means the member has not actually seen
+              // what they would be approving, so in either case the
               // button must not look like it will work.
-              disabled={posting || !photoUuid || revision === null}
+              disabled={posting || !photoUuid || revision === null || !imageLoaded}
               className="lg:w-auto lg:self-start lg:px-[34px]"
             >
               {COPY.default.approveButton}

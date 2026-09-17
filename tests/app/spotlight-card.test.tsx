@@ -75,6 +75,7 @@ it("Approve POSTs the photo_uuid and revision from the GET once and shows the ap
   api.post.mockResolvedValue({ ok: true, result: "approved" });
   await renderPage();
   const button = await screen.findByRole("button", { name: "Approve this card" });
+  fireEvent.load(screen.getByRole("img", { name: "Your Spotlight card" }));
   fireEvent.click(button);
   await screen.findByText("Approved. We will email you when it is live.");
   expect(api.post).toHaveBeenCalledTimes(1);
@@ -103,6 +104,7 @@ it("both buttons are disabled while a decision POST is pending", async () => {
   await renderPage();
   const approve = await screen.findByRole("button", { name: "Approve this card" });
   const skip = screen.getByRole("button", { name: "Skip this card" });
+  fireEvent.load(screen.getByRole("img", { name: "Your Spotlight card" }));
   fireEvent.click(approve);
   await waitFor(() => expect(approve).toBeDisabled());
   expect(skip).toBeDisabled();
@@ -132,6 +134,7 @@ it("renders the paused state when the POST rejects with 409 approvals_disabled",
   api.post.mockRejectedValue(new ApiError(409, { error: "approvals_disabled" }));
   await renderPage();
   const button = await screen.findByRole("button", { name: "Approve this card" });
+  fireEvent.load(screen.getByRole("img", { name: "Your Spotlight card" }));
   fireEvent.click(button);
   await screen.findByText("Approvals are paused for a moment.");
 });
@@ -163,7 +166,9 @@ it("Approve lands on the approved state when the result is approved", async () =
   api.get.mockResolvedValue(baseCard());
   api.post.mockResolvedValue({ ok: true, result: "approved" });
   await renderPage();
-  fireEvent.click(await screen.findByRole("button", { name: "Approve this card" }));
+  await screen.findByRole("button", { name: "Approve this card" });
+  fireEvent.load(screen.getByRole("img", { name: "Your Spotlight card" }));
+  fireEvent.click(screen.getByRole("button", { name: "Approve this card" }));
   await screen.findByText("Approved. We will email you when it is live.");
 });
 
@@ -171,7 +176,9 @@ it("Approve lands on the approved state when the result is already", async () =>
   api.get.mockResolvedValue(baseCard());
   api.post.mockResolvedValue({ ok: true, result: "already" });
   await renderPage();
-  fireEvent.click(await screen.findByRole("button", { name: "Approve this card" }));
+  await screen.findByRole("button", { name: "Approve this card" });
+  fireEvent.load(screen.getByRole("img", { name: "Your Spotlight card" }));
+  fireEvent.click(screen.getByRole("button", { name: "Approve this card" }));
   await screen.findByText("Approved. We will email you when it is live.");
 });
 
@@ -181,25 +188,31 @@ it("a new_revision result re-reads the card and asks again instead of reporting 
     .mockResolvedValue(baseCard({ revision: 2, photo_uuid: "photo-def", image_url: "https://example.com/card-2.png" }));
   api.post.mockResolvedValue({ ok: true, result: "new_revision", revision: 2 });
   await renderPage();
-  fireEvent.click(await screen.findByRole("button", { name: "Approve this card" }));
+  await screen.findByRole("button", { name: "Approve this card" });
+  fireEvent.load(screen.getByRole("img", { name: "Your Spotlight card" }));
+  fireEvent.click(screen.getByRole("button", { name: "Approve this card" }));
   await screen.findByText(
     "This card changed, so nothing has been approved yet. Look at the new one and approve it if you are happy with it.",
   );
   expect(screen.queryByText("Approved. We will email you when it is live.")).not.toBeInTheDocument();
   // The second GET is the re-read, and the new card is what is on screen.
   expect(api.get).toHaveBeenCalledTimes(2);
-  expect(screen.getByRole("img", { name: "Your Spotlight card" })).toHaveAttribute(
-    "src",
-    "https://example.com/card-2.png",
-  );
-  expect(screen.getByRole("button", { name: "Approve this card" })).toBeEnabled();
+  const newImg = screen.getByRole("img", { name: "Your Spotlight card" });
+  expect(newImg).toHaveAttribute("src", "https://example.com/card-2.png");
+  // The re-read mounted a fresh <img>: consent must be to these new bytes,
+  // so Approve is disabled again until this image loads too.
+  expect(screen.getByRole("button", { name: "Approve this card" })).toBeDisabled();
+  fireEvent.load(newImg);
+  await waitFor(() => expect(screen.getByRole("button", { name: "Approve this card" })).toBeEnabled());
 });
 
 it("an unrecognised approve result lands on the error state", async () => {
   api.get.mockResolvedValue(baseCard());
   api.post.mockResolvedValue({ ok: true, result: "something_else" });
   await renderPage();
-  fireEvent.click(await screen.findByRole("button", { name: "Approve this card" }));
+  await screen.findByRole("button", { name: "Approve this card" });
+  fireEvent.load(screen.getByRole("img", { name: "Your Spotlight card" }));
+  fireEvent.click(screen.getByRole("button", { name: "Approve this card" }));
   await screen.findByText("We could not reach Ahavah.");
 });
 
@@ -207,7 +220,9 @@ it("a replayed token that reports already skipped lands on the skipped state", a
   api.get.mockResolvedValue(baseCard());
   api.post.mockResolvedValue({ ok: true, already: true, status: "skipped" });
   await renderPage();
-  fireEvent.click(await screen.findByRole("button", { name: "Approve this card" }));
+  await screen.findByRole("button", { name: "Approve this card" });
+  fireEvent.load(screen.getByRole("img", { name: "Your Spotlight card" }));
+  fireEvent.click(screen.getByRole("button", { name: "Approve this card" }));
   await screen.findByText("Skipped. Nothing will be posted.");
 });
 
@@ -218,7 +233,9 @@ it("a 409 preview_unavailable shows the unavailable copy", async () => {
   api.get.mockResolvedValue(baseCard());
   api.post.mockRejectedValue(new ApiError(409, { error: "preview_unavailable" }));
   await renderPage();
-  fireEvent.click(await screen.findByRole("button", { name: "Approve this card" }));
+  await screen.findByRole("button", { name: "Approve this card" });
+  fireEvent.load(screen.getByRole("img", { name: "Your Spotlight card" }));
+  fireEvent.click(screen.getByRole("button", { name: "Approve this card" }));
   await screen.findByText("Your card is still being prepared.");
 });
 
@@ -226,7 +243,9 @@ it("a 409 photo_not_owned says the photo could not be used", async () => {
   api.get.mockResolvedValue(baseCard());
   api.post.mockRejectedValue(new ApiError(409, { error: "photo_not_owned" }));
   await renderPage();
-  fireEvent.click(await screen.findByRole("button", { name: "Approve this card" }));
+  await screen.findByRole("button", { name: "Approve this card" });
+  fireEvent.load(screen.getByRole("img", { name: "Your Spotlight card" }));
+  fireEvent.click(screen.getByRole("button", { name: "Approve this card" }));
   await screen.findByText("We could not use that photo.");
   expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
 });
@@ -235,7 +254,9 @@ it("a 403 says the decision was not recorded rather than blaming the connection"
   api.get.mockResolvedValue(baseCard());
   api.post.mockRejectedValue(new ApiError(403, { error: "forbidden" }));
   await renderPage();
-  fireEvent.click(await screen.findByRole("button", { name: "Approve this card" }));
+  await screen.findByRole("button", { name: "Approve this card" });
+  fireEvent.load(screen.getByRole("img", { name: "Your Spotlight card" }));
+  fireEvent.click(screen.getByRole("button", { name: "Approve this card" }));
   await screen.findByText("We could not record that decision.");
   expect(screen.queryByText("We could not reach Ahavah.")).not.toBeInTheDocument();
 });
@@ -244,7 +265,9 @@ it("an unnamed 409 says the decision was not recorded rather than blaming the co
   api.get.mockResolvedValue(baseCard());
   api.post.mockRejectedValue(new ApiError(409, { error: "not_subject" }));
   await renderPage();
-  fireEvent.click(await screen.findByRole("button", { name: "Approve this card" }));
+  await screen.findByRole("button", { name: "Approve this card" });
+  fireEvent.load(screen.getByRole("img", { name: "Your Spotlight card" }));
+  fireEvent.click(screen.getByRole("button", { name: "Approve this card" }));
   await screen.findByText("We could not record that decision.");
 });
 
@@ -261,7 +284,9 @@ it("a stale approve shows the new card with the notice, never Approved, and the 
     .mockResolvedValueOnce({ ok: true, result: "new_revision", revision: 2 })
     .mockResolvedValue({ ok: true, result: "approved" });
   await renderPage();
-  fireEvent.click(await screen.findByRole("button", { name: "Approve this card" }));
+  await screen.findByRole("button", { name: "Approve this card" });
+  fireEvent.load(screen.getByRole("img", { name: "Your Spotlight card" }));
+  fireEvent.click(screen.getByRole("button", { name: "Approve this card" }));
   expect(api.post).toHaveBeenLastCalledWith("/spotlight/card/t1", {
     decision: "approve",
     photo_uuid: "photo-abc",
@@ -271,10 +296,11 @@ it("a stale approve shows the new card with the notice, never Approved, and the 
     "This card changed, so nothing has been approved yet. Look at the new one and approve it if you are happy with it.",
   );
   expect(screen.queryByText("Approved. We will email you when it is live.")).not.toBeInTheDocument();
-  expect(screen.getByRole("img", { name: "Your Spotlight card" })).toHaveAttribute(
-    "src",
-    "https://example.com/card-2.png",
-  );
+  const newImg = screen.getByRole("img", { name: "Your Spotlight card" });
+  expect(newImg).toHaveAttribute("src", "https://example.com/card-2.png");
+  expect(screen.getByRole("button", { name: "Approve this card" })).toBeDisabled();
+  fireEvent.load(newImg);
+  await waitFor(() => expect(screen.getByRole("button", { name: "Approve this card" })).toBeEnabled());
   fireEvent.click(screen.getByRole("button", { name: "Approve this card" }));
   await screen.findByText("Approved. We will email you when it is live.");
   expect(api.post).toHaveBeenCalledTimes(2);
@@ -302,4 +328,60 @@ it("Approve is disabled when the card carries no photo_uuid", async () => {
   expect(approve).toBeDisabled();
   expect(screen.getByRole("button", { name: "Skip this card" })).toBeEnabled();
   expect(api.post).not.toHaveBeenCalled();
+});
+
+// Fix wave item 3. Approve used to enable as soon as photo_uuid and
+// revision existed, which is before the browser has painted a single
+// pixel of the image those fields describe. On a slow connection, or
+// right after a `new_revision` re-read unmounts the old <img> and mounts
+// a fresh one, a member could tap Approve while the image area is still
+// blank. Consent must be to the bytes actually shown.
+
+it("Approve is disabled until the card image fires load, then enables", async () => {
+  api.get.mockResolvedValue(baseCard());
+  await renderPage();
+  const approve = await screen.findByRole("button", { name: "Approve this card" });
+  expect(approve).toBeDisabled();
+  expect(api.post).not.toHaveBeenCalled();
+  fireEvent.load(screen.getByRole("img", { name: "Your Spotlight card" }));
+  await waitFor(() => expect(approve).toBeEnabled());
+});
+
+it("after a new_revision re-read, Approve is disabled again until the new image loads", async () => {
+  api.get
+    .mockResolvedValueOnce(baseCard())
+    .mockResolvedValue(baseCard({ revision: 2, image_url: "https://example.com/card-2.png" }));
+  api.post.mockResolvedValue({ ok: true, result: "new_revision", revision: 2 });
+  await renderPage();
+  await screen.findByRole("button", { name: "Approve this card" });
+  fireEvent.load(screen.getByRole("img", { name: "Your Spotlight card" }));
+  const approve = await screen.findByRole("button", { name: "Approve this card" });
+  await waitFor(() => expect(approve).toBeEnabled());
+  fireEvent.click(approve);
+  await screen.findByText(
+    "This card changed, so nothing has been approved yet. Look at the new one and approve it if you are happy with it.",
+  );
+  const newImg = screen.getByRole("img", { name: "Your Spotlight card" });
+  expect(newImg).toHaveAttribute("src", "https://example.com/card-2.png");
+  expect(screen.getByRole("button", { name: "Approve this card" })).toBeDisabled();
+  fireEvent.load(newImg);
+  await waitFor(() => expect(screen.getByRole("button", { name: "Approve this card" })).toBeEnabled());
+});
+
+it("Approve is enabled without a load event when the image is already complete on mount (cached)", async () => {
+  const originalComplete = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, "complete");
+  const originalNaturalWidth = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, "naturalWidth");
+  Object.defineProperty(HTMLImageElement.prototype, "complete", { configurable: true, get: () => true });
+  Object.defineProperty(HTMLImageElement.prototype, "naturalWidth", { configurable: true, get: () => 800 });
+  try {
+    api.get.mockResolvedValue(baseCard());
+    await renderPage();
+    const approve = await screen.findByRole("button", { name: "Approve this card" });
+    await waitFor(() => expect(approve).toBeEnabled());
+  } finally {
+    if (originalComplete) Object.defineProperty(HTMLImageElement.prototype, "complete", originalComplete);
+    if (originalNaturalWidth) {
+      Object.defineProperty(HTMLImageElement.prototype, "naturalWidth", originalNaturalWidth);
+    }
+  }
 });
