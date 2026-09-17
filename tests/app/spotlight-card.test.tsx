@@ -70,7 +70,7 @@ it("renders the default state with the image and both buttons, and never POSTs o
   expect(api.post).not.toHaveBeenCalled();
 });
 
-it("Approve POSTs the photo_uuid from the GET once and shows the approved heading", async () => {
+it("Approve POSTs the photo_uuid and revision from the GET once and shows the approved heading", async () => {
   api.get.mockResolvedValue(baseCard());
   api.post.mockResolvedValue({ ok: true, result: "approved" });
   await renderPage();
@@ -81,6 +81,7 @@ it("Approve POSTs the photo_uuid from the GET once and shows the approved headin
   expect(api.post).toHaveBeenCalledWith("/spotlight/card/t1", {
     decision: "approve",
     photo_uuid: "photo-abc",
+    revision: 1,
   });
 });
 
@@ -245,6 +246,53 @@ it("an unnamed 409 says the decision was not recorded rather than blaming the co
   await renderPage();
   fireEvent.click(await screen.findByRole("button", { name: "Approve this card" }));
   await screen.findByText("We could not record that decision.");
+});
+
+// Wave 3d Task 2: consent binds to the revision on screen. A tab left open
+// on revision 1 while an operator's caption edit rendered revision 2 used
+// to approve revision 2. The POST now names the revision the page showed;
+// the API answers a stale one with `new_revision` and records nothing.
+
+it("a stale approve shows the new card with the notice, never Approved, and the next approve names the new revision", async () => {
+  api.get
+    .mockResolvedValueOnce(baseCard())
+    .mockResolvedValue(baseCard({ revision: 2, image_url: "https://example.com/card-2.png" }));
+  api.post
+    .mockResolvedValueOnce({ ok: true, result: "new_revision", revision: 2 })
+    .mockResolvedValue({ ok: true, result: "approved" });
+  await renderPage();
+  fireEvent.click(await screen.findByRole("button", { name: "Approve this card" }));
+  expect(api.post).toHaveBeenLastCalledWith("/spotlight/card/t1", {
+    decision: "approve",
+    photo_uuid: "photo-abc",
+    revision: 1,
+  });
+  await screen.findByText(
+    "This card changed, so nothing has been approved yet. Look at the new one and approve it if you are happy with it.",
+  );
+  expect(screen.queryByText("Approved. We will email you when it is live.")).not.toBeInTheDocument();
+  expect(screen.getByRole("img", { name: "Your Spotlight card" })).toHaveAttribute(
+    "src",
+    "https://example.com/card-2.png",
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Approve this card" }));
+  await screen.findByText("Approved. We will email you when it is live.");
+  expect(api.post).toHaveBeenCalledTimes(2);
+  expect(api.post).toHaveBeenLastCalledWith("/spotlight/card/t1", {
+    decision: "approve",
+    photo_uuid: "photo-abc",
+    revision: 2,
+  });
+});
+
+it("Approve is disabled when the card carries no revision", async () => {
+  api.get.mockResolvedValue(baseCard({ revision: null }));
+  await renderPage();
+  const approve = await screen.findByRole("button", { name: "Approve this card" });
+  expect(approve).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Skip this card" })).toBeEnabled();
+  fireEvent.click(approve);
+  expect(api.post).not.toHaveBeenCalled();
 });
 
 it("Approve is disabled when the card carries no photo_uuid", async () => {

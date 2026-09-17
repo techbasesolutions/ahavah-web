@@ -36,10 +36,12 @@ import { SPOTLIGHT_COPY } from "@/lib/spotlight-copy";
  *       revision, preview_available, image_url, status: 'approved' |
  *       'skipped' | 'awaiting_member', expires_at, stale }
  *     400 invalid_token, 404 not found (treated as invalid), 410 expired
- *   POST /spotlight/card/<token> { decision: 'approve', photo_uuid } ->
+ *   POST /spotlight/card/<token> { decision: 'approve', photo_uuid, revision } ->
  *     { ok, result: 'approved' | 'already' | 'new_revision' } or
  *     { ok, already, status }. 'new_revision' is NOT a decision: the
- *     server made a different card and is waiting to be asked again.
+ *     server made a different card, or the revision named is no longer
+ *     the current one, and is waiting to be asked again. A missing or
+ *     non-integer revision is a 400.
  *   POST /spotlight/card/<token> { decision: 'skip' } -> { ok }
  *     409 { error: 'approvals_disabled' } -> paused,
  *     409 { error: 'preview_unavailable' } -> unavailable,
@@ -72,7 +74,7 @@ type CardGetResponse = {
   caption: string;
   photos: { uuid: string; url: string }[] | null;
   photo_uuid: string | null;
-  revision: number;
+  revision: number | null;
   preview_available: boolean;
   image_url: string | null;
   status: "approved" | "skipped" | "awaiting_member";
@@ -124,6 +126,10 @@ export default function SpotlightCardPage({
   const [state, setState] = useState<CardState>("loading");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [photoUuid, setPhotoUuid] = useState<string | null>(null);
+  // The revision the rendered card belongs to. The approve POST names it,
+  // so consent binds to the card on screen and never to one rendered
+  // after this page read it (Wave 3d Task 2).
+  const [revision, setRevision] = useState<number | null>(null);
   const [posting, setPosting] = useState(false);
   // Bumped by the error state's "Try again" button, and by a
   // `new_revision` answer, to re-run the GET.
@@ -150,6 +156,7 @@ export default function SpotlightCardPage({
         } else {
           setImageUrl(result.image_url);
           setPhotoUuid(result.photo_uuid);
+          setRevision(Number.isInteger(result.revision) ? result.revision : null);
           setState("default");
         }
       } catch (err) {
@@ -192,16 +199,18 @@ export default function SpotlightCardPage({
   }
 
   const handleApprove = async () => {
-    if (posting || !photoUuid) return;
+    if (posting || !photoUuid || revision === null) return;
     setPosting(true);
     try {
       const result = await apiClient.post<CardPostResponse>(`/spotlight/card/${token}`, {
         decision: "approve",
         photo_uuid: photoUuid,
+        revision,
       });
       // Branch on `result` explicitly. `approved` and `already` both mean
       // the consent is on record. `new_revision` means the opposite: the
-      // server made a different card and recorded nothing, so re-run the
+      // server made a different card (or the card on screen is no longer
+      // the current revision) and recorded nothing, so re-run the
       // GET and ask the member about the card that came back rather than
       // telling them it is approved. The `{ ok, already, status }` shape
       // (a replayed token) is the only other answer the API gives; any
@@ -269,10 +278,10 @@ export default function SpotlightCardPage({
               size="cta"
               tone="cta"
               onClick={() => void handleApprove()}
-              // No photo_uuid means the POST would be rejected with a 400
-              // before it decided anything, so the button must not look
-              // like it will work.
-              disabled={posting || !photoUuid}
+              // No photo_uuid or no revision means the POST would be
+              // rejected with a 400 before it decided anything, so the
+              // button must not look like it will work.
+              disabled={posting || !photoUuid || revision === null}
               className="lg:w-auto lg:self-start lg:px-[34px]"
             >
               {COPY.default.approveButton}
